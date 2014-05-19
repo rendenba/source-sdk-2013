@@ -9,6 +9,7 @@
 #include "globalstate.h"
 #include "game.h"
 #include "gamerules.h"
+#include "hl2mp_gamerules.h"
 #include "trains.h"
 #include "basehlcombatweapon_shared.h"
 #include "vcollide_parse.h"
@@ -86,9 +87,10 @@ ConVar hl2_sprintspeed( "hl2_sprintspeed", "320" );
 ConVar hl2_darkness_flashlight_factor ( "hl2_darkness_flashlight_factor", "1" );
 
 #ifdef HL2MP
-	#define	HL2_WALK_SPEED 150
-	#define	HL2_NORM_SPEED 190
-	#define	HL2_SPRINT_SPEED 320
+//BB: redefined in basemultiplayerplayer via gamerules.h
+	//#define	HL2_WALK_SPEED 150
+	//#define	HL2_NORM_SPEED 190
+	//#define	HL2_SPRINT_SPEED 320
 #else
 	#define	HL2_WALK_SPEED hl2_walkspeed.GetFloat()
 	#define	HL2_NORM_SPEED hl2_normspeed.GetFloat()
@@ -1193,6 +1195,8 @@ void CHL2_Player::StartAutoSprint()
 //-----------------------------------------------------------------------------
 void CHL2_Player::StartSprinting( void )
 {
+	//BB: ignore this for now... we don't do sprinting
+	return;
 	if( m_HL2Local.m_flSuitPower < 10 )
 	{
 		// Don't sprint unless there's a reasonable
@@ -1245,6 +1249,8 @@ void CHL2_Player::StopSprinting( void )
 		m_bIsAutoSprinting = false;
 		m_fAutoSprintMinTime = 0.0f;
 	}
+
+	ComputeSpeed();
 }
 
 
@@ -1262,12 +1268,27 @@ void CHL2_Player::EnableSprint( bool bEnable )
 	m_bSprintEnabled = bEnable;
 }
 
+void CHL2_Player::ComputeSpeed( void )
+{
+	int speed = HL2_WALK_SPEED;
+	if (GetTeamNumber() == TEAM_COMBINE)
+	{
+		speed = HL2_NORMAL_SPEED;
+	}
+	else if (GetTeamNumber() == TEAM_REBELS)
+	{
+		speed = HL2_FAST_SPEED;
+	}
+
+	SetMaxSpeed( speed );
+}
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 void CHL2_Player::StartWalking( void )
 {
-	SetMaxSpeed( HL2_WALK_SPEED );
+	ComputeSpeed();
+	//SetMaxSpeed( HL2_WALK_SPEED );
 	m_fIsWalking = true;
 }
 
@@ -1275,7 +1296,8 @@ void CHL2_Player::StartWalking( void )
 //-----------------------------------------------------------------------------
 void CHL2_Player::StopWalking( void )
 {
-	SetMaxSpeed( HL2_NORM_SPEED );
+	ComputeSpeed();
+	//SetMaxSpeed( HL2_NORM_SPEED );
 	m_fIsWalking = false;
 }
 
@@ -1312,6 +1334,9 @@ void CHL2_Player::ToggleZoom(void)
 //-----------------------------------------------------------------------------
 void CHL2_Player::StartZooming( void )
 {
+	//BB: No zooming for now (Deadeye only)
+	return;
+
 	int iFOV = 25;
 	if ( SetFOV( this, iFOV, 0.4f ) )
 	{

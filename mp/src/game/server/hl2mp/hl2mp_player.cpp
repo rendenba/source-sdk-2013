@@ -43,6 +43,8 @@ LINK_ENTITY_TO_CLASS( info_player_combine, CPointEntity );
 LINK_ENTITY_TO_CLASS( info_player_rebel, CPointEntity );
 
 IMPLEMENT_SERVERCLASS_ST(CHL2MP_Player, DT_HL2MP_Player)
+	SendPropInt( SENDINFO(m_iExp)),
+	SendPropInt( SENDINFO(m_iLevel)),
 	SendPropAngle( SENDINFO_VECTORELEM(m_angEyeAngles, 0), 11, SPROP_CHANGES_OFTEN ),
 	SendPropAngle( SENDINFO_VECTORELEM(m_angEyeAngles, 1), 11, SPROP_CHANGES_OFTEN ),
 	SendPropEHandle( SENDINFO( m_hRagdoll ) ),
@@ -99,6 +101,9 @@ const char *g_ppszRandomCombineModels[] =
 CHL2MP_Player::CHL2MP_Player() : m_PlayerAnimState( this )
 {
 	m_angEyeAngles.Init();
+
+	m_iExp = 0;
+	m_iLevel = 1;
 
 	m_iLastWeaponFireUsercmd = 0;
 

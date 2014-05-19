@@ -23,6 +23,8 @@
 LINK_ENTITY_TO_CLASS( player, C_HL2MP_Player );
 
 IMPLEMENT_CLIENTCLASS_DT(C_HL2MP_Player, DT_HL2MP_Player, CHL2MP_Player)
+	RecvPropInt( RECVINFO( m_iExp ) ),
+	RecvPropInt( RECVINFO( m_iLevel) ),
 	RecvPropFloat( RECVINFO( m_angEyeAngles[0] ) ),
 	RecvPropFloat( RECVINFO( m_angEyeAngles[1] ) ),
 	RecvPropEHandle( RECVINFO( m_hRagdoll ) ),

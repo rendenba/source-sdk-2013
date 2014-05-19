@@ -109,6 +109,8 @@ public:
 
 	void				DrawDebugGeometryOverlays(void);
 
+	void				ComputeSpeed( void );
+
 	virtual Vector		EyeDirection2D( void );
 	virtual Vector		EyeDirection3D( void );
 

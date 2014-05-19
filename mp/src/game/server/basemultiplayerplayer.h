@@ -8,6 +8,26 @@
 #include "player.h"
 #include "ai_speech.h"
 
+#define PLAYER_CLASS_UNDEFINED	-1
+#define PLAYER_CLASS_NORMAL		1
+#define PLAYER_CLASS_SCOUT		2
+#define PLAYER_CLASS_HEAVY		3
+#define PLAYER_CLASS_FISHER		4
+#define PLAYER_CLASS_SARGE		5
+
+#define	HL2_WALK_SPEED 120
+#define	HL2_NORMAL_SPEED 190
+#define HL2_SARGE_SPEED 200
+#define	HL2_NORM_SPEED 210
+#define HL2_SCOUT_SPEED 250
+#define HL2_FAST_SPEED 320//400//650
+#define	HL2_SPRINT_SPEED 320
+#define HL2_HEAVY_SPEED 190
+#define HL2_FISHER_SPEED 220
+#define HL2_GORE_SPEED 190
+#define HL2_DEGEN_SPEED 150
+#define HL2_NITRO_SPEED 800
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------

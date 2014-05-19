@@ -148,6 +148,10 @@ private:
 	CNetworkVar( int, m_iSpawnInterpCounter );
 	CNetworkVar( int, m_iPlayerSoundType );
 
+	//BB: Experience variables
+	CNetworkVar( int, m_iExp);
+	CNetworkVar( int, m_iLevel);
+
 	float m_flNextModelChangeTime;
 	float m_flNextTeamChangeTime;
 

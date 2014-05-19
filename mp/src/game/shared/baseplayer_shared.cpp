@@ -656,6 +656,10 @@ void CBasePlayer::UpdateStepSound( surfacedata_t *psurface, const Vector &vecOri
 		fvol *= 0.65;
 	}
 
+	//BB: no vampire footsteps
+	if (GetTeamNumber() == 3) //TEAM_REBELS = 3
+		return;
+
 	PlayStepSound( feet, psurface, fvol, false );
 }
 

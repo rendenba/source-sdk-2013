@@ -98,6 +98,10 @@ private:
 
 	EHANDLE	m_hRagdoll;
 
+	//BB: Experience variables
+	int m_iExp;
+	int m_iLevel;
+
 	int	m_headYawPoseParam;
 	int	m_headPitchPoseParam;
 	float m_headYawMin;

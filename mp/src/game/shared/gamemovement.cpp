@@ -14,6 +14,7 @@
 #include "decals.h"
 #include "coordsize.h"
 #include "rumble_shared.h"
+#include "hl2mp_gamerules.h"
 
 #if defined(HL2_DLL) || defined(HL2_CLIENT_DLL)
 	#include "hl_movedata.h"
@@ -2461,7 +2462,7 @@ bool CGameMovement::CheckJumpButton( void )
 	}
 	else
 	{
-		mv->m_vecVelocity[2] += flGroundFactor * flMul;  // 2 * gravity * height
+		mv->m_vecVelocity[2] += 2.0f*flGroundFactor * flMul;  // 2 * gravity * height
 	}
 
 	// Add a little forward velocity based on your current forward velocity - if you are not sprinting.
@@ -3934,7 +3935,11 @@ void CGameMovement::CheckFalling( void )
 				//
 				// If they hit the ground going this fast they may take damage (and die).
 				//
-				bAlive = MoveHelper( )->PlayerFallingDamage();
+				//BB: only combine takes falling damage
+				if (player->GetTeamNumber() == TEAM_COMBINE)
+				{
+					bAlive = MoveHelper( )->PlayerFallingDamage();
+				}
 				fvol = 1.0;
 			}
 			else if ( player->m_Local.m_flFallVelocity > PLAYER_MAX_SAFE_FALL_SPEED / 2 )

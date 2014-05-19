@@ -838,8 +838,9 @@ int CHL2MPRules::PlayerRelationship( CBaseEntity *pPlayer, CBaseEntity *pTarget 
 
 const char *CHL2MPRules::GetGameDescription( void )
 { 
+	//BB: always teamplay... always Coven
 	if ( IsTeamplay() )
-		return "Team Deathmatch"; 
+		return "Coven"; 
 
 	return "Deathmatch"; 
 } 

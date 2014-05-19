@@ -143,7 +143,8 @@ public:
 	void PlayerKilled( CBasePlayer *pVictim, const CTakeDamageInfo &info );
 
 	
-	bool	IsTeamplay( void ) { return m_bTeamPlayEnabled;	}
+	//BB: we always want to force teamplay
+	bool	IsTeamplay( void ) { return true;	}
 	void	CheckAllPlayersReady( void );
 
 	virtual bool IsConnectedUserInfoChangeAllowed( CBasePlayer *pPlayer );
