@@ -43,7 +43,7 @@ LINK_ENTITY_TO_CLASS( info_player_combine, CPointEntity );
 LINK_ENTITY_TO_CLASS( info_player_rebel, CPointEntity );
 
 IMPLEMENT_SERVERCLASS_ST(CHL2MP_Player, DT_HL2MP_Player)
-	SendPropInt( SENDINFO(m_iExp)),
+	SendPropInt( SENDINFO(m_iClass), 4 ),
 	SendPropInt( SENDINFO(m_iLevel)),
 	SendPropAngle( SENDINFO_VECTORELEM(m_angEyeAngles, 0), 11, SPROP_CHANGES_OFTEN ),
 	SendPropAngle( SENDINFO_VECTORELEM(m_angEyeAngles, 1), 11, SPROP_CHANGES_OFTEN ),
@@ -98,11 +98,28 @@ const char *g_ppszRandomCombineModels[] =
 
 #pragma warning( disable : 4355 )
 
+CON_COMMAND( chooseclass, "Opens a menu for class choose" )
+{
+	CHL2MP_Player *pPlayer = ToHL2MPPlayer( UTIL_GetCommandClient() );
+	if (!pPlayer)
+		return;
+
+	pPlayer->ShowViewPortPanel("team", false, NULL);
+
+	if (pPlayer->GetTeamNumber() == TEAM_COMBINE)
+	{
+		pPlayer->ShowViewPortPanel( "class", true, NULL );
+	}
+	else
+	{
+		pPlayer->ShowViewPortPanel( "class2", true, NULL );
+	}
+}
+
 CHL2MP_Player::CHL2MP_Player() : m_PlayerAnimState( this )
 {
 	m_angEyeAngles.Init();
 
-	m_iExp = 0;
 	m_iLevel = 1;
 
 	m_iLastWeaponFireUsercmd = 0;
@@ -295,7 +312,8 @@ void CHL2MP_Player::Spawn(void)
 	m_flNextModelChangeTime = 0.0f;
 	m_flNextTeamChangeTime = 0.0f;
 
-	PickDefaultSpawnTeam();
+	//BB: We don't do things this way
+	//PickDefaultSpawnTeam();
 
 	BaseClass::Spawn();
 	

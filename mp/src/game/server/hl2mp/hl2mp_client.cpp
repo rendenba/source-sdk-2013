@@ -41,7 +41,9 @@ extern bool			g_fGameOver;
 void FinishClientPutInServer( CHL2MP_Player *pPlayer )
 {
 	pPlayer->InitialSpawn();
-	pPlayer->Spawn();
+	//BB: we dont want players to spawn immediately when joining the server, we want them to auto spectate
+	//pPlayer->Spawn();
+	pPlayer->ChangeTeam( TEAM_SPECTATOR );
 
 
 	char sName[128];
@@ -72,6 +74,8 @@ void FinishClientPutInServer( CHL2MP_Player *pPlayer )
 	data->SetString( "msg",	"motd" );		// use this stringtable entry
 	data->SetBool( "unload", sv_motd_unload_on_dismissal.GetBool() );
 
+	//BB: Display the team selection panel...
+	pPlayer->ShowViewPortPanel( PANEL_TEAM, true, data );
 	pPlayer->ShowViewPortPanel( PANEL_INFO, true, data );
 
 	data->deleteThis();

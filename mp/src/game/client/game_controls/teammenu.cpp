@@ -86,7 +86,7 @@ CTeamMenu::CTeamMenu(IViewPort *pViewPort) : Frame(NULL, PANEL_TEAM )
 	SetProportional(true);
 
 	// info window about this map
-	m_pMapInfo = new RichText( this, "MapInfo" );
+	//m_pMapInfo = new RichText( this, "MapInfo" );
 
 #if defined( ENABLE_HTML_WINDOW )
 	m_pMapInfoHTML = new HTML( this, "MapInfoHTML");
@@ -95,7 +95,20 @@ CTeamMenu::CTeamMenu(IViewPort *pViewPort) : Frame(NULL, PANEL_TEAM )
 	LoadControlSettings("Resource/UI/TeamMenu.res");
 	InvalidateLayout();
 
-	m_szMapName[0] = 0;
+	//m_szMapName[0] = 0;
+}
+
+void CTeamMenu::PerformLayout()
+{
+	int w,h;
+	GetHudSize(w, h);
+	
+	// fill the screen
+	SetBounds(0,0,w,h);
+
+	// stretch the bottom bar across the screen
+	//m_pBottomBarBlank->GetPos(x,y);
+	//m_pBottomBarBlank->SetSize( w, h - y );
 }
 
 //-----------------------------------------------------------------------------
@@ -105,18 +118,29 @@ CTeamMenu::~CTeamMenu()
 {
 }
 
+void CTeamMenu::OnCommand( const char *command )
+{
+	if ( Q_stricmp( command, "vguicancel" ) )
+	{
+		engine->ClientCmd( const_cast<char *>( command ) );
+	}
+	Close();
+	gViewPortInterface->ShowBackGround( false );
+	BaseClass::OnCommand(command);
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: sets the text color of the map description field
 //-----------------------------------------------------------------------------
 void CTeamMenu::ApplySchemeSettings(IScheme *pScheme)
 {
 	BaseClass::ApplySchemeSettings(pScheme);
-	m_pMapInfo->SetFgColor( pScheme->GetColor("MapDescriptionText", Color(255, 255, 255, 0)) );
+	//m_pMapInfo->SetFgColor( pScheme->GetColor("MapDescriptionText", Color(255, 255, 255, 0)) );
 
-	if ( *m_szMapName )
-	{
-		LoadMapPage( m_szMapName ); // reload the map description to pick up the color
-	}
+	//if ( *m_szMapName )
+	//{
+	//	LoadMapPage( m_szMapName ); // reload the map description to pick up the color
+	//}
 }
 
 //-----------------------------------------------------------------------------
@@ -170,19 +194,19 @@ void CTeamMenu::ShowPanel(bool bShow)
 //-----------------------------------------------------------------------------
 void CTeamMenu::Update()
 {
-	char mapname[MAX_MAP_NAME];
+	//char mapname[MAX_MAP_NAME];
 
-	Q_FileBase( engine->GetLevelName(), mapname, sizeof(mapname) );
+	//Q_FileBase( engine->GetLevelName(), mapname, sizeof(mapname) );
 
-	SetLabelText( "mapname", mapname );
+	//SetLabelText( "mapname", mapname );
 
-	LoadMapPage( mapname );
+	//LoadMapPage( mapname );
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: chooses and loads the text page to display that describes mapName map
 //-----------------------------------------------------------------------------
-void CTeamMenu::LoadMapPage( const char *mapName )
+/*void CTeamMenu::LoadMapPage( const char *mapName )
 {
 	// Save off the map name so we can re-load the page in ApplySchemeSettings().
 	Q_strncpy( m_szMapName, mapName, strlen( mapName ) + 1 );
@@ -311,7 +335,7 @@ void CTeamMenu::LoadMapPage( const char *mapName )
 
 	InvalidateLayout();
 	Repaint();
-}
+}*/
 
 /*
 //-----------------------------------------------------------------------------
@@ -394,48 +418,24 @@ void CTeamMenu::SetLabelText(const char *textEntryName, const char *text)
 
 void CTeamMenu::OnKeyCodePressed(KeyCode code)
 {
-	int nDir = 0;
-
-	switch ( code )
+	if (code == KEY_1 || code == KEY_PAD_1)
 	{
-	case KEY_XBUTTON_UP:
-	case KEY_XSTICK1_UP:
-	case KEY_XSTICK2_UP:
-	case KEY_UP:
-	case KEY_XBUTTON_LEFT:
-	case KEY_XSTICK1_LEFT:
-	case KEY_XSTICK2_LEFT:
-	case KEY_LEFT:
-		nDir = -1;
-		break;
-
-	case KEY_XBUTTON_DOWN:
-	case KEY_XSTICK1_DOWN:
-	case KEY_XSTICK2_DOWN:
-	case KEY_DOWN:
-	case KEY_XBUTTON_RIGHT:
-	case KEY_XSTICK1_RIGHT:
-	case KEY_XSTICK2_RIGHT:
-	case KEY_RIGHT:
-		nDir = 1;
-		break;
+		ShowPanel(false);
+		engine->ClientCmd("jointeam 2");
 	}
-
-	if ( m_iScoreBoardKey != BUTTON_CODE_INVALID && m_iScoreBoardKey == code )
+	else if (code == KEY_2 || code == KEY_PAD_2)
+	{
+		ShowPanel(false);
+		engine->ClientCmd("jointeam 3");
+	}
+	else if( m_iJumpKey != BUTTON_CODE_INVALID && m_iJumpKey == code )
+	{
+		AutoAssign();
+	}
+	else if ( m_iScoreBoardKey != BUTTON_CODE_INVALID && m_iScoreBoardKey == code )
 	{
 		gViewPortInterface->ShowPanel( PANEL_SCOREBOARD, true );
 		gViewPortInterface->PostMessageToPanel( PANEL_SCOREBOARD, new KeyValues( "PollHideCode", "code", code ) );
-	}
-	else if ( nDir != 0 )
-	{
-		CUtlSortVector< SortedPanel_t, CSortedPanelYLess > vecSortedButtons;
-		VguiPanelGetSortedChildButtonList( this, (void*)&vecSortedButtons, "&", 0 );
-
-		if ( VguiPanelNavigateSortedChildButtonList( (void*)&vecSortedButtons, nDir ) != -1 )
-		{
-			// Handled!
-			return;
-		}
 	}
 	else
 	{
