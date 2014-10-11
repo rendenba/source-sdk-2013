@@ -127,11 +127,6 @@ public:
 		}
 	}
 
-	void ChangePanel(vgui::RichText *text)
-	{
-		m_pPanel = text;
-	}
-
 	virtual void OnCursorEntered() 
 	{
 		BaseClass::OnCursorEntered();

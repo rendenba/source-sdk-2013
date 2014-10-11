@@ -109,8 +109,6 @@ public:
 
 	void				DrawDebugGeometryOverlays(void);
 
-	void				ComputeSpeed( void );
-
 	virtual Vector		EyeDirection2D( void );
 	virtual Vector		EyeDirection3D( void );
 
@@ -168,6 +166,7 @@ public:
 	void StartAutoSprint( void );
 	void StartSprinting( void );
 	void StopSprinting( void );
+	void ComputeSpeed( void );
 	void InitSprinting( void );
 	bool IsSprinting( void ) { return m_fIsSprinting; }
 	bool CanSprint( void );
@@ -285,6 +284,8 @@ public:
 
 	CSoundPatch *m_sndLeeches;
 	CSoundPatch *m_sndWaterSplashes;
+
+	CNetworkVar( int, covenClassID );
 
 protected:
 	virtual void		PreThink( void );

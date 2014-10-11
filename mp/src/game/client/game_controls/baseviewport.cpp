@@ -35,6 +35,7 @@
 #include "clientscoreboarddialog.h"
 #include "spectatorgui.h"
 #include "teammenu.h"
+#include "classmenu.h"
 #include "vguitextwindow.h"
 #include "IGameUIFuncs.h"
 #include "mapoverview.h"
@@ -281,6 +282,10 @@ IViewPortPanel* CBaseViewport::CreatePanelByName(const char *szPanelName)
 	else if ( Q_strcmp(PANEL_TEAM, szPanelName) == 0 )
 	{
 		newpanel = new CTeamMenu( this );
+	}
+	else if ( Q_strcmp(PANEL_CLASS, szPanelName) == 0 )
+	{
+		newpanel = new CClassMenu( this );
 	}
 	else if ( Q_strcmp(PANEL_SPECMENU, szPanelName) == 0 )
 	{

@@ -54,9 +54,8 @@ public:
 
 protected:
 
-	virtual void PerformLayout( void );
 	virtual vgui::Panel *CreateControlByName(const char *controlName);
-	virtual MouseOverPanelButton* CreateNewMouseOverPanelButton(vgui::RichText *panel);
+	virtual MouseOverPanelButton* CreateNewMouseOverPanelButton(vgui::EditablePanel *panel);
 
 	//vgui2 overrides
 	virtual void OnKeyCodePressed(vgui::KeyCode code);
@@ -71,7 +70,7 @@ protected:
 	IViewPort	*m_pViewPort;
 	ButtonCode_t m_iScoreBoardKey;
 	int			m_iTeam;
-	vgui::RichText *m_pPanel;
+	vgui::EditablePanel *m_pPanel;
 
 	CUtlVector< MouseOverPanelButton * > m_mouseoverButtons;
 };

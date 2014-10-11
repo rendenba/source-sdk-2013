@@ -12,7 +12,6 @@
 #include "gamerules.h"
 #include "hl2mp_player_shared.h"
 #include "predicted_viewmodel.h"
-#include "viewport_panel_names.h"
 #include "in_buttons.h"
 #include "hl2mp_gamerules.h"
 #include "KeyValues.h"
@@ -173,40 +172,11 @@ void CHL2MP_Player::Precache( void )
 	for ( i = 0; i < nHeads; ++i )
 	   	 PrecacheModel( g_ppszRandomCombineModels[i] );
 
-	PrecacheModel("models/breen.mdl");
-	PrecacheModel("models/mossman.mdl");
-	PrecacheModel("models/gman.mdl");
-	PrecacheModel("models/Sargexx_Soldier.mdl");
-	PrecacheModel("models/Brdeg.mdl");
-	PrecacheModel("models/Humans/Group01/male_01.mdl");
-	PrecacheModel("models/Humans/Group01/male_02.mdl");
-	PrecacheModel("models/Humans/Group01/male_03.mdl");
-	PrecacheModel("models/Humans/Group01/male_04.mdl");
-	PrecacheModel("models/Humans/Group01/male_05.mdl");
-	PrecacheModel("models/Humans/Group01/male_06.mdl");
-	PrecacheModel("models/Humans/Group01/male_07.mdl");
-	PrecacheModel("models/Humans/Group01/male_08.mdl");
-	PrecacheModel("models/Humans/Group01/male_09.mdl");
-	PrecacheModel("models/Humans/Group01/female_01.mdl");
-	PrecacheModel("models/Humans/Group01/female_02.mdl");
-	PrecacheModel("models/Humans/Group01/female_03.mdl");
-	PrecacheModel("models/Humans/Group01/female_04.mdl");
-	PrecacheModel("models/Humans/Group01/female_06.mdl");
-	PrecacheModel("models/Humans/Group01/female_07.mdl");
-
 	PrecacheFootStepSounds();
 
-	PrecacheScriptSound( "HL2Player.Sweet" );
-	PrecacheScriptSound( "Weapon_Mortar.Impact" );
-	PrecacheScriptSound( "Leap.Impact" );
-	PrecacheScriptSound( "Stake.Taunt" );
-	PrecacheScriptSound( "Leap.Detect" );
-	PrecacheScriptSound( "Vampire.Regen" );
 	PrecacheScriptSound( "NPC_MetroPolice.Die" );
 	PrecacheScriptSound( "NPC_CombineS.Die" );
 	PrecacheScriptSound( "NPC_Citizen.die" );
-	PrecacheScriptSound( "Resurrect" );
-	PrecacheScriptSound( "Resurrect.Finish" );
 }
 
 void CHL2MP_Player::GiveAllItems( void )
@@ -250,29 +220,25 @@ void CHL2MP_Player::GiveDefaultItems( void )
 {
 	EquipSuit();
 
-	if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+	CBasePlayer::GiveAmmo( 255,	"Pistol");
+	CBasePlayer::GiveAmmo( 45,	"SMG1");
+	CBasePlayer::GiveAmmo( 1,	"grenade" );
+	CBasePlayer::GiveAmmo( 6,	"Buckshot");
+	CBasePlayer::GiveAmmo( 6,	"357" );
+
+	if ( GetPlayerModelType() == PLAYER_SOUNDS_METROPOLICE || GetPlayerModelType() == PLAYER_SOUNDS_COMBINESOLDIER )
 	{
-		switch (covenClassID)
-		{
-		case COVEN_CLASSID_AVENGER:
-			CBasePlayer::GiveAmmo( 45,	"SMG1");
-			GiveNamedItem( "weapon_smg1" );
-			break;
-		case COVEN_CLASSID_REAVER:
-			CBasePlayer::GiveAmmo( 16,	"Shotgun");
-			GiveNamedItem( "weapon_shotgun" );
-			break;
-		case COVEN_CLASSID_HELLION:
-			CBasePlayer::GiveAmmo( 255,	"Pistol");
-			GiveNamedItem( "weapon_pistol" );
-		default:
-			break;
-		}
+		GiveNamedItem( "weapon_stunstick" );
 	}
-	else if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+	else if ( GetPlayerModelType() == PLAYER_SOUNDS_CITIZEN )
 	{
 		GiveNamedItem( "weapon_crowbar" );
 	}
+	
+	GiveNamedItem( "weapon_pistol" );
+	GiveNamedItem( "weapon_smg1" );
+	GiveNamedItem( "weapon_frag" );
+	GiveNamedItem( "weapon_physcannon" );
 
 	const char *szDefaultWeaponName = engine->GetClientConVarValue( engine->IndexOfEdict( edict() ), "cl_defaultweapon" );
 
@@ -397,75 +363,27 @@ void CHL2MP_Player::PickupObject( CBaseEntity *pObject, bool bLimitMassAndSize )
 
 bool CHL2MP_Player::ValidatePlayerModel( const char *pModel )
 {
-	if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+	int iModels = ARRAYSIZE( g_ppszRandomCitizenModels );
+	int i;	
+
+	for ( i = 0; i < iModels; ++i )
 	{
-		switch (covenClassID)
-			{
-		case COVEN_CLASSID_FIEND:
-			if ( !Q_stricmp( "models/breen.mdl", pModel ) )
-			{
-				return true;
-			}
-			break;
-		case COVEN_CLASSID_GORE:
-			if ( !Q_stricmp( "models/gman.mdl", pModel ) )
-			{
-				return true;
-			}
-			break;
-		case COVEN_CLASSID_BLOOD:
-			if ( !Q_stricmp( "models/Humans/Group01/male_04.mdl", pModel ) )
-			{
-				return true;
-			}
-			break;
-		case COVEN_CLASSID_DEGEN:
-			if ( !Q_stricmp( "models/brdeg.mdl", pModel ) )
-			{
-				return true;
-			}
-			break;
-		default:break;
-			}
-	}
-	
-	if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
-	{
-		switch (covenClassID)
+		if ( !Q_stricmp( g_ppszRandomCitizenModels[i], pModel ) )
 		{
-		case COVEN_CLASSID_HELLION:
-			if ( !Q_stricmp( "models/combine_soldier_prisonguard.mdl", pModel ) )
-			{
-				return true;
-			}
-			break;
-		case COVEN_CLASSID_REAVER:
-			if ( !Q_stricmp( "models/combine_soldier.mdl", pModel ) )
-			{
-				return true;
-			}
-			break;
-		case COVEN_CLASSID_DEADEYE:
-			if ( !Q_stricmp( "models/combine_super_soldier.mdl", pModel ) )
-			{
-				return true;
-			}
-			break;
-		case COVEN_CLASSID_AVENGER:
-			if ( !Q_stricmp( "models/police.mdl", pModel ) )
-			{
-				return true;
-			}
-			break;
-		default:break;
+			return true;
 		}
-		/*
-			if ( !Q_stricmp( "models/sargexx_soldier.mdl", pModel ) )
-			{
-				return true;
-			}
-		}*/
 	}
+
+	iModels = ARRAYSIZE( g_ppszRandomCombineModels );
+
+	for ( i = 0; i < iModels; ++i )
+	{
+	   	if ( !Q_stricmp( g_ppszRandomCombineModels[i], pModel ) )
+		{
+			return true;
+		}
+	}
+
 	return false;
 }
 
@@ -475,47 +393,6 @@ void CHL2MP_Player::SetPlayerTeamModel( void )
 	szModelName = engine->GetClientConVarValue( engine->IndexOfEdict( edict() ), "cl_playermodel" );
 
 	int modelIndex = modelinfo->GetModelIndex( szModelName );
-
-	if ( GetTeamNumber() == COVEN_TEAMID_SLAYERS )
-	{
-		switch (covenClassID)
-			{
-		case COVEN_CLASSID_REAVER:
-			szModelName = "models/combine_soldier.mdl";
-			break;
-		case COVEN_CLASSID_DEADEYE:
-			szModelName = "models/combine_super_soldier.mdl";
-			break;
-		case COVEN_CLASSID_HELLION:
-			szModelName = "models/combine_soldier_prisonguard.mdl";
-			break;
-		default:
-			szModelName = "models/police.mdl";
-			break;
-			}
-
-		m_iModelType = TEAM_COMBINE;
-	}
-	else if ( GetTeamNumber() == COVEN_TEAMID_VAMPIRES )
-	{
-		switch (covenClassID)
-			{
-		case COVEN_CLASSID_FIEND:
-			szModelName = "models/breen.mdl";
-			break;
-		case COVEN_CLASSID_GORE:
-			szModelName = "models/gman.mdl";
-			break;
-		case COVEN_CLASSID_BLOOD:
-			szModelName = "models/Humans/Group01/male_04.mdl";
-			break;
-		case COVEN_CLASSID_DEGEN:
-			szModelName = "models/brdeg.mdl";
-			break;
-		default:break;
-			}
-		m_iModelType = TEAM_REBELS;
-	}
 
 	if ( modelIndex == -1 || ValidatePlayerModel( szModelName ) == false )
 	{
@@ -527,16 +404,36 @@ void CHL2MP_Player::SetPlayerTeamModel( void )
 		Q_snprintf( szReturnString, sizeof (szReturnString ), "cl_playermodel %s\n", szModelName );
 		engine->ClientCommand ( edict(), szReturnString );
 	}
+
+	if ( GetTeamNumber() == TEAM_COMBINE )
+	{
+		if ( Q_stristr( szModelName, "models/human") )
+		{
+			int nHeads = ARRAYSIZE( g_ppszRandomCombineModels );
+		
+			g_iLastCombineModel = ( g_iLastCombineModel + 1 ) % nHeads;
+			szModelName = g_ppszRandomCombineModels[g_iLastCombineModel];
+		}
+
+		m_iModelType = TEAM_COMBINE;
+	}
+	else if ( GetTeamNumber() == TEAM_REBELS )
+	{
+		if ( !Q_stristr( szModelName, "models/human") )
+		{
+			int nHeads = ARRAYSIZE( g_ppszRandomCitizenModels );
+
+			g_iLastCitizenModel = ( g_iLastCitizenModel + 1 ) % nHeads;
+			szModelName = g_ppszRandomCitizenModels[g_iLastCitizenModel];
+		}
+
+		m_iModelType = TEAM_REBELS;
+	}
 	
 	SetModel( szModelName );
 	SetupPlayerSoundsByModel( szModelName );
-	//BB: temp get rid of GMan briefcase hacky hack
-	if ( !Q_stricmp( "models/gman.mdl", szModelName ) )
-		SetBodygroup(1, 1);
-	else
-		SetBodygroup(1, 0);
 
-	//m_flNextModelChangeTime = gpGlobals->curtime + MODEL_CHANGE_INTERVAL;
+	m_flNextModelChangeTime = gpGlobals->curtime + MODEL_CHANGE_INTERVAL;
 }
 
 void CHL2MP_Player::SetPlayerModel( void )
@@ -618,22 +515,6 @@ void CHL2MP_Player::SetPlayerModel( void )
 void CHL2MP_Player::SetupPlayerSoundsByModel( const char *pModelName )
 {
 	if ( Q_stristr( pModelName, "models/human") )
-	{
-		m_iPlayerSoundType = (int)PLAYER_SOUNDS_CITIZEN;
-	}
-	else if ( Q_stristr( pModelName, "models/breen") )
-	{
-		m_iPlayerSoundType = (int)PLAYER_SOUNDS_CITIZEN;
-	}
-	else if ( Q_stristr( pModelName, "models/gman") )
-	{
-		m_iPlayerSoundType = (int)PLAYER_SOUNDS_CITIZEN;
-	}
-	else if ( Q_stristr( pModelName, "models/brdeg") )
-	{
-		m_iPlayerSoundType = (int)PLAYER_SOUNDS_CITIZEN;
-	}
-	else if ( Q_stristr( pModelName, "models/human") )
 	{
 		m_iPlayerSoundType = (int)PLAYER_SOUNDS_CITIZEN;
 	}
@@ -1083,63 +964,6 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 	}
 }
 
-bool CHL2MP_Player::HandleCommand_SelectClass( int select )
-{
-	if (select < 0)
-	{
-		return false;
-	}
-	if (select == 0)
-	{
-		if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
-		{
-			//int n = random->RandomInt(0,3);
-			int n = random->RandomInt(0,1);
-			if (n == 0)
-				select = COVEN_CLASSID_AVENGER;
-			else if (n == 1)
-				select = COVEN_CLASSID_REAVER;
-			/*else if (n == 2)
-				select = DEADEYE;
-			else if (n == 3)
-				select = HELLION;*/
-		}
-		else if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
-		{
-			//int n = random->RandomInt(0,3);
-			int n = random->RandomInt(0,0);
-			if (n == 0)
-				select = COVEN_CLASSID_FIEND;
-			/*else if (n == 1)
-				select = GORE;
-			else if (n == 2)
-				select = BLOODBANK;
-			else if (n == 3)
-				select = DEGEN;*/
-		}
-	}
-
-	covenClassID = select;
-
-	if (!IsDead())
-	{
-		RemoveAllItems( true );
-		CommitSuicide();
-		// add 1 to frags to balance out the 1 subtracted for killing yourself
-		IncrementFragCount( 1 );
-		IncrementDeathCount(-1);
-	}
-	else
-	{
-		StopObserverMode();
-		State_Transition(STATE_ACTIVE);
-	}
-
-	Spawn();
-
-	return true;
-}
-
 bool CHL2MP_Player::HandleCommand_JoinTeam( int team )
 {
 	if ( !GetGlobalTeam( team ) || team == 0 )
@@ -1215,19 +1039,6 @@ bool CHL2MP_Player::ClientCommand( const CCommand &args )
 		{
 			int iTeam = atoi( args[1] );
 			HandleCommand_JoinTeam( iTeam );
-		}
-		return true;
-	}
-	else if ( FStrEq( args[0], "class") )
-	{
-		if (args.ArgC() < 2)
-		{
-			Warning( "Player sent bad class syntax\n" );
-		}
-		if ( ShouldRunRateLimitedCommand( args ) )
-		{
-			int iClass = atoi( args[1] );
-			HandleCommand_SelectClass( iClass );
 		}
 		return true;
 	}
@@ -1510,18 +1321,6 @@ void CHL2MP_Player::DeathSound( const CTakeDamageInfo &info )
 	Q_snprintf( szStepSound, sizeof( szStepSound ), "%s.Die", GetPlayerModelSoundPrefix() );
 
 	const char *pModelName = STRING( GetModelName() );
-
-	//BB: BS fix... MUST do this or gman is a chick
-	if ( Q_stristr( pModelName, "models/gman") )
-	{
-		pModelName = "models/humans/group03/male_08.mdl";
-	}
-
-	//BB: manufactured breen/degen also sounds like chick
-	if ( Q_stristr( pModelName, "models/brdeg") )
-	{
-		pModelName = "models/humans/group03/male_08.mdl";
-	}
 
 	CSoundParameters params;
 	if ( GetParametersForSound( szStepSound, params, pModelName ) == false )

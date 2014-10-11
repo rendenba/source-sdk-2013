@@ -68,27 +68,9 @@ CClassMenu::CClassMenu(IViewPort *pViewPort) : Frame(NULL, PANEL_CLASS)
 	SetProportional(true);
 
 	// info window about this class
-	LoadControlSettings( "Resource/UI/ClassMenu.res" );
-	//m_pPanel = new RichText( this, "SClassInfo" );
-	m_pPanel = dynamic_cast<RichText *>(FindChildByName("SClassInfo"));
-	for (int i = 0; i < m_mouseoverButtons.Count(); i++)
-	{
-		m_mouseoverButtons[i]->ChangePanel(m_pPanel);
-	}
-	m_pPanel->SetVerticalScrollbar(false);
-	
-}
-void CClassMenu::PerformLayout()
-{
-	int w,h;
-	GetHudSize(w, h);
-	
-	// fill the screen
-	SetBounds(0,0,w,h);
+	//m_pPanel = new EditablePanel( this, "SClassInfo" );
 
-	// stretch the bottom bar across the screen
-	//m_pBottomBarBlank->GetPos(x,y);
-	//m_pBottomBarBlank->SetSize( w, h - y );
+	LoadControlSettings( "Resource/UI/ClassMenu.res" );
 }
 
 //-----------------------------------------------------------------------------
@@ -113,14 +95,7 @@ CClassMenu::CClassMenu(IViewPort *pViewPort, const char *panelName) : Frame(NULL
 	SetProportional(true);
 
 	// info window about this class
-	//m_pPanel = new RichText( this, "SClassInfo" );
-	LoadControlSettings("Resource/UI/ClassMenu.res");
-	m_pPanel = dynamic_cast<RichText *>(FindChildByName("SClassInfo"));
-	for (int i = 0; i < m_mouseoverButtons.Count(); i++)
-	{
-		m_mouseoverButtons[i]->ChangePanel(m_pPanel);
-	}
-	m_pPanel->SetVerticalScrollbar(false);
+	//m_pPanel = new EditablePanel( this, "SClassInfo" );
 
 	// Inheriting classes are responsible for calling LoadControlSettings()!
 }
@@ -132,7 +107,7 @@ CClassMenu::~CClassMenu()
 {
 }
 
-MouseOverPanelButton* CClassMenu::CreateNewMouseOverPanelButton(RichText *panel)
+MouseOverPanelButton* CClassMenu::CreateNewMouseOverPanelButton(EditablePanel *panel)
 { 
 	return new MouseOverPanelButton(this, "MouseOverPanelButton", panel);
 }

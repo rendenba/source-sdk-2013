@@ -323,6 +323,7 @@ BEGIN_DATADESC( CHL2_Player )
 	DEFINE_FIELD( m_bSprintEnabled, FIELD_BOOLEAN ),
 	DEFINE_FIELD( m_flTimeAllSuitDevicesOff, FIELD_TIME ),
 	DEFINE_FIELD( m_fIsSprinting, FIELD_BOOLEAN ),
+	DEFINE_FIELD( covenClassID, FIELD_INTEGER ),
 	DEFINE_FIELD( m_fIsWalking, FIELD_BOOLEAN ),
 
 	/*
@@ -421,6 +422,7 @@ CSuitPowerDevice SuitDeviceBreather( bits_SUIT_DEVICE_BREATHER, 6.7f );		// 100 
 IMPLEMENT_SERVERCLASS_ST(CHL2_Player, DT_HL2_Player)
 	SendPropDataTable(SENDINFO_DT(m_HL2Local), &REFERENCE_SEND_TABLE(DT_HL2Local), SendProxy_SendLocalDataTable),
 	SendPropBool( SENDINFO(m_fIsSprinting) ),
+	SendPropInt( SENDINFO(covenClassID) ),
 END_SEND_TABLE()
 
 
@@ -1223,7 +1225,6 @@ void CHL2_Player::StartSprinting( void )
 	m_fIsSprinting = true;
 }
 
-
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 void CHL2_Player::StopSprinting( void )
@@ -1274,6 +1275,19 @@ void CHL2_Player::ComputeSpeed( void )
 	if (GetTeamNumber() == TEAM_COMBINE)
 	{
 		speed = HL2_NORMAL_SPEED;
+		switch (covenClassID)
+		{
+		case COVEN_CLASSID_AVENGER:
+			speed = COVEN_BASESPEED_AVENGER;
+			break;
+		case COVEN_CLASSID_REAVER:
+			speed = COVEN_BASESPEED_REAVER;
+			break;
+		case COVEN_CLASSID_HELLION:
+			speed = COVEN_BASESPEED_HELLION;
+			break;
+		default:break;
+		}
 	}
 	else if (GetTeamNumber() == TEAM_REBELS)
 	{
