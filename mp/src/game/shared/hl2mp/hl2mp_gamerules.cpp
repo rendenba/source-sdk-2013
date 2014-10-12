@@ -33,9 +33,10 @@
 	#include "hl2mp_gameinterface.h"
 	#include "hl2mp_cvars.h"
 
-#ifdef DEBUG	
+//BB: BOTS!
+//#ifdef DEBUG	
 	#include "hl2mp_bot_temp.h"
-#endif
+//#endif
 
 extern void respawn(CBaseEntity *pEdict, bool fCopyCorpse);
 
@@ -44,6 +45,10 @@ extern bool FindInList( const char **pStrings, const char *pToFind );
 ConVar sv_hl2mp_weapon_respawn_time( "sv_hl2mp_weapon_respawn_time", "20", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_hl2mp_item_respawn_time( "sv_hl2mp_item_respawn_time", "30", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_report_client_settings("sv_report_client_settings", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY );
+
+//BB: Coven ConVars
+ConVar sv_coven_minplayers("sv_coven_minplayers", "2", FCVAR_GAMEDLL | FCVAR_NOTIFY );
+ConVar sv_coven_warmuptime("sv_coven_warmuptime", "10", FCVAR_GAMEDLL | FCVAR_NOTIFY );//30
 
 extern ConVar mp_chattime;
 
@@ -179,8 +184,8 @@ char *sTeamNames[] =
 {
 	"Unassigned",
 	"Spectator",
-	"Combine",
-	"Rebels",
+	"Slayers",
+	"Vampires",
 };
 
 CHL2MPRules::CHL2MPRules()
@@ -296,6 +301,77 @@ void CHL2MPRules::Think( void )
 #ifndef CLIENT_DLL
 	
 	CGameRules::Think();
+
+	int numVampires = 0;
+	int numSlayers = 0;
+
+	//BB: Coven Player Things!
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	{
+		CBasePlayer *pPlayer = UTIL_PlayerByIndex( i );
+
+		if (pPlayer)
+		{
+			if (pPlayer->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+				numSlayers++;
+			if (pPlayer->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+				numVampires++;
+
+			if ( pPlayer->IsBot() )
+			{
+				Bot_Think((CHL2MP_Player*)pPlayer);
+			}
+		}
+	}
+
+	//BB: add bots to make playercounts
+	if (numSlayers < sv_coven_minplayers.GetInt())
+	{
+		CHL2MP_Player *pBot = (CHL2MP_Player *)BotPutInServer(false, TEAM_COMBINE);
+		if (pBot)
+		{
+			pBot->covenClassID = random->RandomInt(1,3);
+			Bot_Think(pBot);
+		}
+	}
+	else if (numSlayers > sv_coven_minplayers.GetInt())
+	{
+		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+		{
+			CBasePlayer *pPlayer = UTIL_PlayerByIndex( i );
+			if (pPlayer && pPlayer->IsBot() && pPlayer->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+			{
+				BotRemove((CHL2MP_Player *)pPlayer);
+				ClientDisconnected(pPlayer->edict());
+				UTIL_Remove(pPlayer);
+				break;
+			}
+		}
+	}
+
+	if (numVampires < sv_coven_minplayers.GetInt())
+	{
+		CHL2MP_Player *pBot = (CHL2MP_Player *)BotPutInServer(false, TEAM_REBELS);
+		if (pBot)
+		{
+			pBot->covenClassID = random->RandomInt(1,1);
+			Bot_Think(pBot);
+		}
+	}
+	else if (numVampires > sv_coven_minplayers.GetInt())
+	{
+		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+		{
+			CBasePlayer *pPlayer = UTIL_PlayerByIndex( i );
+			if (pPlayer && pPlayer->IsBot() && pPlayer->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+			{
+				BotRemove((CHL2MP_Player *)pPlayer);
+				ClientDisconnected(pPlayer->edict());
+				UTIL_Remove(pPlayer);
+				break;
+			}
+		}
+	}
 
 	if ( g_fGameOver )   // someone else quit the game already
 	{
@@ -951,6 +1027,7 @@ CAmmoDef *GetAmmoDef()
 
 #else
 
+//BB: BOTS!
 #ifdef DEBUG
 
 	// Handler for the "bot" command.
@@ -973,7 +1050,7 @@ CAmmoDef *GetAmmoDef()
 	}
 
 
-	ConCommand cc_Bot( "bot", Bot_f, "Add a bot.", FCVAR_CHEAT );
+	ConCommand cc_Bot( "bot", Bot_f, "Add a bot.", FCVAR_NOTIFY/*FCVAR_CHEAT*/ );
 
 #endif
 

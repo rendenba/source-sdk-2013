@@ -28,6 +28,7 @@ BEGIN_SEND_TABLE_NOBASE( CHL2PlayerLocalData, DT_HL2Local )
 	SendPropBool( SENDINFO(m_bDisplayReticle) ),
 	SendPropBool( SENDINFO(m_bStickyAutoAim) ),
 	SendPropBool( SENDINFO(m_bAutoAimTarget) ),
+	SendPropInt( SENDINFO(covenXPCounter) ),
 #ifdef HL2_EPISODIC
 	SendPropFloat( SENDINFO(m_flFlashBattery) ),
 	SendPropVector( SENDINFO(m_vecLocatorOrigin) ),
@@ -44,6 +45,7 @@ BEGIN_SIMPLE_DATADESC( CHL2PlayerLocalData )
 	DEFINE_FIELD( m_bWeaponLowered, FIELD_BOOLEAN ),
 	DEFINE_FIELD( m_bDisplayReticle, FIELD_BOOLEAN ),
 	DEFINE_FIELD( m_bStickyAutoAim, FIELD_BOOLEAN ),
+	DEFINE_FIELD( covenXPCounter, FIELD_INTEGER ),
 #ifdef HL2_EPISODIC
 	DEFINE_FIELD( m_flFlashBattery, FIELD_FLOAT ),
 	DEFINE_FIELD( m_vecLocatorOrigin, FIELD_POSITION_VECTOR ),
@@ -55,6 +57,7 @@ END_DATADESC()
 
 CHL2PlayerLocalData::CHL2PlayerLocalData()
 {
+	covenXPCounter = 0;
 	m_flSuitPower = 0.0;
 	m_bZooming = false;
 	m_bWeaponLowered = false;

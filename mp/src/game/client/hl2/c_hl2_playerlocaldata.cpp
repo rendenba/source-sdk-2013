@@ -25,6 +25,7 @@ BEGIN_RECV_TABLE_NOBASE( C_HL2PlayerLocalData, DT_HL2Local )
 	RecvPropBool( RECVINFO(m_bDisplayReticle) ),
 	RecvPropBool( RECVINFO(m_bStickyAutoAim) ),
 	RecvPropBool( RECVINFO(m_bAutoAimTarget) ),
+	RecvPropInt( RECVINFO(covenXPCounter) ),
 #ifdef HL2_EPISODIC
 	RecvPropFloat( RECVINFO(m_flFlashBattery) ),
 	RecvPropVector( RECVINFO(m_vecLocatorOrigin) ),
@@ -37,6 +38,7 @@ END_PREDICTION_DATA()
 
 C_HL2PlayerLocalData::C_HL2PlayerLocalData()
 {
+	covenXPCounter = 0;
 	m_flSuitPower = 0.0;
 	m_bZooming = false;
 	m_iSquadMemberCount = 0;

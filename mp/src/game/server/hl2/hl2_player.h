@@ -286,6 +286,7 @@ public:
 	CSoundPatch *m_sndWaterSplashes;
 
 	CNetworkVar( int, covenClassID );
+	CNetworkVar( int, covenLevelCounter );
 
 protected:
 	virtual void		PreThink( void );

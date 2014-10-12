@@ -392,6 +392,9 @@ END_DATADESC()
 
 CHL2_Player::CHL2_Player()
 {
+	covenClassID = 0;
+	covenLevelCounter = 1;
+
 	m_nNumMissPositions	= 0;
 	m_pPlayerAISquad = 0;
 	m_bSprintEnabled = true;
@@ -423,6 +426,7 @@ IMPLEMENT_SERVERCLASS_ST(CHL2_Player, DT_HL2_Player)
 	SendPropDataTable(SENDINFO_DT(m_HL2Local), &REFERENCE_SEND_TABLE(DT_HL2Local), SendProxy_SendLocalDataTable),
 	SendPropBool( SENDINFO(m_fIsSprinting) ),
 	SendPropInt( SENDINFO(covenClassID) ),
+	SendPropInt( SENDINFO(covenLevelCounter) ),
 END_SEND_TABLE()
 
 

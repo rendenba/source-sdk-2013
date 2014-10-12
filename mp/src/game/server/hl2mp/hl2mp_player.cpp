@@ -255,15 +255,15 @@ void CHL2MP_Player::GiveDefaultItems( void )
 		switch (covenClassID)
 		{
 		case COVEN_CLASSID_AVENGER:
-			CBasePlayer::GiveAmmo( 45,	"SMG1");
+			CBasePlayer::GiveAmmo( 90,	"SMG1");
 			GiveNamedItem( "weapon_smg1" );
 			break;
 		case COVEN_CLASSID_REAVER:
-			CBasePlayer::GiveAmmo( 16,	"Shotgun");
+			CBasePlayer::GiveAmmo( 16,	"Buckshot");
 			GiveNamedItem( "weapon_shotgun" );
 			break;
 		case COVEN_CLASSID_HELLION:
-			CBasePlayer::GiveAmmo( 255,	"Pistol");
+			CBasePlayer::GiveAmmo( 100,	"Pistol");
 			GiveNamedItem( "weapon_pistol" );
 		default:
 			break;
@@ -348,6 +348,15 @@ void CHL2MP_Player::Spawn(void)
 
 	//BB: We don't do things this way
 	//PickDefaultSpawnTeam();
+
+	if (covenClassID <= 0)
+		return;
+
+	if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES && covenClassID > 1)
+		return;
+
+	if (GetTeamNumber() == COVEN_TEAMID_SLAYERS && covenClassID > 3)
+		return;
 
 	BaseClass::Spawn();
 	

@@ -21,7 +21,8 @@
 void ClientPutInServer( edict_t *pEdict, const char *playername );
 void Bot_Think( CHL2MP_Player *pBot );
 
-#ifdef DEBUG
+//BB: BOTS!
+//#ifdef DEBUG
 
 ConVar bot_forcefireweapon( "bot_forcefireweapon", "", 0, "Force bots with the specified weapon to fire." );
 ConVar bot_forceattack2( "bot_forceattack2", "0", 0, "When firing, use attack2." );
@@ -31,7 +32,7 @@ ConVar bot_defend( "bot_defend", "0", 0, "Set to a team number, and that team wi
 ConVar bot_changeclass( "bot_changeclass", "0", 0, "Force all bots to change to the specified class." );
 ConVar bot_zombie( "bot_zombie", "0", 0, "Brraaaaaiiiins." );
 static ConVar bot_mimic_yaw_offset( "bot_mimic_yaw_offset", "0", 0, "Offsets the bot yaw." );
-ConVar bot_attack( "bot_attack", "1", 0, "Shoot!" );
+ConVar bot_attack( "bot_attack", "0", 0, "Shoot!" );
 
 ConVar bot_sendcmd( "bot_sendcmd", "", 0, "Forces bots to send the specified command." );
 
@@ -67,6 +68,15 @@ typedef struct
 
 static botdata_t g_BotData[ MAX_PLAYERS ];
 
+void BotRemove( CHL2MP_Player *pBot )
+{
+	if (!pBot)
+		return;
+
+	g_BotData[pBot->entindex()-1].m_WantedTeam = 0;
+	g_BotData[pBot->entindex()-1].m_flJoinTeamTime = 0;
+	BotNumber--;
+}
 
 //-----------------------------------------------------------------------------
 // Purpose: Create a new Bot and put it in the game.
@@ -95,8 +105,12 @@ CBasePlayer *BotPutInServer( bool bFrozen, int iTeam )
 	pPlayer->ClearFlags();
 	pPlayer->AddFlag( FL_CLIENT | FL_FAKECLIENT );
 
+	//pPlayer->ChangeTeam(iTeam);
+
 	if ( bFrozen )
 		pPlayer->AddEFlags( EFL_BOT_FROZEN );
+
+	//pPlayer->Spawn();
 
 	BotNumber++;
 
@@ -213,6 +227,17 @@ void Bot_Think( CHL2MP_Player *pBot )
 
 	botdata_t *botdata = &g_BotData[ ENTINDEX( pBot->edict() ) - 1 ];
 
+	//BB: not sure why the fuck I have to do it this way...
+	if (pBot->GetTeamNumber() != botdata->m_WantedTeam)
+	{
+		pBot->ChangeTeam(botdata->m_WantedTeam);
+		return;
+	}
+
+	//BB: try to spawn
+	if (!pBot->IsAlive())
+		pBot->Spawn();
+
 	QAngle vecViewAngles;
 	float forwardmove = 0.0;
 	float sidemove = botdata->sidemove;
@@ -257,10 +282,10 @@ void Bot_Think( CHL2MP_Player *pBot )
 
 			int maxtries = (int)360.0/angledelta;
 
-			if ( botdata->lastturntoright )
-			{
-				angledelta = -angledelta;
-			}
+			//if ( botdata->lastturntoright )
+			//{
+			//	angledelta = -angledelta;
+			//}
 
 			angle = pBot->GetLocalAngles();
 
@@ -278,25 +303,30 @@ void Bot_Think( CHL2MP_Player *pBot )
 
 				if ( trace.fraction == 1.0 )
 				{
-					if ( gpGlobals->curtime < botdata->nextturntime )
-					{
-						break;
-					}
+					//if ( gpGlobals->curtime < botdata->nextturntime )
+					//{
+					//	break;
+					//}
+					maxtries = 0;
 				}
+				else
+				{
 
-				angle.y += angledelta;
+					angle.y += angledelta;
 
-				if ( angle.y > 180 )
-					angle.y -= 360;
-				else if ( angle.y < -180 )
-					angle.y += 360;
+					//if ( angle.y > 180 )
+					//	angle.y -= 360;
+					//else if ( angle.y < -180 )
+					//	angle.y += 360;
+					if (angle.y > 360)
+						angle.y = 0;
 
-				botdata->nextturntime = gpGlobals->curtime + 2.0;
-				botdata->lastturntoright = random->RandomInt( 0, 1 ) == 0 ? true : false;
+					botdata->nextturntime = gpGlobals->curtime + 2.0;
+					botdata->lastturntoright = random->RandomInt( 0, 1 ) == 0 ? true : false;
 
-				botdata->forwardAngle = angle;
-				botdata->lastAngles = angle;
-
+					botdata->forwardAngle = angle;
+					botdata->lastAngles = angle;
+				}
 			}
 
 
@@ -431,5 +461,5 @@ void Bot_Think( CHL2MP_Player *pBot )
 
 
 
-#endif
+//#endif
 

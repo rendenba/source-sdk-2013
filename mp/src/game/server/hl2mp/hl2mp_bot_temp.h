@@ -13,7 +13,8 @@
 
 // If iTeam or iClass is -1, then a team or class is randomly chosen.
 CBasePlayer *BotPutInServer( bool bFrozen, int iTeam );
-
+void BotRemove( CHL2MP_Player *pBot );
+void Bot_Think( CHL2MP_Player *pBot );
 
 #endif // BOT_BASE_H
 
