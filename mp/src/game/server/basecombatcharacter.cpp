@@ -1599,7 +1599,8 @@ void CBaseCombatCharacter::Event_Killed( const CTakeDamageInfo &info )
 	CBaseCombatWeapon *pDroppedWeapon = m_hActiveWeapon.Get();
 
 	// Drop any weapon that I own
-	if ( VPhysicsGetObject() )
+	//BB: do not drop weapons...
+	/*if ( VPhysicsGetObject() )
 	{
 		Vector weaponForce = forceVector * VPhysicsGetObject()->GetInvMass();
 		Weapon_Drop( m_hActiveWeapon, NULL, &weaponForce );
@@ -1607,7 +1608,7 @@ void CBaseCombatCharacter::Event_Killed( const CTakeDamageInfo &info )
 	else
 	{
 		Weapon_Drop( m_hActiveWeapon );
-	}
+	}*/
 	
 	// if flagged to drop a health kit
 	if (HasSpawnFlags(SF_NPC_DROP_HEALTHKIT))

@@ -29,6 +29,9 @@ public:
 
 	void				Weapon_DropPrimary( void );
 		
+	int myStrength() { return m_HL2Local.covenStrengthCounter; }
+	int myAgility() { return m_HL2Local.covenAgilityCounter; }
+
 	float				GetFOV();
 	void				Zoom( float FOVOffset, float time );
 	float				GetZoom( void );

@@ -42,6 +42,9 @@ public:
 	bool	m_bStickyAutoAim;
 	bool	m_bAutoAimTarget;
 	int		covenXPCounter;
+	int		covenStrengthCounter;
+	int		covenAgilityCounter;
+	int		covenIntellectCounter;
 #ifdef HL2_EPISODIC
 	float	m_flFlashBattery;
 	Vector	m_vecLocatorOrigin;

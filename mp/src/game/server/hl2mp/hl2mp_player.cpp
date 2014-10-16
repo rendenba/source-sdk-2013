@@ -154,6 +154,66 @@ void CHL2MP_Player::UpdateOnRemove( void )
 	BaseClass::UpdateOnRemove();
 }
 
+bool CHL2MP_Player::LevelUp( int lvls )
+{
+	if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+	{
+		switch (covenClassID)
+		{
+		case COVEN_CLASSID_REAVER:
+			GiveStrength(5);
+			GiveAgility(2);
+			GiveIntellect(1);
+			break;
+		case COVEN_CLASSID_AVENGER:
+			GiveStrength(4);
+			GiveAgility(2);
+			GiveIntellect(2);
+			break;
+		case COVEN_CLASSID_HELLION:
+			GiveStrength(1);
+			GiveAgility(5);
+			GiveIntellect(2);
+			break;
+		default:break;
+		}
+	}
+	else if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+	{
+		switch (covenClassID)
+		{
+		case COVEN_CLASSID_FIEND:
+			GiveStrength(1);
+			GiveAgility(5);
+			GiveIntellect(2);
+			break;
+		default:break;
+		}
+	}
+	ResetVitals();
+	return BaseClass::LevelUp(lvls);
+}
+
+void CHL2MP_Player::ResetVitals( void )
+{
+	int baseHP = 100;
+	if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+	{
+		switch(covenClassID)
+		{
+		case COVEN_CLASSID_FIEND:
+			baseHP = 60;
+			break;
+		case COVEN_CLASSID_GORE:
+			baseHP = 110;
+			break;
+		default:break;
+		}
+	}
+	SetMaxHealth(baseHP + myStrength()*COVEN_HP_PER_STRENGTH);
+	SetHealth(baseHP+ myStrength()*COVEN_HP_PER_STRENGTH);
+}
+
 void CHL2MP_Player::Precache( void )
 {
 	BaseClass::Precache();
@@ -352,6 +412,10 @@ void CHL2MP_Player::Spawn(void)
 	if (covenClassID <= 0)
 		return;
 
+	//BB: first spawn... give us a level
+	if (covenLevelCounter == 0)
+		LevelUp(1);
+
 	if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES && covenClassID > 1)
 		return;
 
@@ -397,6 +461,8 @@ void CHL2MP_Player::Spawn(void)
 	SetPlayerUnderwater(false);
 
 	m_bReady = false;
+
+	ResetVitals();
 }
 
 void CHL2MP_Player::PickupObject( CBaseEntity *pObject, bool bLimitMassAndSize )
@@ -1450,6 +1516,16 @@ void CHL2MP_Player::DetonateTripmines( void )
 	EmitSound( "Weapon_SLAM.SatchelDetonate" );
 }
 
+int CHL2MP_Player::XPForKill(CHL2MP_Player *pAttacker)
+{
+	//BB: Bots always return a fixed value that is small
+	if (IsBot())
+		return 5;
+
+	//BB: TODO: make this more ellaborate... based on player lvl difference
+	return 10;
+}
+
 void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 {
 	//update damage info with our accumulated physics force
@@ -1486,6 +1562,10 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 		}
 
 		GetGlobalTeam( pAttacker->GetTeamNumber() )->AddScore( iScoreToAdd );
+		if (pAttacker->IsPlayer() && pAttacker != this)
+		{
+			((CHL2_Player*)pAttacker)->GiveXP(XPForKill((CHL2MP_Player *)pAttacker));
+		}
 	}
 
 	FlashlightTurnOff();

@@ -159,6 +159,15 @@ public:
 	int GetNumSquadCommandables();
 	int GetNumSquadCommandableMedics();
 
+	//BB: COVEN
+	bool GiveXP(int XP);
+	virtual bool LevelUp(int lvls);
+	void GiveStrength(int s);
+	int myStrength();
+	void GiveAgility(int a);
+	int myAgility();
+	void GiveIntellect(int i);
+
 	// Locator
 	void UpdateLocatorPosition( const Vector &vecPosition );
 

@@ -257,7 +257,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 		// Stop when shot
 		if ( !pBot->IsEFlagSet(EFL_BOT_FROZEN) )
 		{
-			if ( pBot->m_iHealth == 100 )
+			//if ( pBot->m_iHealth == 100 )
 			{
 				forwardmove = 600 * ( botdata->backwards ? -1 : 1 );
 				if ( botdata->sidemove != 0.0f )
@@ -265,14 +265,14 @@ void Bot_Think( CHL2MP_Player *pBot )
 					forwardmove *= random->RandomFloat( 0.1, 1.0f );
 				}
 			}
-			else
+			/*else
 			{
 				forwardmove = 0;
-			}
+			}*/
 		}
 
 		// Only turn if I haven't been hurt
-		if ( !pBot->IsEFlagSet(EFL_BOT_FROZEN) && pBot->m_iHealth == 100 )
+		//if ( !pBot->IsEFlagSet(EFL_BOT_FROZEN) && pBot->m_iHealth == 100 )
 		{
 			Vector vecEnd;
 			Vector forward;

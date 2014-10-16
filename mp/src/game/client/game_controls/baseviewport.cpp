@@ -36,6 +36,7 @@
 #include "spectatorgui.h"
 #include "teammenu.h"
 #include "classmenu.h"
+#include "classmenu2.h"
 #include "vguitextwindow.h"
 #include "IGameUIFuncs.h"
 #include "mapoverview.h"
@@ -242,6 +243,7 @@ void CBaseViewport::CreateDefaultPanels( void )
 	AddNewPanel( CreatePanelByName( PANEL_NAV_PROGRESS ), "PANEL_NAV_PROGRESS" );
 	AddNewPanel( CreatePanelByName( PANEL_TEAM ), "PANEL_TEAM" );
 	AddNewPanel( CreatePanelByName( PANEL_CLASS ), "PANEL_CLASS" );
+	AddNewPanel( CreatePanelByName( PANEL_CLASS2 ), "PANEL_CLASS2" );
 	// AddNewPanel( CreatePanelByName( PANEL_BUY ), "PANEL_BUY" );
 #endif
 }
@@ -286,6 +288,10 @@ IViewPortPanel* CBaseViewport::CreatePanelByName(const char *szPanelName)
 	else if ( Q_strcmp(PANEL_CLASS, szPanelName) == 0 )
 	{
 		newpanel = new CClassMenu( this );
+	}
+	else if ( Q_strcmp(PANEL_CLASS2, szPanelName) == 0 )
+	{
+		newpanel = new CClassMenu2( this );
 	}
 	else if ( Q_strcmp(PANEL_SPECMENU, szPanelName) == 0 )
 	{

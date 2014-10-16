@@ -393,7 +393,7 @@ END_DATADESC()
 CHL2_Player::CHL2_Player()
 {
 	covenClassID = 0;
-	covenLevelCounter = 1;
+	covenLevelCounter = 0;
 
 	m_nNumMissPositions	= 0;
 	m_pPlayerAISquad = 0;
@@ -443,6 +443,48 @@ void CHL2_Player::Precache( void )
 	PrecacheScriptSound( "HL2Player.TrainUse" );
 	PrecacheScriptSound( "HL2Player.Use" );
 	PrecacheScriptSound( "HL2Player.BurnPain" );
+}
+
+bool CHL2_Player::GiveXP(int XP)
+{
+	m_HL2Local.covenXPCounter += XP;
+	if (m_HL2Local.covenXPCounter >= COVEN_MAX_XP_PER_LEVEL)
+	{
+		m_HL2Local.covenXPCounter -= COVEN_MAX_XP_PER_LEVEL;
+		return LevelUp(1);
+	}
+	return true;
+}
+
+bool CHL2_Player::LevelUp(int lvls)
+{
+	covenLevelCounter += lvls;
+	return true;
+}
+
+void CHL2_Player::GiveStrength(int s)
+{
+	m_HL2Local.covenStrengthCounter += s;
+}
+
+int CHL2_Player::myStrength()
+{
+	return m_HL2Local.covenStrengthCounter;
+}
+
+void CHL2_Player::GiveAgility(int a)
+{
+	m_HL2Local.covenAgilityCounter += a;
+}
+
+int CHL2_Player::myAgility()
+{
+	return m_HL2Local.covenAgilityCounter;
+}
+
+void CHL2_Player::GiveIntellect(int i)
+{
+	m_HL2Local.covenIntellectCounter += i;
 }
 
 //-----------------------------------------------------------------------------

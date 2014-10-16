@@ -76,8 +76,17 @@ CWeaponCrowbar::CWeaponCrowbar( void )
 // Output : Damage amount
 //-----------------------------------------------------------------------------
 float CWeaponCrowbar::GetDamageForActivity( Activity hitActivity )
-{
-	return 25.0f;
+{	
+	CBasePlayer *pPlayer  = ToBasePlayer( GetOwner() );
+	
+	if ( pPlayer == NULL )
+		return 0;
+
+	CHL2MP_Player *pHLPlayer = (CHL2MP_Player *)pPlayer;
+
+	float baseDMG = 30.0f + COVEN_MELEE_AGIL_MULT*pHLPlayer->myAgility() + COVEN_MELEE_STR_MULT*pHLPlayer->myStrength();
+
+	return baseDMG + random->RandomInt(0,10);
 }
 
 //-----------------------------------------------------------------------------

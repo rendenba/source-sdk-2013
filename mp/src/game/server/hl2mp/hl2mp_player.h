@@ -52,6 +52,10 @@ public:
 	DECLARE_SERVERCLASS();
 	DECLARE_DATADESC();
 
+	virtual bool LevelUp( int lvls );
+	int XPForKill(CHL2MP_Player *pAttacker);
+	void ResetVitals( void );
+
 	virtual void Precache( void );
 	virtual void Spawn( void );
 	virtual void PostThink( void );
