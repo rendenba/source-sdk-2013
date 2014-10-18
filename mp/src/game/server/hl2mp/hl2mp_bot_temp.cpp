@@ -52,18 +52,26 @@ typedef struct
 {
 	bool			backwards;
 
-	float			nextturntime;
-	bool			lastturntoright;
-
 	float			nextstrafetime;
+	float			nextjumptime;
 	float			sidemove;
+
+	float			stuckTimer;
+	float			goWild;
+	float			spawnTimer;
 
 	QAngle			forwardAngle;
 	QAngle			lastAngles;
+	Vector			lastPos;
 	
 	float			m_flJoinTeamTime;
 	int				m_WantedTeam;
 	int				m_WantedClass;
+
+	int				m_lastNode; //index
+	int				m_lastNodeProbe; //index (not id) of last probe into the botnet
+	int				m_targetNode; //index
+	bool			bLost;
 } botdata_t;
 
 static botdata_t g_BotData[ MAX_PLAYERS ];
@@ -116,6 +124,13 @@ CBasePlayer *BotPutInServer( bool bFrozen, int iTeam )
 
 	g_BotData[pPlayer->entindex()-1].m_WantedTeam = iTeam;
 	g_BotData[pPlayer->entindex()-1].m_flJoinTeamTime = gpGlobals->curtime + 0.3;
+	g_BotData[pPlayer->entindex()-1].m_lastNode = 0;
+	g_BotData[pPlayer->entindex()-1].m_targetNode = 0;
+	g_BotData[pPlayer->entindex()-1].m_lastNodeProbe = 0;
+	g_BotData[pPlayer->entindex()-1].goWild = 0.0f;
+	g_BotData[pPlayer->entindex()-1].stuckTimer = 0.0f;
+	g_BotData[pPlayer->entindex()-1].spawnTimer = 0.0f;
+	g_BotData[pPlayer->entindex()-1].bLost = true;
 
 	return pPlayer;
 }
@@ -156,6 +171,37 @@ bool RunMimicCommand( CUserCmd& cmd )
 	cmd.viewangles[YAW] += bot_mimic_yaw_offset.GetFloat();
 
 	return true;
+}
+
+void FindNearestNode( CHL2MP_Player *pBot )
+{
+	CHL2MPRules *pRules;
+	pRules = HL2MPRules();
+	if (pRules->botnet.Count() == 0 )
+		return;
+
+	botdata_t *botdata = &g_BotData[ ENTINDEX( pBot->edict() ) - 1 ];
+
+	botnode *temp, *cur;
+	temp = pRules->botnet[botdata->m_lastNodeProbe];
+	cur = pRules->botnet[botdata->m_targetNode];
+
+	//skip "stop" nodes
+	if (temp->connectors.Count() > 1)
+	{
+		//We found a closer node
+		if ((pBot->GetAbsOrigin() - temp->location).Length() < (pBot->GetAbsOrigin() - cur->location).Length())
+		{
+			botdata->m_targetNode = botdata->m_lastNodeProbe;
+		}
+	}
+
+	botdata->m_lastNodeProbe++;
+	if (botdata->m_lastNodeProbe >= pRules->botnet.Count())
+	{
+		botdata->m_lastNodeProbe = 0;
+		botdata->bLost = false;
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -217,11 +263,22 @@ static void RunPlayerMove( CHL2MP_Player *fakeclient, const QAngle& viewangles, 
 	gpGlobals->curtime = flOldCurtime;
 }
 
+void GetLost( CHL2MP_Player *pBot )
+{
+	botdata_t *botdata = &g_BotData[ ENTINDEX( pBot->edict() ) - 1 ];
+	botdata->m_targetNode = 0;
+	botdata->bLost = true;
+}
+
+
 //-----------------------------------------------------------------------------
 // Purpose: Run this Bot's AI for one frame.
 //-----------------------------------------------------------------------------
 void Bot_Think( CHL2MP_Player *pBot )
 {
+	unsigned short buttons = 0;
+	CHL2MPRules *pRules;
+	pRules = HL2MPRules();
 	// Make sure we stay being a bot
 	pBot->AddFlag( FL_FAKECLIENT );
 
@@ -236,99 +293,158 @@ void Bot_Think( CHL2MP_Player *pBot )
 
 	//BB: try to spawn
 	if (!pBot->IsAlive())
-		pBot->Spawn();
+	{
+		// Respawn the bot
+		//buttons |= IN_JUMP;
+		//BB: again, W T F
+		if (botdata->spawnTimer > 0.0f)
+		{
+			if (gpGlobals->curtime > botdata->spawnTimer)
+			{
+				botdata->spawnTimer = 0.0f;
+				pBot->Spawn();
+				GetLost(pBot);
+			}
+		}
+		else
+		{
+			botdata->spawnTimer = gpGlobals->curtime + 1.0f;
+		}
+	}
 
 	QAngle vecViewAngles;
 	float forwardmove = 0.0;
 	float sidemove = botdata->sidemove;
 	float upmove = 0.0;
-	unsigned short buttons = 0;
+
 	byte  impulse = 0;
 	float frametime = gpGlobals->frametime;
 
 	vecViewAngles = pBot->GetLocalAngles();
 
+	if (botdata->bLost)
+	{
+		FindNearestNode(pBot);
+	}
+	else
+	{
+		//reached node
+		if ((pRules->botnet[botdata->m_targetNode]->location - pBot->GetLocalOrigin()).Length() < 10)
+		{
+			if (pRules->botnet[botdata->m_targetNode]->connectors.Count() <= 1)
+			{
+				//dead end get lost for now
+				GetLost(pBot);
+			}
+			else
+			{
+				int pushedval = botdata->m_targetNode;
+				int redflag = pRules->botnet[botdata->m_lastNode]->ID;
+				int n = pRules->botnet[botdata->m_targetNode]->connectors.Count()-2;
+				int sel = random->RandomInt(0,n);
+				int m = pRules->botnet.Count();
+				int i = 0;
+				do
+				{
+					if (pRules->botnet[botdata->m_targetNode]->connectors[i] == redflag)
+					{
+						sel++;
+					}
+					i++;
+				} while (i <= sel);
+				int val = pRules->botnet[botdata->m_targetNode]->connectors[sel];
+				int update = 0;
+				for (int j = 0; j < m; j++)
+				{
+					if (pRules->botnet[j]->ID == val)
+					{
+						update = j;
+						j = m;
+					}
+				}
+				botdata->m_targetNode = update;
+				botdata->m_lastNode = pushedval;
+			}
+		}
+	}
 
-	// Create some random values
 	if ( pBot->IsAlive() && (pBot->GetSolid() == SOLID_BBOX) )
 	{
 		trace_t trace;
 
-		// Stop when shot
 		if ( !pBot->IsEFlagSet(EFL_BOT_FROZEN) )
 		{
-			//if ( pBot->m_iHealth == 100 )
+			forwardmove = 600 * ( botdata->backwards ? -1 : 1 );
+			if ( botdata->sidemove != 0.0f )
 			{
-				forwardmove = 600 * ( botdata->backwards ? -1 : 1 );
-				if ( botdata->sidemove != 0.0f )
-				{
-					forwardmove *= random->RandomFloat( 0.1, 1.0f );
-				}
+				forwardmove *= random->RandomFloat( 0.1, 1.0f );
 			}
-			/*else
-			{
-				forwardmove = 0;
-			}*/
 		}
 
-		// Only turn if I haven't been hurt
-		//if ( !pBot->IsEFlagSet(EFL_BOT_FROZEN) && pBot->m_iHealth == 100 )
+		if ( !pBot->IsEFlagSet(EFL_BOT_FROZEN))
 		{
-			Vector vecEnd;
 			Vector forward;
-
-			QAngle angle;
-			float angledelta = 15.0;
-
-			int maxtries = (int)360.0/angledelta;
-
-			//if ( botdata->lastturntoright )
-			//{
-			//	angledelta = -angledelta;
-			//}
-
-			angle = pBot->GetLocalAngles();
-
-			Vector vecSrc;
-			while ( --maxtries >= 0 )
+			QAngle angle = botdata->lastAngles;
+			if (botdata->goWild > 0.0f)
 			{
-				AngleVectors( angle, &forward );
-
-				vecSrc = pBot->GetLocalOrigin() + Vector( 0, 0, 36 );
-
-				vecEnd = vecSrc + forward * 10;
-
-				UTIL_TraceHull( vecSrc, vecEnd, VEC_HULL_MIN_SCALED( pBot ), VEC_HULL_MAX_SCALED( pBot ), 
-					MASK_PLAYERSOLID, pBot, COLLISION_GROUP_NONE, &trace );
-
-				if ( trace.fraction == 1.0 )
+				if (gpGlobals->curtime > botdata->goWild)
 				{
-					//if ( gpGlobals->curtime < botdata->nextturntime )
-					//{
-					//	break;
-					//}
-					maxtries = 0;
+					botdata->goWild = 0.0f;
+					GetLost(pBot);
 				}
-				else
+				Vector vecEnd;
+
+				float angledelta = 15.0;
+
+				int maxtries = (int)360.0/angledelta;
+
+				angle = pBot->GetLocalAngles();
+
+				Vector vecSrc;
+				while ( --maxtries >= 0 )
 				{
+					AngleVectors( angle, &forward );
 
-					angle.y += angledelta;
+					vecSrc = pBot->GetLocalOrigin() + Vector( 0, 0, 36 );
 
-					//if ( angle.y > 180 )
-					//	angle.y -= 360;
-					//else if ( angle.y < -180 )
-					//	angle.y += 360;
-					if (angle.y > 360)
-						angle.y = 0;
+					vecEnd = vecSrc + forward * 10;
 
-					botdata->nextturntime = gpGlobals->curtime + 2.0;
-					botdata->lastturntoright = random->RandomInt( 0, 1 ) == 0 ? true : false;
+					UTIL_TraceHull( vecSrc, vecEnd, VEC_HULL_MIN_SCALED( pBot ), VEC_HULL_MAX_SCALED( pBot ), 
+						MASK_PLAYERSOLID, pBot, COLLISION_GROUP_NONE, &trace );
 
+					if ( trace.fraction == 1.0 )
+					{
+						maxtries = 0;
+					}
+					else
+					{
+
+						angle.y += angledelta;
+
+						if ( angle.y > 180 )
+							angle.y -= 360;
+						else if ( angle.y < -180 )
+							angle.y += 360;
+						//if (angle.y > 360)
+						//	angle.y = 0;
+
+						botdata->forwardAngle = angle;
+						botdata->lastAngles = angle;
+					}
+				}
+			}
+			else
+			{
+				if (botdata->m_targetNode >= 0)
+				{
+					forward = pRules->botnet[botdata->m_targetNode]->location - pBot->GetLocalOrigin();
+					//if (pBot->GetTeamNumber() == 2)
+					//	Msg("%f %f %f\n", forward.x, forward.y, forward.z);
+					VectorAngles(forward, angle);
 					botdata->forwardAngle = angle;
 					botdata->lastAngles = angle;
 				}
 			}
-
 
 			if ( gpGlobals->curtime >= botdata->nextstrafetime )
 			{
@@ -407,26 +523,6 @@ void Bot_Think( CHL2MP_Player *pBot )
 			bot_sendcmd.SetValue("");
 		}
 	}
-	else
-	{
-		// Wait for Reinforcement wave
-		if ( !pBot->IsAlive() )
-		{
-			// Try hitting my buttons occasionally
-			if ( random->RandomInt( 0, 100 ) > 80 )
-			{
-				// Respawn the bot
-				if ( random->RandomInt( 0, 1 ) == 0 )
-				{
-					buttons |= IN_JUMP;
-				}
-				else
-				{
-					buttons = 0;
-				}
-			}
-		}
-	}
 
 	if ( bot_flipout.GetInt() >= 2 )
 	{
@@ -453,6 +549,33 @@ void Bot_Think( CHL2MP_Player *pBot )
 		botdata->lastAngles[ 2 ] = 0;
 
 		pBot->SetLocalAngles( botdata->lastAngles );
+	}
+
+	if ((pBot->GetLocalOrigin() - botdata->lastPos).Length() < 4.0f) //STUCK?
+	{
+		if (botdata->stuckTimer > 0.0f)
+		{
+			if (gpGlobals->curtime - botdata->stuckTimer >= 0.5f && gpGlobals->curtime >= botdata->nextjumptime)
+			{
+				//try a jump
+				buttons |= IN_JUMP;
+				botdata->nextjumptime = gpGlobals->curtime + 3.0f;
+			}
+			if (gpGlobals->curtime - botdata->stuckTimer >= 2.0f) //STUCK!
+			{
+				botdata->goWild = gpGlobals->curtime + 3.0f;
+			}
+		}
+		else
+		{
+			botdata->stuckTimer = gpGlobals->curtime;
+			
+		}
+	}
+	else
+	{
+		botdata->lastPos = pBot->GetLocalOrigin();
+		botdata->stuckTimer = 0.0f;
 	}
 
 	RunPlayerMove( pBot, pBot->GetLocalAngles(), forwardmove, sidemove, upmove, buttons, impulse, frametime );

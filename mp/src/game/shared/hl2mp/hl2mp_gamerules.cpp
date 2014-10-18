@@ -57,6 +57,8 @@ extern CBaseEntity	 *g_pLastRebelSpawn;
 
 #define WEAPON_MAX_DISTANCE_FROM_SPAWN 64
 
+static char temparray[256];
+
 #endif
 
 
@@ -212,6 +214,9 @@ CHL2MPRules::CHL2MPRules()
 	m_bAwaitingReadyRestart = false;
 	m_bChangelevelDone = false;
 
+	cowsloaded = false;
+	cowsloadfail = false;
+
 #endif
 }
 
@@ -232,6 +237,94 @@ CHL2MPRules::~CHL2MPRules( void )
 	// automatically be deleted from there, instead.
 	g_Teams.Purge();
 #endif
+}
+
+bool CHL2MPRules::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBaseFileSystem *pFileSystem, const char *pPathID )
+{
+#ifndef CLIENT_DLL
+	while (buf.IsValid())
+	{
+		buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
+		const char *s = temparray;
+		if (!s || *s == 0 )
+		{
+			return false;
+		}
+
+		if (Q_strcmp(s,"botnode") == 0)
+		{
+			int num,id;
+			buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
+			const char *t = temparray;
+			UTIL_StringToIntArray(&id, 1, t);
+			float locs[3];
+			buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
+			const char *u = temparray;
+			UTIL_StringToVector(locs, u);
+			botnode *node;
+			node = new botnode;
+			node->ID = id;
+			node->location = Vector(locs[0], locs[1], locs[2]);
+			buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
+			const char *v = temparray;
+			UTIL_StringToIntArray(&num, 1, v);
+			for (int i = 0; i < num; i++)
+			{
+				buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
+				const char *w = temparray;
+				int n;
+				UTIL_StringToIntArray(&n, 1, w);
+				node->connectors.AddToTail(n);
+			}
+			botnet.AddToTail(node);
+		}
+	}
+#endif
+	return true;
+}
+
+bool CHL2MPRules::LoadFromBuffer( char const *resourceName, const char *pBuffer, IBaseFileSystem* pFileSystem, const char *pPathID )
+{
+#ifndef CLIENT_DLL
+	if ( !pBuffer )
+		return true;
+
+	int nLen = Q_strlen( pBuffer );
+	CUtlBuffer buf( pBuffer, nLen, CUtlBuffer::READ_ONLY | CUtlBuffer::TEXT_BUFFER );
+	return LoadFromBuffer( resourceName, buf, pFileSystem, pPathID );
+#endif
+	return false;
+}
+
+bool CHL2MPRules::LoadCowFile( IBaseFileSystem *filesystem, const char *resourceName, const char *pathID )
+{
+#ifndef CLIENT_DLL
+
+	FileHandle_t f = filesystem->Open(resourceName, "rb", pathID);
+	if (!f)
+		return false;
+
+	// load file into a null-terminated buffer
+	int fileSize = filesystem->Size(f);
+	unsigned bufSize = ((IFileSystem *)filesystem)->GetOptimalReadSize( f, fileSize + 1 );
+
+	char *buffer = (char*)((IFileSystem *)filesystem)->AllocOptimalReadBuffer( f, bufSize );
+	
+	Assert(buffer);
+	
+	((IFileSystem *)filesystem)->ReadEx(buffer, bufSize, fileSize, f); // read into local buffer
+
+	buffer[fileSize] = 0; // null terminate file as EOF
+
+	filesystem->Close( f );	// close file after reading
+
+	bool retOK = LoadFromBuffer( resourceName, buffer, filesystem );
+
+	((IFileSystem *)filesystem)->FreeOptimalReadBuffer( buffer );
+
+	return retOK;
+#endif
+	return false;
 }
 
 void CHL2MPRules::CreateStandardEntities( void )
@@ -304,6 +397,26 @@ void CHL2MPRules::Think( void )
 
 	int numVampires = 0;
 	int numSlayers = 0;
+
+	if (!cowsloaded)
+	{
+		char tempfile[MAX_PATH];
+		Q_snprintf( tempfile, sizeof( tempfile ), "maps/%s_cows.txt", STRING(gpGlobals->mapname) );
+		Msg("Loading cow file: %s\n", tempfile);
+		if (!LoadCowFile( filesystem, tempfile, "GAME" ))
+		{
+			//either a failure to load, or simply not implemented for this map
+			//setup alternate game mode for this map...
+			cowsloadfail = true;
+			Msg("Failed to load cow file, defaulting.\n");
+		}
+		else
+		{
+			//Successful load
+			Msg("Cow file loaded!\n");
+		}
+		cowsloaded = true;
+	}
 
 	//BB: Coven Player Things!
 	for ( int i = 1; i <= gpGlobals->maxClients; i++ )

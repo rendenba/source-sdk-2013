@@ -1576,6 +1576,17 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 	StopZooming();
 }
 
+CON_COMMAND(location, "print current location")
+{
+	CHL2MP_Player *pPlayer = ToHL2MPPlayer( UTIL_GetCommandClient() );
+	if (!pPlayer)
+		return;
+	char szReturnString[512];
+	Vector temp = pPlayer->GetAbsOrigin();
+	Q_snprintf( szReturnString, sizeof( szReturnString ), "\"%f %f %f\"\n", temp.x, temp.y, temp.z);
+	ClientPrint( pPlayer, HUD_PRINTCONSOLE, szReturnString );
+}
+
 int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 {
 	//return here if the player is in the respawn grace period vs. slams.

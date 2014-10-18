@@ -1327,6 +1327,21 @@ static void GetPos( const CCommand &args, Vector &vecOrigin, QAngle &angles )
 	}
 }
 
+static void GetLocPos( const CCommand &args, Vector &vecOrigin, QAngle &angles )
+{
+	vecOrigin = MainViewOrigin();
+	angles = MainViewAngles();
+	if ( args.ArgC() == 2 && atoi( args[1] ) == 2 )
+	{
+		C_BasePlayer *pPlayer = C_BasePlayer::GetLocalPlayer();
+		if ( pPlayer )
+		{
+			vecOrigin = pPlayer->GetLocalOrigin();
+			angles = pPlayer->GetLocalAngles();
+		}
+	}
+}
+
 CON_COMMAND( spec_pos, "dump position and angles to the console" )
 {
 	Vector vecOrigin;
@@ -1349,6 +1364,11 @@ CON_COMMAND( getpos, "dump position and angles to the console" )
 		pCommand1 = "setpos_exact";
 		pCommand2 = "setang_exact";
 	}
+
+	Warning( "%s %f %f %f;", pCommand1, vecOrigin.x, vecOrigin.y, vecOrigin.z );
+	Warning( "%s %f %f %f\n", pCommand2, angles.x, angles.y, angles.z );
+
+	GetLocPos( args, vecOrigin, angles );
 
 	Warning( "%s %f %f %f;", pCommand1, vecOrigin.x, vecOrigin.y, vecOrigin.z );
 	Warning( "%s %f %f %f\n", pCommand2, angles.x, angles.y, angles.z );

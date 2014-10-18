@@ -21,6 +21,8 @@
 
 #ifndef CLIENT_DLL
 #include "hl2mp_player.h"
+#include "filesystem.h"
+#include "utlbuffer.h"
 #endif
 
 #define VEC_CROUCH_TRACE_MIN	HL2MPRules()->GetHL2MPViewVectors()->m_vCrouchTraceMin
@@ -43,6 +45,13 @@ class CHL2MPGameRulesProxy : public CGameRulesProxy
 public:
 	DECLARE_CLASS( CHL2MPGameRulesProxy, CGameRulesProxy );
 	DECLARE_NETWORKCLASS();
+};
+
+struct botnode
+{
+	int ID;
+	CUtlVector<int> connectors;
+	Vector location;
 };
 
 class HL2MPViewVectors : public CViewVectors
@@ -95,6 +104,14 @@ public:
 	
 	CHL2MPRules();
 	virtual ~CHL2MPRules();
+
+	bool LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBaseFileSystem *pFileSystem, const char *pPathID );
+	bool LoadFromBuffer( char const *resourceName, const char *pBuffer, IBaseFileSystem* pFileSystem, const char *pPathID = NULL );
+	bool LoadCowFile( IBaseFileSystem *filesystem, const char *resourceName, const char *pathID );
+
+	CUtlVector<botnode *> botnet;
+	bool cowsloaded;
+	bool cowsloadfail;
 
 	virtual void Precache( void );
 	virtual bool ShouldCollide( int collisionGroup0, int collisionGroup1 );
