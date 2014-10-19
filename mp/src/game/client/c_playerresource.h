@@ -52,6 +52,7 @@ public : // IGameResources intreface
 	virtual int		GetTeam( int index );
 	virtual int		GetFrags( int index );
 	virtual int		GetHealth( int index );
+	virtual int		GetLevel( int index );
 
 	virtual void ClientThink();
 	virtual	void	OnDataChanged(DataUpdateType_t updateType);
@@ -69,6 +70,7 @@ protected:
 	int		m_iTeam[MAX_PLAYERS+1];
 	bool	m_bAlive[MAX_PLAYERS+1];
 	int		m_iHealth[MAX_PLAYERS+1];
+	int		m_iLevels[MAX_PLAYERS+1];
 	Color	m_Colors[MAX_TEAMS];
 	string_t m_szUnconnectedName;
 

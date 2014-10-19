@@ -7,6 +7,7 @@
 #include "cbase.h"
 #include "player.h"
 #include "player_resource.h"
+#include "hl2mp_player.h"
 #include <coordsize.h>
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -23,6 +24,7 @@ IMPLEMENT_SERVERCLASS_ST_NOBASE(CPlayerResource, DT_PlayerResource)
 	SendPropArray3( SENDINFO_ARRAY3(m_iTeam), SendPropInt( SENDINFO_ARRAY(m_iTeam), 4 ) ),
 	SendPropArray3( SENDINFO_ARRAY3(m_bAlive), SendPropInt( SENDINFO_ARRAY(m_bAlive), 1, SPROP_UNSIGNED ) ),
 	SendPropArray3( SENDINFO_ARRAY3(m_iHealth), SendPropInt( SENDINFO_ARRAY(m_iHealth), -1, SPROP_VARINT | SPROP_UNSIGNED ) ),
+	SendPropArray3( SENDINFO_ARRAY3(m_iLevels), SendPropInt( SENDINFO_ARRAY(m_iLevels), -1, SPROP_VARINT | SPROP_UNSIGNED ) ),
 END_SEND_TABLE()
 
 BEGIN_DATADESC( CPlayerResource )
@@ -60,6 +62,7 @@ void CPlayerResource::Spawn( void )
 		m_bConnected.Set( i, 0 );
 		m_iTeam.Set( i, 0 );
 		m_bAlive.Set( i, 0 );
+		m_iLevels.Set( i, 0 );
 	}
 
 	SetThink( &CPlayerResource::ResourceThink );
@@ -105,6 +108,7 @@ void CPlayerResource::UpdatePlayerData( void )
 			m_iTeam.Set( i, pPlayer->GetTeamNumber() );
 			m_bAlive.Set( i, pPlayer->IsAlive()?1:0 );
 			m_iHealth.Set(i, MAX( 0, pPlayer->GetHealth() ) );
+			m_iLevels.Set(i, ((CHL2MP_Player* )pPlayer)->covenLevelCounter);
 
 			// Don't update ping / packetloss everytime
 

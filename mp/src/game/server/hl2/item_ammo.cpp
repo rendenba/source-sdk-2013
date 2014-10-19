@@ -792,6 +792,9 @@ void CItem_AmmoCrate::Precache( void )
 //-----------------------------------------------------------------------------
 void CItem_AmmoCrate::SetupCrate( void )
 {
+	//BB: hacky hack
+	m_nAmmoType = 1;
+
 	SetModelName( AllocPooledString( m_lpzModelNames[m_nAmmoType] ) );
 	
 	m_nAmmoIndex = GetAmmoDef()->Index( m_lpzAmmoNames[m_nAmmoType] );
@@ -920,7 +923,10 @@ void CItem_AmmoCrate::HandleAnimEvent( animevent_t *pEvent )
 				}
 			}
 
-			if ( m_hActivator->GiveAmmo( m_nAmmoAmounts[m_nAmmoType], m_nAmmoIndex ) != 0 )
+			//BB: hacky hack
+			//if ( m_hActivator->GiveAmmo( m_nAmmoAmounts[m_nAmmoType], m_nAmmoIndex ) != 0 )
+			CBaseCombatWeapon *pWeap = m_hActivator->GetActiveWeapon();
+			if ( pWeap && m_hActivator->GiveAmmo(100, pWeap->m_iPrimaryAmmoType) != 0 )
 			{
 				SetBodygroup( 1, false );
 			}

@@ -68,6 +68,9 @@ typedef struct
 	int				m_WantedTeam;
 	int				m_WantedClass;
 
+	int				m_lastPlayerCheck; //index
+	bool			bCombat;
+
 	int				m_lastNode; //index
 	int				m_lastNodeProbe; //index (not id) of last probe into the botnet
 	int				m_targetNode; //index
@@ -127,12 +130,22 @@ CBasePlayer *BotPutInServer( bool bFrozen, int iTeam )
 	g_BotData[pPlayer->entindex()-1].m_lastNode = 0;
 	g_BotData[pPlayer->entindex()-1].m_targetNode = 0;
 	g_BotData[pPlayer->entindex()-1].m_lastNodeProbe = 0;
+	g_BotData[pPlayer->entindex()-1].m_lastPlayerCheck = 0;
 	g_BotData[pPlayer->entindex()-1].goWild = 0.0f;
 	g_BotData[pPlayer->entindex()-1].stuckTimer = 0.0f;
 	g_BotData[pPlayer->entindex()-1].spawnTimer = 0.0f;
 	g_BotData[pPlayer->entindex()-1].bLost = true;
+	g_BotData[pPlayer->entindex()-1].bCombat = false;
 
 	return pPlayer;
+}
+
+
+void GetLost( CHL2MP_Player *pBot )
+{
+	botdata_t *botdata = &g_BotData[ ENTINDEX( pBot->edict() ) - 1 ];
+	botdata->m_targetNode = 0;
+	botdata->bLost = true;
 }
 
 //-----------------------------------------------------------------------------
@@ -171,6 +184,56 @@ bool RunMimicCommand( CUserCmd& cmd )
 	cmd.viewangles[YAW] += bot_mimic_yaw_offset.GetFloat();
 
 	return true;
+}
+
+void PlayerCheck( CHL2MP_Player *pBot )
+{
+	botdata_t *botdata = &g_BotData[ ENTINDEX( pBot->edict() ) - 1 ];
+
+	CHL2MP_Player *pPlayer = ToHL2MPPlayer( UTIL_PlayerByIndex( botdata->m_lastPlayerCheck ) );
+
+	if (pPlayer && pPlayer->IsAlive() && pPlayer->GetTeamNumber() != pBot->GetTeamNumber())
+	{
+		Vector vecEnd;
+		Vector vecSrc;
+		vecSrc = pBot->GetLocalOrigin() + Vector( 0, 0, 36 );
+		vecEnd = pPlayer->GetLocalOrigin() + Vector( 0, 0, 36 );
+
+		Vector playerVec = vecEnd-vecSrc;
+
+		if ((playerVec).Length() < 400)
+		{
+			QAngle angle = pBot->GetLocalAngles();
+			Vector forward;
+			AngleVectors(angle, &forward);
+			VectorNormalize(playerVec);
+			float botDot = DotProduct(playerVec,forward);
+			if (botDot > 0.3f)
+			{
+				trace_t trace;
+
+				UTIL_TraceLine(vecSrc, vecEnd, MASK_SHOT, pBot, COLLISION_GROUP_PLAYER, &trace );
+				CBaseEntity	*pHitEnt = trace.m_pEnt;
+				if (pHitEnt == pPlayer)
+				{
+					botdata->bCombat = true;
+					return;
+				}
+			}
+		}
+	}
+
+	if (botdata->bCombat)
+	{
+		botdata->backwards = false;
+		GetLost(pBot);
+	}
+
+	botdata->bCombat = false;
+	botdata->m_lastPlayerCheck++;
+	
+	if (botdata->m_lastPlayerCheck > gpGlobals->maxClients)
+		botdata->m_lastPlayerCheck = 0;
 }
 
 void FindNearestNode( CHL2MP_Player *pBot )
@@ -263,14 +326,6 @@ static void RunPlayerMove( CHL2MP_Player *fakeclient, const QAngle& viewangles, 
 	gpGlobals->curtime = flOldCurtime;
 }
 
-void GetLost( CHL2MP_Player *pBot )
-{
-	botdata_t *botdata = &g_BotData[ ENTINDEX( pBot->edict() ) - 1 ];
-	botdata->m_targetNode = 0;
-	botdata->bLost = true;
-}
-
-
 //-----------------------------------------------------------------------------
 // Purpose: Run this Bot's AI for one frame.
 //-----------------------------------------------------------------------------
@@ -311,6 +366,9 @@ void Bot_Think( CHL2MP_Player *pBot )
 			botdata->spawnTimer = gpGlobals->curtime + 1.0f;
 		}
 	}
+
+	//Combat Check
+	PlayerCheck(pBot);
 
 	QAngle vecViewAngles;
 	float forwardmove = 0.0;
@@ -435,7 +493,21 @@ void Bot_Think( CHL2MP_Player *pBot )
 			}
 			else
 			{
-				if (botdata->m_targetNode >= 0)
+				if (botdata->bCombat)
+				{
+					CHL2MP_Player *pPlayer = ToHL2MPPlayer( UTIL_PlayerByIndex( botdata->m_lastPlayerCheck ) );
+					if (pPlayer)
+					{
+						forward = (pPlayer->GetLocalOrigin() + Vector(random->RandomInt(-20,20), random->RandomInt(-20,20), random->RandomInt(-15,15))) - pBot->GetLocalOrigin();
+						VectorAngles(forward, angle);
+						botdata->forwardAngle = angle;
+						botdata->lastAngles = angle;
+						buttons |= IN_ATTACK;
+						if (pBot->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+							botdata->backwards = true;
+					}
+				}
+				else if (botdata->m_targetNode >= 0)
 				{
 					forward = pRules->botnet[botdata->m_targetNode]->location - pBot->GetLocalOrigin();
 					//if (pBot->GetTeamNumber() == 2)
@@ -460,14 +532,14 @@ void Bot_Think( CHL2MP_Player *pBot )
 				}
 				sidemove = botdata->sidemove;
 
-				if ( random->RandomInt( 0, 20 ) == 0 )
+				/*if ( random->RandomInt( 0, 20 ) == 0 )
 				{
 					botdata->backwards = true;
 				}
 				else
 				{
 					botdata->backwards = false;
-				}
+				}*/
 			}
 
 			pBot->SetLocalAngles( angle );

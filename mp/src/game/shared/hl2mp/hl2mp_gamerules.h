@@ -109,6 +109,7 @@ public:
 	bool LoadFromBuffer( char const *resourceName, const char *pBuffer, IBaseFileSystem* pFileSystem, const char *pPathID = NULL );
 	bool LoadCowFile( IBaseFileSystem *filesystem, const char *resourceName, const char *pathID );
 
+	CUtlVector<CBaseEntity *> crates;
 	CUtlVector<botnode *> botnet;
 	bool cowsloaded;
 	bool cowsloadfail;

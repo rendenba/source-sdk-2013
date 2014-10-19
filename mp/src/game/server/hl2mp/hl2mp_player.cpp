@@ -267,6 +267,11 @@ void CHL2MP_Player::Precache( void )
 	PrecacheScriptSound( "NPC_Citizen.die" );
 	PrecacheScriptSound( "Resurrect" );
 	PrecacheScriptSound( "Resurrect.Finish" );
+
+	/*PrecacheModel( "models/items/ammocrate_pistol.mdl" );
+
+	PrecacheScriptSound( "AmmoCrate.Open" );
+	PrecacheScriptSound( "AmmoCrate.Close" );*/
 }
 
 void CHL2MP_Player::GiveAllItems( void )
@@ -323,7 +328,7 @@ void CHL2MP_Player::GiveDefaultItems( void )
 			GiveNamedItem( "weapon_shotgun" );
 			break;
 		case COVEN_CLASSID_HELLION:
-			CBasePlayer::GiveAmmo( 100,	"Pistol");
+			CBasePlayer::GiveAmmo( 72,	"Pistol");
 			GiveNamedItem( "weapon_pistol" );
 		default:
 			break;
@@ -403,6 +408,9 @@ void CHL2MP_Player::PickDefaultSpawnTeam( void )
 //-----------------------------------------------------------------------------
 void CHL2MP_Player::Spawn(void)
 {
+
+	SetPlayerTeamModel();
+
 	m_flNextModelChangeTime = 0.0f;
 	m_flNextTeamChangeTime = 0.0f;
 
@@ -1246,11 +1254,11 @@ bool CHL2MP_Player::HandleCommand_JoinTeam( int team )
 
 		return true;
 	}
-	else
+	/*else
 	{
 		StopObserverMode();
 		State_Transition(STATE_ACTIVE);
-	}
+	}*/
 
 	// Switch their actual team...
 	ChangeTeam( team );

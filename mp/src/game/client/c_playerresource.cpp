@@ -26,6 +26,7 @@ IMPLEMENT_CLIENTCLASS_DT_NOBASE(C_PlayerResource, DT_PlayerResource, CPlayerReso
 	RecvPropArray3( RECVINFO_ARRAY(m_iTeam), RecvPropInt( RECVINFO(m_iTeam[0]))),
 	RecvPropArray3( RECVINFO_ARRAY(m_bAlive), RecvPropInt( RECVINFO(m_bAlive[0]))),
 	RecvPropArray3( RECVINFO_ARRAY(m_iHealth), RecvPropInt( RECVINFO(m_iHealth[0]))),
+	RecvPropArray3( RECVINFO_ARRAY(m_iLevels), RecvPropInt( RECVINFO(m_iLevels[0]))),
 END_RECV_TABLE()
 
 BEGIN_PREDICTION_DATA( C_PlayerResource )
@@ -38,6 +39,7 @@ BEGIN_PREDICTION_DATA( C_PlayerResource )
 	DEFINE_PRED_ARRAY( m_iTeam, FIELD_INTEGER, MAX_PLAYERS+1, FTYPEDESC_PRIVATE ),
 	DEFINE_PRED_ARRAY( m_bAlive, FIELD_BOOLEAN, MAX_PLAYERS+1, FTYPEDESC_PRIVATE ),
 	DEFINE_PRED_ARRAY( m_iHealth, FIELD_INTEGER, MAX_PLAYERS+1, FTYPEDESC_PRIVATE ),
+	DEFINE_PRED_ARRAY( m_iLevels, FIELD_INTEGER, MAX_PLAYERS+1, FTYPEDESC_PRIVATE ),
 
 END_PREDICTION_DATA()	
 
@@ -58,6 +60,7 @@ C_PlayerResource::C_PlayerResource()
 	memset( m_iTeam, 0, sizeof( m_iTeam ) );
 	memset( m_bAlive, 0, sizeof( m_bAlive ) );
 	memset( m_iHealth, 0, sizeof( m_iHealth ) );
+	memset( m_iLevels, 0, sizeof( m_iLevels ) );
 	m_szUnconnectedName = 0;
 	
 	for ( int i=0; i<MAX_TEAMS; i++ )
@@ -284,6 +287,14 @@ int	C_PlayerResource::GetPlayerScore( int iIndex )
 		return 0;
 
 	return m_iScore[iIndex];
+}
+
+int C_PlayerResource::GetLevel( int index )
+{
+	if ( !IsConnected( index ) )
+		return 0;
+
+	return m_iLevels[index];
 }
 
 //-----------------------------------------------------------------------------

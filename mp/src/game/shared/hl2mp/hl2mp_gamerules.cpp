@@ -47,7 +47,7 @@ ConVar sv_hl2mp_item_respawn_time( "sv_hl2mp_item_respawn_time", "30", FCVAR_GAM
 ConVar sv_report_client_settings("sv_report_client_settings", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 
 //BB: Coven ConVars
-ConVar sv_coven_minplayers("sv_coven_minplayers", "2", FCVAR_GAMEDLL | FCVAR_NOTIFY );
+ConVar sv_coven_minplayers("sv_coven_minplayers", "3", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_coven_warmuptime("sv_coven_warmuptime", "10", FCVAR_GAMEDLL | FCVAR_NOTIFY );//30
 
 extern ConVar mp_chattime;
@@ -277,6 +277,21 @@ bool CHL2MPRules::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBa
 				node->connectors.AddToTail(n);
 			}
 			botnet.AddToTail(node);
+		}
+		else if (Q_strcmp(s,"ammocrate") == 0)
+		{
+			buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
+			const char *t = temparray;
+			float locs[3];
+			UTIL_StringToVector(locs, t);
+			CBaseEntity *ent = CreateEntityByName( "item_ammo_crate" );
+			ent->SetLocalOrigin(Vector(locs[0], locs[1], locs[2]));
+			buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
+			const char *u = temparray;
+			UTIL_StringToVector(locs, u);
+			ent->SetLocalAngles(QAngle(locs[0], locs[1], locs[2]));
+			crates.AddToTail(ent);
+			ent->Spawn();
 		}
 	}
 #endif
@@ -1116,11 +1131,11 @@ CAmmoDef *GetAmmoDef()
 
 		def.AddAmmoType("AR2",				DMG_BULLET,					TRACER_LINE_AND_WHIZ,	0,			0,			60,			BULLET_IMPULSE(200, 1225),	0 );
 		def.AddAmmoType("AR2AltFire",		DMG_DISSOLVE,				TRACER_NONE,			0,			0,			3,			0,							0 );
-		def.AddAmmoType("Pistol",			DMG_BULLET,					TRACER_LINE_AND_WHIZ,	0,			0,			150,		BULLET_IMPULSE(200, 1225),	0 );
-		def.AddAmmoType("SMG1",				DMG_BULLET,					TRACER_LINE_AND_WHIZ,	0,			0,			225,		BULLET_IMPULSE(200, 1225),	0 );
+		def.AddAmmoType("Pistol",			DMG_BULLET,					TRACER_LINE_AND_WHIZ,	0,			0,			72,		BULLET_IMPULSE(200, 1225),	0 );
+		def.AddAmmoType("SMG1",				DMG_BULLET,					TRACER_LINE_AND_WHIZ,	0,			0,			90,		BULLET_IMPULSE(200, 1225),	0 );
 		def.AddAmmoType("357",				DMG_BULLET,					TRACER_LINE_AND_WHIZ,	0,			0,			12,			BULLET_IMPULSE(800, 5000),	0 );
 		def.AddAmmoType("XBowBolt",			DMG_BULLET,					TRACER_LINE,			0,			0,			10,			BULLET_IMPULSE(800, 8000),	0 );
-		def.AddAmmoType("Buckshot",			DMG_BULLET | DMG_BUCKSHOT,	TRACER_LINE,			0,			0,			30,			BULLET_IMPULSE(400, 1200),	0 );
+		def.AddAmmoType("Buckshot",			DMG_BULLET | DMG_BUCKSHOT,	TRACER_LINE,			0,			0,			16,			BULLET_IMPULSE(400, 1200),	0 );
 		def.AddAmmoType("RPG_Round",		DMG_BURN,					TRACER_NONE,			0,			0,			3,			0,							0 );
 		def.AddAmmoType("SMG1_Grenade",		DMG_BURN,					TRACER_NONE,			0,			0,			3,			0,							0 );
 		def.AddAmmoType("Grenade",			DMG_BURN,					TRACER_NONE,			0,			0,			5,			0,							0 );
