@@ -239,6 +239,9 @@ void CHUDQuickInfo::OnThink()
 
 void CHUDQuickInfo::Paint()
 {
+	//BB: KILL THIS CRAP!
+	return;
+
 	C_BasePlayer *player = C_BasePlayer::GetLocalPlayer();
 	if ( player == NULL )
 		return;

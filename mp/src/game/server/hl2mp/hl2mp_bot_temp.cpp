@@ -59,6 +59,7 @@ typedef struct
 	float			stuckTimer;
 	float			goWild;
 	float			spawnTimer;
+	float			guardTimer;
 
 	QAngle			forwardAngle;
 	QAngle			lastAngles;
@@ -134,6 +135,7 @@ CBasePlayer *BotPutInServer( bool bFrozen, int iTeam )
 	g_BotData[pPlayer->entindex()-1].goWild = 0.0f;
 	g_BotData[pPlayer->entindex()-1].stuckTimer = 0.0f;
 	g_BotData[pPlayer->entindex()-1].spawnTimer = 0.0f;
+	g_BotData[pPlayer->entindex()-1].guardTimer = 0.0f;
 	g_BotData[pPlayer->entindex()-1].bLost = true;
 	g_BotData[pPlayer->entindex()-1].bCombat = false;
 
@@ -217,6 +219,7 @@ void PlayerCheck( CHL2MP_Player *pBot )
 				if (pHitEnt == pPlayer)
 				{
 					botdata->bCombat = true;
+					botdata->guardTimer = 0.0f;
 					return;
 				}
 			}
@@ -380,7 +383,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 
 	vecViewAngles = pBot->GetLocalAngles();
 
-	if (botdata->bLost)
+	if (botdata->bLost && botdata->goWild == 0.0f)
 	{
 		FindNearestNode(pBot);
 	}
@@ -392,7 +395,9 @@ void Bot_Think( CHL2MP_Player *pBot )
 			if (pRules->botnet[botdata->m_targetNode]->connectors.Count() <= 1)
 			{
 				//dead end get lost for now
-				GetLost(pBot);
+				//GetLost(pBot);
+				//get bored after 10 seconds
+				botdata->guardTimer = gpGlobals->curtime + 10.0f;
 			}
 			else
 			{
@@ -430,7 +435,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 	{
 		trace_t trace;
 
-		if ( !pBot->IsEFlagSet(EFL_BOT_FROZEN) )
+		if ( !pBot->IsEFlagSet(EFL_BOT_FROZEN) && botdata->guardTimer == 0.0f)
 		{
 			forwardmove = 600 * ( botdata->backwards ? -1 : 1 );
 			if ( botdata->sidemove != 0.0f )
@@ -491,7 +496,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 					}
 				}
 			}
-			else
+			else if (botdata->guardTimer == 0.0f)
 			{
 				if (botdata->bCombat)
 				{
@@ -516,6 +521,23 @@ void Bot_Think( CHL2MP_Player *pBot )
 					botdata->forwardAngle = angle;
 					botdata->lastAngles = angle;
 				}
+			}
+			else if (gpGlobals->curtime > botdata->guardTimer)
+			{
+				botdata->guardTimer = 0.0f;
+				GetLost(pBot);
+			}
+			else
+			{
+				//guardtimer is set, slowly rotate and crouch
+				angle.y += 2.0f;
+				if ( angle.y > 180 )
+					angle.y -= 360;
+				else if ( angle.y < -180 )
+					angle.y += 360;
+				buttons |= IN_DUCK;
+				botdata->forwardAngle = angle;
+				botdata->lastAngles = angle;
 			}
 
 			if ( gpGlobals->curtime >= botdata->nextstrafetime )
@@ -623,7 +645,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 		pBot->SetLocalAngles( botdata->lastAngles );
 	}
 
-	if ((pBot->GetLocalOrigin() - botdata->lastPos).Length() < 4.0f) //STUCK?
+	if (botdata->guardTimer == 0.0f && (pBot->GetLocalOrigin() - botdata->lastPos).Length() < 4.0f) //STUCK?
 	{
 		if (botdata->stuckTimer > 0.0f)
 		{

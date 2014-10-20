@@ -187,6 +187,11 @@ bool CHL2MP_Player::LevelUp( int lvls )
 			GiveAgility(5);
 			GiveIntellect(2);
 			break;
+		case COVEN_CLASSID_GORE:
+			GiveStrength(5);
+			GiveAgility(2);
+			GiveIntellect(1);
+			break;
 		default:break;
 		}
 	}
@@ -320,16 +325,20 @@ void CHL2MP_Player::GiveDefaultItems( void )
 		switch (covenClassID)
 		{
 		case COVEN_CLASSID_AVENGER:
-			CBasePlayer::GiveAmmo( 90,	"SMG1");
-			GiveNamedItem( "weapon_smg1" );
-			break;
-		case COVEN_CLASSID_REAVER:
+			//CBasePlayer::GiveAmmo( 90,	"SMG1");
+			//GiveNamedItem( "weapon_smg1" );
 			CBasePlayer::GiveAmmo( 16,	"Buckshot");
 			GiveNamedItem( "weapon_shotgun" );
 			break;
+		case COVEN_CLASSID_REAVER:
+			CBasePlayer::GiveAmmo( 16,	"Buckshot");
+			GiveNamedItem( "weapon_doubleshotgun" );
+			break;
 		case COVEN_CLASSID_HELLION:
-			CBasePlayer::GiveAmmo( 72,	"Pistol");
-			GiveNamedItem( "weapon_pistol" );
+			//CBasePlayer::GiveAmmo( 60,	"Pistol");
+			//GiveNamedItem( "weapon_pistol" );
+			CBasePlayer::GiveAmmo( 12,	"357");
+			GiveNamedItem( "weapon_357" );
 		default:
 			break;
 		}
@@ -424,7 +433,7 @@ void CHL2MP_Player::Spawn(void)
 	if (covenLevelCounter == 0)
 		LevelUp(1);
 
-	if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES && covenClassID > 1)
+	if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES && covenClassID > 2)
 		return;
 
 	if (GetTeamNumber() == COVEN_TEAMID_SLAYERS && covenClassID > 3)
@@ -819,7 +828,26 @@ void CHL2MP_Player::FireBullets ( const FireBulletsInfo_t &info )
 
 	if ( pWeapon )
 	{
-		modinfo.m_iPlayerDamage = modinfo.m_flDamage = pWeapon->GetHL2MPWpnData().m_iPlayerDamage;
+		int val = pWeapon->GetHL2MPWpnData().m_iPlayerDamage;
+		int add = 0;
+		if (Q_strcmp(pWeapon->GetHL2MPWpnData().szAmmo1,"Buckshot") == 0)
+		{
+			add = myAgility()/16.0f;
+		}
+		else if (Q_strcmp(pWeapon->GetHL2MPWpnData().szAmmo1,"357") == 0)
+		{
+			add = myAgility();
+		}
+		else if (Q_strcmp(pWeapon->GetHL2MPWpnData().szAmmo1,"Pistol") == 0)
+		{
+			add = myAgility()/12.0f;
+		}
+		else if (Q_strcmp(pWeapon->GetHL2MPWpnData().szAmmo1,"SMG1") == 0)
+		{
+			add = myAgility()/20.0f;
+		}
+		modinfo.m_iPlayerDamage = modinfo.m_flDamage = val + add;
+		//Msg("Damage: %d\n", val+add);
 	}
 
 	NoteWeaponFired();
@@ -1526,12 +1554,19 @@ void CHL2MP_Player::DetonateTripmines( void )
 
 int CHL2MP_Player::XPForKill(CHL2MP_Player *pAttacker)
 {
-	//BB: Bots always return a fixed value that is small
-	if (IsBot())
-		return 5;
+	//BB: Bots always return a fixed value that is small (nixed... bots are decent enough)
+	//if (IsBot())
+	//	return 5;
 
 	//BB: TODO: make this more ellaborate... based on player lvl difference
-	return 10;
+	int retval = 8;
+
+	retval += 2*(covenLevelCounter-pAttacker->covenLevelCounter);
+	Msg("XPForKill: %d\n",retval);
+
+	retval = max(1,retval);
+
+	return retval;
 }
 
 void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )

@@ -17,16 +17,16 @@
 #include "weapon_hl2mpbasehlmpcombatweapon.h"
 
 #ifdef CLIENT_DLL
-#define CWeaponShotgun C_WeaponShotgun
+#define CWeaponDoubleShotgun C_WeaponDoubleShotgun
 #endif
 
 extern ConVar sk_auto_reload_time;
 extern ConVar sk_plr_num_shotgun_pellets;
 
-class CWeaponShotgun : public CBaseHL2MPCombatWeapon
+class CWeaponDoubleShotgun : public CBaseHL2MPCombatWeapon
 {
 public:
-	DECLARE_CLASS( CWeaponShotgun, CBaseHL2MPCombatWeapon );
+	DECLARE_CLASS( CWeaponDoubleShotgun, CBaseHL2MPCombatWeapon );
 
 	DECLARE_NETWORKCLASS(); 
 	DECLARE_PREDICTABLE();
@@ -40,7 +40,7 @@ private:
 public:
 	virtual const Vector& GetBulletSpread( void )
 	{
-		static Vector cone = VECTOR_CONE_10DEGREES;
+		static Vector cone = VECTOR_CONE_20DEGREES;
 		return cone;
 	}
 
@@ -65,15 +65,15 @@ public:
 	DECLARE_ACTTABLE();
 #endif
 
-	CWeaponShotgun(void);
+	CWeaponDoubleShotgun(void);
 
 private:
-	CWeaponShotgun( const CWeaponShotgun & );
+	CWeaponDoubleShotgun( const CWeaponDoubleShotgun & );
 };
 
-IMPLEMENT_NETWORKCLASS_ALIASED( WeaponShotgun, DT_WeaponShotgun )
+IMPLEMENT_NETWORKCLASS_ALIASED( WeaponDoubleShotgun, DT_WeaponDoubleShotgun )
 
-BEGIN_NETWORK_TABLE( CWeaponShotgun, DT_WeaponShotgun )
+BEGIN_NETWORK_TABLE( CWeaponDoubleShotgun, DT_WeaponDoubleShotgun )
 #ifdef CLIENT_DLL
 	RecvPropBool( RECVINFO( m_bNeedPump ) ),
 	RecvPropBool( RECVINFO( m_bDelayedFire1 ) ),
@@ -88,7 +88,7 @@ BEGIN_NETWORK_TABLE( CWeaponShotgun, DT_WeaponShotgun )
 END_NETWORK_TABLE()
 
 #ifdef CLIENT_DLL
-BEGIN_PREDICTION_DATA( CWeaponShotgun )
+BEGIN_PREDICTION_DATA( CWeaponDoubleShotgun )
 	DEFINE_PRED_FIELD( m_bNeedPump, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE ),
 	DEFINE_PRED_FIELD( m_bDelayedFire1, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE ),
 	DEFINE_PRED_FIELD( m_bDelayedFire2, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE ),
@@ -96,11 +96,11 @@ BEGIN_PREDICTION_DATA( CWeaponShotgun )
 END_PREDICTION_DATA()
 #endif
 
-LINK_ENTITY_TO_CLASS( weapon_shotgun, CWeaponShotgun );
-PRECACHE_WEAPON_REGISTER(weapon_shotgun);
+LINK_ENTITY_TO_CLASS( weapon_doubleshotgun, CWeaponDoubleShotgun );
+PRECACHE_WEAPON_REGISTER(weapon_doubleshotgun);
 
 #ifndef CLIENT_DLL
-acttable_t	CWeaponShotgun::m_acttable[] = 
+acttable_t	CWeaponDoubleShotgun::m_acttable[] = 
 {
 	{ ACT_HL2MP_IDLE,					ACT_HL2MP_IDLE_SHOTGUN,					false },
 	{ ACT_HL2MP_RUN,					ACT_HL2MP_RUN_SHOTGUN,					false },
@@ -112,7 +112,7 @@ acttable_t	CWeaponShotgun::m_acttable[] =
 	{ ACT_RANGE_ATTACK1,				ACT_RANGE_ATTACK_SHOTGUN,				false },
 };
 
-IMPLEMENT_ACTTABLE(CWeaponShotgun);
+IMPLEMENT_ACTTABLE(CWeaponDoubleShotgun);
 
 #endif
 
@@ -122,7 +122,7 @@ IMPLEMENT_ACTTABLE(CWeaponShotgun);
 // Input  :
 // Output :
 //-----------------------------------------------------------------------------
-bool CWeaponShotgun::StartReload( void )
+bool CWeaponDoubleShotgun::StartReload( void )
 {
 	if ( m_bNeedPump )
 		return false;
@@ -161,7 +161,7 @@ bool CWeaponShotgun::StartReload( void )
 // Input  :
 // Output :
 //-----------------------------------------------------------------------------
-bool CWeaponShotgun::Reload( void )
+bool CWeaponDoubleShotgun::Reload( void )
 {
 	// Check that StartReload was called first
 	if (!m_bInReload)
@@ -201,7 +201,7 @@ bool CWeaponShotgun::Reload( void )
 // Input  :
 // Output :
 //-----------------------------------------------------------------------------
-void CWeaponShotgun::FinishReload( void )
+void CWeaponDoubleShotgun::FinishReload( void )
 {
 	// Make shotgun shell invisible
 	SetBodygroup(1,1);
@@ -214,6 +214,7 @@ void CWeaponShotgun::FinishReload( void )
 	m_bInReload = false;
 
 	// Finish reload animation
+	WeaponSound(SPECIAL3);
 	SendWeaponAnim( ACT_SHOTGUN_RELOAD_FINISH );
 
 	pOwner->m_flNextAttack = gpGlobals->curtime;
@@ -225,7 +226,7 @@ void CWeaponShotgun::FinishReload( void )
 // Input  :
 // Output :
 //-----------------------------------------------------------------------------
-void CWeaponShotgun::FillClip( void )
+void CWeaponDoubleShotgun::FillClip( void )
 {
 	CBaseCombatCharacter *pOwner  = GetOwner();
 	
@@ -248,7 +249,7 @@ void CWeaponShotgun::FillClip( void )
 // Input  :
 // Output :
 //-----------------------------------------------------------------------------
-void CWeaponShotgun::Pump( void )
+void CWeaponDoubleShotgun::Pump( void )
 {
 	CBaseCombatCharacter *pOwner  = GetOwner();
 
@@ -277,7 +278,7 @@ void CWeaponShotgun::Pump( void )
 //
 //
 //-----------------------------------------------------------------------------
-void CWeaponShotgun::DryFire( void )
+void CWeaponDoubleShotgun::DryFire( void )
 {
 	WeaponSound(EMPTY);
 	SendWeaponAnim( ACT_VM_DRYFIRE );
@@ -290,7 +291,7 @@ void CWeaponShotgun::DryFire( void )
 //
 //
 //-----------------------------------------------------------------------------
-void CWeaponShotgun::PrimaryAttack( void )
+void CWeaponDoubleShotgun::PrimaryAttack( void )
 {
 	// Only the player fires this way so we can cast
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
@@ -300,40 +301,54 @@ void CWeaponShotgun::PrimaryAttack( void )
 		return;
 	}
 
-	// MUST call sound before removing a round from the clip of a CMachineGun
-	WeaponSound(SINGLE);
-
-	pPlayer->DoMuzzleFlash();
-
-	SendWeaponAnim( ACT_VM_PRIMARYATTACK );
-
-	// Don't fire again until fire animation has completed
-	m_flNextPrimaryAttack = gpGlobals->curtime + SequenceDuration();
-	m_iClip1 -= 1;
-
-	// player "shoot" animation
-	pPlayer->SetAnimation( PLAYER_ATTACK1 );
-
-	Vector	vecSrc		= pPlayer->Weapon_ShootPosition( );
-	Vector	vecAiming	= pPlayer->GetAutoaimVector( AUTOAIM_10DEGREES );	
-
-	FireBulletsInfo_t info( 12, vecSrc, vecAiming, GetBulletSpread(), MAX_TRACE_LENGTH, m_iPrimaryAmmoType );
-	info.m_pAttacker = pPlayer;
-
-	// Fire the bullets, and force the first shot to be perfectly accuracy
-	pPlayer->FireBullets( info );
-	
-	QAngle punch;
-	punch.Init( SharedRandomFloat( "shotgunpax", -2, -1 ), SharedRandomFloat( "shotgunpay", -2, 2 ), 0 );
-	pPlayer->ViewPunch( punch );
-
-	if (!m_iClip1 && pPlayer->GetAmmoCount(m_iPrimaryAmmoType) <= 0)
+	if (m_iClip1 >= 2)
 	{
-		// HEV suit - indicate out of ammo condition
-		pPlayer->SetSuitUpdate("!HEV_AMO0", FALSE, 0); 
-	}
+		// MUST call sound before removing a round from the clip of a CMachineGun
+		WeaponSound(WPN_DOUBLE);
 
-	m_bNeedPump = true;
+		pPlayer->DoMuzzleFlash();
+
+		SendWeaponAnim( ACT_VM_SECONDARYATTACK );
+
+		// Don't fire again until fire animation has completed
+		m_flNextPrimaryAttack = gpGlobals->curtime + SequenceDuration();
+		m_iClip1 -= 2;
+
+		// player "shoot" animation
+		pPlayer->SetAnimation( PLAYER_ATTACK1 );
+
+		Vector	vecSrc		= pPlayer->Weapon_ShootPosition( );
+		Vector	vecAiming	= pPlayer->GetAutoaimVector( AUTOAIM_10DEGREES );	
+
+		FireBulletsInfo_t info( 40, vecSrc, vecAiming, GetBulletSpread(), MAX_TRACE_LENGTH, m_iPrimaryAmmoType );
+		info.m_pAttacker = pPlayer;
+
+		// Fire the bullets, and force the first shot to be perfectly accuracy
+		pPlayer->FireBullets( info );
+	
+		QAngle punch;
+		punch.Init( SharedRandomFloat( "shotgunpax", -2, -1 ), SharedRandomFloat( "shotgunpay", -2, 2 ), 0 );
+		pPlayer->ViewPunch( punch );
+
+		if (!m_iClip1 && pPlayer->GetAmmoCount(m_iPrimaryAmmoType) <= 0)
+		{
+			// HEV suit - indicate out of ammo condition
+			pPlayer->SetSuitUpdate("!HEV_AMO0", FALSE, 0); 
+		}
+
+		//m_bNeedPump = true;
+	}
+	else
+	{
+		if (m_bInReload)
+		{
+			Reload();
+		}
+		else
+		{
+			StartReload();
+		}
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -341,7 +356,7 @@ void CWeaponShotgun::PrimaryAttack( void )
 //
 //
 //-----------------------------------------------------------------------------
-/*void CWeaponShotgun::SecondaryAttack( void )
+/*void CWeaponDoubleShotgun::SecondaryAttack( void )
 {
 	// Only the player fires this way so we can cast
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
@@ -382,13 +397,13 @@ void CWeaponShotgun::PrimaryAttack( void )
 		pPlayer->SetSuitUpdate("!HEV_AMO0", FALSE, 0); 
 	}
 
-	m_bNeedPump = true;
+	//m_bNeedPump = true;
 }*/
 
 //-----------------------------------------------------------------------------
 // Purpose: Override so shotgun can do mulitple reloads in a row
 //-----------------------------------------------------------------------------
-void CWeaponShotgun::ItemPostFrame( void )
+void CWeaponDoubleShotgun::ItemPostFrame( void )
 {
 	CBasePlayer *pOwner = ToBasePlayer( GetOwner() );
 	if (!pOwner)
@@ -404,19 +419,19 @@ void CWeaponShotgun::ItemPostFrame( void )
 	if (m_bInReload)
 	{
 		// If I'm primary firing and have one round stop reloading and fire
-		if ((pOwner->m_nButtons & IN_ATTACK ) && (m_iClip1 >=1) && !m_bNeedPump )
+		if ((pOwner->m_nButtons & IN_ATTACK ) && (m_iClip1 >=2) && !m_bNeedPump )
 		{
 			m_bInReload		= false;
 			m_bNeedPump		= false;
 			m_bDelayedFire1 = true;
 		}
 		// If I'm secondary firing and have two rounds stop reloading and fire
-		/*else if ((pOwner->m_nButtons & IN_ATTACK2 ) && (m_iClip1 >=2) && !m_bNeedPump )
+		else if ((pOwner->m_nButtons & IN_ATTACK2 ) && (m_iClip1 >=2) && !m_bNeedPump )
 		{
 			m_bInReload		= false;
 			m_bNeedPump		= false;
 			m_bDelayedFire2 = true;
-		}*/
+		}
 		else if (m_flNextPrimaryAttack <= gpGlobals->curtime)
 		{
 			// If out of ammo end reload
@@ -493,7 +508,7 @@ void CWeaponShotgun::ItemPostFrame( void )
 	else if ( (m_bDelayedFire1 || pOwner->m_nButtons & IN_ATTACK) && m_flNextPrimaryAttack <= gpGlobals->curtime)
 	{
 		m_bDelayedFire1 = false;
-		if ( (m_iClip1 <= 0 && UsesClipsForAmmo1()) || ( !UsesClipsForAmmo1() && !pOwner->GetAmmoCount(m_iPrimaryAmmoType) ) )
+		if ( (m_iClip1 <= 1 && UsesClipsForAmmo1()) || ( !UsesClipsForAmmo1() && !pOwner->GetAmmoCount(m_iPrimaryAmmoType) ) )
 		{
 			if (!pOwner->GetAmmoCount(m_iPrimaryAmmoType))
 			{
@@ -566,7 +581,7 @@ void CWeaponShotgun::ItemPostFrame( void )
 //-----------------------------------------------------------------------------
 // Purpose: Constructor
 //-----------------------------------------------------------------------------
-CWeaponShotgun::CWeaponShotgun( void )
+CWeaponDoubleShotgun::CWeaponDoubleShotgun( void )
 {
 	m_bReloadsSingly = true;
 
@@ -583,7 +598,7 @@ CWeaponShotgun::CWeaponShotgun( void )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CWeaponShotgun::ItemHolsterFrame( void )
+void CWeaponDoubleShotgun::ItemHolsterFrame( void )
 {
 	// Must be player held
 	if ( GetOwner() && GetOwner()->IsPlayer() == false )
