@@ -22,6 +22,8 @@
 #include "clienteffectprecachesystem.h"
 #include "sourcevr/isourcevirtualreality.h"
 
+#include "c_hl2mp_player.h"
+
 using namespace vgui;
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -61,7 +63,7 @@ private:
 	CPanelAnimationVar( Color, m_DmgHighColorLeft, "DmgHighColorLeft", "255 0 0 0" );
 	CPanelAnimationVar( Color, m_DmgHighColorRight, "DmgHighColorRight", "255 0 0 0" );
 
-	CPanelAnimationVar( Color, m_DmgFullscreenColor, "DmgFullscreenColor", "255 0 0 0" );
+	CPanelAnimationVar( Color, m_DmgFullscreenColor, "DmgFullscreenColor", "255 0 0 128" );
 
 	void DrawDamageIndicator(int side);
 	void DrawFullscreenDamageIndicator();
@@ -358,7 +360,9 @@ void CHudDamageIndicator::MsgFunc_Damage( bf_read &msg )
 	VectorNormalize( vecDelta );
 
 	int highDamage = DAMAGE_LOW;
-	if ( damageTaken > 25 )
+
+	//BB: HOLY RED BATMAN
+	if ( damageTaken-13*((CHL2MP_Player *)pPlayer)->covenLevelCounter > 26 )
 	{
 		highDamage = DAMAGE_HIGH;
 	}

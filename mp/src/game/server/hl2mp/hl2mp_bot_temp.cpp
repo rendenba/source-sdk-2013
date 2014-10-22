@@ -385,6 +385,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 
 	if (botdata->bLost && botdata->goWild == 0.0f)
 	{
+		//Msg("LOST!\n");
 		FindNearestNode(pBot);
 	}
 	else
@@ -392,6 +393,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 		//reached node
 		if ((pRules->botnet[botdata->m_targetNode]->location - pBot->GetLocalOrigin()).Length() < 10)
 		{
+			//Msg("Reached: %d\n", pRules->botnet[botdata->m_targetNode]->ID);
 			if (pRules->botnet[botdata->m_targetNode]->connectors.Count() <= 1)
 			{
 				//dead end get lost for now
@@ -426,6 +428,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 					}
 				}
 				botdata->m_targetNode = update;
+				//Msg("Headed to: %d\n", pRules->botnet[botdata->m_targetNode]->ID);
 				botdata->m_lastNode = pushedval;
 			}
 		}

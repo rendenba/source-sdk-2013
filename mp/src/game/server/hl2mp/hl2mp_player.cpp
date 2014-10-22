@@ -161,18 +161,18 @@ bool CHL2MP_Player::LevelUp( int lvls )
 		switch (covenClassID)
 		{
 		case COVEN_CLASSID_REAVER:
-			GiveStrength(5);
+			GiveStrength(6);
 			GiveAgility(2);
 			GiveIntellect(1);
 			break;
 		case COVEN_CLASSID_AVENGER:
 			GiveStrength(4);
-			GiveAgility(2);
+			GiveAgility(4);
 			GiveIntellect(2);
 			break;
 		case COVEN_CLASSID_HELLION:
-			GiveStrength(1);
-			GiveAgility(5);
+			GiveStrength(3);
+			GiveAgility(6);
 			GiveIntellect(2);
 			break;
 		default:break;
@@ -183,13 +183,13 @@ bool CHL2MP_Player::LevelUp( int lvls )
 		switch (covenClassID)
 		{
 		case COVEN_CLASSID_FIEND:
-			GiveStrength(1);
+			GiveStrength(3);
 			GiveAgility(5);
 			GiveIntellect(2);
 			break;
 		case COVEN_CLASSID_GORE:
-			GiveStrength(5);
-			GiveAgility(2);
+			GiveStrength(6);
+			GiveAgility(1);
 			GiveIntellect(1);
 			break;
 		default:break;
@@ -342,6 +342,7 @@ void CHL2MP_Player::GiveDefaultItems( void )
 		default:
 			break;
 		}
+		GiveNamedItem( "weapon_stake" );
 	}
 	else if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
 	{
@@ -578,7 +579,7 @@ void CHL2MP_Player::SetPlayerTeamModel( void )
 		case COVEN_CLASSID_DEADEYE:
 			szModelName = "models/combine_super_soldier.mdl";
 			break;
-		case COVEN_CLASSID_HELLION:
+		case COVEN_CLASSID_AVENGER:
 			szModelName = "models/combine_soldier_prisonguard.mdl";
 			break;
 		default:
@@ -832,19 +833,22 @@ void CHL2MP_Player::FireBullets ( const FireBulletsInfo_t &info )
 		int add = 0;
 		if (Q_strcmp(pWeapon->GetHL2MPWpnData().szAmmo1,"Buckshot") == 0)
 		{
-			add = myAgility()/16.0f;
+			if (covenClassID == COVEN_CLASSID_REAVER)
+				add = floor(myAgility()/10.0f);
+			else
+				add = floor(myAgility()/12.0f);
 		}
 		else if (Q_strcmp(pWeapon->GetHL2MPWpnData().szAmmo1,"357") == 0)
 		{
-			add = myAgility();
+			add = floor(myAgility()/2.0f);
 		}
 		else if (Q_strcmp(pWeapon->GetHL2MPWpnData().szAmmo1,"Pistol") == 0)
 		{
-			add = myAgility()/12.0f;
+			add = floor(myAgility()/4.0f);
 		}
 		else if (Q_strcmp(pWeapon->GetHL2MPWpnData().szAmmo1,"SMG1") == 0)
 		{
-			add = myAgility()/20.0f;
+			add = floor(myAgility()/20.0f);
 		}
 		modinfo.m_iPlayerDamage = modinfo.m_flDamage = val + add;
 		//Msg("Damage: %d\n", val+add);
@@ -868,6 +872,7 @@ void CHL2MP_Player::NoteWeaponFired( void )
 }
 
 extern ConVar sv_maxunlag;
+extern ConVar coven_xp_scale;
 
 bool CHL2MP_Player::WantsLagCompensationOnEntity( const CBasePlayer *pPlayer, const CUserCmd *pCmd, const CBitVec<MAX_EDICTS> *pEntityTransmitBits ) const
 {
@@ -1559,9 +1564,9 @@ int CHL2MP_Player::XPForKill(CHL2MP_Player *pAttacker)
 	//	return 5;
 
 	//BB: TODO: make this more ellaborate... based on player lvl difference
-	int retval = 8;
+	int retval = COVEN_XP_PER_KILL*coven_xp_scale.GetInt();
 
-	retval += 2*(covenLevelCounter-pAttacker->covenLevelCounter);
+	retval += coven_xp_scale.GetInt()*2*(covenLevelCounter-pAttacker->covenLevelCounter);
 	Msg("XPForKill: %d\n",retval);
 
 	retval = max(1,retval);
@@ -1604,10 +1609,32 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 			iScoreToAdd = -1;
 		}
 
-		GetGlobalTeam( pAttacker->GetTeamNumber() )->AddScore( iScoreToAdd );
+		CTeam *team = GetGlobalTeam( pAttacker->GetTeamNumber() );
+		team->AddScore( iScoreToAdd );
 		if (pAttacker->IsPlayer() && pAttacker != this)
 		{
-			((CHL2_Player*)pAttacker)->GiveXP(XPForKill((CHL2MP_Player *)pAttacker));
+			int num = team->GetNumPlayers();
+			CUtlVector<CBasePlayer *> nearby;
+			for (int i = 0; i < num; i++)
+			{
+				CBasePlayer *pTemp = team->GetPlayer(i);
+				if (pTemp && (pTemp->GetLocalOrigin()-GetLocalOrigin()).Length() <= COVEN_XP_ASSIST_RADIUS)
+				{
+					nearby.AddToTail(pTemp);
+				}
+			}
+			int divider = nearby.Size();
+			int xp = XPForKill((CHL2MP_Player *)pAttacker);
+			for (int j = 0; j < divider; j++)
+			{
+				CBasePlayer *pTemp = nearby[j];
+				if (pTemp && pAttacker != pTemp)
+					((CHL2_Player*)pTemp)->GiveXP(xp/divider);
+			}
+			if (divider <= 0)
+				divider = 1;
+			//BB: attacker ALWAYS gets part of the XP
+			((CHL2_Player*)pAttacker)->GiveXP(xp/divider);
 		}
 	}
 

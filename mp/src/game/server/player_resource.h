@@ -37,6 +37,7 @@ protected:
 	CNetworkArray( int, m_bAlive, MAX_PLAYERS+1 );
 	CNetworkArray( int, m_iHealth, MAX_PLAYERS+1 );
 	CNetworkArray( int, m_iLevels, MAX_PLAYERS+1 );
+	CNetworkArray( int, m_iClass, MAX_PLAYERS+1 );
 		
 	int	m_nUpdateCounter;
 };

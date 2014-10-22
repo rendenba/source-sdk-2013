@@ -112,7 +112,7 @@ void CHudXP::Paint()
 
 	// get bar chunks
 	int chunkCount = m_flBarWidth / (m_flBarChunkWidth + m_flBarChunkGap);
-	int enabledChunks = (int)((float)chunkCount * (m_XP * 1.0f/COVEN_MAX_XP_PER_LEVEL) + 0.5f );
+	int enabledChunks = (int)((float)chunkCount * (m_XP * 1.0f/(COVEN_MAX_XP_PER_LEVEL+pPlayer->covenLevelCounter*COVEN_XP_INCREASE_PER_LEVEL)) + 0.5f );
 
 	// draw the suit power bar
 	surface()->DrawSetColor( m_AuxPowerColor );

@@ -11,8 +11,8 @@
 // $NoKeywords: $
 //=============================================================================//
 
-#ifndef HL2MP_WEAPON_CROWBAR_H
-#define HL2MP_WEAPON_CROWBAR_H
+#ifndef HL2MP_WEAPON_STAKE_H
+#define HL2MP_WEAPON_STAKE_H
 #pragma once
 
 
@@ -21,17 +21,17 @@
 
 
 #ifdef CLIENT_DLL
-#define CWeaponCrowbar C_WeaponCrowbar
+#define CWeaponStake C_WeaponStake
 #endif
 
 //-----------------------------------------------------------------------------
-// CWeaponCrowbar
+// CWeaponStake
 //-----------------------------------------------------------------------------
 
-class CWeaponCrowbar : public CBaseHL2MPBludgeonWeapon
+class CWeaponStake : public CBaseHL2MPBludgeonWeapon
 {
 public:
-	DECLARE_CLASS( CWeaponCrowbar, CBaseHL2MPBludgeonWeapon );
+	DECLARE_CLASS( CWeaponStake, CBaseHL2MPBludgeonWeapon );
 
 	DECLARE_NETWORKCLASS(); 
 	DECLARE_PREDICTABLE();
@@ -40,13 +40,12 @@ public:
 	DECLARE_ACTTABLE();
 #endif
 
-	CWeaponCrowbar();
+	CWeaponStake();
 
 	float		GetRange( void );
 	float		GetFireRate( void );
 
 	void		AddViewKick( void );
-	void		ImpactEffect( trace_t &traceHit );
 	float		GetDamageForActivity( Activity hitActivity );
 	void		SecondaryAttack( void )	{	return;	}
 
@@ -60,12 +59,12 @@ public:
 	int WeaponMeleeAttack1Condition( float flDot, float flDist );
 #endif
 
-	CWeaponCrowbar( const CWeaponCrowbar & );
+	CWeaponStake( const CWeaponStake & );
 
 private:
 		
 };
 
 
-#endif // HL2MP_WEAPON_CROWBAR_H
+#endif // HL2MP_WEAPON_STAKE_H
 

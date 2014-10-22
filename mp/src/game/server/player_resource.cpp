@@ -25,6 +25,7 @@ IMPLEMENT_SERVERCLASS_ST_NOBASE(CPlayerResource, DT_PlayerResource)
 	SendPropArray3( SENDINFO_ARRAY3(m_bAlive), SendPropInt( SENDINFO_ARRAY(m_bAlive), 1, SPROP_UNSIGNED ) ),
 	SendPropArray3( SENDINFO_ARRAY3(m_iHealth), SendPropInt( SENDINFO_ARRAY(m_iHealth), -1, SPROP_VARINT | SPROP_UNSIGNED ) ),
 	SendPropArray3( SENDINFO_ARRAY3(m_iLevels), SendPropInt( SENDINFO_ARRAY(m_iLevels), -1, SPROP_VARINT | SPROP_UNSIGNED ) ),
+	SendPropArray3( SENDINFO_ARRAY3(m_iClass), SendPropInt( SENDINFO_ARRAY(m_iClass), -1, SPROP_VARINT | SPROP_UNSIGNED ) ),
 END_SEND_TABLE()
 
 BEGIN_DATADESC( CPlayerResource )
@@ -63,6 +64,7 @@ void CPlayerResource::Spawn( void )
 		m_iTeam.Set( i, 0 );
 		m_bAlive.Set( i, 0 );
 		m_iLevels.Set( i, 0 );
+		m_iClass.Set( i, 0 );
 	}
 
 	SetThink( &CPlayerResource::ResourceThink );
@@ -109,6 +111,7 @@ void CPlayerResource::UpdatePlayerData( void )
 			m_bAlive.Set( i, pPlayer->IsAlive()?1:0 );
 			m_iHealth.Set(i, MAX( 0, pPlayer->GetHealth() ) );
 			m_iLevels.Set(i, ((CHL2MP_Player* )pPlayer)->covenLevelCounter);
+			m_iClass.Set(i, ((CHL2MP_Player* )pPlayer)->covenClassID);
 
 			// Don't update ping / packetloss everytime
 

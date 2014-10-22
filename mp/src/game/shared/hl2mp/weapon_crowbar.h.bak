@@ -46,7 +46,6 @@ public:
 	float		GetFireRate( void );
 
 	void		AddViewKick( void );
-	void		ImpactEffect( trace_t &traceHit );
 	float		GetDamageForActivity( Activity hitActivity );
 	void		SecondaryAttack( void )	{	return;	}
 

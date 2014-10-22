@@ -162,13 +162,7 @@ void CBaseHL2MPBludgeonWeapon::Hit( trace_t &traceHit, Activity nHitActivity )
 		// Now hit all triggers along the ray that... 
 		TraceAttackToTriggers( info, traceHit.startpos, traceHit.endpos, hitDirection );
 #endif
-		//BB: fix this so that we have two distinct sounds
-		if (pHitEntity->IsPlayer() || pHitEntity->IsNPC())
-			WeaponSound( MELEE_HIT );
-		else if (pHitEntity->GetMoveType() != MOVETYPE_NONE)
-			WeaponSound( SPECIAL1 );
-		else
-			WeaponSound( MELEE_HIT_WORLD );
+		WeaponSound( MELEE_HIT );
 	}
 
 	// Apply an impact effect
@@ -362,7 +356,6 @@ void CBaseHL2MPBludgeonWeapon::Swing( int bIsSecondary )
 	SendWeaponAnim( nHitActivity );
 
 	pOwner->SetAnimation( PLAYER_ATTACK1 );
-
 
 	//Setup our next attack times
 	m_flNextPrimaryAttack = gpGlobals->curtime + GetFireRate();

@@ -1182,6 +1182,9 @@ CAmmoDef *GetAmmoDef()
 
 #endif
 
+	//BB: xp scaling for testing or just tom foolery... set to 1 for normal
+	ConVar coven_xp_scale( "coven_xp_scale", "3", FCVAR_NOTIFY | FCVAR_CHEAT );
+
 	bool CHL2MPRules::FShouldSwitchWeapon( CBasePlayer *pPlayer, CBaseCombatWeapon *pWeapon )
 	{		
 		if ( pPlayer->GetActiveWeapon() && pPlayer->IsNetClient() )

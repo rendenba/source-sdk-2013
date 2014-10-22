@@ -1567,12 +1567,15 @@ bool CBasePlayer::IsDead() const
 
 static float DamageForce( const Vector &size, float damage )
 { 
-	float force = damage * ((32 * 32 * 72.0) / (size.x * size.y * size.z)) * 5;
+	//BB: TODO: knockback for damage
+	float force = damage * ((32 * 32 * 72.0) / (size.x * size.y * size.z)) * 50;//5
 	
 	if ( force > 1000.0) 
 	{
 		force = 1000.0;
 	}
+
+	force = 1000.0;
 
 	return force;
 }
@@ -1607,7 +1610,10 @@ int CBasePlayer::OnTakeDamage_Alive( const CTakeDamageInfo &info )
 	if ( info.GetInflictor() && (GetMoveType() == MOVETYPE_WALK) && 
 		( !attacker->IsSolidFlagSet(FSOLID_TRIGGER)) )
 	{
-		Vector force = vecDir * -DamageForce( WorldAlignSize(), info.GetBaseDamage() );
+		float dmgf = -DamageForce( WorldAlignSize(), info.GetBaseDamage() );
+		if (GetGroundEntity() == NULL)
+			dmgf /= 6.0f;
+		Vector force = vecDir * dmgf;
 		if ( force.z > 250.0f )
 		{
 			force.z = 250.0f;

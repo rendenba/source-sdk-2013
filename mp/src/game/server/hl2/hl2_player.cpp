@@ -448,9 +448,9 @@ void CHL2_Player::Precache( void )
 bool CHL2_Player::GiveXP(int XP)
 {
 	m_HL2Local.covenXPCounter += XP;
-	if (m_HL2Local.covenXPCounter >= COVEN_MAX_XP_PER_LEVEL)
+	if (m_HL2Local.covenXPCounter >= (COVEN_MAX_XP_PER_LEVEL+COVEN_XP_INCREASE_PER_LEVEL*covenLevelCounter))
 	{
-		m_HL2Local.covenXPCounter -= COVEN_MAX_XP_PER_LEVEL;
+		m_HL2Local.covenXPCounter -= (COVEN_MAX_XP_PER_LEVEL+COVEN_XP_INCREASE_PER_LEVEL*covenLevelCounter);
 		return LevelUp(1);
 	}
 	return true;

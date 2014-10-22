@@ -53,6 +53,7 @@ public : // IGameResources intreface
 	virtual int		GetFrags( int index );
 	virtual int		GetHealth( int index );
 	virtual int		GetLevel( int index );
+	virtual int		GetPlayerClass( int index );
 
 	virtual void ClientThink();
 	virtual	void	OnDataChanged(DataUpdateType_t updateType);
@@ -66,6 +67,7 @@ protected:
 	int		m_iPing[MAX_PLAYERS+1];
 	int		m_iScore[MAX_PLAYERS+1];
 	int		m_iDeaths[MAX_PLAYERS+1];
+	int		m_iClass[MAX_PLAYERS+1];
 	bool	m_bConnected[MAX_PLAYERS+1];
 	int		m_iTeam[MAX_PLAYERS+1];
 	bool	m_bAlive[MAX_PLAYERS+1];

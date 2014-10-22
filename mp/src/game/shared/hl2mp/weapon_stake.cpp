@@ -1,14 +1,14 @@
 //========= Copyright Valve Corporation, All rights reserved. ============//
 //
-// Purpose:		Crowbar - an old favorite
+// Purpose:		Steak - an old favorite
 //
 // $NoKeywords: $
 //=============================================================================//
 
-//BB: CLAW!
+//BB: STEAK!
 
 #include "cbase.h"
-#include "hl2mp/weapon_crowbar.h"
+#include "hl2mp/weapon_stake.h"
 #include "weapon_hl2mpbasehlmpcombatweapon.h"
 #include "gamerules.h"
 #include "ammodef.h"
@@ -28,53 +28,47 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-#define	CROWBAR_RANGE	75.0f
-#define	CROWBAR_REFIRE	0.4f
+#define	STAKE_RANGE	60.0f
+#define	STAKE_REFIRE	0.4f
 
 
 //-----------------------------------------------------------------------------
-// CWeaponCrowbar
+// CWeaponStake
 //-----------------------------------------------------------------------------
 
-IMPLEMENT_NETWORKCLASS_ALIASED( WeaponCrowbar, DT_WeaponCrowbar )
+IMPLEMENT_NETWORKCLASS_ALIASED( WeaponStake, DT_WeaponStake )
 
-BEGIN_NETWORK_TABLE( CWeaponCrowbar, DT_WeaponCrowbar )
+BEGIN_NETWORK_TABLE( CWeaponStake, DT_WeaponStake )
 END_NETWORK_TABLE()
 
-BEGIN_PREDICTION_DATA( CWeaponCrowbar )
+BEGIN_PREDICTION_DATA( CWeaponStake )
 END_PREDICTION_DATA()
 
-LINK_ENTITY_TO_CLASS( weapon_crowbar, CWeaponCrowbar );
-PRECACHE_WEAPON_REGISTER( weapon_crowbar );
+LINK_ENTITY_TO_CLASS( weapon_stake, CWeaponStake );
+PRECACHE_WEAPON_REGISTER( weapon_stake );
 
 #ifndef CLIENT_DLL
 
-acttable_t	CWeaponCrowbar::m_acttable[] = 
+acttable_t	CWeaponStake::m_acttable[] = 
 {
-	//{ ACT_RANGE_ATTACK1,				ACT_RANGE_ATTACK_SLAM, true },
-	{ ACT_RANGE_ATTACK1,				ACT_HL2MP_GESTURE_RANGE_ATTACK_RPG, true },
-	//{ ACT_HL2MP_IDLE,					ACT_HL2MP_IDLE_MELEE,					false },
-	{ ACT_HL2MP_IDLE,					ACT_HL2MP_IDLE,					false },
-	//{ ACT_HL2MP_RUN,					ACT_HL2MP_RUN_MELEE,					false },
-	{ ACT_HL2MP_RUN,					ACT_HL2MP_RUN,					false },
-	//{ ACT_HL2MP_IDLE_CROUCH,			ACT_HL2MP_IDLE_CROUCH_MELEE,			false },
-	{ ACT_HL2MP_IDLE_CROUCH,			ACT_HL2MP_IDLE_CROUCH,			false },
-	//{ ACT_HL2MP_WALK_CROUCH,			ACT_HL2MP_WALK_CROUCH_MELEE,			false },
-	{ ACT_HL2MP_WALK_CROUCH,			ACT_HL2MP_WALK_CROUCH,			false },
+	{ ACT_RANGE_ATTACK1,				ACT_RANGE_ATTACK_SLAM, true },
+	{ ACT_HL2MP_IDLE,					ACT_HL2MP_IDLE_MELEE,					false },
+	{ ACT_HL2MP_RUN,					ACT_HL2MP_RUN_MELEE,					false },
+	{ ACT_HL2MP_IDLE_CROUCH,			ACT_HL2MP_IDLE_CROUCH_MELEE,			false },
+	{ ACT_HL2MP_WALK_CROUCH,			ACT_HL2MP_WALK_CROUCH_MELEE,			false },
 	{ ACT_HL2MP_GESTURE_RANGE_ATTACK,	ACT_HL2MP_GESTURE_RANGE_ATTACK_MELEE,	false },
 	{ ACT_HL2MP_GESTURE_RELOAD,			ACT_HL2MP_GESTURE_RELOAD_MELEE,			false },
-	//{ ACT_HL2MP_JUMP,					ACT_HL2MP_JUMP_MELEE,					false },
-	{ ACT_HL2MP_JUMP,					ACT_HL2MP_JUMP_RPG,					false },
+	{ ACT_HL2MP_JUMP,					ACT_HL2MP_JUMP_MELEE,					false },
 };
 
-IMPLEMENT_ACTTABLE(CWeaponCrowbar);
+IMPLEMENT_ACTTABLE(CWeaponStake);
 
 #endif
 
 //-----------------------------------------------------------------------------
 // Constructor
 //-----------------------------------------------------------------------------
-CWeaponCrowbar::CWeaponCrowbar( void )
+CWeaponStake::CWeaponStake( void )
 {
 }
 
@@ -83,7 +77,7 @@ CWeaponCrowbar::CWeaponCrowbar( void )
 // Input  : hitActivity - currently played activity
 // Output : Damage amount
 //-----------------------------------------------------------------------------
-float CWeaponCrowbar::GetDamageForActivity( Activity hitActivity )
+float CWeaponStake::GetDamageForActivity( Activity hitActivity )
 {	
 	CBasePlayer *pPlayer  = ToBasePlayer( GetOwner() );
 	
@@ -92,7 +86,7 @@ float CWeaponCrowbar::GetDamageForActivity( Activity hitActivity )
 
 	CHL2MP_Player *pHLPlayer = (CHL2MP_Player *)pPlayer;
 
-	float baseDMG = 20.0f + COVEN_MELEE_AGIL_MULT*pHLPlayer->myAgility() + COVEN_MELEE_STR_MULT*pHLPlayer->myStrength();
+	float baseDMG = 10.0f + pHLPlayer->myAgility() + pHLPlayer->myStrength();
 
 	return baseDMG + random->RandomInt(0,10);
 }
@@ -100,7 +94,7 @@ float CWeaponCrowbar::GetDamageForActivity( Activity hitActivity )
 //-----------------------------------------------------------------------------
 // Purpose: Add in a view kick for this weapon
 //-----------------------------------------------------------------------------
-void CWeaponCrowbar::AddViewKick( void )
+void CWeaponStake::AddViewKick( void )
 {
 	CBasePlayer *pPlayer  = ToBasePlayer( GetOwner() );
 	
@@ -109,36 +103,18 @@ void CWeaponCrowbar::AddViewKick( void )
 
 	QAngle punchAng;
 
-	punchAng.x = SharedRandomFloat( "crowbarpax", 1.0f, 2.0f );
-	punchAng.y = SharedRandomFloat( "crowbarpay", -2.0f, -1.0f );
+	punchAng.x = SharedRandomFloat( "stakepax", 1.0f, 2.0f );
+	punchAng.y = SharedRandomFloat( "stakepay", -2.0f, -1.0f );
 	punchAng.z = 0.0f;
 	
 	pPlayer->ViewPunch( punchAng ); 
-}
-
-//BB: we need a new impact decal for claws on walls, etc.
-void CWeaponCrowbar::ImpactEffect( trace_t &traceHit )
-{
-	// See if we hit water (we don't do the other impact effects in this case)
-	if ( ImpactWater( traceHit.startpos, traceHit.endpos ) )
-		return;
-
-	//FIXME: need new decals
-	if (traceHit.m_pEnt->IsPlayer())
-	{
-		UTIL_ImpactTrace( &traceHit, DMG_BULLET );
-	}
-	else
-	{
-		UTIL_ImpactTrace( &traceHit, DMG_SLASH );//DMG_SLASH
-	}
 }
 
 #ifndef CLIENT_DLL
 //-----------------------------------------------------------------------------
 // Animation event handlers
 //-----------------------------------------------------------------------------
-void CWeaponCrowbar::HandleAnimEventMeleeHit( animevent_t *pEvent, CBaseCombatCharacter *pOperator )
+void CWeaponStake::HandleAnimEventMeleeHit( animevent_t *pEvent, CBaseCombatCharacter *pOperator )
 {
 	// Trace up or down based on where the enemy is...
 	// But only if we're basically facing that direction
@@ -171,7 +147,7 @@ void CWeaponCrowbar::HandleAnimEventMeleeHit( animevent_t *pEvent, CBaseCombatCh
 //-----------------------------------------------------------------------------
 // Animation event
 //-----------------------------------------------------------------------------
-void CWeaponCrowbar::Operator_HandleAnimEvent( animevent_t *pEvent, CBaseCombatCharacter *pOperator )
+void CWeaponStake::Operator_HandleAnimEvent( animevent_t *pEvent, CBaseCombatCharacter *pOperator )
 {
 	switch( pEvent->event )
 	{
@@ -186,13 +162,13 @@ void CWeaponCrowbar::Operator_HandleAnimEvent( animevent_t *pEvent, CBaseCombatC
 }
 
 //-----------------------------------------------------------------------------
-// Attempt to lead the target (needed because citizens can't hit manhacks with the crowbar!)
+// Attempt to lead the target (needed because citizens can't hit manhacks with the stake!)
 //-----------------------------------------------------------------------------
-ConVar sk_crowbar_lead_time( "sk_crowbar_lead_time", "0.9" );
+ConVar sk_stake_lead_time( "sk_stake_lead_time", "0.9" );
 
-int CWeaponCrowbar::WeaponMeleeAttack1Condition( float flDot, float flDist )
+int CWeaponStake::WeaponMeleeAttack1Condition( float flDot, float flDist )
 {
-	// Attempt to lead the target (needed because citizens can't hit manhacks with the crowbar!)
+	// Attempt to lead the target (needed because citizens can't hit manhacks with the stake!)
 	CAI_BaseNPC *pNPC	= GetOwner()->MyNPCPointer();
 	CBaseEntity *pEnemy = pNPC->GetEnemy();
 	if (!pEnemy)
@@ -202,8 +178,8 @@ int CWeaponCrowbar::WeaponMeleeAttack1Condition( float flDot, float flDist )
 	vecVelocity = pEnemy->GetSmoothedVelocity( );
 
 	// Project where the enemy will be in a little while
-	float dt = sk_crowbar_lead_time.GetFloat();
-	dt += SharedRandomFloat( "crowbarmelee1", -0.3f, 0.2f );
+	float dt = sk_stake_lead_time.GetFloat();
+	dt += SharedRandomFloat( "stakemelee1", -0.3f, 0.2f );
 	if ( dt < 0.0f )
 		dt = 0.0f;
 
@@ -242,21 +218,21 @@ int CWeaponCrowbar::WeaponMeleeAttack1Condition( float flDot, float flDist )
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CWeaponCrowbar::Drop( const Vector &vecVelocity )
+void CWeaponStake::Drop( const Vector &vecVelocity )
 {
 #ifndef CLIENT_DLL
 	UTIL_Remove( this );
 #endif
 }
 
-float CWeaponCrowbar::GetRange( void )
+float CWeaponStake::GetRange( void )
 {
-	return	CROWBAR_RANGE;	
+	return	STAKE_RANGE;	
 }
 
-float CWeaponCrowbar::GetFireRate( void )
+float CWeaponStake::GetFireRate( void )
 {
-	return	CROWBAR_REFIRE;	
+	return	STAKE_REFIRE;	
 }
 
 

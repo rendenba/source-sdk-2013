@@ -925,10 +925,19 @@ void CItem_AmmoCrate::HandleAnimEvent( animevent_t *pEvent )
 
 			//BB: hacky hack
 			//if ( m_hActivator->GiveAmmo( m_nAmmoAmounts[m_nAmmoType], m_nAmmoIndex ) != 0 )
-			CBaseCombatWeapon *pWeap = m_hActivator->GetActiveWeapon();
-			if ( pWeap && m_hActivator->GiveAmmo(100, pWeap->m_iPrimaryAmmoType) != 0 )
+			if (m_hActivator->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
 			{
-				SetBodygroup( 1, false );
+				//BB: another hacky hack... just give ammo to the first weapon we find that takes ammo. Coven only has one ammo-y weapon right now
+				for (int i = 0; i < m_hActivator->WeaponCount(); i++)
+				{
+					CBaseCombatWeapon *pWeap = m_hActivator->GetWeapon(i);
+					if ( pWeap && pWeap->UsesPrimaryAmmo() && m_hActivator->GiveAmmo(100, pWeap->m_iPrimaryAmmoType) != 0)
+					{
+						SetBodygroup( 1, false );
+						m_hActivator = NULL;
+						return;
+					}
+				}
 			}
 			m_hActivator = NULL;
 		}
