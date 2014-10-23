@@ -142,6 +142,9 @@ public:
 
 	virtual bool	CanHearAndReadChatFrom( CBasePlayer *pPlayer );
 
+	int lastCheckedCapPoint;
+	float lastCapPointTime;
+
 		
 private:
 

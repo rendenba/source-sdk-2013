@@ -37,6 +37,136 @@ C_BaseCombatCharacter::C_BaseCombatCharacter()
 #endif // GLOWS_ENABLE
 }
 
+void CFXCharSprite::Update( Vector newpos, Vector newcolor, bool draw )
+{
+	//TGB: is this a new position/color?
+	if ( (newpos != m_FXData.m_vecOrigin) || (newcolor != m_FXData.m_Color))
+	{
+		//update position
+		m_FXData.m_vecOrigin = newpos;
+		//and color
+		m_FXData.m_Color = newcolor;
+	}
+/*
+	if (m_FXData.m_flYaw < 360)
+	{
+		m_FXData.m_flYaw = min(360, m_FXData.m_flYaw + 25);
+	}
+	else
+		m_FXData.m_flYaw = 25;
+*/	
+	if ( draw )
+		Draw();
+}
+void CFXCharSprite::Draw( )
+{
+	float scale = m_FXData.m_flStartScale;
+	float alpha = m_FXData.m_flStartAlpha;
+	
+	//Bind the material
+	CMatRenderContextPtr pRenderContext( materials );
+	IMesh* pMesh = pRenderContext->GetDynamicMesh( true, NULL, NULL, m_FXData.m_pMaterial );
+	CMeshBuilder meshBuilder;
+
+	meshBuilder.Begin( pMesh, MATERIAL_QUADS, 1 );
+
+	Vector	pos;
+	Vector	vRight, vUp;
+
+	float color[4];
+
+	color[0] = m_FXData.m_Color[0];
+	color[1] = m_FXData.m_Color[1];
+	color[2] = m_FXData.m_Color[2];
+	color[3] = alpha;
+
+	VectorVectors( m_FXData.m_vecNormal, vRight, vUp );
+
+	Vector	rRight, rUp;
+
+	rRight	= ( vRight * cos( DEG2RAD( m_FXData.m_flYaw ) ) ) - ( vUp * sin( DEG2RAD( m_FXData.m_flYaw ) ) );
+	rUp		= ( vRight * cos( DEG2RAD( m_FXData.m_flYaw+90.0f ) ) ) - ( vUp * sin( DEG2RAD( m_FXData.m_flYaw+90.0f ) ) );
+
+	vRight	= rRight * ( scale * 0.5f );
+	vUp		= rUp * ( scale * 0.5f );
+
+	pos = m_FXData.m_vecOrigin + vRight - vUp;
+
+	meshBuilder.Position3fv( pos.Base() );
+	meshBuilder.Normal3fv( m_FXData.m_vecNormal.Base() );
+	meshBuilder.TexCoord2f( 0, 1.0f, 1.0f );
+	meshBuilder.Color4fv( color );
+	meshBuilder.AdvanceVertex();
+
+	pos = m_FXData.m_vecOrigin - vRight - vUp;
+
+	meshBuilder.Position3fv( pos.Base() );
+	meshBuilder.Normal3fv( m_FXData.m_vecNormal.Base() );
+	meshBuilder.TexCoord2f( 0, 0.0f, 1.0f );
+	meshBuilder.Color4fv( color );
+	meshBuilder.AdvanceVertex();
+
+	pos = m_FXData.m_vecOrigin - vRight + vUp;
+
+	meshBuilder.Position3fv( pos.Base() );
+	meshBuilder.Normal3fv( m_FXData.m_vecNormal.Base() );
+	meshBuilder.TexCoord2f( 0, 0.0f, 0.0f );
+	meshBuilder.Color4fv( color );
+	meshBuilder.AdvanceVertex();
+
+	pos = m_FXData.m_vecOrigin + vRight + vUp;
+
+	meshBuilder.Position3fv( pos.Base() );
+	meshBuilder.Normal3fv( m_FXData.m_vecNormal.Base() );
+	meshBuilder.TexCoord2f( 0, 1.0f, 0.0f );
+	meshBuilder.Color4fv( color );
+	meshBuilder.AdvanceVertex();
+
+	meshBuilder.End();
+	pMesh->Draw();
+}
+
+void CFXCharSprite::Destroy( void )
+{
+	//Release the material
+	if ( m_FXData.m_pMaterial != NULL )
+	{
+		m_FXData.m_pMaterial->DecrementReferenceCount();
+		m_FXData.m_pMaterial = NULL;
+	}
+}
+
+void C_BaseCombatCharacter::CreateObjectiveCircle()
+{
+	//only if we don't already have one
+	if (m_objectiveCircle) return;
+
+	//doubling brightness because the sprite is less visible now that it's drawn only once
+	const float brightness = clamp((0.25f * 3), 0.1, 1.0);
+
+	//TGB: this defines a colour that moves from green to red depending on character's health
+	//used in selection material and dedicated health circle
+	//color should be redder as this guy approaches death
+	const float redness = 1.0f;
+	//as the ring gets redder it should become less green, or we'll end up yellow when near death
+	const float greenness = 0.0f;
+
+	//make quad data
+	FXQuadData_t data;
+	//only using start values
+	data.SetAlpha( 0.5, 0 );
+	data.SetScale( 25.0f, 0 );
+	data.SetMaterial( "effects/objective_marker" );
+	data.SetNormal( Vector(0,0,1) );
+	data.SetOrigin( GetAbsOrigin() + Vector(0,0,3) );
+	data.SetColor( redness*brightness, greenness*brightness, 0 );
+	data.SetScaleBias( 0 );
+	data.SetAlphaBias( 0 );
+	data.SetYaw( 0, 0 );
+
+	m_objectiveCircle = new CFXCharSprite( data );
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------

@@ -166,6 +166,10 @@ public:
 	void	CheckAllPlayersReady( void );
 
 	virtual bool IsConnectedUserInfoChangeAllowed( CBasePlayer *pPlayer );
+
+	CNetworkVar( int, num_cap_points );
+	CNetworkArray( int, cap_point_status, COVEN_MAX_CAP_POINTS );
+	CNetworkArray( float, cap_point_coords, COVEN_MAX_CAP_POINTS*3 );
 	
 private:
 	

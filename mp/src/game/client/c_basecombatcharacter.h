@@ -18,10 +18,38 @@
 #include "glow_outline_effect.h"
 #endif // GLOWS_ENABLE
 
+#include "fx_quad.h"
+
 class C_BaseCombatWeapon;
 class C_WeaponCombatShield;
 
 #define BCC_DEFAULT_LOOK_TOWARDS_TOLERANCE 0.9f
+
+//BB: sprite for hand drawing quads...
+class CFXCharSprite
+{
+public:
+
+	CFXCharSprite( const FXQuadData_t &data )
+	{
+		m_FXData = data;
+		up = true;
+		addin=0.0f;
+	}
+	
+	~CFXCharSprite( void )
+	{
+		Destroy();
+	}
+
+	void	Draw(  );
+	void	Update( Vector newpos, Vector newcolor, bool draw = true );
+	void	Destroy( void );
+
+	FXQuadData_t	m_FXData;
+	bool up;
+	float addin;
+};
 
 class C_BaseCombatCharacter : public C_BaseFlex
 {
@@ -51,6 +79,9 @@ public:
 
 	virtual bool IsInFieldOfView( CBaseEntity *entity ) const;	// Calls IsLookingAt with the current field of view.  
 	virtual bool IsInFieldOfView( const Vector &pos ) const;
+
+	void				CreateObjectiveCircle();
+	CFXCharSprite		*m_objectiveCircle;
 
 	enum LineOfSightCheckType
 	{

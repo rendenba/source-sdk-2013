@@ -481,6 +481,8 @@ void CHL2MP_Player::Spawn(void)
 	m_bReady = false;
 
 	ResetVitals();
+	lastCheckedCapPoint = 0;
+	lastCapPointTime = 0.0f;
 }
 
 void CHL2MP_Player::PickupObject( CBaseEntity *pObject, bool bLimitMassAndSize )
@@ -526,7 +528,7 @@ bool CHL2MP_Player::ValidatePlayerModel( const char *pModel )
 	{
 		switch (covenClassID)
 		{
-		case COVEN_CLASSID_HELLION:
+		case COVEN_CLASSID_AVENGER:
 			if ( !Q_stricmp( "models/combine_soldier_prisonguard.mdl", pModel ) )
 			{
 				return true;
@@ -544,7 +546,7 @@ bool CHL2MP_Player::ValidatePlayerModel( const char *pModel )
 				return true;
 			}
 			break;
-		case COVEN_CLASSID_AVENGER:
+		case COVEN_CLASSID_HELLION:
 			if ( !Q_stricmp( "models/police.mdl", pModel ) )
 			{
 				return true;
@@ -789,6 +791,45 @@ void CHL2MP_Player::PreThink( void )
 	//Reset bullet force accumulator, only lasts one frame
 	m_vecTotalBulletForce = vec3_origin;
 	SetLocalAngles( vOldAngles );
+
+	//BB: cap point logic
+	if (IsAlive() && gpGlobals->curtime > lastCapPointTime) //no spectators allowed
+	{
+		CHL2MPRules *pRules = HL2MPRules();
+		Vector tVec;
+		if (pRules)
+		{
+			int index = 3*lastCheckedCapPoint;
+			tVec = Vector(pRules->cap_point_coords.Get(index), pRules->cap_point_coords.Get(index+1), pRules->cap_point_coords.Get(index+2));
+		}
+
+		if ((tVec-GetLocalOrigin()).Length() < 300)
+		{
+			int n = pRules->cap_point_status.Get(lastCheckedCapPoint);
+			lastCapPointTime = gpGlobals->curtime+0.1f;
+			if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+			{
+				if (n < 120)
+				{
+					pRules->cap_point_status.Set(lastCheckedCapPoint, n+1);
+				}
+			}
+			else
+			{
+				if (n >0)
+				{
+					pRules->cap_point_status.Set(lastCheckedCapPoint, n-1);
+				}
+			}
+		}
+		else
+		{
+			lastCheckedCapPoint++;
+		}
+
+		if (pRules && lastCheckedCapPoint >= pRules->num_cap_points)
+			lastCheckedCapPoint = 0;
+	}
 }
 
 void CHL2MP_Player::PostThink( void )
@@ -1566,7 +1607,7 @@ int CHL2MP_Player::XPForKill(CHL2MP_Player *pAttacker)
 	//BB: TODO: make this more ellaborate... based on player lvl difference
 	int retval = COVEN_XP_PER_KILL*coven_xp_scale.GetInt();
 
-	retval += coven_xp_scale.GetInt()*2*(covenLevelCounter-pAttacker->covenLevelCounter);
+	retval += coven_xp_scale.GetInt()*COVEN_XP_LEVEL_DIFF_MULT*(covenLevelCounter-pAttacker->covenLevelCounter);
 	Msg("XPForKill: %d\n",retval);
 
 	retval = max(1,retval);
@@ -1629,12 +1670,12 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 			{
 				CBasePlayer *pTemp = nearby[j];
 				if (pTemp && pAttacker != pTemp)
-					((CHL2_Player*)pTemp)->GiveXP(xp/divider);
+					((CHL2_Player*)pTemp)->GiveXP(xp);
 			}
-			if (divider <= 0)
-				divider = 1;
+			/*if (divider <= 0)
+				divider = 1;*/
 			//BB: attacker ALWAYS gets part of the XP
-			((CHL2_Player*)pAttacker)->GiveXP(xp/divider);
+			((CHL2_Player*)pAttacker)->GiveXP(xp);
 		}
 	}
 

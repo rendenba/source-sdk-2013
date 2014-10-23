@@ -67,9 +67,15 @@ REGISTER_GAMERULES_CLASS( CHL2MPRules );
 BEGIN_NETWORK_TABLE_NOBASE( CHL2MPRules, DT_HL2MPRules )
 
 	#ifdef CLIENT_DLL
+		RecvPropInt( RECVINFO( num_cap_points ) ),
 		RecvPropBool( RECVINFO( m_bTeamPlayEnabled ) ),
+		RecvPropArray3( RECVINFO_ARRAY(cap_point_status), RecvPropInt( RECVINFO(cap_point_status[0]))),
+		RecvPropArray3( RECVINFO_ARRAY(cap_point_coords), RecvPropFloat( RECVINFO(cap_point_coords[0]))),
 	#else
+		SendPropInt( SENDINFO( num_cap_points ) ),
 		SendPropBool( SENDINFO( m_bTeamPlayEnabled ) ),
+		SendPropArray3( SENDINFO_ARRAY3(cap_point_status), SendPropInt( SENDINFO_ARRAY(cap_point_status), 0, SPROP_VARINT | SPROP_UNSIGNED ) ),
+		SendPropArray3( SENDINFO_ARRAY3(cap_point_coords), SendPropFloat( SENDINFO_ARRAY(cap_point_coords), 0, SPROP_NOSCALE ) ),
 	#endif
 
 END_NETWORK_TABLE()
@@ -217,6 +223,8 @@ CHL2MPRules::CHL2MPRules()
 	cowsloaded = false;
 	cowsloadfail = false;
 
+	num_cap_points = 0;
+
 #endif
 }
 
@@ -292,6 +300,19 @@ bool CHL2MPRules::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBa
 			ent->SetLocalAngles(QAngle(locs[0], locs[1], locs[2]));
 			crates.AddToTail(ent);
 			ent->Spawn();
+		}
+		else if (Q_strcmp(s,"cappoint") == 0)
+		{
+			buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
+			const char *t = temparray;
+			float locs[3];
+			UTIL_StringToVector(locs, t);
+			int index = num_cap_points*3;
+			cap_point_coords.Set(index, locs[0]);
+			cap_point_coords.Set(index+1, locs[1]);
+			cap_point_coords.Set(index+2, locs[2]);
+			cap_point_status.Set(num_cap_points, 60);
+			num_cap_points++;
 		}
 	}
 #endif

@@ -439,9 +439,6 @@ private:
 	// Drawing primitives
 	bool			ShouldDrawViewModel( bool drawViewmodel );
 	void			DrawViewModels( const CViewSetup &view, bool drawViewmodel );
-	void			DrawMissionIndicator();
-	//BB: helper function...change from HSL to RGB
-	Color			HSL_RGB(int H, int S, int L);
 
 	void			PerformScreenSpaceEffects( int x, int y, int w, int h );
 
