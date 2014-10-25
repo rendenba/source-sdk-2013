@@ -130,6 +130,14 @@ public:
 	void State_Enter_OBSERVER_MODE();
 	void State_PreThink_OBSERVER_MODE();
 
+	void GiveTeamXPCentered(int team, int xp, CBasePlayer *ignore);
+
+	//BB: thinking functions consolidated for convienience
+	void DoVampirePreThink();
+	void DoSlayerPreThink();
+
+	//BB: vampire helper functions
+	void VampireCheckRegen();
 
 	virtual bool StartObserverMode( int mode );
 	virtual void StopObserverMode( void );
@@ -148,6 +156,9 @@ public:
 	float lastCapPointTime;
 
 	Vector store_loc;
+
+	//BB: coven timers
+	float coven_timer_regen;
 
 		
 private:

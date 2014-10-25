@@ -123,6 +123,8 @@ CHL2MP_Player::CHL2MP_Player() : m_PlayerAnimState( this )
 
 	m_iLevel = 1;
 
+	coven_timer_regen = 0;
+
 	m_iLastWeaponFireUsercmd = 0;
 
 	m_flNextModelChangeTime = 0.0f;
@@ -877,6 +879,38 @@ void CHL2MP_Player::PreThink( void )
 
 		if (pRules && lastCheckedCapPoint >= pRules->num_cap_points)
 			lastCheckedCapPoint = 0;
+	}
+
+	if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+	{
+		DoVampirePreThink();
+	}
+	else if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+	{
+		DoSlayerPreThink();
+	}
+}
+
+void CHL2MP_Player::DoVampirePreThink()
+{
+	VampireCheckRegen();
+}
+
+void CHL2MP_Player::DoSlayerPreThink()
+{
+}
+
+void CHL2MP_Player::VampireCheckRegen()
+{
+	int midhealth = GetMaxHealth()*0.5f;
+	if (IsAlive() && GetHealth() < midhealth && gpGlobals->curtime > coven_timer_regen)
+	{
+		coven_timer_regen = gpGlobals->curtime + 1.5f;
+		int hp = 3;
+		TakeHealth( hp, DMG_GENERIC );
+		EmitSound("Vampire.Regen");
+		if (GetHealth() > midhealth)
+			SetHealth(midhealth);
 	}
 }
 
@@ -1662,6 +1696,28 @@ int CHL2MP_Player::XPForKill(CHL2MP_Player *pAttacker)
 	return retval;
 }
 
+void CHL2MP_Player::GiveTeamXPCentered(int team, int xp, CBasePlayer *ignore)
+{
+	CTeam *theteam = GetGlobalTeam( team );
+	int num = theteam->GetNumPlayers();
+	CUtlVector<CBasePlayer *> nearby;
+	for (int i = 0; i < num; i++)
+	{
+		CBasePlayer *pTemp = theteam->GetPlayer(i);
+		if (pTemp && (pTemp->GetLocalOrigin()-GetLocalOrigin()).Length() <= COVEN_XP_ASSIST_RADIUS)
+		{
+			nearby.AddToTail(pTemp);
+		}
+	}
+	int divider = nearby.Size();
+	for (int j = 0; j < divider; j++)
+	{
+		CBasePlayer *pTemp = nearby[j];
+		if (pTemp && pTemp != ignore)
+			((CHL2_Player*)pTemp)->GiveXP(xp);
+	}
+}
+
 void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 {
 	//update damage info with our accumulated physics force
@@ -1704,24 +1760,8 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 
 		if (pAttacker->IsPlayer() && pAttacker != this)
 		{
-			int num = team->GetNumPlayers();
-			CUtlVector<CBasePlayer *> nearby;
-			for (int i = 0; i < num; i++)
-			{
-				CBasePlayer *pTemp = team->GetPlayer(i);
-				if (pTemp && (pTemp->GetLocalOrigin()-GetLocalOrigin()).Length() <= COVEN_XP_ASSIST_RADIUS)
-				{
-					nearby.AddToTail(pTemp);
-				}
-			}
-			int divider = nearby.Size();
 			int xp = XPForKill((CHL2MP_Player *)pAttacker);
-			for (int j = 0; j < divider; j++)
-			{
-				CBasePlayer *pTemp = nearby[j];
-				if (pTemp && pAttacker != pTemp)
-					((CHL2_Player*)pTemp)->GiveXP(xp);
-			}
+			GiveTeamXPCentered(pAttacker->GetTeamNumber(), xp, (CBasePlayer *)pAttacker);
 			/*if (divider <= 0)
 				divider = 1;*/
 			//BB: attacker ALWAYS gets part of the XP
@@ -1780,6 +1820,18 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 	m_vecTotalBulletForce += inputInfo.GetDamageForce();
 	
 	gamestats->Event_PlayerDamage( this, inputInfo );
+
+	if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+	{
+		if (inputInfo.GetDamageType() & DMG_DIRECT)
+		{
+			coven_timer_regen = gpGlobals->curtime + 0.5f;
+		}
+		else
+		{
+			coven_timer_regen = gpGlobals->curtime + 2.0f;
+		}
+	}
 
 	return BaseClass::OnTakeDamage( inputInfo );
 }

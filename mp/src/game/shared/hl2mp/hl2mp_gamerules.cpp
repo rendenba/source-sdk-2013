@@ -329,6 +329,28 @@ bool CHL2MPRules::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBa
 				num_cap_points++;
 			}
 		}
+		else if (Q_strcmp(s,"vamp_xp") == 0)
+		{
+			buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
+			const char *t = temparray;
+			float locs[3];
+			UTIL_StringToVector(locs, t);
+			CBaseEntity *ent = CreateEntityByName( "item_xp_vampires" );
+			ent->SetLocalOrigin(Vector(locs[0], locs[1], locs[2]));
+			ent->SetLocalAngles(QAngle(random->RandomInt(0,180), random->RandomInt(0,180), random->RandomInt(0,180)));
+			ent->Spawn();
+		}
+		else if (Q_strcmp(s,"slay_xp") == 0)
+		{
+			buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
+			const char *t = temparray;
+			float locs[3];
+			UTIL_StringToVector(locs, t);
+			CBaseEntity *ent = CreateEntityByName( "item_xp_slayers" );
+			ent->SetLocalOrigin(Vector(locs[0], locs[1], locs[2]));
+			ent->SetLocalAngles(QAngle(random->RandomInt(0,180), random->RandomInt(0,90), random->RandomInt(0,180)));
+			ent->Spawn();
+		}
 	}
 #endif
 	return true;

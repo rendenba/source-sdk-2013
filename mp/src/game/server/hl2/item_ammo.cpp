@@ -12,6 +12,8 @@
 #include "eventlist.h"
 #include "npcevent.h"
 
+#include "hl2mp_player.h"
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -69,6 +71,72 @@ public:
 };
 LINK_ENTITY_TO_CLASS(item_box_srounds, CItem_BoxSRounds);
 LINK_ENTITY_TO_CLASS(item_ammo_pistol, CItem_BoxSRounds);
+
+class CItem_SlayerXPItem : public CItem
+{
+public:
+	DECLARE_CLASS( CItem_SlayerXPItem, CItem );
+
+	void Spawn( void )
+	{ 
+		Precache( );
+		SetModel( "models/weapons/w_suitcase_passenger.mdl");
+		BaseClass::Spawn( );
+	}
+	void Precache( void )
+	{
+		PrecacheScriptSound( "ItemBattery.Touch" );
+		PrecacheModel ("models/weapons/w_suitcase_passenger.mdl");
+	}
+	bool MyTouch( CBasePlayer *pPlayer )
+	{
+		if (pPlayer->IsAlive() && pPlayer->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+		{
+			if ( g_pGameRules->ItemShouldRespawn( this ) == GR_ITEM_RESPAWN_NO )
+			{
+				UTIL_Remove(this);	
+			}
+			((CHL2MP_Player *)pPlayer)->GiveTeamXPCentered(COVEN_TEAMID_SLAYERS, COVEN_XP_PER_ITEM, NULL);
+			pPlayer->EmitSound( "ItemBattery.Touch" );
+			return true;
+		}
+		return false;
+	}
+};
+LINK_ENTITY_TO_CLASS(item_xp_slayers, CItem_SlayerXPItem);
+
+class CItem_VampireXPItem : public CItem
+{
+public:
+	DECLARE_CLASS( CItem_VampireXPItem, CItem );
+
+	void Spawn( void )
+	{ 
+		Precache( );
+		SetModel( "models/items/combine_rifle_ammo01.mdl");
+		BaseClass::Spawn( );
+	}
+	void Precache( void )
+	{
+		PrecacheScriptSound( "ItemBattery.Touch" );
+		PrecacheModel ("models/items/combine_rifle_ammo01.mdl");
+	}
+	bool MyTouch( CBasePlayer *pPlayer )
+	{
+		if (pPlayer->IsAlive() && pPlayer->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+		{
+			if ( g_pGameRules->ItemShouldRespawn( this ) == GR_ITEM_RESPAWN_NO )
+			{
+				UTIL_Remove(this);	
+			}
+			((CHL2MP_Player *)pPlayer)->GiveTeamXPCentered(COVEN_TEAMID_VAMPIRES, COVEN_XP_PER_ITEM, NULL);
+			pPlayer->EmitSound( "ItemBattery.Touch" );
+			return true;
+		}
+		return false;
+	}
+};
+LINK_ENTITY_TO_CLASS(item_xp_vampires, CItem_VampireXPItem);
 
 // ========================================================================
 //	>> LargeBoxSRounds
