@@ -632,7 +632,8 @@ ConVarRef suitcharger( "sk_suitcharger" );
 			break;
 		}*/
 		pPlayer->m_Local.m_flFallVelocity -= PLAYER_MAX_SAFE_FALL_SPEED;
-		return pPlayer->m_Local.m_flFallVelocity * DAMAGE_FOR_FALL_SPEED;
+		//BB: not fixed, but fixed percentage fall damage
+		return pPlayer->m_Local.m_flFallVelocity * pPlayer->GetMaxHealth() / ( PLAYER_FATAL_FALL_SPEED - PLAYER_MAX_SAFE_FALL_SPEED );//DAMAGE_FOR_FALL_SPEED;
 	} 
 
 	//=========================================================

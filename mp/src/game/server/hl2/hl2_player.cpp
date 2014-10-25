@@ -77,6 +77,7 @@ extern ConVar autoaim_max_dist;
 #define TIME_IGNORE_FALL_DAMAGE 10.0
 
 extern int gEvilImpulse101;
+extern ConVar coven_xp_scale;
 
 ConVar sv_autojump( "sv_autojump", "0" );
 
@@ -392,6 +393,7 @@ END_DATADESC()
 
 CHL2_Player::CHL2_Player()
 {
+	xp_part = 0.0f;
 	covenClassID = 0;
 	covenLevelCounter = 0;
 
@@ -445,9 +447,16 @@ void CHL2_Player::Precache( void )
 	PrecacheScriptSound( "HL2Player.BurnPain" );
 }
 
-bool CHL2_Player::GiveXP(int XP)
+bool CHL2_Player::GiveXP(float XP)
 {
-	m_HL2Local.covenXPCounter += XP;
+	int iXP = 0;
+	xp_part += XP;
+	if (xp_part > 1.0f)
+	{
+		iXP = floor(xp_part);
+		xp_part -= iXP;
+	}
+	m_HL2Local.covenXPCounter += coven_xp_scale.GetInt()*iXP;
 	if (m_HL2Local.covenXPCounter >= (COVEN_MAX_XP_PER_LEVEL+COVEN_XP_INCREASE_PER_LEVEL*covenLevelCounter))
 	{
 		m_HL2Local.covenXPCounter -= (COVEN_MAX_XP_PER_LEVEL+COVEN_XP_INCREASE_PER_LEVEL*covenLevelCounter);

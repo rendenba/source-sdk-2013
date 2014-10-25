@@ -160,7 +160,8 @@ public:
 	int GetNumSquadCommandableMedics();
 
 	//BB: COVEN
-	bool GiveXP(int XP);
+	bool GiveXP(float XP);
+	float xp_part;
 	virtual bool LevelUp(int lvls);
 	void GiveStrength(int s);
 	int myStrength();

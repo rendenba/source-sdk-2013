@@ -350,6 +350,7 @@ public:
 	
 	virtual const impactdamagetable_t &GetPhysicsImpactDamageTable();
 	virtual int				OnTakeDamage_Alive( const CTakeDamageInfo &info );
+	virtual float			DamageForce( const Vector &size, float damage );
 	virtual void			Event_Killed( const CTakeDamageInfo &info );
 	// Notifier that I've killed some other entity. (called from Victim's Event_Killed).
 	virtual void			Event_KilledOther( CBaseEntity *pVictim, const CTakeDamageInfo &info );

@@ -173,10 +173,6 @@ void CHudDeathNotice::Paint()
 			iVictimTeam = g_PR->GetTeam( m_DeathNotices[i].Victim.iEntIndex );
 		}
 
-		//BB: HACK
-		if (m_DeathNotices[i].Killer.iEntIndex < 0)
-			iKillerTeam = -1*m_DeathNotices[i].Killer.iEntIndex;
-
 		g_pVGuiLocalize->ConvertANSIToUnicode( m_DeathNotices[i].Victim.szName, victim, sizeof( victim ) );
 		g_pVGuiLocalize->ConvertANSIToUnicode( m_DeathNotices[i].Killer.szName, killer, sizeof( killer ) );
 
@@ -298,18 +294,24 @@ void CHudDeathNotice::FireGameEvent( IGameEvent * event )
 		m_DeathNotices.Remove(0);
 	}
 
-	if (!strcmp( fullkilledwith, "death_cap_vamp" ) || !strcmp( fullkilledwith, "death_cap_slay" ))
+	if (!strcmp( fullkilledwith, "death_kill_cow" ) || !strcmp( fullkilledwith, "death_cap_vamp" ) || !strcmp( fullkilledwith, "death_cap_slay" ) || !strcmp( fullkilledwith, "death_cts_vamp" ) || !strcmp( fullkilledwith, "death_cts_slay" ))
 	{
 		const char *champion;
-		if (!strcmp( fullkilledwith, "death_cap_vamp" ))
-		{
-			champion = "Vampires";
-			killer = -3;
-		}
+		if (killer != 0)
+			champion = g_PR->GetPlayerName( killer );
 		else
 		{
-			champion = "Slayers";
-			killer = -2;
+			if (ass == 2)
+			{
+				champion = "Vampires";
+				killer = -3;
+			}
+			else
+			{
+				champion = "Slayers";
+				killer = -2;
+			}
+			ass = 0;
 		}
 
 		if (!champion)
@@ -318,15 +320,24 @@ void CHudDeathNotice::FireGameEvent( IGameEvent * event )
 
 		char missionconfig[32];
 
-		Q_snprintf(missionconfig, sizeof(missionconfig), "%s", event->GetString( "point" ));
+		Q_snprintf(missionconfig, sizeof(missionconfig), "Completed Mission %d/%d", event->GetInt("userid"), event->GetInt("assister"));
 
 		DeathNoticeItem deathMsg;
 		deathMsg.Killer.iEntIndex = killer;
 		deathMsg.Victim.iEntIndex = 0;
 		Q_strncpy( deathMsg.Killer.szName, champion, MAX_PLAYER_NAME_LENGTH );
-		Q_strncpy( deathMsg.Victim.szName, missionconfig, MAX_PLAYER_NAME_LENGTH );
+		if (strcmp( fullkilledwith, "death_kill_cow" ))
+			Q_strncpy( deathMsg.Victim.szName, missionconfig, MAX_PLAYER_NAME_LENGTH );
+		else
+			Q_strncpy( deathMsg.Victim.szName, "", MAX_PLAYER_NAME_LENGTH );
 		deathMsg.flDisplayTime = gpGlobals->curtime + hud_deathnotice_time.GetFloat();
 		deathMsg.iSuicide = 0;
+
+
+		if (ass > 1)
+		{
+			Q_snprintf( deathMsg.Killer.szName, sizeof( deathMsg.Killer.szName ), "%s + %d", deathMsg.Killer.szName, ass-1 );
+		}
 
 		deathMsg.iconDeath = gHUD.GetIcon( fullkilledwith );
 
@@ -340,7 +351,10 @@ void CHudDeathNotice::FireGameEvent( IGameEvent * event )
 
 		char sDeathMsg[512];
 
-		Q_snprintf( sDeathMsg, sizeof( sDeathMsg ), "%s capped point %s.\n", deathMsg.Killer.szName, missionconfig );
+		if (strcmp( fullkilledwith, "death_kill_cow" ))
+			Q_snprintf( sDeathMsg, sizeof( sDeathMsg ), "%s completed mision %d/%d.\n", deathMsg.Killer.szName, event->GetInt("userid"), event->GetInt("assister") );
+		else
+			Q_snprintf( sDeathMsg, sizeof( sDeathMsg ), "%s slaughtered the cow.\n", deathMsg.Killer.szName );
 
 
 		Msg( "%s", sDeathMsg );

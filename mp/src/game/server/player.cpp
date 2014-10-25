@@ -1565,17 +1565,16 @@ bool CBasePlayer::IsDead() const
 	return m_lifeState == LIFE_DEAD;
 }
 
-static float DamageForce( const Vector &size, float damage )
+float CBasePlayer::DamageForce( const Vector &size, float damage )
 { 
 	//BB: TODO: knockback for damage
-	float force = damage * ((32 * 32 * 72.0) / (size.x * size.y * size.z)) * 50;//5
+	float force = damage * ((32 * 32 * 72.0) / (size.x * size.y * size.z)) * 5;
 	
 	if ( force > 1000.0) 
 	{
 		force = 1000.0;
 	}
 
-	force = 1000.0;
 
 	return force;
 }
@@ -1610,9 +1609,14 @@ int CBasePlayer::OnTakeDamage_Alive( const CTakeDamageInfo &info )
 	if ( info.GetInflictor() && (GetMoveType() == MOVETYPE_WALK) && 
 		( !attacker->IsSolidFlagSet(FSOLID_TRIGGER)) )
 	{
-		float dmgf = -DamageForce( WorldAlignSize(), info.GetBaseDamage() );
-		if (GetGroundEntity() == NULL)
-			dmgf /= 6.0f;
+		float dmgf = 0.0f;
+		if (attacker->IsPlayer())
+			dmgf = -((CBasePlayer *)attacker)->DamageForce( WorldAlignSize(), info.GetBaseDamage() );
+		else
+			dmgf = -DamageForce( WorldAlignSize(), info.GetBaseDamage() );
+		//BB: TODO: need to fix air strikes causing unmitigated forces
+		/*if (GetGroundEntity() == NULL)
+			dmgf /= 6.0f;*/
 		Vector force = vecDir * dmgf;
 		if ( force.z > 250.0f )
 		{

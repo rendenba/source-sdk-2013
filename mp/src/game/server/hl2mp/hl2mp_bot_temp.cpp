@@ -87,7 +87,15 @@ void BotRemove( CHL2MP_Player *pBot )
 
 	g_BotData[pBot->entindex()-1].m_WantedTeam = 0;
 	g_BotData[pBot->entindex()-1].m_flJoinTeamTime = 0;
-	BotNumber--;
+	//BotNumber--;
+}
+
+bool Bot_Right_Team( CHL2MP_Player *pBot )
+{
+	if (!pBot)
+		return true;
+	
+	return g_BotData[pBot->entindex()-1].m_WantedTeam == pBot->GetTeamNumber();
 }
 
 //-----------------------------------------------------------------------------

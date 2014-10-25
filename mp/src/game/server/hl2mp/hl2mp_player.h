@@ -134,6 +134,8 @@ public:
 	virtual bool StartObserverMode( int mode );
 	virtual void StopObserverMode( void );
 
+	float DamageForce( const Vector &size, float damage );
+
 
 	Vector m_vecTotalBulletForce;	//Accumulator for bullet force in a single frame
 
@@ -144,6 +146,8 @@ public:
 
 	int lastCheckedCapPoint;
 	float lastCapPointTime;
+
+	Vector store_loc;
 
 		
 private:

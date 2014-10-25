@@ -224,6 +224,8 @@ CHL2MPRules::CHL2MPRules()
 	cowsloadfail = false;
 
 	num_cap_points = 0;
+	last_verified_cap_point = 0;
+	scoreTimer = 0.0f;
 
 #endif
 }
@@ -303,16 +305,29 @@ bool CHL2MPRules::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBa
 		}
 		else if (Q_strcmp(s,"cappoint") == 0)
 		{
-			buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
-			const char *t = temparray;
-			float locs[3];
-			UTIL_StringToVector(locs, t);
-			int index = num_cap_points*3;
-			cap_point_coords.Set(index, locs[0]);
-			cap_point_coords.Set(index+1, locs[1]);
-			cap_point_coords.Set(index+2, locs[2]);
-			cap_point_status.Set(num_cap_points, 60);
-			num_cap_points++;
+			if (num_cap_points < COVEN_MAX_CAP_POINTS)
+			{
+				buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
+				const char *t = temparray;
+				float locs[3];
+				UTIL_StringToVector(locs, t);
+				int index = num_cap_points*3;
+				cap_point_coords.Set(index, locs[0]);
+				cap_point_coords.Set(index+1, locs[1]);
+				cap_point_coords.Set(index+2, locs[2]);
+				cap_point_status.Set(num_cap_points, 60);
+				cap_point_timers[num_cap_points] = 0.0f;
+				cap_point_state[num_cap_points] = 0;
+				buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
+				const char *u = temparray;
+				int n;
+				UTIL_StringToIntArray(&n, 1, u);
+				cap_point_distance[num_cap_points] = n;
+				buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
+				const char *v = temparray;
+				Q_snprintf(cap_point_names[num_cap_points], sizeof(cap_point_names[num_cap_points]), "%s", v);
+				num_cap_points++;
+			}
 		}
 	}
 #endif
@@ -454,6 +469,41 @@ void CHL2MPRules::Think( void )
 		cowsloaded = true;
 	}
 
+	int s_caps = 0;
+	int v_caps = 0;
+	//BB: coven cap point things!
+	for (int i = 0; i < COVEN_MAX_CAP_POINTS; i++)
+	{
+		if (cap_point_state[i] == COVEN_TEAMID_SLAYERS)
+			s_caps++;
+		else if (cap_point_state[i] == COVEN_TEAMID_VAMPIRES)
+			v_caps++;
+
+		if (gpGlobals->curtime > cap_point_timers[i])
+		{
+			cap_point_timers[i] = gpGlobals->curtime + 0.2f;
+			int n = cap_point_status.Get(i);
+			if (cap_point_state[i] == COVEN_TEAMID_VAMPIRES)
+			{
+				if (n > 0)
+					n--;
+			}
+			else if (cap_point_state[i] == COVEN_TEAMID_SLAYERS)
+			{
+				if (n < 120)
+					n++;
+			}
+			else
+			{
+				if (n > 60 && n < 120)
+					n--;
+				else if (n < 60 && n > 0)
+					n++;
+			}
+			cap_point_status.Set(i, n);
+		}
+	}
+
 	//BB: Coven Player Things!
 	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
@@ -461,20 +511,53 @@ void CHL2MPRules::Think( void )
 
 		if (pPlayer)
 		{
-			if (pPlayer->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
-				numSlayers++;
-			if (pPlayer->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
-				numVampires++;
+			float xp_tick = 0.0f;
 
+			if (pPlayer->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+			{
+				xp_tick = COVEN_XP_CAP_PERSEC * s_caps;
+				numSlayers++;
+			}
+			else if (pPlayer->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+			{
+				xp_tick = COVEN_XP_CAP_PERSEC * v_caps;
+				numVampires++;
+			}
+
+			if (gpGlobals->curtime > scoreTimer)
+				((CHL2MP_Player *)pPlayer)->GiveXP(xp_tick);
+
+			//BB: seriously? this is really dumb.
 			if ( pPlayer->IsBot() )
 			{
+				if (!Bot_Right_Team((CHL2MP_Player *)pPlayer))
+				{
+					if (pPlayer->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+					{
+						numSlayers++;
+						numVampires--;
+					}
+					if (pPlayer->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+					{
+						numVampires++;
+						numSlayers--;
+					}
+				}
 				Bot_Think((CHL2MP_Player*)pPlayer);
 			}
 		}
 	}
 
+	//BB: add team scores and reset
+	if (gpGlobals->curtime > scoreTimer)
+	{
+		scoreTimer = gpGlobals->curtime + 1.0f;
+		GetGlobalTeam( COVEN_TEAMID_SLAYERS )->AddScore(COVEN_CAP_SCORE_PERSEC*s_caps);
+		GetGlobalTeam( COVEN_TEAMID_VAMPIRES )->AddScore(COVEN_CAP_SCORE_PERSEC*v_caps);
+	}
+
 	//BB: add bots to make playercounts
-	if (numSlayers < sv_coven_minplayers.GetInt())
+	if (numSlayers < sv_coven_minplayers.GetInt() && !cowsloadfail)
 	{
 		CHL2MP_Player *pBot = (CHL2MP_Player *)BotPutInServer(false, TEAM_COMBINE);
 		if (pBot)
@@ -498,7 +581,7 @@ void CHL2MPRules::Think( void )
 		}
 	}
 
-	if (numVampires < sv_coven_minplayers.GetInt())
+	if (numVampires < sv_coven_minplayers.GetInt() && !cowsloadfail)
 	{
 		CHL2MP_Player *pBot = (CHL2MP_Player *)BotPutInServer(false, TEAM_REBELS);
 		if (pBot)
@@ -522,6 +605,7 @@ void CHL2MPRules::Think( void )
 		}
 	}
 
+	//BB: game over stuff... TODO: combine with player stuff above for efficiencies?
 	if ( g_fGameOver )   // someone else quit the game already
 	{
 		// check to see if we should change levels now

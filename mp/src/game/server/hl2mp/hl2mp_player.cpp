@@ -771,6 +771,21 @@ bool CHL2MP_Player::Weapon_Switch( CBaseCombatWeapon *pWeapon, int viewmodelinde
 	return bRet;
 }
 
+float CHL2MP_Player::DamageForce( const Vector &size, float damage )
+{ 
+	//BB: TODO: knockback for damage
+	float force = damage * ((32 * 32 * 72.0) / (size.x * size.y * size.z)) * 5 - 30*(covenLevelCounter-1);
+	
+	if ( force > 1000.0) 
+	{
+		force = 1000.0;
+	}
+
+	//Msg("%.02f",force);
+
+	return force;
+}
+
 void CHL2MP_Player::PreThink( void )
 {
 	QAngle vOldAngles = GetLocalAngles();
@@ -803,15 +818,32 @@ void CHL2MP_Player::PreThink( void )
 			tVec = Vector(pRules->cap_point_coords.Get(index), pRules->cap_point_coords.Get(index+1), pRules->cap_point_coords.Get(index+2));
 		}
 
-		if ((tVec-GetLocalOrigin()).Length() < 300)
+		if ((tVec-GetLocalOrigin()).Length() < pRules->cap_point_distance[lastCheckedCapPoint])
 		{
 			int n = pRules->cap_point_status.Get(lastCheckedCapPoint);
 			lastCapPointTime = gpGlobals->curtime+0.1f;
+			pRules->cap_point_timers[lastCheckedCapPoint] = gpGlobals->curtime+0.2f;
 			if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
 			{
 				if (n < 120)
 				{
 					pRules->cap_point_status.Set(lastCheckedCapPoint, n+1);
+					if ((n+1)==120 && pRules->cap_point_state[lastCheckedCapPoint] != GetTeamNumber())
+					{
+						pRules->cap_point_state[lastCheckedCapPoint] = COVEN_TEAMID_SLAYERS;
+						GetGlobalTeam( GetTeamNumber() )->AddScore(COVEN_CAP_SCORE);
+						const char *killer_weapon_name = "cap_slay";
+						IGameEvent *event = gameeventmanager->CreateEvent( "player_death" );
+						if( event )
+						{
+							event->SetInt("userid",  GetUserID());
+							event->SetInt("attacker",  GetUserID());
+							event->SetString("weapon", killer_weapon_name );
+							event->SetString("point", pRules->cap_point_names[lastCheckedCapPoint]);
+							event->SetInt( "priority", 7 );
+							gameeventmanager->FireEvent( event );
+						}
+					}
 				}
 			}
 			else
@@ -819,6 +851,22 @@ void CHL2MP_Player::PreThink( void )
 				if (n >0)
 				{
 					pRules->cap_point_status.Set(lastCheckedCapPoint, n-1);
+					if ((n-1)==0  && pRules->cap_point_state[lastCheckedCapPoint] != GetTeamNumber())
+					{
+						pRules->cap_point_state[lastCheckedCapPoint] = COVEN_TEAMID_VAMPIRES;
+						GetGlobalTeam( GetTeamNumber() )->AddScore(COVEN_CAP_SCORE);
+						const char *killer_weapon_name = "cap_vamp";
+						IGameEvent *event = gameeventmanager->CreateEvent( "player_death" );
+						if( event )
+						{
+							event->SetInt("userid",  GetUserID());
+							event->SetInt("attacker",  GetUserID());
+							event->SetString("weapon", killer_weapon_name );
+							event->SetString("point", pRules->cap_point_names[lastCheckedCapPoint]);
+							event->SetInt( "priority", 7 );
+							gameeventmanager->FireEvent( event );
+						}
+					}
 				}
 			}
 		}
@@ -913,7 +961,6 @@ void CHL2MP_Player::NoteWeaponFired( void )
 }
 
 extern ConVar sv_maxunlag;
-extern ConVar coven_xp_scale;
 
 bool CHL2MP_Player::WantsLagCompensationOnEntity( const CBasePlayer *pPlayer, const CUserCmd *pCmd, const CBitVec<MAX_EDICTS> *pEntityTransmitBits ) const
 {
@@ -1605,9 +1652,9 @@ int CHL2MP_Player::XPForKill(CHL2MP_Player *pAttacker)
 	//	return 5;
 
 	//BB: TODO: make this more ellaborate... based on player lvl difference
-	int retval = COVEN_XP_PER_KILL*coven_xp_scale.GetInt();
+	int retval = COVEN_XP_PER_KILL;
 
-	retval += coven_xp_scale.GetInt()*COVEN_XP_LEVEL_DIFF_MULT*(covenLevelCounter-pAttacker->covenLevelCounter);
+	retval += COVEN_XP_LEVEL_DIFF_MULT*(covenLevelCounter-pAttacker->covenLevelCounter);
 	Msg("XPForKill: %d\n",retval);
 
 	retval = max(1,retval);
@@ -1643,15 +1690,18 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 
 	if ( pAttacker )
 	{
+		CTeam *team = GetGlobalTeam( pAttacker->GetTeamNumber() );
 		int iScoreToAdd = 1;
 
 		if ( pAttacker == this )
 		{
 			iScoreToAdd = -1;
 		}
+		else
+		{
+			team->AddScore( iScoreToAdd );
+		}
 
-		CTeam *team = GetGlobalTeam( pAttacker->GetTeamNumber() );
-		team->AddScore( iScoreToAdd );
 		if (pAttacker->IsPlayer() && pAttacker != this)
 		{
 			int num = team->GetNumPlayers();
@@ -1695,6 +1745,29 @@ CON_COMMAND(location, "print current location")
 	char szReturnString[512];
 	Vector temp = pPlayer->GetAbsOrigin();
 	Q_snprintf( szReturnString, sizeof( szReturnString ), "\"%f %f %f\"\n", temp.x, temp.y, temp.z);
+	ClientPrint( pPlayer, HUD_PRINTCONSOLE, szReturnString );
+}
+
+CON_COMMAND(store_loc, "store location for distance")
+{
+	CHL2MP_Player *pPlayer = ToHL2MPPlayer( UTIL_GetCommandClient() );
+	if (!pPlayer)
+		return;
+	char szReturnString[512];
+	Vector temp = pPlayer->GetLocalOrigin();
+	pPlayer->store_loc = temp;
+	Q_snprintf( szReturnString, sizeof( szReturnString ), "Location Stored: \"%f %f %f\"\n", temp.x, temp.y, temp.z);
+	ClientPrint( pPlayer, HUD_PRINTCONSOLE, szReturnString );
+}
+
+CON_COMMAND(distance, "distance from store_loc")
+{
+	CHL2MP_Player *pPlayer = ToHL2MPPlayer( UTIL_GetCommandClient() );
+	if (!pPlayer)
+		return;
+	char szReturnString[512];
+	Vector temp = pPlayer->GetLocalOrigin();
+	Q_snprintf( szReturnString, sizeof( szReturnString ), "Distance from: \"%f %f %f\" %f\n", temp.x, temp.y, temp.z, (temp-pPlayer->store_loc).Length());
 	ClientPrint( pPlayer, HUD_PRINTCONSOLE, szReturnString );
 }
 

@@ -152,6 +152,14 @@ public:
 	void    CheckChatForReadySignal( CHL2MP_Player *pPlayer, const char *chatmsg );
 	const char *GetChatFormat( bool bTeamOnly, CBasePlayer *pPlayer );
 
+	//BB: yeah, probably should have made this into a class... hindsight.
+	char cap_point_names[COVEN_MAX_CAP_POINTS][MAX_PLAYER_NAME_LENGTH];
+	float cap_point_timers[COVEN_MAX_CAP_POINTS];
+	int cap_point_state[COVEN_MAX_CAP_POINTS];
+	int cap_point_distance[COVEN_MAX_CAP_POINTS];
+	float scoreTimer;
+	int last_verified_cap_point;
+
 #endif
 	virtual void ClientDisconnected( edict_t *pClient );
 

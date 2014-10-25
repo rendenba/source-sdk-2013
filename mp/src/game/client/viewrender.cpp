@@ -109,7 +109,7 @@ static ConVar cl_maxrenderable_dist("cl_maxrenderable_dist", "3000", FCVAR_CHEAT
 
 ConVar r_entityclips( "r_entityclips", "1" ); //FIXME: Nvidia drivers before 81.94 on cards that support user clip planes will have problems with this, require driver update? Detect and disable?
 
-ConVar coven_r_cappoint_dist( "coven_r_cappoint_dist", "1200" );
+ConVar coven_r_cappoint_dist( "coven_r_cappoint_dist", "1200", FCVAR_ARCHIVE );
 
 // Matches the version in the engine
 static ConVar r_drawopaqueworld( "r_drawopaqueworld", "1", FCVAR_CHEAT );
@@ -1065,10 +1065,10 @@ void CViewRender::DrawMissionIndicator()
 	for (int i = 0; i < HL2MPRules()->num_cap_points; i++)
 	{
 		int parse = i*3;
-		Vector temp2 = Vector(HL2MPRules()->cap_point_coords.Get(parse), HL2MPRules()->cap_point_coords.Get(parse+1), HL2MPRules()->cap_point_coords.Get(parse+2));
+		Vector temp2 = Vector(HL2MPRules()->cap_point_coords.Get(parse), HL2MPRules()->cap_point_coords.Get(parse+1), HL2MPRules()->cap_point_coords.Get(parse+2)+40.0f);
 		Vector temp = CBasePlayer::GetLocalPlayer()->EyePosition()-temp2;
 		int dist = temp.Length();
-		if (dist > viewdist)
+		if (dist > viewdist && viewdist > 0)//0 means forever
 			continue;
 		Vector color(1.0f,1.0f,1.0f);
 		int lum = HL2MPRules()->cap_point_status.Get(i);
@@ -1251,7 +1251,7 @@ void CViewRender::DrawViewModels( const CViewSetup &view, bool drawViewmodel )
 
 	render->PopView( GetFrustum() );
 
-	pRenderContext->DepthRange( 0.0f, 0.1f );
+	pRenderContext->DepthRange( 0.0f, 0.2f );
 	DrawMissionIndicator();
 	pRenderContext->DepthRange( 0.0f, 1.0f );
 
