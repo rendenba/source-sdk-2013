@@ -468,6 +468,8 @@ void CHL2MPRules::Think( void )
 	
 	CGameRules::Think();
 
+	DollCollectorThink();
+
 	int numVampires = 0;
 	int numSlayers = 0;
 
@@ -1330,6 +1332,45 @@ CAmmoDef *GetAmmoDef()
 #endif
 
 #ifndef CLIENT_DLL
+
+//BB: lets collect a doll
+void CHL2MPRules::AddDoll(CBaseEntity *doll)
+{
+	if (doll_collector.Count() > 20)
+	{
+		doll_collector.Remove(0);
+	}
+	doll_collector.AddToTail(doll);
+}
+
+//BB: deal with dolls (think)
+void CHL2MPRules::DollCollectorThink()
+{
+	for (int i=0; i < doll_collector.Count(); i++)
+	{
+		CBaseEntity *temp;
+		temp = doll_collector[i];
+		if (temp != NULL && ((CRagdollProp *)temp)->flClearTime > 0.0f)
+		{
+			if (gpGlobals->curtime > ((CRagdollProp *)temp)->flClearTime)
+			{
+				doll_collector.Remove(i);
+				UTIL_Remove(temp);
+				temp = NULL;
+			}
+			else
+			{
+				if (temp->GetRenderMode() != kRenderTransTexture)
+					temp->SetRenderMode( kRenderTransTexture );
+				if (((CRagdollProp *)temp)->flClearTime - gpGlobals->curtime < 4.5f)
+				{
+					temp->SetRenderColorA(255.0f*(((CRagdollProp *)temp)->flClearTime - gpGlobals->curtime)/4.5f);
+				}
+			}
+		}
+	}
+}
+
 
 void CHL2MPRules::RestartGame()
 {

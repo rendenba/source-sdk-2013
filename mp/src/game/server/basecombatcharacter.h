@@ -481,6 +481,8 @@ protected:
 public:
 	static int					GetInteractionID();	// Returns the next interaction #
 
+	CBaseEntity *myServerRagdoll;
+
 protected:
 	// Visibility-related stuff
 	bool ComputeLOS( const Vector &vecEyePosition, const Vector &vecTarget ) const;

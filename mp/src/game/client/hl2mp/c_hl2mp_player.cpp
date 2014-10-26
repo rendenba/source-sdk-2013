@@ -693,7 +693,22 @@ C_BaseAnimating *C_HL2MP_Player::BecomeRagdollOnClient()
 
 void C_HL2MP_Player::CalcView( Vector &eyeOrigin, QAngle &eyeAngles, float &zNear, float &zFar, float &fov )
 {
-	if ( m_lifeState != LIFE_ALIVE && !IsObserver() )
+	//BB: first person ragdolls... old code commented out
+	if (m_hRagdoll.Get() != NULL && !IsObserver())
+	{
+		if (m_hRagdoll.Get() != NULL )
+		{
+			// pointer to the ragdoll
+			C_BaseAnimating *pRagdoll = (C_BaseAnimating*)m_hRagdoll.Get();
+
+			// gets its origin and angles
+			pRagdoll->GetAttachment( pRagdoll->LookupAttachment( "eyes" ), eyeOrigin, eyeAngles );
+
+		}
+		return;
+	}
+
+	/*if ( m_lifeState != LIFE_ALIVE && !IsObserver() )
 	{
 		Vector origin = EyePosition();			
 
@@ -729,7 +744,7 @@ void C_HL2MP_Player::CalcView( Vector &eyeOrigin, QAngle &eyeAngles, float &zNea
 		}
 		
 		return;
-	}
+	}*/
 
 	BaseClass::CalcView( eyeOrigin, eyeAngles, zNear, zFar, fov );
 }

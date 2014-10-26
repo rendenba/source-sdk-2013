@@ -54,6 +54,8 @@
 	#include "portal_shareddefs.h"
 #endif
 
+#include "hl2mp_player.h"
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -2421,6 +2423,17 @@ int CBaseCombatCharacter::OnTakeDamage( const CTakeDamageInfo &info )
 		retVal = OnTakeDamage_Alive( info );
 		if ( m_iHealth <= 0 )
 		{
+			myServerRagdoll = CreateServerRagdoll( this, m_nForceBone, info, COLLISION_GROUP_WEAPON );
+			if (myServerRagdoll)
+			{
+				((CHL2MP_Player *)this)->m_hRagdoll = myServerRagdoll;
+				((CRagdollProp *)myServerRagdoll)->flClearTime = gpGlobals->curtime + 60.0f;
+				HL2MPRules()->AddDoll(myServerRagdoll);
+				//Msg("Created Ragdoll %d\n", HL2MPRules()->doll_collector.Size());
+			}
+			//else
+				//Msg("Failed to Create Ragdoll\n");
+
 			IPhysicsObject *pPhysics = VPhysicsGetObject();
 			if ( pPhysics )
 			{

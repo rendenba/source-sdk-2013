@@ -107,6 +107,9 @@ public:
 
 	DECLARE_DATADESC();
 
+	//BB: coven ragdolls
+	float flClearTime;
+
 protected:
 	void CalcRagdollSize( void );
 	ragdoll_t			m_ragdoll;

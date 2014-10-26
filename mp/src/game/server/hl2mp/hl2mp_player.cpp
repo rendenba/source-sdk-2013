@@ -22,6 +22,8 @@
 #include "eventqueue.h"
 #include "gamestats.h"
 
+#include "physics_prop_ragdoll.h"
+
 #include "engine/IEngineSound.h"
 #include "SoundEmitterSystem/isoundemittersystembase.h"
 
@@ -114,6 +116,24 @@ CON_COMMAND( chooseclass, "Opens a menu for class choose" )
 	else
 	{
 		pPlayer->ShowViewPortPanel( "class2", true, NULL );
+	}
+}
+
+CON_COMMAND( tracert, "Trace hit" )
+{
+	CHL2MP_Player *pPlayer = ToHL2MPPlayer( UTIL_GetCommandClient() );
+	if (!pPlayer)
+		return;
+
+	trace_t	tr;
+	QAngle angle = pPlayer->GetAbsAngles();
+	Vector forward;
+	AngleVectors( angle, &forward );
+	VectorNormalize(forward);
+	UTIL_TraceLine(pPlayer->Weapon_ShootPosition(), pPlayer->Weapon_ShootPosition()+forward*200, MASK_SHOT_HULL, pPlayer, COLLISION_GROUP_WEAPON, &tr);
+	if (tr.fraction != 1.0)
+	{
+		Msg("%s\n", tr.m_pEnt->GetClassname());
 	}
 }
 
@@ -420,6 +440,13 @@ void CHL2MP_Player::PickDefaultSpawnTeam( void )
 //-----------------------------------------------------------------------------
 void CHL2MP_Player::Spawn(void)
 {
+	m_hRagdoll = NULL;
+	myServerRagdoll = NULL;
+	/*if (myServerRagdoll)
+	{
+		UTIL_RemoveImmediate(myServerRagdoll);
+		myServerRagdoll = NULL;
+	}*/
 
 	SetPlayerTeamModel();
 
@@ -1578,7 +1605,13 @@ END_SEND_TABLE()
 
 void CHL2MP_Player::CreateRagdollEntity( void )
 {
-	if ( m_hRagdoll )
+	if ( m_hRagdoll && m_hRagdoll.Get() != myServerRagdoll)
+	{
+		UTIL_RemoveImmediate( m_hRagdoll );
+		m_hRagdoll = NULL;
+	}
+
+	/*if ( m_hRagdoll )
 	{
 		UTIL_RemoveImmediate( m_hRagdoll );
 		m_hRagdoll = NULL;
@@ -1605,7 +1638,7 @@ void CHL2MP_Player::CreateRagdollEntity( void )
 	}
 
 	// ragdolls will be removed on round restart automatically
-	m_hRagdoll = pRagdoll;
+	m_hRagdoll = pRagdoll;*/
 }
 
 //-----------------------------------------------------------------------------

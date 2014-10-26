@@ -21,6 +21,7 @@
 
 #ifndef CLIENT_DLL
 #include "hl2mp_player.h"
+#include "physics_prop_ragdoll.h"
 #include "filesystem.h"
 #include "utlbuffer.h"
 #endif
@@ -159,6 +160,11 @@ public:
 	int cap_point_distance[COVEN_MAX_CAP_POINTS];
 	float scoreTimer;
 	int last_verified_cap_point;
+
+	void AddDoll( CBaseEntity *doll );
+	void DollCollectorThink( void );
+	//BB: my little doll collector
+	CUtlVector<CBaseEntity *> doll_collector;
 
 #endif
 	virtual void ClientDisconnected( edict_t *pClient );
