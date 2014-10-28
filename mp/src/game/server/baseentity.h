@@ -912,6 +912,9 @@ public:
 	virtual bool	IsAlive( void );
 	// Entity killed (only fired once)
 	virtual void	Event_Killed( const CTakeDamageInfo &info );
+
+	//BB: need this here for inheritance
+	virtual bool	IsServerdoll() { return false; };
 	
 	void SendOnKilledGameEvent( const CTakeDamageInfo &info );
 

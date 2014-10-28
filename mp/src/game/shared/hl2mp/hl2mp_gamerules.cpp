@@ -336,7 +336,7 @@ bool CHL2MPRules::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBa
 			float locs[3];
 			UTIL_StringToVector(locs, t);
 			CBaseEntity *ent = CreateEntityByName( "item_xp_vampires" );
-			ent->SetLocalOrigin(Vector(locs[0], locs[1], locs[2]));
+			ent->SetLocalOrigin(Vector(locs[0], locs[1], locs[2]+10.0f));
 			ent->SetLocalAngles(QAngle(random->RandomInt(0,180), random->RandomInt(0,180), random->RandomInt(0,180)));
 			ent->Spawn();
 		}
@@ -347,7 +347,7 @@ bool CHL2MPRules::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBa
 			float locs[3];
 			UTIL_StringToVector(locs, t);
 			CBaseEntity *ent = CreateEntityByName( "item_xp_slayers" );
-			ent->SetLocalOrigin(Vector(locs[0], locs[1], locs[2]));
+			ent->SetLocalOrigin(Vector(locs[0], locs[1], locs[2]+10.0f));
 			ent->SetLocalAngles(QAngle(random->RandomInt(0,180), random->RandomInt(0,90), random->RandomInt(0,180)));
 			ent->Spawn();
 		}
@@ -600,6 +600,7 @@ void CHL2MPRules::Think( void )
 				BotRemove((CHL2MP_Player *)pPlayer);
 				ClientDisconnected(pPlayer->edict());
 				UTIL_Remove(pPlayer);
+				engine->ServerCommand( UTIL_VarArgs( "kickid %d %s\n", pPlayer->GetUserID(), "Bot Kicked" ) );
 				break;
 			}
 		}
@@ -624,6 +625,7 @@ void CHL2MPRules::Think( void )
 				BotRemove((CHL2MP_Player *)pPlayer);
 				ClientDisconnected(pPlayer->edict());
 				UTIL_Remove(pPlayer);
+				engine->ServerCommand( UTIL_VarArgs( "kickid %d %s\n", pPlayer->GetUserID(), "Bot Kicked" ) );
 				break;
 			}
 		}

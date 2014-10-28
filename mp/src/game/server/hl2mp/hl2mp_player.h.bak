@@ -79,7 +79,7 @@ public:
 	virtual void Weapon_Drop( CBaseCombatWeapon *pWeapon, const Vector *pvecTarget = NULL, const Vector *pVelocity = NULL );
 	virtual void UpdateOnRemove( void );
 	virtual void DeathSound( const CTakeDamageInfo &info );
-	float Feed();
+float Feed();
 	virtual CBaseEntity* EntSelectSpawnPoint( void );
 		
 	int FlashlightIsOn( void );
@@ -135,19 +135,10 @@ public:
 
 	//BB: thinking functions consolidated for convienience
 	void DoVampirePreThink();
-	void DoVampirePostThink();
 	void DoSlayerPreThink();
-	void DoSlayerPostThink();
 
 	//BB: vampire helper functions
 	void VampireCheckRegen();
-	void VampireCheckResurrect();
-	void VampireManageRagdoll();
-	void VampireReSolidify();
-
-	//BB: slayer helper functions
-	void SlayerVampLeapDetect();
-	void Taunt();
 
 	virtual bool StartObserverMode( int mode );
 	virtual void StopObserverMode( void );
@@ -167,14 +158,8 @@ public:
 
 	Vector store_loc;
 
-	bool rezsound;
-	float solidcooldown;
-
 	//BB: coven timers
-	float coven_timer_damage;
 	float coven_timer_regen;
-	float coven_timer_feed;
-	float coven_timer_leapdetectcooldown;
 
 		
 private:

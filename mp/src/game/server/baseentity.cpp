@@ -1424,7 +1424,11 @@ int CBaseEntity::OnTakeDamage( const CTakeDamageInfo &info )
 	if ( m_takedamage != DAMAGE_EVENTS_ONLY )
 	{
 	// do the damage
-		m_iHealth -= info.GetDamage();
+		//BB: my new damage type, DMG_NO does not damage the player. allows damage effects without actual damage
+		if (!(info.GetDamageType() & DMG_NO))
+		{
+			m_iHealth -= info.GetDamage();
+		}
 		if (m_iHealth <= 0)
 		{
 			Event_Killed( info );

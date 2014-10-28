@@ -27,8 +27,6 @@ public:
 	CRagdollProp( void );
 	~CRagdollProp( void );
 
-	//BB: holds the player which this body belongs to
-	CBaseCombatCharacter *myBody;
 	//BB: holds the hp left in this body
 	float feedhp;
 	//BB: holds the caps state for the use function
@@ -37,13 +35,6 @@ public:
 	bool block;
 	//BB: this holds the time until fade out
 	float flClearTime;
-	//BB: this holds a team for simplicity
-	int team;
-	//BB: this allows for us to detect dolls for the stake
-	bool IsServerdoll()
-	{
-		return true;
-	};
 	//BB: the override for Use which ultimately lets us feed
 	virtual void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	virtual void UpdateOnRemove( void );

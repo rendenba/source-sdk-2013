@@ -12,6 +12,7 @@
 #include "gamerules.h"
 #include "hl2mp_player_shared.h"
 #include "predicted_viewmodel.h"
+#include "viewport_panel_names.h"
 #include "in_buttons.h"
 #include "hl2mp_gamerules.h"
 #include "KeyValues.h"
@@ -20,6 +21,8 @@
 #include "grenade_satchel.h"
 #include "eventqueue.h"
 #include "gamestats.h"
+
+#include "physics_prop_ragdoll.h"
 
 #include "engine/IEngineSound.h"
 #include "SoundEmitterSystem/isoundemittersystembase.h"
@@ -116,11 +119,31 @@ CON_COMMAND( chooseclass, "Opens a menu for class choose" )
 	}
 }
 
+CON_COMMAND( tracert, "Trace hit" )
+{
+	CHL2MP_Player *pPlayer = ToHL2MPPlayer( UTIL_GetCommandClient() );
+	if (!pPlayer)
+		return;
+
+	trace_t	tr;
+	QAngle angle = pPlayer->GetAbsAngles();
+	Vector forward;
+	AngleVectors( angle, &forward );
+	VectorNormalize(forward);
+	UTIL_TraceLine(pPlayer->Weapon_ShootPosition(), pPlayer->Weapon_ShootPosition()+forward*200, MASK_SHOT_HULL, pPlayer, COLLISION_GROUP_WEAPON, &tr);
+	if (tr.fraction != 1.0)
+	{
+		Msg("%s\n", tr.m_pEnt->GetClassname());
+	}
+}
+
 CHL2MP_Player::CHL2MP_Player() : m_PlayerAnimState( this )
 {
 	m_angEyeAngles.Init();
 
 	m_iLevel = 1;
+
+	coven_timer_regen = 0;
 
 	m_iLastWeaponFireUsercmd = 0;
 
@@ -153,6 +176,71 @@ void CHL2MP_Player::UpdateOnRemove( void )
 	BaseClass::UpdateOnRemove();
 }
 
+bool CHL2MP_Player::LevelUp( int lvls )
+{
+	if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+	{
+		switch (covenClassID)
+		{
+		case COVEN_CLASSID_REAVER:
+			GiveStrength(6);
+			GiveAgility(2);
+			GiveIntellect(1);
+			break;
+		case COVEN_CLASSID_AVENGER:
+			GiveStrength(4);
+			GiveAgility(4);
+			GiveIntellect(2);
+			break;
+		case COVEN_CLASSID_HELLION:
+			GiveStrength(3);
+			GiveAgility(6);
+			GiveIntellect(2);
+			break;
+		default:break;
+		}
+	}
+	else if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+	{
+		switch (covenClassID)
+		{
+		case COVEN_CLASSID_FIEND:
+			GiveStrength(3);
+			GiveAgility(5);
+			GiveIntellect(2);
+			break;
+		case COVEN_CLASSID_GORE:
+			GiveStrength(6);
+			GiveAgility(1);
+			GiveIntellect(1);
+			break;
+		default:break;
+		}
+	}
+	ResetVitals();
+	return BaseClass::LevelUp(lvls);
+}
+
+void CHL2MP_Player::ResetVitals( void )
+{
+	int baseHP = 100;
+	if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+	{
+		switch(covenClassID)
+		{
+		case COVEN_CLASSID_FIEND:
+			baseHP = 60;
+			break;
+		case COVEN_CLASSID_GORE:
+			baseHP = 110;
+			break;
+		default:break;
+		}
+	}
+	SetMaxHealth(baseHP + myStrength()*COVEN_HP_PER_STRENGTH);
+	SetHealth(baseHP+ myStrength()*COVEN_HP_PER_STRENGTH);
+}
+
 void CHL2MP_Player::Precache( void )
 {
 	BaseClass::Precache();
@@ -172,11 +260,45 @@ void CHL2MP_Player::Precache( void )
 	for ( i = 0; i < nHeads; ++i )
 	   	 PrecacheModel( g_ppszRandomCombineModels[i] );
 
+	PrecacheModel("models/breen.mdl");
+	PrecacheModel("models/mossman.mdl");
+	PrecacheModel("models/gman.mdl");
+	PrecacheModel("models/Sargexx_Soldier.mdl");
+	PrecacheModel("models/Brdeg.mdl");
+	PrecacheModel("models/Humans/Group01/male_01.mdl");
+	PrecacheModel("models/Humans/Group01/male_02.mdl");
+	PrecacheModel("models/Humans/Group01/male_03.mdl");
+	PrecacheModel("models/Humans/Group01/male_04.mdl");
+	PrecacheModel("models/Humans/Group01/male_05.mdl");
+	PrecacheModel("models/Humans/Group01/male_06.mdl");
+	PrecacheModel("models/Humans/Group01/male_07.mdl");
+	PrecacheModel("models/Humans/Group01/male_08.mdl");
+	PrecacheModel("models/Humans/Group01/male_09.mdl");
+	PrecacheModel("models/Humans/Group01/female_01.mdl");
+	PrecacheModel("models/Humans/Group01/female_02.mdl");
+	PrecacheModel("models/Humans/Group01/female_03.mdl");
+	PrecacheModel("models/Humans/Group01/female_04.mdl");
+	PrecacheModel("models/Humans/Group01/female_06.mdl");
+	PrecacheModel("models/Humans/Group01/female_07.mdl");
+
 	PrecacheFootStepSounds();
 
+	PrecacheScriptSound( "HL2Player.Sweet" );
+	PrecacheScriptSound( "Weapon_Mortar.Impact" );
+	PrecacheScriptSound( "Leap.Impact" );
+	PrecacheScriptSound( "Stake.Taunt" );
+	PrecacheScriptSound( "Leap.Detect" );
+	PrecacheScriptSound( "Vampire.Regen" );
 	PrecacheScriptSound( "NPC_MetroPolice.Die" );
 	PrecacheScriptSound( "NPC_CombineS.Die" );
 	PrecacheScriptSound( "NPC_Citizen.die" );
+	PrecacheScriptSound( "Resurrect" );
+	PrecacheScriptSound( "Resurrect.Finish" );
+
+	/*PrecacheModel( "models/items/ammocrate_pistol.mdl" );
+
+	PrecacheScriptSound( "AmmoCrate.Open" );
+	PrecacheScriptSound( "AmmoCrate.Close" );*/
 }
 
 void CHL2MP_Player::GiveAllItems( void )
@@ -220,25 +342,34 @@ void CHL2MP_Player::GiveDefaultItems( void )
 {
 	EquipSuit();
 
-	CBasePlayer::GiveAmmo( 255,	"Pistol");
-	CBasePlayer::GiveAmmo( 45,	"SMG1");
-	CBasePlayer::GiveAmmo( 1,	"grenade" );
-	CBasePlayer::GiveAmmo( 6,	"Buckshot");
-	CBasePlayer::GiveAmmo( 6,	"357" );
-
-	if ( GetPlayerModelType() == PLAYER_SOUNDS_METROPOLICE || GetPlayerModelType() == PLAYER_SOUNDS_COMBINESOLDIER )
+	if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
 	{
-		GiveNamedItem( "weapon_stunstick" );
+		switch (covenClassID)
+		{
+		case COVEN_CLASSID_AVENGER:
+			//CBasePlayer::GiveAmmo( 90,	"SMG1");
+			//GiveNamedItem( "weapon_smg1" );
+			CBasePlayer::GiveAmmo( 16,	"Buckshot");
+			GiveNamedItem( "weapon_shotgun" );
+			break;
+		case COVEN_CLASSID_REAVER:
+			CBasePlayer::GiveAmmo( 16,	"Buckshot");
+			GiveNamedItem( "weapon_doubleshotgun" );
+			break;
+		case COVEN_CLASSID_HELLION:
+			//CBasePlayer::GiveAmmo( 60,	"Pistol");
+			//GiveNamedItem( "weapon_pistol" );
+			CBasePlayer::GiveAmmo( 12,	"357");
+			GiveNamedItem( "weapon_357" );
+		default:
+			break;
+		}
+		GiveNamedItem( "weapon_stake" );
 	}
-	else if ( GetPlayerModelType() == PLAYER_SOUNDS_CITIZEN )
+	else if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
 	{
 		GiveNamedItem( "weapon_crowbar" );
 	}
-	
-	GiveNamedItem( "weapon_pistol" );
-	GiveNamedItem( "weapon_smg1" );
-	GiveNamedItem( "weapon_frag" );
-	GiveNamedItem( "weapon_physcannon" );
 
 	const char *szDefaultWeaponName = engine->GetClientConVarValue( engine->IndexOfEdict( edict() ), "cl_defaultweapon" );
 
@@ -309,11 +440,34 @@ void CHL2MP_Player::PickDefaultSpawnTeam( void )
 //-----------------------------------------------------------------------------
 void CHL2MP_Player::Spawn(void)
 {
+	m_hRagdoll = NULL;
+	myServerRagdoll = NULL;
+	/*if (myServerRagdoll)
+	{
+		UTIL_RemoveImmediate(myServerRagdoll);
+		myServerRagdoll = NULL;
+	}*/
+
+	SetPlayerTeamModel();
+
 	m_flNextModelChangeTime = 0.0f;
 	m_flNextTeamChangeTime = 0.0f;
 
 	//BB: We don't do things this way
 	//PickDefaultSpawnTeam();
+
+	if (covenClassID <= 0)
+		return;
+
+	//BB: first spawn... give us a level
+	if (covenLevelCounter == 0)
+		LevelUp(1);
+
+	if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES && covenClassID > 2)
+		return;
+
+	if (GetTeamNumber() == COVEN_TEAMID_SLAYERS && covenClassID > 3)
+		return;
 
 	BaseClass::Spawn();
 	
@@ -354,6 +508,10 @@ void CHL2MP_Player::Spawn(void)
 	SetPlayerUnderwater(false);
 
 	m_bReady = false;
+
+	ResetVitals();
+	lastCheckedCapPoint = 0;
+	lastCapPointTime = 0.0f;
 }
 
 void CHL2MP_Player::PickupObject( CBaseEntity *pObject, bool bLimitMassAndSize )
@@ -363,27 +521,75 @@ void CHL2MP_Player::PickupObject( CBaseEntity *pObject, bool bLimitMassAndSize )
 
 bool CHL2MP_Player::ValidatePlayerModel( const char *pModel )
 {
-	int iModels = ARRAYSIZE( g_ppszRandomCitizenModels );
-	int i;	
-
-	for ( i = 0; i < iModels; ++i )
+	if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
 	{
-		if ( !Q_stricmp( g_ppszRandomCitizenModels[i], pModel ) )
-		{
-			return true;
-		}
+		switch (covenClassID)
+			{
+		case COVEN_CLASSID_FIEND:
+			if ( !Q_stricmp( "models/breen.mdl", pModel ) )
+			{
+				return true;
+			}
+			break;
+		case COVEN_CLASSID_GORE:
+			if ( !Q_stricmp( "models/gman.mdl", pModel ) )
+			{
+				return true;
+			}
+			break;
+		case COVEN_CLASSID_BLOOD:
+			if ( !Q_stricmp( "models/Humans/Group01/male_04.mdl", pModel ) )
+			{
+				return true;
+			}
+			break;
+		case COVEN_CLASSID_DEGEN:
+			if ( !Q_stricmp( "models/brdeg.mdl", pModel ) )
+			{
+				return true;
+			}
+			break;
+		default:break;
+			}
 	}
-
-	iModels = ARRAYSIZE( g_ppszRandomCombineModels );
-
-	for ( i = 0; i < iModels; ++i )
+	
+	if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
 	{
-	   	if ( !Q_stricmp( g_ppszRandomCombineModels[i], pModel ) )
+		switch (covenClassID)
 		{
-			return true;
+		case COVEN_CLASSID_AVENGER:
+			if ( !Q_stricmp( "models/combine_soldier_prisonguard.mdl", pModel ) )
+			{
+				return true;
+			}
+			break;
+		case COVEN_CLASSID_REAVER:
+			if ( !Q_stricmp( "models/combine_soldier.mdl", pModel ) )
+			{
+				return true;
+			}
+			break;
+		case COVEN_CLASSID_DEADEYE:
+			if ( !Q_stricmp( "models/combine_super_soldier.mdl", pModel ) )
+			{
+				return true;
+			}
+			break;
+		case COVEN_CLASSID_HELLION:
+			if ( !Q_stricmp( "models/police.mdl", pModel ) )
+			{
+				return true;
+			}
+			break;
+		default:break;
 		}
+		/*
+			if ( !Q_stricmp( "models/sargexx_soldier.mdl", pModel ) )
+			{
+				return true;
+			}
+		}*/
 	}
-
 	return false;
 }
 
@@ -393,6 +599,47 @@ void CHL2MP_Player::SetPlayerTeamModel( void )
 	szModelName = engine->GetClientConVarValue( engine->IndexOfEdict( edict() ), "cl_playermodel" );
 
 	int modelIndex = modelinfo->GetModelIndex( szModelName );
+
+	if ( GetTeamNumber() == COVEN_TEAMID_SLAYERS )
+	{
+		switch (covenClassID)
+			{
+		case COVEN_CLASSID_REAVER:
+			szModelName = "models/combine_soldier.mdl";
+			break;
+		case COVEN_CLASSID_DEADEYE:
+			szModelName = "models/combine_super_soldier.mdl";
+			break;
+		case COVEN_CLASSID_AVENGER:
+			szModelName = "models/combine_soldier_prisonguard.mdl";
+			break;
+		default:
+			szModelName = "models/police.mdl";
+			break;
+			}
+
+		m_iModelType = TEAM_COMBINE;
+	}
+	else if ( GetTeamNumber() == COVEN_TEAMID_VAMPIRES )
+	{
+		switch (covenClassID)
+			{
+		case COVEN_CLASSID_FIEND:
+			szModelName = "models/breen.mdl";
+			break;
+		case COVEN_CLASSID_GORE:
+			szModelName = "models/gman.mdl";
+			break;
+		case COVEN_CLASSID_BLOOD:
+			szModelName = "models/Humans/Group01/male_04.mdl";
+			break;
+		case COVEN_CLASSID_DEGEN:
+			szModelName = "models/brdeg.mdl";
+			break;
+		default:break;
+			}
+		m_iModelType = TEAM_REBELS;
+	}
 
 	if ( modelIndex == -1 || ValidatePlayerModel( szModelName ) == false )
 	{
@@ -404,36 +651,16 @@ void CHL2MP_Player::SetPlayerTeamModel( void )
 		Q_snprintf( szReturnString, sizeof (szReturnString ), "cl_playermodel %s\n", szModelName );
 		engine->ClientCommand ( edict(), szReturnString );
 	}
-
-	if ( GetTeamNumber() == TEAM_COMBINE )
-	{
-		if ( Q_stristr( szModelName, "models/human") )
-		{
-			int nHeads = ARRAYSIZE( g_ppszRandomCombineModels );
-		
-			g_iLastCombineModel = ( g_iLastCombineModel + 1 ) % nHeads;
-			szModelName = g_ppszRandomCombineModels[g_iLastCombineModel];
-		}
-
-		m_iModelType = TEAM_COMBINE;
-	}
-	else if ( GetTeamNumber() == TEAM_REBELS )
-	{
-		if ( !Q_stristr( szModelName, "models/human") )
-		{
-			int nHeads = ARRAYSIZE( g_ppszRandomCitizenModels );
-
-			g_iLastCitizenModel = ( g_iLastCitizenModel + 1 ) % nHeads;
-			szModelName = g_ppszRandomCitizenModels[g_iLastCitizenModel];
-		}
-
-		m_iModelType = TEAM_REBELS;
-	}
 	
 	SetModel( szModelName );
 	SetupPlayerSoundsByModel( szModelName );
+	//BB: temp get rid of GMan briefcase hacky hack
+	if ( !Q_stricmp( "models/gman.mdl", szModelName ) )
+		SetBodygroup(1, 1);
+	else
+		SetBodygroup(1, 0);
 
-	m_flNextModelChangeTime = gpGlobals->curtime + MODEL_CHANGE_INTERVAL;
+	//m_flNextModelChangeTime = gpGlobals->curtime + MODEL_CHANGE_INTERVAL;
 }
 
 void CHL2MP_Player::SetPlayerModel( void )
@@ -518,6 +745,22 @@ void CHL2MP_Player::SetupPlayerSoundsByModel( const char *pModelName )
 	{
 		m_iPlayerSoundType = (int)PLAYER_SOUNDS_CITIZEN;
 	}
+	else if ( Q_stristr( pModelName, "models/breen") )
+	{
+		m_iPlayerSoundType = (int)PLAYER_SOUNDS_CITIZEN;
+	}
+	else if ( Q_stristr( pModelName, "models/gman") )
+	{
+		m_iPlayerSoundType = (int)PLAYER_SOUNDS_CITIZEN;
+	}
+	else if ( Q_stristr( pModelName, "models/brdeg") )
+	{
+		m_iPlayerSoundType = (int)PLAYER_SOUNDS_CITIZEN;
+	}
+	else if ( Q_stristr( pModelName, "models/human") )
+	{
+		m_iPlayerSoundType = (int)PLAYER_SOUNDS_CITIZEN;
+	}
 	else if ( Q_stristr(pModelName, "police" ) )
 	{
 		m_iPlayerSoundType = (int)PLAYER_SOUNDS_METROPOLICE;
@@ -546,6 +789,109 @@ void CHL2MP_Player::ResetAnimation( void )
 
 
 bool CHL2MP_Player::Weapon_Switch( CBaseCombatWeapon *pWeapon, int viewmodelindex )
+float CHL2MP_Player::Feed()
+{
+	alpha = 255.0f;
+	crouchframe = 0.0f;
+	if (healtime > 0.0f && gpGlobals->curtime < healtime + 1.0f)
+	{
+		return 0.0f;
+	}
+
+	if (feedtime < 0.0f)
+	{
+		feedtime = gpGlobals->curtime + 0.5f;
+	}
+	else if (gpGlobals->curtime > feedtime + 0.5f)
+	{
+		feedtime = -1.0f;
+	}
+	else if (gpGlobals->curtime > feedtime)
+	{
+		//UTIL_BloodDrips(GetAbsOrigin(), Vector(0,0,1), BloodColor(), 150);
+		//UTIL_BloodImpact(GetAbsOrigin()+16*forward, Vector(0,0,1), BLOOD_COLOR_RED, 300); 
+		//Vector forward;
+		//AngleVectors(EyeAngles(), &forward);
+		//VectorNormalize(forward);
+		//SpawnBlood(GetAbsOrigin()+forward*16, -forward, BLOOD_COLOR_RED, 300);
+
+		//BB: old method... re-implemented so Bloodbank doesnt get blood from feeding, but HP burn
+		//if (myclass != 3)
+		//{
+		feedtime = -1.0f;
+		int temp = m_iMaxHealth - m_iHealth;
+		if (m_HL2Local.m_slot1 == SLOT1_GORE)
+		{
+			totalcharge += 8;
+			if (totalcharge > 100)
+			{
+				totalcharge = 100;
+			}
+		}
+		//BB: new method...
+		if (m_HL2Local.m_slot1 == SLOT1_BLOOD)
+		{
+			if (temp > 6)
+				temp = 6;
+		}
+		else
+		{
+			if (temp > 3)
+				temp = 3;
+		}
+		if (temp > 0)
+		{
+			TakeHealth(temp, DMG_GENERIC );
+			//BB: new method... remove this, body only counts as 1x, while BB gets 2x
+			if (temp > 3)
+				temp = 3;
+			EmitSound("Vampire.Regen");
+			return (float)temp;
+		}
+		//BB: old method...
+		//}
+		/*else
+		{
+			feedtime = -1.0f;
+			int temp = m_iMaxHealth - m_iHealth;
+			int temp2 = 100 - bloodcounter;
+			if (temp > 6)
+				temp = 6;
+			if (temp2 > 6)
+				temp2 = 6;
+			if (temp > 0 || temp2 > 0)
+			{
+				EmitSound("Vampire.Regen");
+				if (temp > 0 && temp2 == 0)
+				{
+					TakeHealth(temp, DMG_GENERIC );
+				}
+				else if (temp == 0 && temp2 > 0)
+				{
+					bloodcounter += temp2;
+				}
+				else if (temp > 0 && temp2 > 0)
+				{
+					if (temp > 3)
+						temp = 3;
+					if (temp2 > 3)
+						temp2 = 3;
+					TakeHealth(temp, DMG_GENERIC );
+					bloodcounter += temp2;
+				}
+
+				temp = temp + temp2 - 3;
+				if (temp < 1)
+				{
+					temp = 1;
+				}
+				return (float)temp;
+			}
+		}*/
+	}
+
+	return 0.0f;
+}
 {
 	bool bRet = BaseClass::Weapon_Switch( pWeapon, viewmodelindex );
 
@@ -555,6 +901,21 @@ bool CHL2MP_Player::Weapon_Switch( CBaseCombatWeapon *pWeapon, int viewmodelinde
 	}
 
 	return bRet;
+}
+
+float CHL2MP_Player::DamageForce( const Vector &size, float damage )
+{ 
+	//BB: TODO: knockback for damage
+	float force = damage * ((32 * 32 * 72.0) / (size.x * size.y * size.z)) * 5 - 30*(covenLevelCounter-1);
+	
+	if ( force > 1000.0) 
+	{
+		force = 1000.0;
+	}
+
+	//Msg("%.02f",force);
+
+	return force;
 }
 
 void CHL2MP_Player::PreThink( void )
@@ -577,6 +938,110 @@ void CHL2MP_Player::PreThink( void )
 	//Reset bullet force accumulator, only lasts one frame
 	m_vecTotalBulletForce = vec3_origin;
 	SetLocalAngles( vOldAngles );
+
+	//BB: cap point logic
+	if (IsAlive() && gpGlobals->curtime > lastCapPointTime) //no spectators allowed
+	{
+		CHL2MPRules *pRules = HL2MPRules();
+		Vector tVec;
+		if (pRules)
+		{
+			int index = 3*lastCheckedCapPoint;
+			tVec = Vector(pRules->cap_point_coords.Get(index), pRules->cap_point_coords.Get(index+1), pRules->cap_point_coords.Get(index+2));
+		}
+
+		if ((tVec-GetLocalOrigin()).Length() < pRules->cap_point_distance[lastCheckedCapPoint])
+		{
+			int n = pRules->cap_point_status.Get(lastCheckedCapPoint);
+			lastCapPointTime = gpGlobals->curtime+0.1f;
+			pRules->cap_point_timers[lastCheckedCapPoint] = gpGlobals->curtime+0.2f;
+			if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+			{
+				if (n < 120)
+				{
+					pRules->cap_point_status.Set(lastCheckedCapPoint, n+1);
+					if ((n+1)==120 && pRules->cap_point_state[lastCheckedCapPoint] != GetTeamNumber())
+					{
+						pRules->cap_point_state[lastCheckedCapPoint] = COVEN_TEAMID_SLAYERS;
+						GetGlobalTeam( GetTeamNumber() )->AddScore(COVEN_CAP_SCORE);
+						const char *killer_weapon_name = "cap_slay";
+						IGameEvent *event = gameeventmanager->CreateEvent( "player_death" );
+						if( event )
+						{
+							event->SetInt("userid",  GetUserID());
+							event->SetInt("attacker",  GetUserID());
+							event->SetString("weapon", killer_weapon_name );
+							event->SetString("point", pRules->cap_point_names[lastCheckedCapPoint]);
+							event->SetInt( "priority", 7 );
+							gameeventmanager->FireEvent( event );
+						}
+					}
+				}
+			}
+			else
+			{
+				if (n >0)
+				{
+					pRules->cap_point_status.Set(lastCheckedCapPoint, n-1);
+					if ((n-1)==0  && pRules->cap_point_state[lastCheckedCapPoint] != GetTeamNumber())
+					{
+						pRules->cap_point_state[lastCheckedCapPoint] = COVEN_TEAMID_VAMPIRES;
+						GetGlobalTeam( GetTeamNumber() )->AddScore(COVEN_CAP_SCORE);
+						const char *killer_weapon_name = "cap_vamp";
+						IGameEvent *event = gameeventmanager->CreateEvent( "player_death" );
+						if( event )
+						{
+							event->SetInt("userid",  GetUserID());
+							event->SetInt("attacker",  GetUserID());
+							event->SetString("weapon", killer_weapon_name );
+							event->SetString("point", pRules->cap_point_names[lastCheckedCapPoint]);
+							event->SetInt( "priority", 7 );
+							gameeventmanager->FireEvent( event );
+						}
+					}
+				}
+			}
+		}
+		else
+		{
+			lastCheckedCapPoint++;
+		}
+
+		if (pRules && lastCheckedCapPoint >= pRules->num_cap_points)
+			lastCheckedCapPoint = 0;
+	}
+
+	if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+	{
+		DoVampirePreThink();
+	}
+	else if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+	{
+		DoSlayerPreThink();
+	}
+}
+
+void CHL2MP_Player::DoVampirePreThink()
+{
+	VampireCheckRegen();
+}
+
+void CHL2MP_Player::DoSlayerPreThink()
+{
+}
+
+void CHL2MP_Player::VampireCheckRegen()
+{
+	int midhealth = GetMaxHealth()*0.5f;
+	if (IsAlive() && GetHealth() < midhealth && gpGlobals->curtime > coven_timer_regen)
+	{
+		coven_timer_regen = gpGlobals->curtime + 1.5f;
+		int hp = 3;
+		TakeHealth( hp, DMG_GENERIC );
+		EmitSound("Vampire.Regen");
+		if (GetHealth() > midhealth)
+			SetHealth(midhealth);
+	}
 }
 
 void CHL2MP_Player::PostThink( void )
@@ -617,7 +1082,29 @@ void CHL2MP_Player::FireBullets ( const FireBulletsInfo_t &info )
 
 	if ( pWeapon )
 	{
-		modinfo.m_iPlayerDamage = modinfo.m_flDamage = pWeapon->GetHL2MPWpnData().m_iPlayerDamage;
+		int val = pWeapon->GetHL2MPWpnData().m_iPlayerDamage;
+		int add = 0;
+		if (Q_strcmp(pWeapon->GetHL2MPWpnData().szAmmo1,"Buckshot") == 0)
+		{
+			if (covenClassID == COVEN_CLASSID_REAVER)
+				add = floor(myAgility()/10.0f);
+			else
+				add = floor(myAgility()/12.0f);
+		}
+		else if (Q_strcmp(pWeapon->GetHL2MPWpnData().szAmmo1,"357") == 0)
+		{
+			add = floor(myAgility()/2.0f);
+		}
+		else if (Q_strcmp(pWeapon->GetHL2MPWpnData().szAmmo1,"Pistol") == 0)
+		{
+			add = floor(myAgility()/4.0f);
+		}
+		else if (Q_strcmp(pWeapon->GetHL2MPWpnData().szAmmo1,"SMG1") == 0)
+		{
+			add = floor(myAgility()/20.0f);
+		}
+		modinfo.m_iPlayerDamage = modinfo.m_flDamage = val + add;
+		//Msg("Damage: %d\n", val+add);
 	}
 
 	NoteWeaponFired();
@@ -964,6 +1451,63 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 	}
 }
 
+bool CHL2MP_Player::HandleCommand_SelectClass( int select )
+{
+	if (select < 0)
+	{
+		return false;
+	}
+	if (select == 0)
+	{
+		if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+		{
+			//int n = random->RandomInt(0,3);
+			int n = random->RandomInt(0,1);
+			if (n == 0)
+				select = COVEN_CLASSID_AVENGER;
+			else if (n == 1)
+				select = COVEN_CLASSID_REAVER;
+			/*else if (n == 2)
+				select = DEADEYE;
+			else if (n == 3)
+				select = HELLION;*/
+		}
+		else if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+		{
+			//int n = random->RandomInt(0,3);
+			int n = random->RandomInt(0,0);
+			if (n == 0)
+				select = COVEN_CLASSID_FIEND;
+			/*else if (n == 1)
+				select = GORE;
+			else if (n == 2)
+				select = BLOODBANK;
+			else if (n == 3)
+				select = DEGEN;*/
+		}
+	}
+
+	covenClassID = select;
+
+	if (!IsDead())
+	{
+		RemoveAllItems( true );
+		CommitSuicide();
+		// add 1 to frags to balance out the 1 subtracted for killing yourself
+		IncrementFragCount( 1 );
+		IncrementDeathCount(-1);
+	}
+	else
+	{
+		StopObserverMode();
+		State_Transition(STATE_ACTIVE);
+	}
+
+	Spawn();
+
+	return true;
+}
+
 bool CHL2MP_Player::HandleCommand_JoinTeam( int team )
 {
 	if ( !GetGlobalTeam( team ) || team == 0 )
@@ -995,11 +1539,11 @@ bool CHL2MP_Player::HandleCommand_JoinTeam( int team )
 
 		return true;
 	}
-	else
+	/*else
 	{
 		StopObserverMode();
 		State_Transition(STATE_ACTIVE);
-	}
+	}*/
 
 	// Switch their actual team...
 	ChangeTeam( team );
@@ -1039,6 +1583,19 @@ bool CHL2MP_Player::ClientCommand( const CCommand &args )
 		{
 			int iTeam = atoi( args[1] );
 			HandleCommand_JoinTeam( iTeam );
+		}
+		return true;
+	}
+	else if ( FStrEq( args[0], "class") )
+	{
+		if (args.ArgC() < 2)
+		{
+			Warning( "Player sent bad class syntax\n" );
+		}
+		if ( ShouldRunRateLimitedCommand( args ) )
+		{
+			int iClass = atoi( args[1] );
+			HandleCommand_SelectClass( iClass );
 		}
 		return true;
 	}
@@ -1151,7 +1708,13 @@ END_SEND_TABLE()
 
 void CHL2MP_Player::CreateRagdollEntity( void )
 {
-	if ( m_hRagdoll )
+	if ( m_hRagdoll && m_hRagdoll.Get() != myServerRagdoll)
+	{
+		UTIL_RemoveImmediate( m_hRagdoll );
+		m_hRagdoll = NULL;
+	}
+
+	/*if ( m_hRagdoll )
 	{
 		UTIL_RemoveImmediate( m_hRagdoll );
 		m_hRagdoll = NULL;
@@ -1178,7 +1741,7 @@ void CHL2MP_Player::CreateRagdollEntity( void )
 	}
 
 	// ragdolls will be removed on round restart automatically
-	m_hRagdoll = pRagdoll;
+	m_hRagdoll = pRagdoll;*/
 }
 
 //-----------------------------------------------------------------------------
@@ -1252,6 +1815,45 @@ void CHL2MP_Player::DetonateTripmines( void )
 	EmitSound( "Weapon_SLAM.SatchelDetonate" );
 }
 
+int CHL2MP_Player::XPForKill(CHL2MP_Player *pAttacker)
+{
+	//BB: Bots always return a fixed value that is small (nixed... bots are decent enough)
+	//if (IsBot())
+	//	return 5;
+
+	//BB: TODO: make this more ellaborate... based on player lvl difference
+	int retval = COVEN_XP_PER_KILL;
+
+	retval += COVEN_XP_LEVEL_DIFF_MULT*(covenLevelCounter-pAttacker->covenLevelCounter);
+	Msg("XPForKill: %d\n",retval);
+
+	retval = max(1,retval);
+
+	return retval;
+}
+
+void CHL2MP_Player::GiveTeamXPCentered(int team, int xp, CBasePlayer *ignore)
+{
+	CTeam *theteam = GetGlobalTeam( team );
+	int num = theteam->GetNumPlayers();
+	CUtlVector<CBasePlayer *> nearby;
+	for (int i = 0; i < num; i++)
+	{
+		CBasePlayer *pTemp = theteam->GetPlayer(i);
+		if (pTemp && (pTemp->GetLocalOrigin()-GetLocalOrigin()).Length() <= COVEN_XP_ASSIST_RADIUS)
+		{
+			nearby.AddToTail(pTemp);
+		}
+	}
+	int divider = nearby.Size();
+	for (int j = 0; j < divider; j++)
+	{
+		CBasePlayer *pTemp = nearby[j];
+		if (pTemp && pTemp != ignore)
+			((CHL2_Player*)pTemp)->GiveXP(xp);
+	}
+}
+
 void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 {
 	//update damage info with our accumulated physics force
@@ -1280,14 +1882,27 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 
 	if ( pAttacker )
 	{
+		CTeam *team = GetGlobalTeam( pAttacker->GetTeamNumber() );
 		int iScoreToAdd = 1;
 
 		if ( pAttacker == this )
 		{
 			iScoreToAdd = -1;
 		}
+		else
+		{
+			team->AddScore( iScoreToAdd );
+		}
 
-		GetGlobalTeam( pAttacker->GetTeamNumber() )->AddScore( iScoreToAdd );
+		if (pAttacker->IsPlayer() && pAttacker != this)
+		{
+			int xp = XPForKill((CHL2MP_Player *)pAttacker);
+			GiveTeamXPCentered(pAttacker->GetTeamNumber(), xp, (CBasePlayer *)pAttacker);
+			/*if (divider <= 0)
+				divider = 1;*/
+			//BB: attacker ALWAYS gets part of the XP
+			((CHL2_Player*)pAttacker)->GiveXP(xp);
+		}
 	}
 
 	FlashlightTurnOff();
@@ -1296,6 +1911,40 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 
 	RemoveEffects( EF_NODRAW );	// still draw player body
 	StopZooming();
+}
+
+CON_COMMAND(location, "print current location")
+{
+	CHL2MP_Player *pPlayer = ToHL2MPPlayer( UTIL_GetCommandClient() );
+	if (!pPlayer)
+		return;
+	char szReturnString[512];
+	Vector temp = pPlayer->GetAbsOrigin();
+	Q_snprintf( szReturnString, sizeof( szReturnString ), "\"%f %f %f\"\n", temp.x, temp.y, temp.z);
+	ClientPrint( pPlayer, HUD_PRINTCONSOLE, szReturnString );
+}
+
+CON_COMMAND(store_loc, "store location for distance")
+{
+	CHL2MP_Player *pPlayer = ToHL2MPPlayer( UTIL_GetCommandClient() );
+	if (!pPlayer)
+		return;
+	char szReturnString[512];
+	Vector temp = pPlayer->GetLocalOrigin();
+	pPlayer->store_loc = temp;
+	Q_snprintf( szReturnString, sizeof( szReturnString ), "Location Stored: \"%f %f %f\"\n", temp.x, temp.y, temp.z);
+	ClientPrint( pPlayer, HUD_PRINTCONSOLE, szReturnString );
+}
+
+CON_COMMAND(distance, "distance from store_loc")
+{
+	CHL2MP_Player *pPlayer = ToHL2MPPlayer( UTIL_GetCommandClient() );
+	if (!pPlayer)
+		return;
+	char szReturnString[512];
+	Vector temp = pPlayer->GetLocalOrigin();
+	Q_snprintf( szReturnString, sizeof( szReturnString ), "Distance from: \"%f %f %f\" %f\n", temp.x, temp.y, temp.z, (temp-pPlayer->store_loc).Length());
+	ClientPrint( pPlayer, HUD_PRINTCONSOLE, szReturnString );
 }
 
 int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
@@ -1307,6 +1956,18 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 	m_vecTotalBulletForce += inputInfo.GetDamageForce();
 	
 	gamestats->Event_PlayerDamage( this, inputInfo );
+
+	if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+	{
+		if (inputInfo.GetDamageType() & DMG_DIRECT)
+		{
+			coven_timer_regen = gpGlobals->curtime + 0.5f;
+		}
+		else
+		{
+			coven_timer_regen = gpGlobals->curtime + 2.0f;
+		}
+	}
 
 	return BaseClass::OnTakeDamage( inputInfo );
 }
@@ -1321,6 +1982,18 @@ void CHL2MP_Player::DeathSound( const CTakeDamageInfo &info )
 	Q_snprintf( szStepSound, sizeof( szStepSound ), "%s.Die", GetPlayerModelSoundPrefix() );
 
 	const char *pModelName = STRING( GetModelName() );
+
+	//BB: BS fix... MUST do this or gman is a chick
+	if ( Q_stristr( pModelName, "models/gman") )
+	{
+		pModelName = "models/humans/group03/male_08.mdl";
+	}
+
+	//BB: manufactured breen/degen also sounds like chick
+	if ( Q_stristr( pModelName, "models/brdeg") )
+	{
+		pModelName = "models/humans/group03/male_08.mdl";
+	}
 
 	CSoundParameters params;
 	if ( GetParametersForSound( szStepSound, params, pModelName ) == false )

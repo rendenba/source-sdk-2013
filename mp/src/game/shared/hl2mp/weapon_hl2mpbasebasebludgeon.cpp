@@ -154,6 +154,28 @@ void CBaseHL2MPBludgeonWeapon::Hit( trace_t &traceHit, Activity nHitActivity )
 			info.AdjustPlayerDamageInflictedForSkillLevel();
 		}
 
+		//BB: don't damage imortals
+		if (pPlayer && pHitEntity->IsPlayer())
+		{
+			if (((CHL2MP_Player *)pHitEntity)->KO)
+			{
+				info.SetDamage(0.0f);
+			}
+		}
+
+		//BB: check for server doll, this means it is a STAKE hit, apply the damage to the player.
+		if (pPlayer && pHitEntity->IsServerdoll())
+		{
+			//we have hit a ragdoll... see if it has an alive player
+			if (((CRagdollProp *)pHitEntity)->myBody != NULL && ((CRagdollProp *)pHitEntity)->team == COVEN_TEAMID_VAMPIRES)
+			{
+				//kill the player
+				CTakeDamageInfo newinfo = info;
+				newinfo.SetDamage(999.0f);
+				((CRagdollProp *)pHitEntity)->myBody->OnTakeDamage( newinfo );
+			}
+		}
+
 		CalculateMeleeDamageForce( &info, hitDirection, traceHit.endpos );
 
 		pHitEntity->DispatchTraceAttack( info, hitDirection, &traceHit ); 

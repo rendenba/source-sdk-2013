@@ -2420,19 +2420,72 @@ int CBaseCombatCharacter::OnTakeDamage( const CTakeDamageInfo &info )
 	switch( m_lifeState )
 	{
 	case LIFE_ALIVE:
-		retVal = OnTakeDamage_Alive( info );
+		//BB: if vampire is KO'ed we only want to take damage if it is a slayer stake
+		if (KO)
+		{
+			if ((info.GetAttacker()->GetTeamNumber() == COVEN_TEAMID_SLAYERS) && info.GetDamageType() == DMG_CLUB)
+			{
+				CTakeDamageInfo newinfo = info;
+				newinfo.SetDamage(999.0f);
+				retVal = OnTakeDamage_Alive( newinfo );
+			}
+		}
+		else
+		{
+			retVal = OnTakeDamage_Alive( info );
+		}
 		if ( m_iHealth <= 0 )
 		{
-			myServerRagdoll = CreateServerRagdoll( this, m_nForceBone, info, COLLISION_GROUP_WEAPON );
-			if (myServerRagdoll)
+			//BB: DO NOT KILL VAMPIRES
+			if (!KO && GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
 			{
-				((CHL2MP_Player *)this)->m_hRagdoll = myServerRagdoll;
-				((CRagdollProp *)myServerRagdoll)->flClearTime = gpGlobals->curtime + 60.0f;
-				HL2MPRules()->AddDoll(myServerRagdoll);
-				//Msg("Created Ragdoll %d\n", HL2MPRules()->doll_collector.Size());
+				//BB: make them rez a little weaker?
+				m_iHealth = GetMaxHealth()*0.25f;
+				mykiller = info.GetAttacker();
+				KO = true;
+				timeofdeath = gpGlobals->curtime;
+				AddFlag(FL_FROZEN);
+				//BB: WTF WHY DOESNT THIS WORK?!?!
+				color32 red = {75, 0, 0, 200};
+				UTIL_ScreenFade( this, red, 3.0, 60.0, FFADE_OUT | FFADE_STAYOUT );
+
+				CBasePlayer *pPlayer = (CBasePlayer *)(this);
+				pPlayer->DeathSound( info );
+				//BB: make this greater than player collision group, but override the collide function so players dont bump server dolls
+				myServerRagdoll = CreateServerRagdoll( this, m_nForceBone, info, COLLISION_GROUP_WEAPON );
+				if (myServerRagdoll)
+				{
+					((CRagdollProp *)myServerRagdoll)->myBody = this;
+					((CRagdollProp *)myServerRagdoll)->block = true;
+					((CRagdollProp *)myServerRagdoll)->team = COVEN_TEAMID_VAMPIRES;
+					((CHL2MP_Player *)this)->m_hRagdoll = myServerRagdoll;
+				}
+				AddEffects(EF_NODRAW);
+				AddSolidFlags(FSOLID_NOT_SOLID);
+				if (GetActiveWeapon() != NULL)
+				{
+					GetActiveWeapon()->AddEffects(EF_NODRAW);
+					GetActiveWeapon()->AddSolidFlags(FSOLID_NOT_SOLID);
+				}
+				if (pPlayer->GetViewModel() != NULL)
+				{
+					pPlayer->GetViewModel()->AddEffects(EF_NODRAW);
+				}
+				return retVal;
 			}
-			//else
-				//Msg("Failed to Create Ragdoll\n");
+			else if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+			{
+				myServerRagdoll = CreateServerRagdoll( this, m_nForceBone, info, COLLISION_GROUP_WEAPON );
+				if (myServerRagdoll)
+				{
+					((CHL2MP_Player *)this)->m_hRagdoll = myServerRagdoll;
+					((CRagdollProp *)myServerRagdoll)->flClearTime = gpGlobals->curtime + 60.0f;
+					((CRagdollProp *)myServerRagdoll)->block = false;
+					((CRagdollProp *)myServerRagdoll)->team = COVEN_TEAMID_SLAYERS;
+					HL2MPRules()->AddDoll(myServerRagdoll);
+				}
+			}
+
 
 			IPhysicsObject *pPhysics = VPhysicsGetObject();
 			if ( pPhysics )
@@ -2506,6 +2559,10 @@ int CBaseCombatCharacter::OnTakeDamage_Alive( const CTakeDamageInfo &info )
 
 		if ( flIntegerDamage <= 0 )
 			return 0;
+
+		//BB: fix the DMG_NO situation
+		if (info.GetDamageType() & DMG_NO)
+			return BaseClass::OnTakeDamage(info);
 
 		m_iHealth -= flIntegerDamage;
 	}

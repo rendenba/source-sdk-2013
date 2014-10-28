@@ -1216,7 +1216,9 @@ int CBasePlayer::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 	if ( info.GetInflictor() && info.GetInflictor()->edict() )
 		m_DmgOrigin = info.GetInflictor()->GetAbsOrigin();
 
-	m_DmgTake += (int)info.GetDamage();
+	//BB: NO DAMAGE FOR DMG_NO!!!
+	if (!(info.GetDamageType() & DMG_NO))
+		m_DmgTake += (int)info.GetDamage();
 	
 	// Reset damage time countdown for each type of time based damage player just sustained
 	for (int i = 0; i < CDMG_TIMEBASED; i++)
@@ -1742,7 +1744,15 @@ void CBasePlayer::Event_Dying( const CTakeDamageInfo& info )
 {
 	// NOT GIBBED, RUN THIS CODE
 
-	DeathSound( info );
+	//BB: don't play the death sound here... makes KO vampires sound like dying again
+	if (!KO)
+	{
+		DeathSound( info );
+	}
+	else
+	{
+		//BB: TODO: stake a vampire custom sound
+	}
 
 	// The dead body rolls out of the vehicle.
 	if ( IsInAVehicle() )
@@ -2154,6 +2164,7 @@ void CBasePlayer::PlayerDeathThink(void)
 // if the player has been dead for one second longer than allowed by forcerespawn, 
 // forcerespawn isn't on. Send the player off to an intermission camera until they 
 // choose to respawn.
+	//BB: TODO: custom enter observermode conditions
 	if ( g_pGameRules->IsMultiplayer() && ( gpGlobals->curtime > (m_flDeathTime + DEATH_ANIMATION_TIME) ) && !IsObserver() )
 	{
 		// go to dead camera. 

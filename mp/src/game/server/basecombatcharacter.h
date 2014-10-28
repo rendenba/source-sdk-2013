@@ -480,6 +480,11 @@ protected:
 
 public:
 	static int					GetInteractionID();	// Returns the next interaction #
+	
+	//BB: coven vampire variables
+	bool KO;
+	CBaseEntity *mykiller;
+	float timeofdeath;
 
 	CBaseEntity *myServerRagdoll;
 

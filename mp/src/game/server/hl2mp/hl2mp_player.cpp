@@ -9,7 +9,9 @@
 #include "hl2mp_player.h"
 #include "globalstate.h"
 #include "game.h"
+#include "explode.h"
 #include "gamerules.h"
+#include "EntityFlame.h"
 #include "hl2mp_player_shared.h"
 #include "predicted_viewmodel.h"
 #include "viewport_panel_names.h"
@@ -31,6 +33,10 @@
 
 int g_iLastCitizenModel = 0;
 int g_iLastCombineModel = 0;
+
+extern short	g_sModelIndexFireball;		// (in combatweapon.cpp) holds the index for the fireball 
+extern short	g_sModelIndexWExplosion;	// (in combatweapon.cpp) holds the index for the underwater explosion
+extern short	g_sModelIndexSmoke;			// (in combatweapon.cpp) holds the index for the smoke cloud
 
 CBaseEntity	 *g_pLastCombineSpawn = NULL;
 CBaseEntity	 *g_pLastRebelSpawn = NULL;
@@ -142,8 +148,6 @@ CHL2MP_Player::CHL2MP_Player() : m_PlayerAnimState( this )
 	m_angEyeAngles.Init();
 
 	m_iLevel = 1;
-
-	coven_timer_regen = 0;
 
 	m_iLastWeaponFireUsercmd = 0;
 
@@ -440,8 +444,16 @@ void CHL2MP_Player::PickDefaultSpawnTeam( void )
 //-----------------------------------------------------------------------------
 void CHL2MP_Player::Spawn(void)
 {
+	if (KO && myServerRagdoll)
+		UTIL_Remove(myServerRagdoll);
 	m_hRagdoll = NULL;
 	myServerRagdoll = NULL;
+
+	KO = false;
+	timeofdeath = -1.0f;
+	mykiller = NULL;
+	rezsound = false;
+	solidcooldown = -1.0f;
 	/*if (myServerRagdoll)
 	{
 		UTIL_RemoveImmediate(myServerRagdoll);
@@ -449,6 +461,17 @@ void CHL2MP_Player::Spawn(void)
 	}*/
 
 	SetPlayerTeamModel();
+	//BB: need to move this to prevent unfreezing accidentally
+	if ( HL2MPRules()->IsIntermission() )
+	{
+		AddFlag( FL_FROZEN );
+	}
+	else
+	{
+		RemoveFlag( FL_FROZEN );
+	}
+	color32 nothing = {0,0,0,255};
+	UTIL_ScreenFade( this, nothing, 0, 0, FFADE_IN | FFADE_PURGE );
 
 	m_flNextModelChangeTime = 0.0f;
 	m_flNextTeamChangeTime = 0.0f;
@@ -479,6 +502,12 @@ void CHL2MP_Player::Spawn(void)
 		RemoveEffects( EF_NODRAW );
 		
 		GiveDefaultItems();
+		//BB: do not draw crowbar
+		if (GetActiveWeapon() && GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+		{
+			GetActiveWeapon()->AddEffects(EF_NODRAW);
+			GetActiveWeapon()->AddSolidFlags(FSOLID_NOT_SOLID);
+		}
 	}
 
 	SetNumAnimOverlays( 3 );
@@ -512,6 +541,10 @@ void CHL2MP_Player::Spawn(void)
 	ResetVitals();
 	lastCheckedCapPoint = 0;
 	lastCapPointTime = 0.0f;
+	coven_timer_feed = -1.0f;
+	coven_timer_damage = -1.0f;
+	coven_timer_leapdetectcooldown = -1.0f;
+	coven_timer_regen = 0.0f;
 }
 
 void CHL2MP_Player::PickupObject( CBaseEntity *pObject, bool bLimitMassAndSize )
@@ -738,6 +771,69 @@ void CHL2MP_Player::SetPlayerModel( void )
 
 	m_flNextModelChangeTime = gpGlobals->curtime + MODEL_CHANGE_INTERVAL;
 }
+float CHL2MP_Player::Feed()
+{
+	//alpha = 255.0f;
+	//crouchframe = 0.0f;
+	if (coven_timer_damage > 0.0f)
+		return 0.0f;
+
+	if (coven_timer_feed < 0.0f)
+	{
+		coven_timer_feed = gpGlobals->curtime + 0.5f;
+	}
+	else if (gpGlobals->curtime > coven_timer_feed + 0.5f)
+	{
+		coven_timer_feed = -1.0f;
+	}
+	else if (gpGlobals->curtime > coven_timer_feed)
+	{
+		coven_timer_feed = -1.0f;
+		int temp = m_iMaxHealth - m_iHealth;
+		//BB: new method...
+		if (covenClassID == COVEN_CLASSID_BLOOD)
+		{
+			if (temp > 6)
+				temp = 6;
+		}
+		else
+		{
+			if (temp > 3)
+				temp = 3;
+		}
+		if (temp > 0)
+		{
+			TakeHealth(temp, DMG_GENERIC );
+			//BB: new method... remove this, body only counts as 1x, while BB gets 2x
+			if (temp > 3)
+				temp = 3;
+			EmitSound("Vampire.Regen");
+			return (float)temp;
+		}
+	}
+
+	return 0.0f;
+}
+
+void CHL2MP_Player::VampireReSolidify()
+{
+	if (solidcooldown > 0.0f)
+	{
+		Ray_t ray;
+		trace_t pm;
+		ray.Init( GetAbsOrigin(), GetAbsOrigin(), GetPlayerMins(), GetPlayerMaxs() );
+		UTIL_TraceRay( ray, MASK_PLAYERSOLID, this, COLLISION_GROUP_PLAYER, &pm );
+		if ( (pm.contents & MASK_PLAYERSOLID) && pm.m_pEnt && pm.m_pEnt->IsPlayer())
+		{
+			solidcooldown = gpGlobals->curtime;
+		}
+	}
+	if (solidcooldown > 0.0f && solidcooldown + 0.1f < gpGlobals->curtime)
+	{
+		SetCollisionGroup(COLLISION_GROUP_PLAYER);
+		solidcooldown = -1.0f;
+	}
+}
 
 void CHL2MP_Player::SetupPlayerSoundsByModel( const char *pModelName )
 {
@@ -847,7 +943,7 @@ void CHL2MP_Player::PreThink( void )
 			tVec = Vector(pRules->cap_point_coords.Get(index), pRules->cap_point_coords.Get(index+1), pRules->cap_point_coords.Get(index+2));
 		}
 
-		if ((tVec-GetLocalOrigin()).Length() < pRules->cap_point_distance[lastCheckedCapPoint])
+		if (IsAlive() && ((tVec-GetLocalOrigin()).Length() < pRules->cap_point_distance[lastCheckedCapPoint]))
 		{
 			int n = pRules->cap_point_status.Get(lastCheckedCapPoint);
 			lastCapPointTime = gpGlobals->curtime+0.1f;
@@ -920,15 +1016,283 @@ void CHL2MP_Player::PreThink( void )
 
 void CHL2MP_Player::DoVampirePreThink()
 {
+	VampireReSolidify();
 	VampireCheckRegen();
+	VampireManageRagdoll();
+	
 }
 
 void CHL2MP_Player::DoSlayerPreThink()
 {
 }
 
+void CHL2MP_Player::DoVampirePostThink()
+{
+	VampireCheckResurrect();
+}
+
+void CHL2MP_Player::DoSlayerPostThink()
+{
+	SlayerVampLeapDetect();
+}
+
+void CHL2MP_Player::SlayerVampLeapDetect()
+{
+	if (IsAlive())
+	{
+		Vector forward, temp;
+		temp = GetAbsOrigin();
+		temp.z += 52;
+		AngleVectors(GetAbsAngles(), &forward);
+		VectorNormalize(forward);
+		trace_t tr;
+		bool itsago = false;
+		CBaseEntity *pEntity = NULL;
+		UTIL_TraceLine( temp + forward*10, temp + forward * 1500, MASK_SOLID, this, COLLISION_GROUP_NONE, &tr );
+		if ( !tr.startsolid && tr.DidHitNonWorldEntity() )
+		{
+			pEntity = tr.m_pEnt;
+
+			if ( pEntity && (pEntity != this) && pEntity->IsPlayer())
+			{
+				itsago = true;
+			}
+		}
+		if (itsago && pEntity)
+		{
+			if (pEntity->GetTeamNumber() == TEAM_REBELS && VectorLength(pEntity->GetAbsVelocity()) > 400 && coven_timer_leapdetectcooldown < 0.0f)
+			{
+				EmitSound("Leap.Detect");
+				coven_timer_leapdetectcooldown = gpGlobals->curtime;
+			}
+		}
+		else
+		{
+			if (gpGlobals->curtime > coven_timer_leapdetectcooldown + 3.0f)
+			{
+				coven_timer_leapdetectcooldown = -1.0f;
+			}
+		}
+	}
+}
+
+void CHL2MP_Player::Taunt()
+{
+	int roll = random->RandomInt(0,15);
+	//BB: a 4/16 chance to play the taunt... this isn't 1/4 because I don't trust random number generators
+	//screw that lets make it (less than) 50%
+	if (roll > 5)
+		return;
+	EmitSound("Stake.Taunt");
+}
+
+void CHL2MP_Player::VampireManageRagdoll()
+{
+	if (myServerRagdoll != NULL && ((CRagdollProp *)myServerRagdoll)->flClearTime > 0.0f)
+	{
+		if (gpGlobals->curtime > ((CRagdollProp *)myServerRagdoll)->flClearTime)
+		{
+			UTIL_Remove(myServerRagdoll);
+			if (myServerRagdoll == m_hRagdoll)
+			{
+				m_hRagdoll = NULL;
+			}
+			myServerRagdoll = NULL;
+		}
+		else
+		{
+			if (myServerRagdoll->GetRenderMode() != kRenderTransTexture)
+				myServerRagdoll->SetRenderMode( kRenderTransTexture );
+			if (((CRagdollProp *)myServerRagdoll)->flClearTime - gpGlobals->curtime < 4.5f)
+			{
+				myServerRagdoll->SetRenderColorA(255.0f*(((CRagdollProp *)myServerRagdoll)->flClearTime - gpGlobals->curtime)/4.5f);
+			}
+		}
+	}
+}
+
+void CHL2MP_Player::VampireCheckResurrect()
+{
+	float x = 4.268f;
+	float y = 5.0f;
+		//BB: vampire ressurect... start the sound early...
+	if (timeofdeath > 0 && /*gpGlobals->curtime < timeofdeath + 4.9f &&*/ gpGlobals->curtime > timeofdeath + x && !rezsound)
+	{
+		EmitSound( "Resurrect" );
+		rezsound = true;
+	}
+	else
+	//BB: release the vampire player if enough time has passed (and not freezetime)
+	if (timeofdeath > 0 && gpGlobals->curtime > timeofdeath + y)
+	{
+		if (myServerRagdoll != NULL && ((CRagdollProp *)myServerRagdoll)->flClearTime < 0.0f)
+		{
+			//BB: move the player to the corpse???
+			if (IsAlive())
+			{
+					SetAbsAngles(myServerRagdoll->GetAbsAngles());
+					SetAbsOrigin(myServerRagdoll->GetAbsOrigin());
+					SetAbsVelocity(myServerRagdoll->GetAbsVelocity());
+			}
+			//BB: crude check: check for wall clips
+			Ray_t ray;
+			trace_t pm;
+			ray.Init( GetAbsOrigin(), GetAbsOrigin(), GetPlayerMins(), GetPlayerMaxs() );
+			UTIL_TraceRay( ray, MASK_PLAYERSOLID, this, COLLISION_GROUP_DEBRIS, &pm );
+			if ( pm.m_pEnt && pm.m_pEnt->GetMoveType() == MOVETYPE_NONE && pm.m_pEnt->m_takedamage == DAMAGE_NO)
+			{
+				//help we are in something!!! try going +x
+				int x = 16;
+				int y = 0;
+				ray.Init( GetAbsOrigin()+Vector(x,y,0), GetAbsOrigin()+Vector(x,y,0), GetPlayerMins(), GetPlayerMaxs() );
+				UTIL_TraceRay( ray, MASK_PLAYERSOLID, this, COLLISION_GROUP_DEBRIS, &pm );
+				if ( pm.m_pEnt && pm.m_pEnt->GetMoveType() == MOVETYPE_NONE && pm.m_pEnt->m_takedamage == DAMAGE_NO)
+				{
+					//fail move up y
+					y = 16;
+					ray.Init( GetAbsOrigin()+Vector(x,y,0), GetAbsOrigin()+Vector(x,y,0), GetPlayerMins(), GetPlayerMaxs() );
+					UTIL_TraceRay( ray, MASK_PLAYERSOLID, this, COLLISION_GROUP_DEBRIS, &pm );
+					if ( pm.m_pEnt && pm.m_pEnt->GetMoveType() == MOVETYPE_NONE && pm.m_pEnt->m_takedamage == DAMAGE_NO)
+					{
+						//fail move down x
+						x = -16;
+						ray.Init( GetAbsOrigin()+Vector(x,y,0), GetAbsOrigin()+Vector(x,y,0), GetPlayerMins(), GetPlayerMaxs() );
+						UTIL_TraceRay( ray, MASK_PLAYERSOLID, this, COLLISION_GROUP_DEBRIS, &pm );
+						if ( pm.m_pEnt && pm.m_pEnt->GetMoveType() == MOVETYPE_NONE && pm.m_pEnt->m_takedamage == DAMAGE_NO)
+						{
+							//fail move down y
+							y = -16;
+							ray.Init( GetAbsOrigin()+Vector(x,y,0), GetAbsOrigin()+Vector(x,y,0), GetPlayerMins(), GetPlayerMaxs() );
+							UTIL_TraceRay( ray, MASK_PLAYERSOLID, this, COLLISION_GROUP_DEBRIS, &pm );
+							if ( pm.m_pEnt && pm.m_pEnt->GetMoveType() == MOVETYPE_NONE && pm.m_pEnt->m_takedamage == DAMAGE_NO)
+							{
+								//fail I GIVE UP!
+								//reset x and y to default
+								x = y = 0;
+							}
+						}
+					}
+				}
+				//move me to the result of the above toil
+				SetAbsOrigin(GetAbsOrigin() + Vector(x,y,0));
+			}
+
+			if (myServerRagdoll == m_hRagdoll)
+			{
+				m_hRagdoll = NULL;
+			}
+			UTIL_Remove(myServerRagdoll);
+			myServerRagdoll = NULL;
+
+
+			//BB: reset the faded screen...
+			color32 nothing = {75,0,0,200};
+			UTIL_ScreenFade( this, nothing, 1, 0, FFADE_IN | FFADE_PURGE );
+			RemoveAllDecals();
+			float m_DmgRadius = 300.0f;
+			trace_t		pTrace;
+			Vector		vecSpot;// trace starts here!
+
+			vecSpot = GetAbsOrigin() + Vector ( 0 , 0 , 8 );
+			UTIL_TraceLine ( vecSpot, vecSpot + Vector ( 0, 0, -32 ), MASK_SHOT_HULL, this, COLLISION_GROUP_NONE, & pTrace);
+
+			#if !defined( CLIENT_DLL )
+				Vector vecAbsOrigin = GetAbsOrigin();
+				int contents = UTIL_PointContents ( vecAbsOrigin );
+
+				#if !defined( TF_DLL )
+					// Since this code only runs on the server, make sure it shows the tempents it creates.
+					// This solves a problem with remote detonating the pipebombs (client wasn't seeing the explosion effect)
+					CDisablePredictionFiltering disabler;
+				#endif
+
+				if ( pTrace.fraction != 1.0 )
+				{
+					Vector vecNormal = pTrace.plane.normal;
+					surfacedata_t *pdata = physprops->GetSurfaceData( pTrace.surface.surfaceProps );	
+					CPASFilter filter( vecAbsOrigin );
+
+					te->Explosion( filter, -1.0, // don't apply cl_interp delay
+						&vecAbsOrigin,
+						!( contents & MASK_WATER ) ? g_sModelIndexFireball : g_sModelIndexWExplosion,
+						m_DmgRadius,// * .03, 
+						12,
+						TE_EXPLFLAG_NONE | TE_EXPLFLAG_NOSOUND,
+						m_DmgRadius,
+						0.0,
+						&vecNormal,
+						(char) pdata->game.material );
+				}
+				else
+				{
+					CPASFilter filter( vecAbsOrigin );
+					te->Explosion( filter, -1.0, // don't apply cl_interp delay
+						&vecAbsOrigin, 
+						!( contents & MASK_WATER ) ? g_sModelIndexFireball : g_sModelIndexWExplosion,
+						m_DmgRadius,// * .03, 
+						12,
+						TE_EXPLFLAG_NONE | TE_EXPLFLAG_NOSOUND,
+						m_DmgRadius,
+						0.0 );
+				}
+
+				// Use the thrower's position as the reported position
+				Vector vecReported = GetAbsOrigin();
+		
+				CTakeDamageInfo info( this, this, vec3_origin, GetAbsOrigin(), 40.0, DMG_NO | DMG_BLAST, 0, &vecReported );
+
+				RadiusDamage( info, GetAbsOrigin(), m_DmgRadius, CLASS_NONE, NULL );
+
+				UTIL_DecalTrace( &pTrace, "Scorch" );
+			#endif
+				//BB: only unfreeze if it is not intermission
+				if (!HL2MPRules()->IsIntermission())
+				{
+					RemoveFlag(FL_FROZEN);
+				}
+			RemoveEffects(EF_NODRAW);
+
+			RemoveSolidFlags( FSOLID_NOT_SOLID );
+			SetCollisionGroup(COLLISION_GROUP_DEBRIS);
+			solidcooldown = gpGlobals->curtime;
+
+			//solidcooldown = gpGlobals->curtime;
+			if (GetActiveWeapon() != NULL)
+			{
+				//GetActiveWeapon()->RemoveEffects(EF_NODRAW);
+				//GetActiveWeapon()->RemoveSolidFlags( FSOLID_NOT_SOLID );
+			}
+			if (GetViewModel() != NULL)
+			{
+				GetViewModel()->RemoveEffects(EF_NODRAW);
+				if (GetActiveWeapon())
+				{
+					GetActiveWeapon()->SetViewModel();
+				}
+			}
+			if (!rezsound)
+			{
+				EmitSound( "Resurrect.Finish" );
+			}
+		}
+		
+		KO = false;
+		pl.deadflag = false;
+		timeofdeath = -1.0f;
+		rezsound = false;
+	}
+}
+
 void CHL2MP_Player::VampireCheckRegen()
 {
+	if (coven_timer_damage > 0.0f || KO)
+	{
+		if (gpGlobals->curtime > coven_timer_damage)
+		{
+			coven_timer_damage = -1.0f;
+		}
+		return;
+	}
 	int midhealth = GetMaxHealth()*0.5f;
 	if (IsAlive() && GetHealth() < midhealth && gpGlobals->curtime > coven_timer_regen)
 	{
@@ -944,6 +1308,15 @@ void CHL2MP_Player::VampireCheckRegen()
 void CHL2MP_Player::PostThink( void )
 {
 	BaseClass::PostThink();
+
+	if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+	{
+		DoVampirePostThink();
+	}
+	else if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+	{
+		DoSlayerPostThink();
+	}
 	
 	if ( GetFlags() & FL_DUCKING )
 	{
@@ -962,6 +1335,7 @@ void CHL2MP_Player::PostThink( void )
 
 void CHL2MP_Player::PlayerDeathThink()
 {
+	//BB: TODO: FIX THIS!
 	if( !IsObserver() )
 	{
 		BaseClass::PlayerDeathThink();
@@ -1611,34 +1985,26 @@ void CHL2MP_Player::CreateRagdollEntity( void )
 		m_hRagdoll = NULL;
 	}
 
-	/*if ( m_hRagdoll )
+	if (myServerRagdoll != NULL && GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
 	{
-		UTIL_RemoveImmediate( m_hRagdoll );
-		m_hRagdoll = NULL;
-	}
+		if (GetTeamNumber() == TEAM_REBELS && rezsound)
+		{
+			StopSound("Resurrect");
+		}
+		rezsound = true;
+		CEntityFlame *pFlame = CEntityFlame::Create( myServerRagdoll );
+		if (pFlame)
+		{
+			pFlame->SetLifetime( 4.5f );
+			myServerRagdoll->AddFlag( FL_ONFIRE );
 
-	// If we already have a ragdoll, don't make another one.
-	CHL2MPRagdoll *pRagdoll = dynamic_cast< CHL2MPRagdoll* >( m_hRagdoll.Get() );
-	
-	if ( !pRagdoll )
-	{
-		// create a new one
-		pRagdoll = dynamic_cast< CHL2MPRagdoll* >( CreateEntityByName( "hl2mp_ragdoll" ) );
+			myServerRagdoll->SetEffectEntity( pFlame );
+			
+			pFlame->SetSize( 5.0f );
+		}
+		((CRagdollProp *)myServerRagdoll)->flClearTime = gpGlobals->curtime + 4.5f;
+		RemoveFlag( FL_FROZEN );
 	}
-
-	if ( pRagdoll )
-	{
-		pRagdoll->m_hPlayer = this;
-		pRagdoll->m_vecRagdollOrigin = GetAbsOrigin();
-		pRagdoll->m_vecRagdollVelocity = GetAbsVelocity();
-		pRagdoll->m_nModelIndex = m_nModelIndex;
-		pRagdoll->m_nForceBone = m_nForceBone;
-		pRagdoll->m_vecForce = m_vecTotalBulletForce;
-		pRagdoll->SetAbsOrigin( GetAbsOrigin() );
-	}
-
-	// ragdolls will be removed on round restart automatically
-	m_hRagdoll = pRagdoll;*/
 }
 
 //-----------------------------------------------------------------------------
@@ -1791,6 +2157,12 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 			team->AddScore( iScoreToAdd );
 		}
 
+		//BB: this generates the taunt for slayers staking vampires...
+		if (pAttacker->GetTeamNumber() == COVEN_TEAMID_SLAYERS && pAttacker != this)
+		{
+			ToHL2MPPlayer(pAttacker)->Taunt();
+		}
+
 		if (pAttacker->IsPlayer() && pAttacker != this)
 		{
 			int xp = XPForKill((CHL2MP_Player *)pAttacker);
@@ -1803,6 +2175,10 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 	}
 
 	FlashlightTurnOff();
+
+	//BB: fade to black
+	color32 black = {0, 0, 0, 255};
+	UTIL_ScreenFade( this, black, 2, 60, FFADE_OUT | FFADE_STAYOUT);
 
 	m_lifeState = LIFE_DEAD;
 
@@ -1858,11 +2234,11 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 	{
 		if (inputInfo.GetDamageType() & DMG_DIRECT)
 		{
-			coven_timer_regen = gpGlobals->curtime + 0.5f;
+			coven_timer_damage = gpGlobals->curtime + 0.5f;
 		}
 		else
 		{
-			coven_timer_regen = gpGlobals->curtime + 2.0f;
+			coven_timer_damage = gpGlobals->curtime + 2.0f;
 		}
 	}
 
@@ -2153,9 +2529,12 @@ CHL2MPPlayerStateInfo *CHL2MP_Player::State_LookupInfo( HL2MPPlayerState state )
 
 bool CHL2MP_Player::StartObserverMode(int mode)
 {
+	//BB: TODO: FIX THIS!
 	//we only want to go into observer mode if the player asked to, not on a death timeout
 	if ( m_bEnterObserver == true )
 	{
+		color32 nothing = {0,0,0,255};
+		UTIL_ScreenFade( this, nothing, 0, 0, FFADE_IN | FFADE_PURGE );
 		VPhysicsDestroyObject();
 		return BaseClass::StartObserverMode( mode );
 	}

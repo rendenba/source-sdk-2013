@@ -1327,7 +1327,7 @@ void CHL2_Player::EnableSprint( bool bEnable )
 void CHL2_Player::ComputeSpeed( void )
 {
 	int speed = HL2_WALK_SPEED;
-	if (GetTeamNumber() == TEAM_COMBINE)
+	if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
 	{
 		speed = HL2_NORMAL_SPEED;
 		switch (covenClassID)
@@ -1344,9 +1344,19 @@ void CHL2_Player::ComputeSpeed( void )
 		default:break;
 		}
 	}
-	else if (GetTeamNumber() == TEAM_REBELS)
+	else if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
 	{
 		speed = HL2_FAST_SPEED;
+		switch (covenClassID)
+		{
+		case COVEN_CLASSID_FIEND:
+			speed = COVEN_BASESPEED_FIEND;
+			break;
+		case COVEN_CLASSID_GORE:
+			speed = COVEN_BASESPEED_GORE;
+			break;
+		default:break;
+		}
 	}
 
 	SetMaxSpeed( speed );

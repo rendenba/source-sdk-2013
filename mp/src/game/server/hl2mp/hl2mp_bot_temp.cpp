@@ -156,6 +156,9 @@ void GetLost( CHL2MP_Player *pBot )
 	botdata_t *botdata = &g_BotData[ ENTINDEX( pBot->edict() ) - 1 ];
 	botdata->m_targetNode = 0;
 	botdata->bLost = true;
+	CBaseCombatWeapon *pWeapon = pBot->Weapon_OwnsThisType( "weapon_stake" );
+	if (pWeapon)
+		pBot->SwitchToNextBestWeapon(pWeapon);
 }
 
 //-----------------------------------------------------------------------------
@@ -206,8 +209,19 @@ void PlayerCheck( CHL2MP_Player *pBot )
 	{
 		Vector vecEnd;
 		Vector vecSrc;
-		vecSrc = pBot->GetLocalOrigin() + Vector( 0, 0, 36 );
-		vecEnd = pPlayer->GetLocalOrigin() + Vector( 0, 0, 36 );
+		bool isVampDoll = pPlayer->KO && pPlayer->myServerRagdoll != NULL;
+
+		if (isVampDoll)
+			vecSrc = pBot->GetAbsOrigin() + Vector( 0, 0, 36 );
+		else
+			vecSrc = pBot->GetLocalOrigin() + Vector( 0, 0, 36 );
+
+		if (isVampDoll)
+		{
+			vecEnd = pPlayer->myServerRagdoll->GetAbsOrigin();
+		}
+		else
+			vecEnd = pPlayer->GetLocalOrigin() + Vector( 0, 0, 36 );
 
 		Vector playerVec = vecEnd-vecSrc;
 
@@ -218,14 +232,23 @@ void PlayerCheck( CHL2MP_Player *pBot )
 			AngleVectors(angle, &forward);
 			VectorNormalize(playerVec);
 			float botDot = DotProduct(playerVec,forward);
-			if (botDot > 0.3f)
+			float test = 0.3f;
+			if (isVampDoll)
+				test = 0.0f;
+			if (botDot > test)
 			{
 				trace_t trace;
 
-				UTIL_TraceLine(vecSrc, vecEnd, MASK_SHOT, pBot, COLLISION_GROUP_PLAYER, &trace );
+				if (isVampDoll)
+					UTIL_TraceLine(vecSrc, vecEnd, MASK_SHOT, pBot, COLLISION_GROUP_WEAPON, &trace );
+				else
+					UTIL_TraceLine(vecSrc, vecEnd, MASK_SHOT, pBot, COLLISION_GROUP_PLAYER, &trace );
+
 				CBaseEntity	*pHitEnt = trace.m_pEnt;
-				if (pHitEnt == pPlayer)
+				if (pHitEnt == pPlayer || (isVampDoll && pHitEnt == pPlayer->myServerRagdoll))
 				{
+					//if (pHitEnt && isVampDoll)
+					//	Msg("%f %f %f\n", pHitEnt->GetAbsOrigin().x, pHitEnt->GetAbsOrigin().y, pHitEnt->GetAbsOrigin().z);
 					botdata->bCombat = true;
 					botdata->guardTimer = 0.0f;
 					return;
@@ -514,13 +537,47 @@ void Bot_Think( CHL2MP_Player *pBot )
 					CHL2MP_Player *pPlayer = ToHL2MPPlayer( UTIL_PlayerByIndex( botdata->m_lastPlayerCheck ) );
 					if (pPlayer)
 					{
-						forward = (pPlayer->GetLocalOrigin() + Vector(random->RandomInt(-20,20), random->RandomInt(-20,20), random->RandomInt(-15,15))) - pBot->GetLocalOrigin();
+						bool isVampDoll = pPlayer->KO && pPlayer->myServerRagdoll != NULL;
+						if (isVampDoll)
+						{
+							forward = (pPlayer->myServerRagdoll->GetAbsOrigin()) - (pBot->GetAbsOrigin()+Vector(0,0,72));
+						}
+						else
+						{
+							int accuracy = 19;
+							if (pPlayer->IsBot())
+								accuracy = 25;
+							forward = (pPlayer->GetLocalOrigin() + Vector(random->RandomInt(-accuracy,accuracy), random->RandomInt(-accuracy,accuracy), random->RandomInt(-accuracy,accuracy))) - pBot->GetLocalOrigin();
+						}
 						VectorAngles(forward, angle);
 						botdata->forwardAngle = angle;
 						botdata->lastAngles = angle;
 						buttons |= IN_ATTACK;
-						if (pBot->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+						if (pBot->GetTeamNumber() == COVEN_TEAMID_SLAYERS && !isVampDoll)
+						{
 							botdata->backwards = true;
+						}
+						else if (pBot->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+						{
+							forwardmove = 600;
+							buttons |= IN_DUCK;
+							CBaseCombatWeapon *pWeapon = pBot->Weapon_OwnsThisType( "weapon_stake" );
+							if ( pWeapon )
+							{
+								// Switch to it if we don't have it out
+								CBaseCombatWeapon *pActiveWeapon = pBot->GetActiveWeapon();
+
+								// Switch?
+								if ( pActiveWeapon != pWeapon )
+								{
+									pBot->Weapon_Switch( pWeapon );
+								}
+							}
+						}
+						else if (pBot->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+						{
+							forwardmove = 600;
+						}
 					}
 				}
 				else if (botdata->m_targetNode >= 0)
@@ -555,7 +612,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 			{
 				botdata->nextstrafetime = gpGlobals->curtime + 1.0f;
 
-				if ( random->RandomInt( 0, 5 ) == 0 )
+				if ( random->RandomInt( 0, 5 ) == 0)
 				{
 					botdata->sidemove = -600.0f + 1200.0f * random->RandomFloat( 0, 2 );
 				}
