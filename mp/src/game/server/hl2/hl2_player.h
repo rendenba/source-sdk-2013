@@ -164,10 +164,14 @@ public:
 	float xp_part;
 	virtual bool LevelUp(int lvls);
 	void GiveStrength(int s);
+	void SetStrength(int s);
 	int myStrength();
-	void GiveAgility(int a);
-	int myAgility();
+	void GiveConstitution(int c);
+	void SetConstitution(int c);
+	int myConstitution();
 	void GiveIntellect(int i);
+	void SetIntellect(int i);
+	int myIntellect();
 
 	// Locator
 	void UpdateLocatorPosition( const Vector &vecPosition );

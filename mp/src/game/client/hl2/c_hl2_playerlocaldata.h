@@ -43,7 +43,7 @@ public:
 	bool	m_bAutoAimTarget;
 	int		covenXPCounter;
 	int		covenStrengthCounter;
-	int		covenAgilityCounter;
+	int		covenConstitutionCounter;
 	int		covenIntellectCounter;
 #ifdef HL2_EPISODIC
 	float	m_flFlashBattery;

@@ -182,24 +182,24 @@ void CHL2MP_Player::UpdateOnRemove( void )
 
 bool CHL2MP_Player::LevelUp( int lvls )
 {
-	if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+	/*if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
 	{
 		switch (covenClassID)
 		{
 		case COVEN_CLASSID_REAVER:
-			GiveStrength(6);
-			GiveAgility(2);
-			GiveIntellect(1);
+			//GiveStrength(6);
+			//GiveAgility(2);
+			//GiveIntellect(1);
 			break;
 		case COVEN_CLASSID_AVENGER:
-			GiveStrength(4);
-			GiveAgility(4);
-			GiveIntellect(2);
+			//GiveStrength(4);
+			//GiveAgility(4);
+			//GiveIntellect(2);
 			break;
 		case COVEN_CLASSID_HELLION:
-			GiveStrength(3);
-			GiveAgility(6);
-			GiveIntellect(2);
+			//GiveStrength(3);
+			//GiveAgility(6);
+			//GiveIntellect(2);
 			break;
 		default:break;
 		}
@@ -209,40 +209,61 @@ bool CHL2MP_Player::LevelUp( int lvls )
 		switch (covenClassID)
 		{
 		case COVEN_CLASSID_FIEND:
-			GiveStrength(3);
-			GiveAgility(5);
-			GiveIntellect(2);
+			//GiveStrength(3);
+			//GiveAgility(5);
+			//GiveIntellect(2);
 			break;
 		case COVEN_CLASSID_GORE:
-			GiveStrength(6);
-			GiveAgility(1);
-			GiveIntellect(1);
+			//GiveStrength(6);
+			//GiveAgility(1);
+			//GiveIntellect(1);
 			break;
 		default:break;
 		}
-	}
+	}*/
 	ResetVitals();
 	return BaseClass::LevelUp(lvls);
 }
 
 void CHL2MP_Player::ResetVitals( void )
 {
-	int baseHP = 100;
-	if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+	/*int baseHP = 100;*/
+	if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
 	{
 		switch(covenClassID)
 		{
-		case COVEN_CLASSID_FIEND:
-			baseHP = 60;
+		case COVEN_CLASSID_AVENGER:
+			SetConstitution(25);
+			SetStrength(15);
 			break;
-		case COVEN_CLASSID_GORE:
-			baseHP = 110;
+		case COVEN_CLASSID_HELLION:
+			SetConstitution(25);
+			SetStrength(10);
+			break;
+		case COVEN_CLASSID_REAVER:
+			SetConstitution(30);
+			SetStrength(20);
 			break;
 		default:break;
 		}
 	}
-	SetMaxHealth(baseHP + myStrength()*COVEN_HP_PER_STRENGTH);
-	SetHealth(baseHP+ myStrength()*COVEN_HP_PER_STRENGTH);
+	else if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+	{
+		switch(covenClassID)
+		{
+		case COVEN_CLASSID_FIEND:
+			SetConstitution(18);
+			SetStrength(15);
+			break;
+		case COVEN_CLASSID_GORE:
+			SetConstitution(28);
+			SetStrength(25);
+			break;
+		default:break;
+		}
+	}
+	SetMaxHealth(myConstitution()*COVEN_HP_PER_CON);
+	SetHealth(myConstitution()*COVEN_HP_PER_CON);
 }
 
 void CHL2MP_Player::Precache( void )
@@ -899,7 +920,7 @@ bool CHL2MP_Player::Weapon_Switch( CBaseCombatWeapon *pWeapon, int viewmodelinde
 float CHL2MP_Player::DamageForce( const Vector &size, float damage )
 { 
 	//BB: TODO: knockback for damage
-	float force = damage * ((32 * 32 * 72.0) / (size.x * size.y * size.z)) * 5 - 30*(covenLevelCounter-1);
+	float force = damage * ((32 * 32 * 72.0) / (size.x * size.y * size.z)) * 10;
 	
 	if ( force > 1000.0) 
 	{
@@ -1358,21 +1379,21 @@ void CHL2MP_Player::FireBullets ( const FireBulletsInfo_t &info )
 		if (Q_strcmp(pWeapon->GetHL2MPWpnData().szAmmo1,"Buckshot") == 0)
 		{
 			if (covenClassID == COVEN_CLASSID_REAVER)
-				add = floor(myAgility()/10.0f);
+				add = myStrength() - 20;
 			else
-				add = floor(myAgility()/12.0f);
+				add = myStrength() - 15;
 		}
 		else if (Q_strcmp(pWeapon->GetHL2MPWpnData().szAmmo1,"357") == 0)
 		{
-			add = floor(myAgility()/2.0f);
+			add = myStrength() - 10;
 		}
 		else if (Q_strcmp(pWeapon->GetHL2MPWpnData().szAmmo1,"Pistol") == 0)
 		{
-			add = floor(myAgility()/4.0f);
+			add = myStrength() - 10;
 		}
 		else if (Q_strcmp(pWeapon->GetHL2MPWpnData().szAmmo1,"SMG1") == 0)
 		{
-			add = floor(myAgility()/20.0f);
+			add = myStrength() - 10;
 		}
 		modinfo.m_iPlayerDamage = modinfo.m_flDamage = val + add;
 		//Msg("Damage: %d\n", val+add);
@@ -2163,14 +2184,23 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 			ToHL2MPPlayer(pAttacker)->Taunt();
 		}
 
-		if (pAttacker->IsPlayer() && pAttacker != this)
+		if (pAttacker->IsPlayer())
 		{
+			int t = pAttacker->GetTeamNumber();
+			if (pAttacker == this)
+			{
+				if (t == COVEN_TEAMID_SLAYERS)
+					t = COVEN_TEAMID_VAMPIRES;
+				else
+					t = COVEN_TEAMID_SLAYERS;
+			}
 			int xp = XPForKill((CHL2MP_Player *)pAttacker);
-			GiveTeamXPCentered(pAttacker->GetTeamNumber(), xp, (CBasePlayer *)pAttacker);
+			GiveTeamXPCentered(t, xp, (CBasePlayer *)pAttacker);
 			/*if (divider <= 0)
 				divider = 1;*/
 			//BB: attacker ALWAYS gets part of the XP
-			((CHL2_Player*)pAttacker)->GiveXP(xp);
+			if (pAttacker != this)
+				((CHL2_Player*)pAttacker)->GiveXP(xp);
 		}
 	}
 
@@ -2227,8 +2257,19 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 		return 0;
 
 	m_vecTotalBulletForce += inputInfo.GetDamageForce();
+
+	CTakeDamageInfo inputInfoAdjust = inputInfo;
+
+	//BB: level diff damage adjust
+	if (inputInfo.GetAttacker() && inputInfo.GetAttacker()->IsPlayer())
+	{
+		int diff = ((CHL2MP_Player *)inputInfo.GetAttacker())->covenLevelCounter - covenLevelCounter;
+		diff = min(diff,6);
+		diff = max(diff,-6);
+		inputInfoAdjust.SetDamage(inputInfoAdjust.GetDamage()*(1.0f+diff*COVEN_DAMAGE_PER_LEVEL_ADJUST));
+	}
 	
-	gamestats->Event_PlayerDamage( this, inputInfo );
+	gamestats->Event_PlayerDamage( this, inputInfoAdjust );
 
 	if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
 	{
@@ -2242,7 +2283,7 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 		}
 	}
 
-	return BaseClass::OnTakeDamage( inputInfo );
+	return BaseClass::OnTakeDamage( inputInfoAdjust );
 }
 
 void CHL2MP_Player::DeathSound( const CTakeDamageInfo &info )

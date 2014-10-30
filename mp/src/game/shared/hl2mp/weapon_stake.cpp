@@ -86,7 +86,7 @@ float CWeaponStake::GetDamageForActivity( Activity hitActivity )
 
 	CHL2MP_Player *pHLPlayer = (CHL2MP_Player *)pPlayer;
 
-	float baseDMG = 10.0f + pHLPlayer->myAgility() + pHLPlayer->myStrength();
+	float baseDMG = 10.0f + pHLPlayer->myStrength();
 
 	return baseDMG + random->RandomInt(0,10);
 }

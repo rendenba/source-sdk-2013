@@ -1316,6 +1316,9 @@ CAmmoDef *GetAmmoDef()
 	//BB: xp scaling for testing or just tom foolery... set to 1 for normal
 	ConVar coven_xp_scale( "coven_xp_scale", "3", FCVAR_NOTIFY | FCVAR_CHEAT );
 
+	//BB: >0 = ignore respawn timers for testing or just tom foolery... set to 0 for normal
+	ConVar coven_ignore_respawns( "coven_ignore_respawns", "1", FCVAR_NOTIFY | FCVAR_CHEAT );
+
 	bool CHL2MPRules::FShouldSwitchWeapon( CBasePlayer *pPlayer, CBaseCombatWeapon *pWeapon )
 	{		
 		if ( pPlayer->GetActiveWeapon() && pPlayer->IsNetClient() )
@@ -1634,9 +1637,17 @@ const char *CHL2MPRules::GetChatFormat( bool bTeamOnly, CBasePlayer *pPlayer )
 			{
 				pszFormat = "HL2MP_Chat_Team_Loc";
 			}
+			//BB: far be it to me to understand why this isn't implemented...
 			else
 			{
-				pszFormat = "HL2MP_Chat_Team";
+				if (pPlayer->IsAlive())
+				{
+					pszFormat = "HL2MP_Chat_Team";
+				}
+				else
+				{
+					pszFormat = "HL2MP_Chat_Team_Dead";
+				}
 			}
 		}
 	}
@@ -1645,7 +1656,15 @@ const char *CHL2MPRules::GetChatFormat( bool bTeamOnly, CBasePlayer *pPlayer )
 	{
 		if ( pPlayer->GetTeamNumber() != TEAM_SPECTATOR )
 		{
-			pszFormat = "HL2MP_Chat_All";	
+			//BB: again, why not implement this correctly?
+			if (pPlayer->IsAlive())
+			{
+				pszFormat = "HL2MP_Chat_All";
+			}
+			else
+			{
+				pszFormat = "HL2MP_Chat_AllDead";
+			}
 		}
 		else
 		{

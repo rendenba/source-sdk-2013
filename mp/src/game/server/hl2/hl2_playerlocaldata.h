@@ -42,7 +42,7 @@ public:
 	CNetworkVar( bool,	m_bAutoAimTarget );
 	CNetworkVar( int, covenXPCounter );
 	CNetworkVar( int, covenStrengthCounter );
-	CNetworkVar( int, covenAgilityCounter );
+	CNetworkVar( int, covenConstitutionCounter );
 	CNetworkVar( int, covenIntellectCounter );
 #ifdef HL2_EPISODIC
 	CNetworkVar( float, m_flFlashBattery );

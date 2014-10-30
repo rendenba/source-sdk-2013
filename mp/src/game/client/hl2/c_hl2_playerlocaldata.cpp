@@ -27,7 +27,7 @@ BEGIN_RECV_TABLE_NOBASE( C_HL2PlayerLocalData, DT_HL2Local )
 	RecvPropBool( RECVINFO(m_bAutoAimTarget) ),
 	RecvPropInt( RECVINFO(covenXPCounter) ),
 	RecvPropInt( RECVINFO(covenStrengthCounter) ),
-	RecvPropInt( RECVINFO(covenAgilityCounter) ),
+	RecvPropInt( RECVINFO(covenConstitutionCounter) ),
 	RecvPropInt( RECVINFO(covenIntellectCounter) ),
 #ifdef HL2_EPISODIC
 	RecvPropFloat( RECVINFO(m_flFlashBattery) ),
@@ -43,7 +43,7 @@ C_HL2PlayerLocalData::C_HL2PlayerLocalData()
 {
 	covenXPCounter = 0;
 	covenStrengthCounter = 0;
-	covenAgilityCounter = 0;
+	covenConstitutionCounter = 0;
 	covenIntellectCounter = 0;
 	m_flSuitPower = 0.0;
 	m_bZooming = false;

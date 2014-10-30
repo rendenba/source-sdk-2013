@@ -362,7 +362,7 @@ void CHudDamageIndicator::MsgFunc_Damage( bf_read &msg )
 	int highDamage = DAMAGE_LOW;
 
 	//BB: HOLY RED BATMAN
-	if ( damageTaken-13*((CHL2MP_Player *)pPlayer)->covenLevelCounter > 26 )
+	if ( damageTaken > 35 )
 	{
 		highDamage = DAMAGE_HIGH;
 	}

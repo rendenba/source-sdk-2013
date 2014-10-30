@@ -30,7 +30,8 @@ public:
 	void				Weapon_DropPrimary( void );
 		
 	int myStrength() { return m_HL2Local.covenStrengthCounter; }
-	int myAgility() { return m_HL2Local.covenAgilityCounter; }
+	int myConstitution() { return m_HL2Local.covenConstitutionCounter; }
+	int myIntellect() { return m_HL2Local.covenIntellectCounter; }
 
 	float				GetFOV();
 	void				Zoom( float FOVOffset, float time );

@@ -448,6 +448,7 @@ void CHL2MPClientScoreBoardDialog::AddHeader()
 	m_pPlayerList->AddSection(0, "");
 	m_pPlayerList->SetSectionAlwaysVisible(0);
 	HFont hFallbackFont = scheme()->GetIScheme( GetScheme() )->GetFont( "DefaultVerySmallFallBack", false );
+	m_pPlayerList->AddColumnToSection(0, "status", "", 0, scheme()->GetProportionalScaledValueEx( GetScheme(), CSTRIKE_STATUS_WIDTH ) );
 	m_pPlayerList->AddColumnToSection(0, "name", "", 0, scheme()->GetProportionalScaledValueEx( GetScheme(), CSTRIKE_NAME_WIDTH ), hFallbackFont );
 	m_pPlayerList->AddColumnToSection(0, "level", "Level", 0, scheme()->GetProportionalScaledValueEx( GetScheme(), CSTRIKE_LEVELS_WIDTH ) );
 	m_pPlayerList->AddColumnToSection(0, "class", "Class", 0, scheme()->GetProportionalScaledValueEx( GetScheme(), CSTRIKE_CLASS_WIDTH ) );
@@ -471,6 +472,7 @@ void CHL2MPClientScoreBoardDialog::AddSection(int teamType, int teamNumber)
  		m_pPlayerList->AddSection(sectionID, "", StaticPlayerSortFunc);
 
 		// setup the columns
+		m_pPlayerList->AddColumnToSection(sectionID, "status", "", 0, scheme()->GetProportionalScaledValueEx( GetScheme(), CSTRIKE_STATUS_WIDTH ) );
 		m_pPlayerList->AddColumnToSection(sectionID, "name", "", 0, scheme()->GetProportionalScaledValueEx( GetScheme(), CSTRIKE_NAME_WIDTH ), hFallbackFont );
 		m_pPlayerList->AddColumnToSection(sectionID, "level", "", 0, scheme()->GetProportionalScaledValueEx( GetScheme(), CSTRIKE_LEVELS_WIDTH ) );
 		m_pPlayerList->AddColumnToSection(sectionID, "class", "" , 0, scheme()->GetProportionalScaledValueEx( GetScheme(), CSTRIKE_CLASS_WIDTH ) );
@@ -491,7 +493,7 @@ void CHL2MPClientScoreBoardDialog::AddSection(int teamType, int teamNumber)
 	{
 		m_pPlayerList->AddSection(sectionID, "");
 		m_pPlayerList->AddColumnToSection(sectionID, "name", "#Spectators", 0, scheme()->GetProportionalScaledValueEx( GetScheme(), CSTRIKE_NAME_WIDTH ), hFallbackFont );
-		m_pPlayerList->AddColumnToSection(sectionID, "class", "" , 0, scheme()->GetProportionalScaledValueEx( GetScheme(), 100 ) );
+		//m_pPlayerList->AddColumnToSection(sectionID, "class", "" , 0, scheme()->GetProportionalScaledValueEx( GetScheme(), 100 ) );
 	}
 }
 
@@ -521,6 +523,7 @@ bool CHL2MPClientScoreBoardDialog::GetPlayerScoreInfo(int playerIndex, KeyValues
 	kv->SetString("name", g_PR->GetPlayerName(playerIndex) );
 	kv->SetInt("deaths", g_PR->GetDeaths( playerIndex ));
 	kv->SetInt("frags", g_PR->GetPlayerScore( playerIndex ));
+	//
 	int iclass = g_PR->GetPlayerClass( playerIndex );
 	switch (iclass)
 	{
@@ -554,6 +557,11 @@ bool CHL2MPClientScoreBoardDialog::GetPlayerScoreInfo(int playerIndex, KeyValues
 		kv->SetString("class", "");
 
 	kv->SetInt("level", g_PR->GetLevel( playerIndex ));
+
+	if (!g_PR->IsAlive(playerIndex) && g_PR->GetTeam( playerIndex ) != TEAM_SPECTATOR)
+		kv->SetString("status", "*DEAD*");
+	else
+		kv->SetString("status", "");
 	
 	if (g_PR->GetPing( playerIndex ) < 1)
 	{
@@ -663,7 +671,19 @@ void CHL2MPClientScoreBoardDialog::UpdatePlayerInfo()
 			}
 
 			// set the row color based on the players team
-			m_pPlayerList->SetItemFgColor( itemID, g_PR->GetTeamColor( g_PR->GetTeam( i ) ) );
+			//BB: fixed for dead status
+			//m_pPlayerList->SetItemFgColor( itemID, g_PR->GetTeamColor( g_PR->GetTeam( i ) ) );
+			Color clr = g_PR->GetTeamColor( g_PR->GetTeam( i ) );
+			if (!g_PR->IsAlive(i) && g_PR->GetTeam( i ) != TEAM_SPECTATOR )
+			{
+				int r,g,b,a;
+				clr.GetColor(r,g,b,a);
+				r /= 2;
+				g /= 2;
+				b /= 2;
+				clr = Color(r,g,b,a);
+			}
+			m_pPlayerList->SetItemFgColor( itemID, clr );
 
 			playerData->deleteThis();
 		}

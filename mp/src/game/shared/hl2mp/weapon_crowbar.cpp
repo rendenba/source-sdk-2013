@@ -92,9 +92,9 @@ float CWeaponCrowbar::GetDamageForActivity( Activity hitActivity )
 
 	CHL2MP_Player *pHLPlayer = (CHL2MP_Player *)pPlayer;
 
-	float baseDMG = 20.0f + COVEN_MELEE_AGIL_MULT*pHLPlayer->myAgility() + COVEN_MELEE_STR_MULT*pHLPlayer->myStrength();
+	float baseDMG = 5.0f + pHLPlayer->myStrength();
 
-	return baseDMG + random->RandomInt(0,10);
+	return baseDMG + random->RandomInt(0,20);
 }
 
 //-----------------------------------------------------------------------------

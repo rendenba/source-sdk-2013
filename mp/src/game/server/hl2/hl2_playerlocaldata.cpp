@@ -30,7 +30,7 @@ BEGIN_SEND_TABLE_NOBASE( CHL2PlayerLocalData, DT_HL2Local )
 	SendPropBool( SENDINFO(m_bAutoAimTarget) ),
 	SendPropInt( SENDINFO(covenXPCounter) ),
 	SendPropInt( SENDINFO(covenStrengthCounter) ),
-	SendPropInt( SENDINFO(covenAgilityCounter) ),
+	SendPropInt( SENDINFO(covenConstitutionCounter) ),
 	SendPropInt( SENDINFO(covenIntellectCounter) ),
 #ifdef HL2_EPISODIC
 	SendPropFloat( SENDINFO(m_flFlashBattery) ),
@@ -50,7 +50,7 @@ BEGIN_SIMPLE_DATADESC( CHL2PlayerLocalData )
 	DEFINE_FIELD( m_bStickyAutoAim, FIELD_BOOLEAN ),
 	DEFINE_FIELD( covenXPCounter, FIELD_INTEGER ),
 	DEFINE_FIELD( covenStrengthCounter, FIELD_INTEGER ),
-	DEFINE_FIELD( covenAgilityCounter, FIELD_INTEGER ),
+	DEFINE_FIELD( covenConstitutionCounter, FIELD_INTEGER ),
 	DEFINE_FIELD( covenIntellectCounter, FIELD_INTEGER ),
 #ifdef HL2_EPISODIC
 	DEFINE_FIELD( m_flFlashBattery, FIELD_FLOAT ),
@@ -65,7 +65,7 @@ CHL2PlayerLocalData::CHL2PlayerLocalData()
 {
 	covenXPCounter = 0;
 	covenStrengthCounter = 0;
-	covenAgilityCounter = 0;
+	covenConstitutionCounter = 0;
 	covenIntellectCounter = 0;
 	m_flSuitPower = 0.0;
 	m_bZooming = false;

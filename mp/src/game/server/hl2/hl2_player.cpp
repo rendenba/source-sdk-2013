@@ -471,6 +471,11 @@ bool CHL2_Player::LevelUp(int lvls)
 	return true;
 }
 
+void CHL2_Player::SetStrength(int s)
+{
+	m_HL2Local.covenStrengthCounter = s;
+}
+
 void CHL2_Player::GiveStrength(int s)
 {
 	m_HL2Local.covenStrengthCounter += s;
@@ -481,19 +486,34 @@ int CHL2_Player::myStrength()
 	return m_HL2Local.covenStrengthCounter;
 }
 
-void CHL2_Player::GiveAgility(int a)
+void CHL2_Player::SetConstitution(int c)
 {
-	m_HL2Local.covenAgilityCounter += a;
+	m_HL2Local.covenConstitutionCounter = c;
 }
 
-int CHL2_Player::myAgility()
+void CHL2_Player::GiveConstitution(int c)
 {
-	return m_HL2Local.covenAgilityCounter;
+	m_HL2Local.covenConstitutionCounter += c;
+}
+
+int CHL2_Player::myConstitution()
+{
+	return m_HL2Local.covenConstitutionCounter;
 }
 
 void CHL2_Player::GiveIntellect(int i)
 {
 	m_HL2Local.covenIntellectCounter += i;
+}
+
+void CHL2_Player::SetIntellect(int i)
+{
+	m_HL2Local.covenIntellectCounter = i;
+}
+
+int CHL2_Player::myIntellect()
+{
+	return m_HL2Local.covenIntellectCounter;
 }
 
 //-----------------------------------------------------------------------------
