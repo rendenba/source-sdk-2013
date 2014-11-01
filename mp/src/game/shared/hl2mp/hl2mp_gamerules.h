@@ -106,6 +106,9 @@ public:
 	CHL2MPRules();
 	virtual ~CHL2MPRules();
 
+	int TotalTeamXP(int team);
+	void GiveItemXP(int team);
+	void AddScore(int team, int score);
 	bool LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBaseFileSystem *pFileSystem, const char *pPathID );
 	bool LoadFromBuffer( char const *resourceName, const char *pBuffer, IBaseFileSystem* pFileSystem, const char *pPathID = NULL );
 	bool LoadCowFile( IBaseFileSystem *filesystem, const char *resourceName, const char *pathID );
@@ -139,6 +142,15 @@ public:
 	void CleanUpMap();
 	void CheckRestartGame();
 	void RestartGame();
+	void RestartRound();
+	void FreezeAll(bool unfreeze = false);
+	float GetSlayerRespawnTime();
+	int AverageLevel(int team);
+
+	float covenSlayerRespawnTime;
+	int covenGameState;
+	float covenGameStateTimer;
+	float covenFlashTimer;
 	
 #ifndef CLIENT_DLL
 	virtual Vector VecItemRespawnSpot( CItem *pItem );

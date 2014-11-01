@@ -393,9 +393,11 @@ END_DATADESC()
 
 CHL2_Player::CHL2_Player()
 {
+	totalXP = 0;
 	xp_part = 0.0f;
 	covenClassID = 0;
 	covenLevelCounter = 0;
+	covenStatusEffects = 0;
 
 	m_nNumMissPositions	= 0;
 	m_pPlayerAISquad = 0;
@@ -403,6 +405,11 @@ CHL2_Player::CHL2_Player()
 
 	m_flArmorReductionTime = 0.0f;
 	m_iArmorReductionFrom = 0;
+}
+
+int CHL2_Player::GetTotalXP()
+{
+	return totalXP;
 }
 
 //
@@ -429,6 +436,7 @@ IMPLEMENT_SERVERCLASS_ST(CHL2_Player, DT_HL2_Player)
 	SendPropBool( SENDINFO(m_fIsSprinting) ),
 	SendPropInt( SENDINFO(covenClassID) ),
 	SendPropInt( SENDINFO(covenLevelCounter) ),
+	SendPropInt( SENDINFO(covenStatusEffects) ),
 END_SEND_TABLE()
 
 
@@ -457,12 +465,18 @@ bool CHL2_Player::GiveXP(float XP)
 		xp_part -= iXP;
 	}
 	m_HL2Local.covenXPCounter += coven_xp_scale.GetInt()*iXP;
+	totalXP += coven_xp_scale.GetInt()*iXP;
 	if (m_HL2Local.covenXPCounter >= (COVEN_MAX_XP_PER_LEVEL+COVEN_XP_INCREASE_PER_LEVEL*covenLevelCounter))
 	{
 		m_HL2Local.covenXPCounter -= (COVEN_MAX_XP_PER_LEVEL+COVEN_XP_INCREASE_PER_LEVEL*covenLevelCounter);
 		return LevelUp(1);
 	}
 	return true;
+}
+
+int CHL2_Player::GetXP()
+{
+	return m_HL2Local.covenXPCounter;
 }
 
 bool CHL2_Player::LevelUp(int lvls)

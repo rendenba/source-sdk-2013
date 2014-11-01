@@ -48,6 +48,8 @@ ConVar sv_report_client_settings("sv_report_client_settings", "0", FCVAR_GAMEDLL
 
 //BB: Coven ConVars
 ConVar sv_coven_minplayers("sv_coven_minplayers", "3", FCVAR_GAMEDLL | FCVAR_NOTIFY );
+ConVar sv_coven_freezetime("sv_coven_freezetime", "5", FCVAR_GAMEDLL | FCVAR_NOTIFY );
+ConVar sv_coven_usexpitems("sv_coven_usexpitems", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_coven_warmuptime("sv_coven_warmuptime", "10", FCVAR_GAMEDLL | FCVAR_NOTIFY );//30
 
 extern ConVar mp_chattime;
@@ -143,9 +145,12 @@ static const char *s_PreserveEnts[] =
 	"predicted_viewmodel",
 	"worldspawn",
 	"point_devshot_camera",
+	"item_xp_slayers",
+	"item_xp_vampires",
+	"item_ammo_crate",
 	"", // END Marker
 };
-
+//BB: TODO: item_ammo_crate might need to come off this list once they are actually baked into maps...
 
 
 #ifdef CLIENT_DLL
@@ -227,7 +232,51 @@ CHL2MPRules::CHL2MPRules()
 	last_verified_cap_point = 0;
 	scoreTimer = 0.0f;
 
+	covenGameState = -1;
+	covenGameStateTimer = 0.0f;
+	covenFlashTimer = 0.0f;
+
+	covenSlayerRespawnTime = 0.0f;
+
 #endif
+}
+
+int CHL2MPRules::AverageLevel(int team)
+{
+	int ret = 0;
+#ifndef CLIENT_DLL
+	int n = 0;
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	{
+		CHL2MP_Player *pPlayer = (CHL2MP_Player *)UTIL_PlayerByIndex( i );
+		if (pPlayer && pPlayer->GetTeamNumber() == team)
+		{
+			ret += pPlayer->covenLevelCounter;
+			n++;
+		}
+	}
+	if (n > 0)
+		ret /= n;
+#endif
+	return ret;
+}
+
+float CHL2MPRules::GetSlayerRespawnTime()
+{
+	float ret = 0.0f;
+#ifndef CLIENT_DLL
+	if (gpGlobals->curtime > covenSlayerRespawnTime)
+		covenSlayerRespawnTime = 0.0f;
+
+	if (covenSlayerRespawnTime > 0.0f)
+		return covenSlayerRespawnTime;
+	else
+	{
+		ret = gpGlobals->curtime + COVEN_RESPAWNTIME_BASE + COVEN_RESPAWNTIME_SLAYERS_MULT*AverageLevel(COVEN_TEAMID_SLAYERS);
+		covenSlayerRespawnTime = ret;
+	}
+#endif
+	return ret;
 }
 
 const CViewVectors* CHL2MPRules::GetViewVectors()const
@@ -335,10 +384,13 @@ bool CHL2MPRules::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBa
 			const char *t = temparray;
 			float locs[3];
 			UTIL_StringToVector(locs, t);
-			CBaseEntity *ent = CreateEntityByName( "item_xp_vampires" );
-			ent->SetLocalOrigin(Vector(locs[0], locs[1], locs[2]+10.0f));
-			ent->SetLocalAngles(QAngle(random->RandomInt(0,180), random->RandomInt(0,180), random->RandomInt(0,180)));
-			ent->Spawn();
+			if (sv_coven_usexpitems.GetInt() > 0)
+			{
+				CBaseEntity *ent = CreateEntityByName( "item_xp_vampires" );
+				ent->SetLocalOrigin(Vector(locs[0], locs[1], locs[2]+10.0f));
+				ent->SetLocalAngles(QAngle(random->RandomInt(0,180), random->RandomInt(0,180), random->RandomInt(0,180)));
+				ent->Spawn();
+			}
 		}
 		else if (Q_strcmp(s,"slay_xp") == 0)
 		{
@@ -346,14 +398,75 @@ bool CHL2MPRules::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBa
 			const char *t = temparray;
 			float locs[3];
 			UTIL_StringToVector(locs, t);
-			CBaseEntity *ent = CreateEntityByName( "item_xp_slayers" );
-			ent->SetLocalOrigin(Vector(locs[0], locs[1], locs[2]+10.0f));
-			ent->SetLocalAngles(QAngle(random->RandomInt(0,180), random->RandomInt(0,90), random->RandomInt(0,180)));
-			ent->Spawn();
+			if (sv_coven_usexpitems.GetInt() > 0)
+			{
+				CBaseEntity *ent = CreateEntityByName( "item_xp_slayers" );
+				ent->SetLocalOrigin(Vector(locs[0], locs[1], locs[2]+10.0f));
+				ent->SetLocalAngles(QAngle(random->RandomInt(0,180), random->RandomInt(0,90), random->RandomInt(0,180)));
+				ent->Spawn();
+			}
 		}
 	}
 #endif
 	return true;
+}
+
+void CHL2MPRules::AddScore(int team, int score)
+{
+#ifndef CLIENT_DLL
+	CTeam *pt = GetGlobalTeam( team );
+	pt->AddScore(score);
+#endif
+}
+
+void CHL2MPRules::GiveItemXP(int team)
+{
+#ifndef CLIENT_DLL
+	float txp = 0.0f;
+	float n = 0.0f;
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	{
+		CHL2MP_Player *pPlayer = (CHL2MP_Player *)UTIL_PlayerByIndex( i );
+		if (pPlayer && pPlayer->GetTeamNumber() == team)
+		{
+			txp += pPlayer->GetTotalXP();
+			n += 1.0f;
+		}
+	}
+	
+	if (n > 0.0f)
+	{
+		float mini = n*120.0f;
+		txp = max(txp, mini);
+		int avgxp = txp/n;
+		for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+		{
+			CHL2MP_Player *pPlayer = (CHL2MP_Player *)UTIL_PlayerByIndex( i );
+			if (pPlayer && pPlayer->GetTeamNumber() == team)
+			{
+				float xp = max(((1.0f/n)-(pPlayer->GetTotalXP()-avgxp)/txp)*(avgxp/10.0f),1.0f);
+				//Msg("Player: %d, %fxp\n",pPlayer->GetTotalXP(), xp);
+				pPlayer->GiveXP(xp);
+			}
+		}
+	}
+#endif
+}
+
+int CHL2MPRules::TotalTeamXP(int team)
+{
+	int sum = 0;
+#ifndef CLIENT_DLL
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	{
+		CHL2MP_Player *pPlayer = (CHL2MP_Player *)UTIL_PlayerByIndex( i );
+		if (pPlayer->GetTeamNumber() == team)
+		{
+			sum += pPlayer->GetTotalXP();
+		}
+	}
+#endif
+	return sum;
 }
 
 bool CHL2MPRules::LoadFromBuffer( char const *resourceName, const char *pBuffer, IBaseFileSystem* pFileSystem, const char *pPathID )
@@ -460,6 +573,50 @@ void CHL2MPRules::PlayerKilled( CBasePlayer *pVictim, const CTakeDamageInfo &inf
 #endif
 }
 
+void CHL2MPRules::FreezeAll(bool unfreeze)
+{
+#ifndef CLIENT_DLL
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	{
+		CBasePlayer *pPlayer = UTIL_PlayerByIndex( i );
+
+		if (pPlayer && pPlayer->GetTeamNumber() > TEAM_SPECTATOR)
+		{
+			if (unfreeze)
+				pPlayer->RemoveFlag( FL_FROZEN );
+			else
+				pPlayer->AddFlag( FL_FROZEN );
+		}
+	}
+#endif
+}
+
+void CHL2MPRules::RestartRound()
+{
+#ifndef CLIENT_DLL
+	doll_collector.RemoveAll();
+	for (int i = 0; i < num_cap_points; i++)
+	{
+		cap_point_status.Set(i, 60);
+		cap_point_timers[i] = 0.0f;
+		cap_point_state[i] = 0;
+	}
+	GetGlobalTeam( COVEN_TEAMID_SLAYERS )->SetScore(0);
+	GetGlobalTeam( COVEN_TEAMID_VAMPIRES )->SetScore(0);
+	CleanUpMap();
+
+	for (int i = 1; i <= gpGlobals->maxClients; i++ )
+	{
+		CHL2MP_Player *pPlayer = (CHL2MP_Player*) UTIL_PlayerByIndex( i );
+
+		if ( !pPlayer )
+			continue;
+
+		pPlayer->RemoveAllItems(true);
+		pPlayer->Spawn();
+	}
+#endif
+}
 
 void CHL2MPRules::Think( void )
 {
@@ -491,6 +648,50 @@ void CHL2MPRules::Think( void )
 			Msg("Cow file loaded!\n");
 		}
 		cowsloaded = true;
+	}
+
+	//BB: coven game state things!
+	if (covenGameState < COVEN_GAME_STATE_WARMUP)
+	{
+		covenGameState++;
+		covenGameStateTimer = gpGlobals->curtime + sv_coven_warmuptime.GetInt();
+	}
+	else if (covenGameState == COVEN_GAME_STATE_WARMUP)
+	{
+		if (gpGlobals->curtime > covenFlashTimer && sv_coven_warmuptime.GetInt() > 0)
+		{
+			covenFlashTimer = gpGlobals->curtime + 5.0f;
+			UTIL_ClientPrintAll( HUD_PRINTCENTER, "Warmup..." );
+		}
+		if (gpGlobals->curtime > covenGameStateTimer)
+		{
+			covenGameState++;
+			covenFlashTimer = 0.0f;
+			covenGameStateTimer = gpGlobals->curtime + sv_coven_freezetime.GetInt();
+			if (sv_coven_warmuptime.GetInt() > 0)
+				RestartRound();
+			if (sv_coven_freezetime.GetInt() > 0)
+				FreezeAll();
+
+		}
+	}
+	else if (covenGameState == COVEN_GAME_STATE_FREEZE)
+	{
+		if (gpGlobals->curtime > covenFlashTimer && sv_coven_freezetime.GetInt() > 0)
+		{
+			covenFlashTimer = gpGlobals->curtime + 25.0f;
+			UTIL_ClientPrintAll( HUD_PRINTCENTER, "READY?" );
+		}
+		if (gpGlobals->curtime > covenGameStateTimer)
+		{
+			covenGameState++;
+			covenFlashTimer = 0.0f;
+			if (sv_coven_freezetime.GetInt() > 0 || sv_coven_warmuptime.GetInt() > 0)
+				UTIL_ClientPrintAll( HUD_PRINTCENTER, "FIGHT!" );
+			covenGameStateTimer = 0.0f;
+			FreezeAll(true);
+		}
+
 	}
 
 	int s_caps = 0;
@@ -536,6 +737,9 @@ void CHL2MPRules::Think( void )
 		if (pPlayer)
 		{
 			float xp_tick = 0.0f;
+
+			if (pPlayer->covenRespawnTimer > 0.0f && gpGlobals->curtime > pPlayer->covenRespawnTimer)
+				pPlayer->Spawn();
 
 			if (pPlayer->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
 			{
@@ -983,6 +1187,13 @@ void CHL2MPRules::ClientDisconnected( edict_t *pClient )
 		if ( pPlayer->GetTeam() )
 		{
 			pPlayer->GetTeam()->RemovePlayer( pPlayer );
+		}
+
+		CHL2MP_Player *play = (CHL2MP_Player *)pPlayer;
+		if (play->myServerRagdoll != NULL)
+		{
+			UTIL_RemoveImmediate(play->myServerRagdoll);
+			play->myServerRagdoll = NULL;
 		}
 	}
 

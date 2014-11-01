@@ -96,7 +96,8 @@ public:
 			{
 				UTIL_Remove(this);	
 			}
-			((CHL2MP_Player *)pPlayer)->GiveTeamXPCentered(COVEN_TEAMID_SLAYERS, COVEN_XP_PER_ITEM, NULL);
+			HL2MPRules()->AddScore(COVEN_TEAMID_SLAYERS, COVEN_PTS_PER_ITEM);
+			HL2MPRules()->GiveItemXP(COVEN_TEAMID_SLAYERS);
 			pPlayer->EmitSound( "ItemBattery.Touch" );
 			return true;
 		}
@@ -129,7 +130,8 @@ public:
 			{
 				UTIL_Remove(this);	
 			}
-			((CHL2MP_Player *)pPlayer)->GiveTeamXPCentered(COVEN_TEAMID_VAMPIRES, COVEN_XP_PER_ITEM, NULL);
+			HL2MPRules()->AddScore(COVEN_TEAMID_VAMPIRES, COVEN_PTS_PER_ITEM);
+			HL2MPRules()->GiveItemXP(COVEN_TEAMID_VAMPIRES);
 			pPlayer->EmitSound( "ItemBattery.Touch" );
 			return true;
 		}

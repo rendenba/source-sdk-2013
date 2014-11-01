@@ -161,6 +161,8 @@ public:
 
 	//BB: COVEN
 	bool GiveXP(float XP);
+	int GetTotalXP();
+	int GetXP();
 	float xp_part;
 	virtual bool LevelUp(int lvls);
 	void GiveStrength(int s);
@@ -172,6 +174,8 @@ public:
 	void GiveIntellect(int i);
 	void SetIntellect(int i);
 	int myIntellect();
+
+	int totalXP;
 
 	// Locator
 	void UpdateLocatorPosition( const Vector &vecPosition );
@@ -301,6 +305,7 @@ public:
 
 	CNetworkVar( int, covenClassID );
 	CNetworkVar( int, covenLevelCounter );
+	CNetworkVar( int, covenStatusEffects );
 
 protected:
 	virtual void		PreThink( void );

@@ -1033,6 +1033,8 @@ void ClientModeShared::FireGameEvent( IGameEvent *event )
 
 			wchar_t wszTeam[64];
 			C_Team *pTeam = GetGlobalTeam( team );
+
+			//BB: TODO: this is where joined team 1 error is happening!
 			if ( pTeam )
 			{
 				g_pVGuiLocalize->ConvertANSIToUnicode( pTeam->Get_Name(), wszTeam, sizeof(wszTeam) );

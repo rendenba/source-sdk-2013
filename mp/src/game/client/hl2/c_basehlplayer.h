@@ -64,6 +64,7 @@ public:
 	bool				m_fIsSprinting;
 	int					covenClassID;
 	int					covenLevelCounter;
+	int					covenStatusEffects;
 
 private:
 	C_BaseHLPlayer( const C_BaseHLPlayer & ); // not defined, not accessible

@@ -52,7 +52,7 @@ public:
 	virtual void SetData(KeyValues *data) {};
 	virtual void Reset() {};
 	virtual void Update();
-	virtual bool NeedsUpdate( void ) { return false; }
+	virtual bool NeedsUpdate( void ) { return m_fNextUpdateTime < gpGlobals->curtime; }
 	virtual bool HasInputElements( void ) { return false; }
 	virtual void ShowPanel( bool bShow );
 	
@@ -78,6 +78,8 @@ protected:
 	void MoveLabelToFront(const char *textEntryName);
 	void UpdateTimer();
 	void SetLogoImage(const char *image);
+	float m_fNextUpdateTime;
+
 
 protected:	
 	enum { INSET_OFFSET = 2 } ; 

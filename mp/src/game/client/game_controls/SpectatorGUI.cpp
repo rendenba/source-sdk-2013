@@ -21,6 +21,8 @@
 #include <vgui_controls/MenuItem.h>
 #include <vgui_controls/TextImage.h>
 
+#include "c_team.h"
+
 #include <stdio.h> // _snprintf define
 
 #include <game/client/iviewport.h>
@@ -406,6 +408,7 @@ CSpectatorGUI::CSpectatorGUI(IViewPort *pViewPort) : EditablePanel( NULL, PANEL_
 //	m_iDuckKey = KEY_NONE;
 	SetSize( 10, 10 ); // Quiet "parent not sized yet" spew
 	m_bSpecScoreboard = false;
+	m_fNextUpdateTime = 0.0f;
 
 	m_pViewPort = pViewPort;
 	g_pSpectatorGUI = this;
@@ -512,6 +515,8 @@ void CSpectatorGUI::OnThink()
 {
 	BaseClass::OnThink();
 
+	//Update();
+
 	if ( IsVisible() )
 	{
 		if ( m_bSpecScoreboard != spec_scoreboard.GetBool() )
@@ -597,6 +602,8 @@ bool CSpectatorGUI::ShouldShowPlayerLabel( int specmode )
 //-----------------------------------------------------------------------------
 void CSpectatorGUI::Update()
 {
+	m_fNextUpdateTime = gpGlobals->curtime + 0.1f;
+
 	int wide, tall;
 	int bx, by, bwide, btall;
 
@@ -608,6 +615,17 @@ void CSpectatorGUI::Update()
 	int playernum = GetSpectatorTarget();
 
 	IViewPortPanel *overview = gViewPortInterface->FindPanelByName( PANEL_OVERVIEW );
+
+	C_Team *team = GetGlobalTeam( COVEN_TEAMID_SLAYERS );
+	const char *pDialogVarTeamScore = "s_teamscore";
+	if (team)
+		SetDialogVariable( pDialogVarTeamScore, team->Get_Score() );
+	team = GetGlobalTeam( COVEN_TEAMID_VAMPIRES );
+	pDialogVarTeamScore = "v_teamscore";
+	if (team)
+		SetDialogVariable( pDialogVarTeamScore, team->Get_Score() );
+
+	UpdateTimer();
 
 	if ( overview && overview->IsVisible() )
 	{
@@ -707,9 +725,23 @@ void CSpectatorGUI::UpdateTimer()
 {
 	wchar_t szText[ 63 ];
 
-	int timer = 0;
+	C_BasePlayer *pPlayer = C_BasePlayer::GetLocalPlayer();
 
-	V_swprintf_safe ( szText, L"%d:%02d\n", (timer / 60), (timer % 60) );
+	if ( !pPlayer  )
+		return;
+
+	float timer = pPlayer->covenRespawnTimer;
+	
+	if (timer < 0.0f)
+		V_swprintf_safe ( szText, L"Spectating");
+	else
+	{
+		timer -= gpGlobals->curtime;
+		if (timer < 0.0f)
+			timer = 0.0f;
+		V_swprintf_safe ( szText, L"%.01f", timer );
+		//V_swprintf_safe ( szText, L"%d:%02d", (timer / 60), (timer % 60) );
+	}
 
 	SetLabelText("timerlabel", szText );
 }

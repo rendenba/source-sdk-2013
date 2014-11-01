@@ -175,7 +175,6 @@ public:
 	float coven_timer_regen;
 	float coven_timer_feed;
 	float coven_timer_leapdetectcooldown;
-
 		
 private:
 

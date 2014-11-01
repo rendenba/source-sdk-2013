@@ -41,6 +41,7 @@ extern short	g_sModelIndexSmoke;			// (in combatweapon.cpp) holds the index for 
 CBaseEntity	 *g_pLastCombineSpawn = NULL;
 CBaseEntity	 *g_pLastRebelSpawn = NULL;
 extern CBaseEntity				*g_pLastSpawn;
+extern ConVar sv_coven_freezetime;
 
 #define HL2MP_COMMAND_MAX_RATE 0.3
 
@@ -234,15 +235,15 @@ void CHL2MP_Player::ResetVitals( void )
 		{
 		case COVEN_CLASSID_AVENGER:
 			SetConstitution(25);
-			SetStrength(15);
+			SetStrength(COVEN_BASESTR_AVENGER);
 			break;
 		case COVEN_CLASSID_HELLION:
 			SetConstitution(25);
-			SetStrength(10);
+			SetStrength(COVEN_BASESTR_HELLION);
 			break;
 		case COVEN_CLASSID_REAVER:
 			SetConstitution(30);
-			SetStrength(20);
+			SetStrength(COVEN_BASESTR_REAVER);
 			break;
 		default:break;
 		}
@@ -253,11 +254,11 @@ void CHL2MP_Player::ResetVitals( void )
 		{
 		case COVEN_CLASSID_FIEND:
 			SetConstitution(18);
-			SetStrength(15);
+			SetStrength(COVEN_BASESTR_FIEND);
 			break;
 		case COVEN_CLASSID_GORE:
 			SetConstitution(28);
-			SetStrength(25);
+			SetStrength(COVEN_BASESTR_GORE);
 			break;
 		default:break;
 		}
@@ -465,6 +466,13 @@ void CHL2MP_Player::PickDefaultSpawnTeam( void )
 //-----------------------------------------------------------------------------
 void CHL2MP_Player::Spawn(void)
 {
+	if (covenRespawnTimer > 0.0f && gpGlobals->curtime < covenRespawnTimer)
+		return;
+
+	covenRespawnTimer = -1.0f;
+
+	covenStatusEffects = 0;
+
 	if (KO && myServerRagdoll)
 		UTIL_Remove(myServerRagdoll);
 	m_hRagdoll = NULL;
@@ -482,15 +490,7 @@ void CHL2MP_Player::Spawn(void)
 	}*/
 
 	SetPlayerTeamModel();
-	//BB: need to move this to prevent unfreezing accidentally
-	if ( HL2MPRules()->IsIntermission() )
-	{
-		AddFlag( FL_FROZEN );
-	}
-	else
-	{
-		RemoveFlag( FL_FROZEN );
-	}
+
 	color32 nothing = {0,0,0,255};
 	UTIL_ScreenFade( this, nothing, 0, 0, FFADE_IN | FFADE_PURGE );
 
@@ -540,9 +540,8 @@ void CHL2MP_Player::Spawn(void)
 	
 	AddFlag(FL_ONGROUND); // set the player on the ground at the start of the round.
 
-	m_impactEnergyScale = HL2MPPLAYER_PHYSDAMAGE_SCALE;
-
-	if ( HL2MPRules()->IsIntermission() )
+	//BB: need to move this to prevent unfreezing accidentally
+	if ( HL2MPRules()->IsIntermission() || (HL2MPRules()->covenGameState == COVEN_GAME_STATE_FREEZE && sv_coven_freezetime.GetInt() > 0))
 	{
 		AddFlag( FL_FROZEN );
 	}
@@ -550,6 +549,8 @@ void CHL2MP_Player::Spawn(void)
 	{
 		RemoveFlag( FL_FROZEN );
 	}
+
+	m_impactEnergyScale = HL2MPPLAYER_PHYSDAMAGE_SCALE;
 
 	m_iSpawnInterpCounter = (m_iSpawnInterpCounter + 1) % 8;
 
@@ -966,6 +967,7 @@ void CHL2MP_Player::PreThink( void )
 
 		if (IsAlive() && ((tVec-GetLocalOrigin()).Length() < pRules->cap_point_distance[lastCheckedCapPoint]))
 		{
+			covenStatusEffects |= COVEN_FLAG_CAPPOINT;
 			int n = pRules->cap_point_status.Get(lastCheckedCapPoint);
 			lastCapPointTime = gpGlobals->curtime+0.1f;
 			pRules->cap_point_timers[lastCheckedCapPoint] = gpGlobals->curtime+0.2f;
@@ -1018,6 +1020,7 @@ void CHL2MP_Player::PreThink( void )
 		}
 		else
 		{
+			covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_CAPPOINT;
 			lastCheckedCapPoint++;
 		}
 
@@ -1379,13 +1382,13 @@ void CHL2MP_Player::FireBullets ( const FireBulletsInfo_t &info )
 		if (Q_strcmp(pWeapon->GetHL2MPWpnData().szAmmo1,"Buckshot") == 0)
 		{
 			if (covenClassID == COVEN_CLASSID_REAVER)
-				add = myStrength() - 20;
+				add = myStrength() - COVEN_BASESTR_REAVER;
 			else
-				add = myStrength() - 15;
+				add = myStrength() - COVEN_BASESTR_AVENGER;
 		}
 		else if (Q_strcmp(pWeapon->GetHL2MPWpnData().szAmmo1,"357") == 0)
 		{
-			add = myStrength() - 10;
+			add = myStrength() - COVEN_BASESTR_HELLION;
 		}
 		else if (Q_strcmp(pWeapon->GetHL2MPWpnData().szAmmo1,"Pistol") == 0)
 		{
@@ -2109,7 +2112,7 @@ int CHL2MP_Player::XPForKill(CHL2MP_Player *pAttacker)
 	int retval = COVEN_XP_PER_KILL;
 
 	retval += COVEN_XP_LEVEL_DIFF_MULT*(covenLevelCounter-pAttacker->covenLevelCounter);
-	Msg("XPForKill: %d\n",retval);
+	//Msg("XPForKill: %s %d\n",pAttacker->GetPlayerName(), retval);
 
 	retval = max(1,retval);
 
@@ -2120,26 +2123,37 @@ void CHL2MP_Player::GiveTeamXPCentered(int team, int xp, CBasePlayer *ignore)
 {
 	CTeam *theteam = GetGlobalTeam( team );
 	int num = theteam->GetNumPlayers();
-	CUtlVector<CBasePlayer *> nearby;
+	//CUtlVector<CBasePlayer *> nearby;
 	for (int i = 0; i < num; i++)
 	{
 		CBasePlayer *pTemp = theteam->GetPlayer(i);
-		if (pTemp && (pTemp->GetLocalOrigin()-GetLocalOrigin()).Length() <= COVEN_XP_ASSIST_RADIUS)
+		if (pTemp && (pTemp->GetLocalOrigin()-GetLocalOrigin()).Length() <= COVEN_XP_ASSIST_RADIUS && pTemp != ignore)
 		{
-			nearby.AddToTail(pTemp);
+			//nearby.AddToTail(pTemp);
+			((CHL2_Player*)pTemp)->GiveXP(xp);
+		}
+		if (pTemp && ((CHL2MP_Player *)pTemp)->covenStatusEffects & COVEN_FLAG_CAPPOINT)
+		{
+			((CHL2_Player*)pTemp)->GiveXP(xp);
+			//nearby.AddToTail(pTemp);
 		}
 	}
-	int divider = nearby.Size();
+	/*int divider = nearby.Size();
 	for (int j = 0; j < divider; j++)
 	{
 		CBasePlayer *pTemp = nearby[j];
 		if (pTemp && pTemp != ignore)
 			((CHL2_Player*)pTemp)->GiveXP(xp);
-	}
+	}*/
 }
 
 void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 {
+	if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+		covenRespawnTimer = gpGlobals->curtime + COVEN_RESPAWNTIME_BASE + COVEN_RESPAWNTIME_VAMPIRES_MULT*covenLevelCounter;
+	else if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+		covenRespawnTimer = HL2MPRules()->GetSlayerRespawnTime();
+
 	//update damage info with our accumulated physics force
 	CTakeDamageInfo subinfo = info;
 	subinfo.SetDamageForce( m_vecTotalBulletForce );
@@ -2191,7 +2205,7 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 			{
 				if (t == COVEN_TEAMID_SLAYERS)
 					t = COVEN_TEAMID_VAMPIRES;
-				else
+				else if (t == COVEN_TEAMID_VAMPIRES)
 					t = COVEN_TEAMID_SLAYERS;
 			}
 			int xp = XPForKill((CHL2MP_Player *)pAttacker);
@@ -2572,7 +2586,7 @@ bool CHL2MP_Player::StartObserverMode(int mode)
 {
 	//BB: TODO: FIX THIS!
 	//we only want to go into observer mode if the player asked to, not on a death timeout
-	if ( m_bEnterObserver == true )
+	//if ( m_bEnterObserver == true )
 	{
 		color32 nothing = {0,0,0,255};
 		UTIL_ScreenFade( this, nothing, 0, 0, FFADE_IN | FFADE_PURGE );

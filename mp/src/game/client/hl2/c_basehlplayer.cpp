@@ -33,6 +33,7 @@ IMPLEMENT_CLIENTCLASS_DT(C_BaseHLPlayer, DT_HL2_Player, CHL2_Player)
 	RecvPropBool( RECVINFO( m_fIsSprinting ) ),
 	RecvPropInt( RECVINFO( covenClassID ) ),
 	RecvPropInt( RECVINFO( covenLevelCounter ) ),
+	RecvPropInt( RECVINFO( covenStatusEffects ) ),
 END_RECV_TABLE()
 
 BEGIN_PREDICTION_DATA( C_BaseHLPlayer )
@@ -68,6 +69,9 @@ C_BaseHLPlayer::C_BaseHLPlayer()
 	m_flZoomRate		= 0.0f;
 	m_flZoomStartTime	= 0.0f;
 	m_flSpeedMod		= cl_forwardspeed.GetFloat();
+	covenStatusEffects = 0;
+	covenLevelCounter = 0;
+	covenClassID = 0;
 }
 
 //-----------------------------------------------------------------------------
