@@ -15,7 +15,7 @@
 #include "tier0/memdbgon.h"
 
 BEGIN_SEND_TABLE_NOBASE( CHL2PlayerLocalData, DT_HL2Local )
-	SendPropFloat( SENDINFO(m_flSuitPower), 10, SPROP_UNSIGNED | SPROP_ROUNDUP, 0.0, 100.0 ),
+	SendPropFloat( SENDINFO(m_flSuitPower), 10, SPROP_UNSIGNED | SPROP_ROUNDUP, 0.0, 200.0 ),
 	SendPropInt( SENDINFO(m_bZooming), 1, SPROP_UNSIGNED ),
 	SendPropInt( SENDINFO(m_bitsActiveDevices), MAX_SUIT_DEVICES, SPROP_UNSIGNED ),
 	SendPropInt( SENDINFO(m_iSquadMemberCount) ),
@@ -32,6 +32,13 @@ BEGIN_SEND_TABLE_NOBASE( CHL2PlayerLocalData, DT_HL2Local )
 	SendPropInt( SENDINFO(covenStrengthCounter) ),
 	SendPropInt( SENDINFO(covenConstitutionCounter) ),
 	SendPropInt( SENDINFO(covenIntellectCounter) ),
+	SendPropInt( SENDINFO(covenCurrentPointsSpent) ),
+	SendPropInt( SENDINFO(covenCurrentLoadout1) ),
+	SendPropInt( SENDINFO(covenCurrentLoadout2) ),
+	SendPropInt( SENDINFO(covenCurrentLoadout3) ),
+	SendPropInt( SENDINFO(covenCurrentLoadout4) ),
+	SendPropArray3( SENDINFO_ARRAY3(covenStatusTimers), SendPropFloat( SENDINFO_ARRAY(covenStatusTimers), 0, SPROP_NOSCALE ) ),
+	SendPropArray3( SENDINFO_ARRAY3(covenCooldownTimers), SendPropFloat( SENDINFO_ARRAY(covenCooldownTimers), 0, SPROP_NOSCALE ) ),
 #ifdef HL2_EPISODIC
 	SendPropFloat( SENDINFO(m_flFlashBattery) ),
 	SendPropVector( SENDINFO(m_vecLocatorOrigin) ),
@@ -63,6 +70,15 @@ END_DATADESC()
 
 CHL2PlayerLocalData::CHL2PlayerLocalData()
 {
+	covenCooldownTimers.Set(0,0.0f);
+	covenCooldownTimers.Set(1,0.0f);
+	covenCooldownTimers.Set(2,0.0f);
+	covenCooldownTimers.Set(3,0.0f);
+	covenCurrentPointsSpent = 0;
+	covenCurrentLoadout1 = 0;
+	covenCurrentLoadout2 = 0;
+	covenCurrentLoadout3 = 0;
+	covenCurrentLoadout4 = 0;
 	covenXPCounter = 0;
 	covenStrengthCounter = 0;
 	covenConstitutionCounter = 0;

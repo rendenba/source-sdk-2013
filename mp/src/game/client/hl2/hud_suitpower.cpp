@@ -193,8 +193,14 @@ void CHudSuitPower::Paint()
 	}
 	else
 	{
-		surface()->DrawPrintText(L"AUX POWER", wcslen(L"AUX POWER"));
+		surface()->DrawPrintText(L"MANA", wcslen(L"MANA"));
 	}
+
+	//draw our value
+	surface()->DrawSetTextPos(text_xpos+50, text_ypos);
+	wchar_t szText[ 63 ];
+	V_swprintf_safe(szText, L"%.00f", m_flSuitPower);
+	surface()->DrawPrintText(szText, wcslen(szText));
 
 	if ( m_iActiveSuitDevices )
 	{

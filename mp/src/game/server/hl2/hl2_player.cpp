@@ -412,10 +412,20 @@ int CHL2_Player::GetTotalXP()
 	return totalXP;
 }
 
+float CHL2_Player::GetStatusTime(int s)
+{
+	return m_HL2Local.covenStatusTimers.Get(s);
+}
+
+void CHL2_Player::SetStatusTime(int s, float time)
+{
+	m_HL2Local.covenStatusTimers.Set(s, time);
+}
+
 //
 // SUIT POWER DEVICES
 //
-#define SUITPOWER_CHARGE_RATE	12.5											// 100 units in 8 seconds
+#define SUITPOWER_CHARGE_RATE	myIntellect()/8.0											// 12.5 = 100 units in 8 seconds
 
 #ifdef HL2MP
 	CSuitPowerDevice SuitDeviceSprint( bits_SUIT_DEVICE_SPRINT, 25.0f );				// 100 units in 4 seconds
@@ -439,6 +449,31 @@ IMPLEMENT_SERVERCLASS_ST(CHL2_Player, DT_HL2_Player)
 	SendPropInt( SENDINFO(covenStatusEffects) ),
 END_SEND_TABLE()
 
+void CHL2_Player::SetCurrentLoadout(int i, int load)
+{
+	m_HL2Local.covenCurrentLoadout1 = load;
+}
+
+void CHL2_Player::SetPointsSpent(int pts)
+{
+	m_HL2Local.covenCurrentPointsSpent = pts;
+}
+
+void CHL2_Player::SetCooldown(int abil, float time)
+{
+	if (abil >= 0 && abil <= 3)
+	{
+		m_HL2Local.covenCooldownTimers.Set(abil, time);
+	}
+}
+
+float CHL2_Player::GetCooldown(int abil)
+{
+	if (abil < 0 || abil > 3)
+		return 0.0f;
+
+	return m_HL2Local.covenCooldownTimers.Get(abil);
+}
 
 void CHL2_Player::Precache( void )
 {
@@ -1219,7 +1254,8 @@ void CHL2_Player::Spawn(void)
 	if ( !IsSuitEquipped() )
 		 StartWalking();
 
-	SuitPower_SetCharge( 100 );
+	//BB: start with 10% mana
+	SuitPower_SetCharge( myIntellect() );
 
 	m_Local.m_iHideHUD |= HIDEHUD_CHAT;
 
@@ -1392,6 +1428,9 @@ void CHL2_Player::ComputeSpeed( void )
 		default:break;
 		}
 	}
+
+	if (covenStatusEffects & COVEN_FLAG_SPRINT)
+		speed *= 1.25f;
 
 	SetMaxSpeed( speed );
 }
@@ -2028,10 +2067,10 @@ void CHL2_Player::SuitPower_Charge( float flPower )
 {
 	m_HL2Local.m_flSuitPower += flPower;
 
-	if( m_HL2Local.m_flSuitPower > 100.0 )
+	if( m_HL2Local.m_flSuitPower > myIntellect()*10.0 )
 	{
 		// Full charge, clamp.
-		m_HL2Local.m_flSuitPower = 100.0;
+		m_HL2Local.m_flSuitPower = myIntellect()*10.0;
 	}
 }
 

@@ -2465,6 +2465,13 @@ bool CGameMovement::CheckJumpButton( void )
 		mv->m_vecVelocity[2] += 2.0f*flGroundFactor * flMul;  // 2 * gravity * height
 	}
 
+	//BB: prevent speed skating...
+	float speed = sqrt(mv->m_vecVelocity[0]*mv->m_vecVelocity[0] + mv->m_vecVelocity[1]*mv->m_vecVelocity[1]);
+	if (speed > 380.0f)//320... allow a little
+	{
+		VectorScale(mv->m_vecVelocity, 380.0f/speed, mv->m_vecVelocity);
+	}
+
 	// Add a little forward velocity based on your current forward velocity - if you are not sprinting.
 #if defined( HL2_DLL ) || defined( HL2_CLIENT_DLL )
 	if ( gpGlobals->maxClients == 1 )
@@ -2491,6 +2498,7 @@ bool CGameMovement::CheckJumpButton( void )
 		if ( mv->m_flForwardMove < 0.0f )
 			flSpeedAddition *= -1.0f;
 
+		//BB: BHOPPING GHEY
 		// Add it on
 		VectorAdd( (vecForward*flSpeedAddition), mv->m_vecVelocity, mv->m_vecVelocity );
 	}

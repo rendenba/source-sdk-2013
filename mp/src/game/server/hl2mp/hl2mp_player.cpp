@@ -42,6 +42,7 @@ CBaseEntity	 *g_pLastCombineSpawn = NULL;
 CBaseEntity	 *g_pLastRebelSpawn = NULL;
 extern CBaseEntity				*g_pLastSpawn;
 extern ConVar sv_coven_freezetime;
+extern ConVar coven_ignore_respawns;
 
 #define HL2MP_COMMAND_MAX_RATE 0.3
 
@@ -161,6 +162,18 @@ CHL2MP_Player::CHL2MP_Player() : m_PlayerAnimState( this )
 	m_bReady = false;
 
 	BaseClass::ChangeTeam( 0 );
+
+	for(int i = 0; i < 2; i++)
+	{
+		for(int j = 0; j < COVEN_MAX_CLASSCOUNT; j++)
+		{
+			covenLevelsSpent[i][j] = 0;
+			for (int k = 0; k < 4; k++)
+			{
+				covenLoadouts[i][j][k] = 0;
+			}
+		}
+	}
 	
 //	UseClientSideAnimation();
 }
@@ -168,6 +181,67 @@ CHL2MP_Player::CHL2MP_Player() : m_PlayerAnimState( this )
 CHL2MP_Player::~CHL2MP_Player( void )
 {
 
+}
+
+void CHL2MP_Player::DoSlayerAbilityThink()
+{
+	if (m_afButtonPressed & IN_ABIL1)
+	{
+		float cd = GetCooldown(0);
+		int lev = GetLoadout(0);
+		if ((cd > 0.0f && gpGlobals->curtime < cd) || lev == 0)
+		{
+			EmitSound("HL2Player.UseDeny");
+		}
+		else
+		{
+			if (covenClassID == COVEN_CLASSID_AVENGER)
+			{
+				float mana = 10.0f + 5.0f*lev;
+				float cool = 45.0f - 10.0f*lev;
+				if (SuitPower_GetCurrentPercentage() > mana)
+				{
+					SetCooldown(0, gpGlobals->curtime + cool);
+					SetStatusTime(COVEN_BUFF_SPRINT, gpGlobals->curtime + 10.0f);
+					covenStatusEffects |= COVEN_FLAG_SPRINT;
+					ComputeSpeed();
+					EmitSound("HL2Player.SprintStart");
+					SuitPower_Drain(mana);
+				}
+				else
+					EmitSound("HL2Player.UseDeny");
+			}
+		}
+	}
+}
+
+void CHL2MP_Player::DoVampireAbilityThink()
+{
+	if (m_afButtonPressed & IN_ABIL1)
+	{
+		float cd = GetCooldown(0);
+		int lev = GetLoadout(0);
+		if ((cd > 0.0f && gpGlobals->curtime < cd) || lev == 0)
+		{
+			EmitSound("HL2Player.UseDeny");
+		}
+		else
+		{
+			if (covenClassID == COVEN_CLASSID_FIEND)
+			{
+				//float mana = 4.0f+2.0f*lev;
+				float cool = 10.0f - 2.0f*lev;
+				if (SuitPower_GetCurrentPercentage() > 8.0f)
+				{
+					SetCooldown(0, gpGlobals->curtime + cool);
+					DoLeap();
+					SuitPower_Drain(8.0f);
+				}
+				else
+					EmitSound("HL2Player.UseDeny");
+			}
+		}
+	}
 }
 
 void CHL2MP_Player::UpdateOnRemove( void )
@@ -226,6 +300,51 @@ bool CHL2MP_Player::LevelUp( int lvls )
 	return BaseClass::LevelUp(lvls);
 }
 
+void CHL2MP_Player::SpendPoint(int on)
+{
+	int t = GetTeamNumber();
+	if (t > 1)
+	{
+		t -= 2;
+		covenLevelsSpent[t][covenClassID]++;
+		covenLoadouts[t][covenClassID][on]++;
+		RefreshLoadout();
+	}
+}
+
+void CHL2MP_Player::RefreshLoadout()
+{
+	SetCurrentLoadout(0, GetLoadout(0));
+	SetCurrentLoadout(1, GetLoadout(1));
+	SetCurrentLoadout(2, GetLoadout(2));
+	SetCurrentLoadout(3, GetLoadout(3));
+	SetPointsSpent(GetLevelsSpent());
+}
+
+int CHL2MP_Player::GetLoadout(int n)
+{
+	int t = GetTeamNumber();
+	if (t > 1 && n >= 0 && n <= 3)
+	{
+		t -= 2;
+		return covenLoadouts[t][covenClassID][n];
+	}
+
+	return -1;
+}
+
+int CHL2MP_Player::GetLevelsSpent()
+{
+	int t = GetTeamNumber();
+	if (t > 1)
+	{
+		t -= 2;
+		return covenLevelsSpent[t][covenClassID];
+	}
+
+	return -1;
+}
+
 void CHL2MP_Player::ResetVitals( void )
 {
 	/*int baseHP = 100;*/
@@ -236,14 +355,17 @@ void CHL2MP_Player::ResetVitals( void )
 		case COVEN_CLASSID_AVENGER:
 			SetConstitution(25);
 			SetStrength(COVEN_BASESTR_AVENGER);
+			SetIntellect(COVEN_BASEINT_AVENGER);
 			break;
 		case COVEN_CLASSID_HELLION:
 			SetConstitution(25);
 			SetStrength(COVEN_BASESTR_HELLION);
+			SetIntellect(COVEN_BASEINT_HELLION);
 			break;
 		case COVEN_CLASSID_REAVER:
 			SetConstitution(30);
 			SetStrength(COVEN_BASESTR_REAVER);
+			SetIntellect(COVEN_BASEINT_REAVER);
 			break;
 		default:break;
 		}
@@ -255,10 +377,12 @@ void CHL2MP_Player::ResetVitals( void )
 		case COVEN_CLASSID_FIEND:
 			SetConstitution(18);
 			SetStrength(COVEN_BASESTR_FIEND);
+			SetIntellect(COVEN_BASEINT_FIEND);
 			break;
 		case COVEN_CLASSID_GORE:
 			SetConstitution(28);
 			SetStrength(COVEN_BASESTR_GORE);
+			SetIntellect(COVEN_BASEINT_GORE);
 			break;
 		default:break;
 		}
@@ -320,6 +444,8 @@ void CHL2MP_Player::Precache( void )
 	PrecacheScriptSound( "NPC_Citizen.die" );
 	PrecacheScriptSound( "Resurrect" );
 	PrecacheScriptSound( "Resurrect.Finish" );
+
+	PrecacheScriptSound( "Leap" );
 
 	/*PrecacheModel( "models/items/ammocrate_pistol.mdl" );
 
@@ -918,6 +1044,20 @@ bool CHL2MP_Player::Weapon_Switch( CBaseCombatWeapon *pWeapon, int viewmodelinde
 	return bRet;
 }
 
+void CHL2MP_Player::DoLeap()
+{
+	Vector force;
+	AngleVectors(EyeAngles(), &force );
+	//Msg("%f\n", force.z);
+	force.z = force.z*0.92f;
+	EmitSound("Leap");
+	//force = 780 * force;
+	//VectorAdd(GetLocalVelocity(), force, force);
+	//force.z += 1.5*sqrt(2 * 800.0f * 21.0f);
+	//SetLocalVelocity(force);
+	ApplyAbsVelocityImpulse( 520*force );//780??
+}
+
 float CHL2MP_Player::DamageForce( const Vector &size, float damage )
 { 
 	//BB: TODO: knockback for damage
@@ -946,6 +1086,9 @@ void CHL2MP_Player::PreThink( void )
 	}
 
 	SetLocalAngles( vTempAngles );
+
+	if (GetTeamNumber() != TEAM_SPECTATOR)
+		DoStatusThink();
 
 	BaseClass::PreThink();
 	State_PreThink();
@@ -1040,6 +1183,7 @@ void CHL2MP_Player::PreThink( void )
 
 void CHL2MP_Player::DoVampirePreThink()
 {
+	DoVampireAbilityThink();
 	VampireReSolidify();
 	VampireCheckRegen();
 	VampireManageRagdoll();
@@ -1048,6 +1192,7 @@ void CHL2MP_Player::DoVampirePreThink()
 
 void CHL2MP_Player::DoSlayerPreThink()
 {
+	DoSlayerAbilityThink();
 }
 
 void CHL2MP_Player::DoVampirePostThink()
@@ -1746,6 +1891,30 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 	}
 }
 
+void CHL2MP_Player::DoStatusThink()
+{
+	RefreshLoadout();
+	if (PointsToSpend() > 0)
+	{
+		covenStatusEffects |= COVEN_FLAG_LEVEL;
+	}
+	else
+	{
+		covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_LEVEL;
+	}
+
+	//SPRINT (actual sprintspeed handled in ComputeSpeed in HL2Player)
+	if (covenStatusEffects & COVEN_FLAG_SPRINT)
+	{
+		if (gpGlobals->curtime > GetStatusTime(COVEN_BUFF_SPRINT))
+		{
+			covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_SPRINT;
+			SetStatusTime(COVEN_BUFF_SPRINT, 0.0f);
+			ComputeSpeed();
+		}
+	}
+}
+
 bool CHL2MP_Player::HandleCommand_SelectClass( int select )
 {
 	if (select < 0)
@@ -1825,6 +1994,7 @@ bool CHL2MP_Player::HandleCommand_JoinTeam( int team )
 			m_fNextSuicideTime = gpGlobals->curtime;	// allow the suicide to work
 
 			CommitSuicide();
+			covenRespawnTimer = -1.0f;
 
 			// add 1 to frags to balance out the 1 subtracted for killing yourself
 			IncrementFragCount( 1 );
@@ -1856,9 +2026,32 @@ bool CHL2MP_Player::HandleCommand_JoinTeam( int team )
 	return true;
 }
 
+int CHL2MP_Player::PointsToSpend()
+{
+	int ret = covenLevelCounter - GetLevelsSpent();
+	return ret;
+}
+
 bool CHL2MP_Player::ClientCommand( const CCommand &args )
 {
-	if ( FStrEq( args[0], "spectate" ) )
+	if (FStrEq( args[0], "levelskill" ))
+	{
+		if ( args.ArgC() < 2 )
+		{
+			Warning( "Player sent bad levelskill syntax\n" );
+		}
+		else
+		{
+			if ( ShouldRunRateLimitedCommand( args ) )
+			{
+				int iSkill = atoi( args[1] );
+				if (iSkill >= 1 && iSkill <= 4 && PointsToSpend() > 0 && GetLoadout(iSkill-1) < 3)
+					SpendPoint(iSkill-1);
+			}
+			return true;
+		}
+	}
+	else if ( FStrEq( args[0], "spectate" ) )
 	{
 		if ( ShouldRunRateLimitedCommand( args ) )
 		{
@@ -2149,10 +2342,15 @@ void CHL2MP_Player::GiveTeamXPCentered(int team, int xp, CBasePlayer *ignore)
 
 void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 {
-	if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
-		covenRespawnTimer = gpGlobals->curtime + COVEN_RESPAWNTIME_BASE + COVEN_RESPAWNTIME_VAMPIRES_MULT*covenLevelCounter;
-	else if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
-		covenRespawnTimer = HL2MPRules()->GetSlayerRespawnTime();
+	if (coven_ignore_respawns.GetInt() == 0)
+	{
+		if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+			covenRespawnTimer = gpGlobals->curtime + COVEN_RESPAWNTIME_BASE + COVEN_RESPAWNTIME_VAMPIRES_MULT*covenLevelCounter;
+		else if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+			covenRespawnTimer = HL2MPRules()->GetSlayerRespawnTime();
+	}
+	else
+		covenRespawnTimer = gpGlobals->curtime;
 
 	//update damage info with our accumulated physics force
 	CTakeDamageInfo subinfo = info;

@@ -19,6 +19,7 @@ struct aura_pic
 {
 	int aura;
 	int text;
+	float timer;
 };
 
 class CHudAuras : public CHudElement, public Panel
@@ -36,6 +37,8 @@ class CHudAuras : public CHudElement, public Panel
    virtual void PaintBackground();
 
    int m_nImportCapPoint;
+   int m_nImportStar;
+   int m_nImportSprint;
 
 
 	CPanelAnimationVar( vgui::HFont, m_hTextFont, "TextFont", "Default" );
@@ -54,6 +57,12 @@ CHudAuras::CHudAuras( const char *pElementName ) : CHudElement( pElementName ), 
    //AW Create Texture for Looking around
    m_nImportCapPoint = surface()->CreateNewTextureID();
    surface()->DrawSetTextureFile( m_nImportCapPoint, "effects/prot", true, true);
+
+   m_nImportStar = surface()->CreateNewTextureID();
+   surface()->DrawSetTextureFile( m_nImportStar, "effects/hudstar", true, true);
+
+   m_nImportSprint = surface()->CreateNewTextureID();
+   surface()->DrawSetTextureFile( m_nImportSprint, "effects/guard", true, true);
 
    SetHiddenBits( HIDEHUD_PLAYERDEAD | HIDEHUD_NEEDSUIT );
 }
@@ -81,8 +90,18 @@ void CHudAuras::Paint()
 		{
 			surface()->DrawSetTexture( m_nImportCapPoint );
 		}
+		else if (active_auras[i]->aura == COVEN_BUFF_LEVEL)
+		{
+			surface()->DrawSetTexture( m_nImportStar );
+		}
+		else if (active_auras[i]->aura == COVEN_BUFF_SPRINT)
+		{
+			surface()->DrawSetTexture( m_nImportSprint );
+		}
 
-		surface()->DrawTexturedRect( x, 0, y, t );
+		surface()->DrawTexturedRect( x, 0, x+t, t );
+
+		int n = 0;
 
 		if (active_auras[i]->text)
 		{
@@ -94,10 +113,22 @@ void CHudAuras::Paint()
 			//surface()->DrawFilledRect(x+t/2-UTIL_ComputeStringWidth(m_hTextFont,uc_text)/2,t,x+t/2+UTIL_ComputeStringWidth(m_hTextFont,uc_text)/2,t+12);
 			surface()->DrawSetTextPos( x+t/2-UTIL_ComputeStringWidth(m_hTextFont,uc_text)/2, t );
 			surface()->DrawUnicodeString(uc_text);
+			n = 12;
+		}
+		if (active_auras[i]->timer > 0.0f)
+		{
+			wchar_t uc_text[8];
+			swprintf(uc_text, L"%.1f", active_auras[i]->timer);
+			surface()->DrawSetTextFont(m_hTextFont);
+			//BB: maybe do something like this later.... helps with contrast!
+			//surface()->DrawSetColor(Color(0,0,0,255));
+			//surface()->DrawFilledRect(x+t/2-UTIL_ComputeStringWidth(m_hTextFont,uc_text)/2,t,x+t/2+UTIL_ComputeStringWidth(m_hTextFont,uc_text)/2,t+12);
+			surface()->DrawSetTextPos( x+t/2-UTIL_ComputeStringWidth(m_hTextFont,uc_text)/2, t+n );
+			surface()->DrawUnicodeString(uc_text);
 		}
 
-		x += 32;
-		y += 32;
+		x += 42;//t=32
+		y += 42;//t=32
 	}
 }
 
@@ -108,12 +139,31 @@ void CHudAuras::OnThink()
 		return;
 	active_auras.RemoveAll();
 
+	if (pPlayer->covenStatusEffects & COVEN_FLAG_LEVEL)
+	{
+		aura_pic *temp;
+		temp = new aura_pic;
+		temp->aura = COVEN_BUFF_LEVEL;
+		temp->text = pPlayer->covenLevelCounter-pPlayer->m_HL2Local.covenCurrentPointsSpent;
+		temp->timer = 0.0f;
+		active_auras.AddToTail(temp);
+	}
 	if (pPlayer->covenStatusEffects & COVEN_FLAG_CAPPOINT)
 	{
 		aura_pic *temp;
 		temp = new aura_pic;
 		temp->aura = COVEN_BUFF_CAPPOINT;
 		temp->text = 0;
+		temp->timer = 0.0f;
+		active_auras.AddToTail(temp);
+	}
+	if (pPlayer->covenStatusEffects & COVEN_FLAG_SPRINT)
+	{
+		aura_pic *temp;
+		temp = new aura_pic;
+		temp->aura = COVEN_BUFF_SPRINT;
+		temp->text = 0;
+		temp->timer = pPlayer->m_HL2Local.covenStatusTimers[COVEN_BUFF_SPRINT]-gpGlobals->curtime;
 		active_auras.AddToTail(temp);
 	}
 
@@ -122,7 +172,7 @@ void CHudAuras::OnThink()
 	else
 		SetVisible(true);
 
-	SetSize(32*active_auras.Count(),32+24);
+	SetSize(32*active_auras.Count()+10*(active_auras.Count()-1),32+24);
  
    BaseClass::OnThink();
 }

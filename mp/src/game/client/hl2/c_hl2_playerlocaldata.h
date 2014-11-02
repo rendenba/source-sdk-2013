@@ -45,6 +45,13 @@ public:
 	int		covenStrengthCounter;
 	int		covenConstitutionCounter;
 	int		covenIntellectCounter;
+	int		covenCurrentPointsSpent;
+	int		covenCurrentLoadout1;
+	int		covenCurrentLoadout2;
+	int		covenCurrentLoadout3;
+	int		covenCurrentLoadout4;
+	float	covenStatusTimers[COVEN_MAX_BUFFS];
+	float	covenCooldownTimers[4];
 #ifdef HL2_EPISODIC
 	float	m_flFlashBattery;
 	Vector	m_vecLocatorOrigin;

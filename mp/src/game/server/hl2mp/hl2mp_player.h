@@ -134,18 +134,22 @@ public:
 	void GiveTeamXPCentered(int team, int xp, CBasePlayer *ignore);
 
 	//BB: thinking functions consolidated for convienience
+	void DoStatusThink();
 	void DoVampirePreThink();
 	void DoVampirePostThink();
 	void DoSlayerPreThink();
 	void DoSlayerPostThink();
 
 	//BB: vampire helper functions
+	void DoLeap();
+	void DoVampireAbilityThink();
 	void VampireCheckRegen();
 	void VampireCheckResurrect();
 	void VampireManageRagdoll();
 	void VampireReSolidify();
 
 	//BB: slayer helper functions
+	void DoSlayerAbilityThink();
 	void SlayerVampLeapDetect();
 	void Taunt();
 
@@ -175,6 +179,15 @@ public:
 	float coven_timer_regen;
 	float coven_timer_feed;
 	float coven_timer_leapdetectcooldown;
+
+	//BB: coven loadout/abil stuff
+	int GetLoadout(int n);
+	int GetLevelsSpent();
+	void SpendPoint(int on);
+	int PointsToSpend();
+	void RefreshLoadout();
+	int covenLoadouts[2][COVEN_MAX_CLASSCOUNT][4];
+	int covenLevelsSpent[2][COVEN_MAX_CLASSCOUNT];
 		
 private:
 

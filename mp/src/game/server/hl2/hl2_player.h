@@ -307,6 +307,13 @@ public:
 	CNetworkVar( int, covenLevelCounter );
 	CNetworkVar( int, covenStatusEffects );
 
+	void SetPointsSpent(int pts);
+	void SetCurrentLoadout(int i, int load);
+	float GetCooldown(int abil);
+	void SetCooldown(int abil, float time);
+	void SetStatusTime(int s, float time);
+	float GetStatusTime(int s);
+
 protected:
 	virtual void		PreThink( void );
 	virtual	void		PostThink( void );

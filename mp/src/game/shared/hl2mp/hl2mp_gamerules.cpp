@@ -47,10 +47,10 @@ ConVar sv_hl2mp_item_respawn_time( "sv_hl2mp_item_respawn_time", "30", FCVAR_GAM
 ConVar sv_report_client_settings("sv_report_client_settings", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 
 //BB: Coven ConVars
-ConVar sv_coven_minplayers("sv_coven_minplayers", "3", FCVAR_GAMEDLL | FCVAR_NOTIFY );
-ConVar sv_coven_freezetime("sv_coven_freezetime", "5", FCVAR_GAMEDLL | FCVAR_NOTIFY );
+ConVar sv_coven_minplayers("sv_coven_minplayers", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY );//3
+ConVar sv_coven_freezetime("sv_coven_freezetime", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY );//5
 ConVar sv_coven_usexpitems("sv_coven_usexpitems", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY );
-ConVar sv_coven_warmuptime("sv_coven_warmuptime", "10", FCVAR_GAMEDLL | FCVAR_NOTIFY );//30
+ConVar sv_coven_warmuptime("sv_coven_warmuptime", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY );//10
 
 extern ConVar mp_chattime;
 
@@ -344,7 +344,7 @@ bool CHL2MPRules::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBa
 			float locs[3];
 			UTIL_StringToVector(locs, t);
 			CBaseEntity *ent = CreateEntityByName( "item_ammo_crate" );
-			ent->SetLocalOrigin(Vector(locs[0], locs[1], locs[2]));
+			ent->SetLocalOrigin(Vector(locs[0], locs[1], locs[2]+15.0f));
 			buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
 			const char *u = temparray;
 			UTIL_StringToVector(locs, u);
@@ -790,7 +790,7 @@ void CHL2MPRules::Think( void )
 		CHL2MP_Player *pBot = (CHL2MP_Player *)BotPutInServer(false, TEAM_COMBINE);
 		if (pBot)
 		{
-			pBot->covenClassID = random->RandomInt(1,3);
+			pBot->covenClassID = random->RandomInt(1,COVEN_CLASSCOUNT_SLAYERS);
 			Bot_Think(pBot);
 		}
 	}
@@ -815,7 +815,7 @@ void CHL2MPRules::Think( void )
 		CHL2MP_Player *pBot = (CHL2MP_Player *)BotPutInServer(false, TEAM_REBELS);
 		if (pBot)
 		{
-			pBot->covenClassID = random->RandomInt(1,2);
+			pBot->covenClassID = random->RandomInt(1,COVEN_CLASSCOUNT_VAMPIRES);
 			Bot_Think(pBot);
 		}
 	}
@@ -1525,10 +1525,10 @@ CAmmoDef *GetAmmoDef()
 #endif
 
 	//BB: xp scaling for testing or just tom foolery... set to 1 for normal
-	ConVar coven_xp_scale( "coven_xp_scale", "3", FCVAR_NOTIFY | FCVAR_CHEAT );
+	ConVar coven_xp_scale( "coven_xp_scale", "4", FCVAR_NOTIFY | FCVAR_CHEAT );
 
 	//BB: >0 = ignore respawn timers for testing or just tom foolery... set to 0 for normal
-	ConVar coven_ignore_respawns( "coven_ignore_respawns", "1", FCVAR_NOTIFY | FCVAR_CHEAT );
+	ConVar coven_ignore_respawns( "coven_ignore_respawns", "0", FCVAR_NOTIFY | FCVAR_CHEAT );
 
 	bool CHL2MPRules::FShouldSwitchWeapon( CBasePlayer *pPlayer, CBaseCombatWeapon *pWeapon )
 	{		
