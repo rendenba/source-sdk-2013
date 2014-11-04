@@ -133,6 +133,8 @@ public:
 	void SuitPower_Initialize( void );
 	bool SuitPower_IsDeviceActive( const CSuitPowerDevice &device );
 	bool SuitPower_AddDevice( const CSuitPowerDevice &device );
+	bool SuitPower_AddDrain( float drain );
+	bool SuitPower_ResetDrain();
 	bool SuitPower_RemoveDevice( const CSuitPowerDevice &device );
 	bool SuitPower_ShouldRecharge( void );
 	float SuitPower_GetCurrentPercentage( void ) { return m_HL2Local.m_flSuitPower; }
@@ -313,6 +315,10 @@ public:
 	void SetCooldown(int abil, float time);
 	void SetStatusTime(int s, float time);
 	float GetStatusTime(int s);
+	void SetStatusMagnitude(int s, int m);
+	int GetStatusMagnitude(int s);
+
+	bool gorephased;
 
 protected:
 	virtual void		PreThink( void );

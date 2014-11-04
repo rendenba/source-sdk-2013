@@ -36,6 +36,7 @@ BEGIN_RECV_TABLE_NOBASE( C_HL2PlayerLocalData, DT_HL2Local )
 	RecvPropInt( RECVINFO(covenCurrentLoadout4) ),
 	RecvPropArray3( RECVINFO_ARRAY(covenStatusTimers), RecvPropFloat( RECVINFO(covenStatusTimers[0]))),
 	RecvPropArray3( RECVINFO_ARRAY(covenCooldownTimers), RecvPropFloat( RECVINFO(covenCooldownTimers[0]))),
+	RecvPropArray3( RECVINFO_ARRAY(covenStatusMagnitude), RecvPropInt( RECVINFO(covenStatusMagnitude[0]))),
 #ifdef HL2_EPISODIC
 	RecvPropFloat( RECVINFO(m_flFlashBattery) ),
 	RecvPropVector( RECVINFO(m_vecLocatorOrigin) ),

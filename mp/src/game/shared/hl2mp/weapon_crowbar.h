@@ -49,6 +49,7 @@ public:
 	void		ImpactEffect( trace_t &traceHit );
 	float		GetDamageForActivity( Activity hitActivity );
 	void		SecondaryAttack( void )	{	return;	}
+	void		PrimaryAttack();
 
 	void		Drop( const Vector &vecVelocity );
 

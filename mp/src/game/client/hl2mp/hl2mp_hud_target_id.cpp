@@ -163,7 +163,8 @@ void CTargetID::Paint()
 				printFormatString = "#Playerid_sameteam";
 				bShowHealth = true;
 			}
-			else
+			//BB: we dont want to see name tags for stealthed people...
+			else if (pPlayer->GetRenderColor().a > 130)
 			{
 				printFormatString = "#Playerid_diffteam";
 			}
@@ -171,7 +172,8 @@ void CTargetID::Paint()
 
 			if ( bShowHealth )
 			{
-				_snwprintf( wszHealthText, ARRAYSIZE(wszHealthText) - 1, L"%.0f%%",  ((float)pPlayer->GetHealth() / (float)pPlayer->GetMaxHealth() ) );
+				//BB: dont show the % sign in the health... we use HP not %
+				_snwprintf( wszHealthText, ARRAYSIZE(wszHealthText) - 1, L"%.0f",  ((float)pPlayer->GetHealth() / (float)pPlayer->GetMaxHealth() ) );
 				wszHealthText[ ARRAYSIZE(wszHealthText)-1 ] = '\0';
 			}
 		}

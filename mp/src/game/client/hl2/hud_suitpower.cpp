@@ -84,16 +84,18 @@ void CHudSuitPower::OnThink( void )
 
 	flCurrentPower = pPlayer->m_HL2Local.m_flSuitPower;
 
+	float max = pPlayer->myIntellect()*10.0f;
+
 	// Only update if we've changed suit power
 	if ( flCurrentPower == m_flSuitPower )
 		return;
 
-	if ( flCurrentPower >= 100.0f && m_flSuitPower < 100.0f )
+	if ( flCurrentPower >= max && m_flSuitPower < max )
 	{
 		// we've reached max power
 		g_pClientMode->GetViewportAnimationController()->StartAnimationSequence("SuitAuxPowerMax");
 	}
-	else if ( flCurrentPower < 100.0f && (m_flSuitPower >= 100.0f || m_flSuitPower == SUITPOWER_INIT) )
+	else if ( flCurrentPower < max && (m_flSuitPower >= max || m_flSuitPower == SUITPOWER_INIT) )
 	{
 		// we've lost power
 		g_pClientMode->GetViewportAnimationController()->StartAnimationSequence("SuitAuxPowerNotMax");
@@ -138,9 +140,11 @@ void CHudSuitPower::Paint()
 	if ( !pPlayer )
 		return;
 
+	float max = pPlayer->myIntellect()*10.0f;
+
 	// get bar chunks
 	int chunkCount = m_flBarWidth / (m_flBarChunkWidth + m_flBarChunkGap);
-	int enabledChunks = (int)((float)chunkCount * (m_flSuitPower * 1.0f/100.0f) + 0.5f );
+	int enabledChunks = (int)((float)chunkCount * (m_flSuitPower * 1.0f/max) + 0.5f );
 
 	// see if we've changed power state
 	int lowPower = 0;
@@ -150,7 +154,7 @@ void CHudSuitPower::Paint()
 	}
 	if (m_nSuitPowerLow != lowPower)
 	{
-		if (m_iActiveSuitDevices || m_flSuitPower < 100.0f)
+		if (m_iActiveSuitDevices || m_flSuitPower < max)
 		{
 			if (lowPower)
 			{

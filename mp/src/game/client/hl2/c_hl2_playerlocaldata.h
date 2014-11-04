@@ -51,6 +51,7 @@ public:
 	int		covenCurrentLoadout3;
 	int		covenCurrentLoadout4;
 	float	covenStatusTimers[COVEN_MAX_BUFFS];
+	int		covenStatusMagnitude[COVEN_MAX_BUFFS];
 	float	covenCooldownTimers[4];
 #ifdef HL2_EPISODIC
 	float	m_flFlashBattery;

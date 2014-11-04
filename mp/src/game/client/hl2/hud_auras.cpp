@@ -39,7 +39,7 @@ class CHudAuras : public CHudElement, public Panel
    int m_nImportCapPoint;
    int m_nImportStar;
    int m_nImportSprint;
-
+   int m_nImportFury;
 
 	CPanelAnimationVar( vgui::HFont, m_hTextFont, "TextFont", "Default" );
 };
@@ -63,6 +63,9 @@ CHudAuras::CHudAuras( const char *pElementName ) : CHudElement( pElementName ), 
 
    m_nImportSprint = surface()->CreateNewTextureID();
    surface()->DrawSetTextureFile( m_nImportSprint, "effects/guard", true, true);
+
+   m_nImportFury = surface()->CreateNewTextureID();
+   surface()->DrawSetTextureFile( m_nImportFury, "effects/fury", true, true);
 
    SetHiddenBits( HIDEHUD_PLAYERDEAD | HIDEHUD_NEEDSUIT );
 }
@@ -97,6 +100,10 @@ void CHudAuras::Paint()
 		else if (active_auras[i]->aura == COVEN_BUFF_SPRINT)
 		{
 			surface()->DrawSetTexture( m_nImportSprint );
+		}
+		else if (active_auras[i]->aura == COVEN_BUFF_BYELL)
+		{
+			surface()->DrawSetTexture( m_nImportFury );
 		}
 
 		surface()->DrawTexturedRect( x, 0, x+t, t );
@@ -164,6 +171,15 @@ void CHudAuras::OnThink()
 		temp->aura = COVEN_BUFF_SPRINT;
 		temp->text = 0;
 		temp->timer = pPlayer->m_HL2Local.covenStatusTimers[COVEN_BUFF_SPRINT]-gpGlobals->curtime;
+		active_auras.AddToTail(temp);
+	}
+	if (pPlayer->covenStatusEffects & COVEN_FLAG_BYELL)
+	{
+		aura_pic *temp;
+		temp = new aura_pic;
+		temp->aura = COVEN_BUFF_BYELL;
+		temp->text = pPlayer->m_HL2Local.covenStatusMagnitude[COVEN_BUFF_BYELL];
+		temp->timer = pPlayer->m_HL2Local.covenStatusTimers[COVEN_BUFF_BYELL]-gpGlobals->curtime;
 		active_auras.AddToTail(temp);
 	}
 

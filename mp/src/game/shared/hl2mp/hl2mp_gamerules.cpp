@@ -256,7 +256,7 @@ int CHL2MPRules::AverageLevel(int team)
 		}
 	}
 	if (n > 0)
-		ret /= n;
+		ret = ret / n;
 #endif
 	return ret;
 }

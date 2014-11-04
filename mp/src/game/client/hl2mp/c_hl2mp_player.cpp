@@ -327,6 +327,22 @@ void C_HL2MP_Player::PreThink( void )
 
 	BaseClass::PreThink();
 
+	//BB: this ensures that the viewmodel always matches the models alpha
+	if (GetTeamNumber() == TEAM_REBELS && C_BasePlayer::GetLocalPlayer()==this)
+	{
+		CBaseViewModel *pVM = GetViewModel(0);
+		if (pVM != NULL && pVM->GetRenderMode() != kRenderTransTexture)
+				pVM->SetRenderMode( kRenderTransTexture );
+		if (pVM != NULL)
+		{
+			pVM->SetRenderColorA(m_clrRender.GetA());
+		}
+		if (pVM && GetEffects() & EF_NODRAW)
+			pVM->AddEffects(EF_NODRAW);
+		else if (pVM)
+			pVM->RemoveEffects(EF_NODRAW);
+	}
+
 	HandleSpeedChanges();
 
 	if ( m_HL2Local.m_flSuitPower <= 0.0f )

@@ -132,6 +132,7 @@ public:
 	void State_PreThink_OBSERVER_MODE();
 
 	void GiveTeamXPCentered(int team, int xp, CBasePlayer *ignore);
+	void GiveBuffInRadius(int team, int buff, int mag, float duration, float distance);
 
 	//BB: thinking functions consolidated for convienience
 	void DoStatusThink();
@@ -142,13 +143,16 @@ public:
 
 	//BB: vampire helper functions
 	void DoLeap();
+	void DoGorePhase();
 	void DoVampireAbilityThink();
+	void VampireCheckGore();
 	void VampireCheckRegen();
 	void VampireCheckResurrect();
 	void VampireManageRagdoll();
 	void VampireReSolidify();
 
 	//BB: slayer helper functions
+	void DoBattleYell(int lev);
 	void DoSlayerAbilityThink();
 	void SlayerVampLeapDetect();
 	void Taunt();

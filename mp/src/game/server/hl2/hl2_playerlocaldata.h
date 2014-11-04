@@ -50,6 +50,7 @@ public:
 	CNetworkVar( int, covenCurrentLoadout4 );
 	CNetworkVar( int, covenCurrentPointsSpent );
 	CNetworkArray( float, covenStatusTimers, COVEN_MAX_BUFFS );
+	CNetworkArray( int, covenStatusMagnitude, COVEN_MAX_BUFFS );
 	CNetworkArray( float, covenCooldownTimers, 4 );
 #ifdef HL2_EPISODIC
 	CNetworkVar( float, m_flFlashBattery );

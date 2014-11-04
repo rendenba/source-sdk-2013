@@ -146,6 +146,9 @@ static	kbutton_t	in_attack3;
 kbutton_t	in_ducktoggle;
 
 static	kbutton_t	in_abil1;
+static	kbutton_t	in_abil2;
+static	kbutton_t	in_abil3;
+static	kbutton_t	in_abil4;
 
 /*
 ===========
@@ -510,9 +513,42 @@ void IN_Abil1Down( const CCommand &args )
 	KeyDown( &in_abil1, args[1] );
 }
 
+void IN_Abil2Down( const CCommand &args )
+{
+	KeyDown( &in_abil2, args[1] );
+}
+
+void IN_Abil3Down( const CCommand &args )
+{
+	KeyDown( &in_abil3, args[1] );
+}
+
+void IN_Abil4Down( const CCommand &args )
+{
+	KeyDown( &in_abil4, args[1] );
+}
+
 void IN_Abil1Up( const CCommand &args )
 {
 	KeyUp( &in_abil1, args[1] );
+	in_cancel = 0;
+}
+
+void IN_Abil2Up( const CCommand &args )
+{
+	KeyUp( &in_abil2, args[1] );
+	in_cancel = 0;
+}
+
+void IN_Abil3Up( const CCommand &args )
+{
+	KeyUp( &in_abil3, args[1] );
+	in_cancel = 0;
+}
+
+void IN_Abil4Up( const CCommand &args )
+{
+	KeyUp( &in_abil4, args[1] );
 	in_cancel = 0;
 }
 
@@ -1483,6 +1519,9 @@ int CInput::GetButtonBits( int bResetState )
 	CalcButtonBits( bits, IN_GRENADE2, s_ClearInputState, &in_grenade2, bResetState );
 	CalcButtonBits( bits, IN_ATTACK3, s_ClearInputState, &in_attack3, bResetState );
 	CalcButtonBits( bits, IN_ABIL1, s_ClearInputState, &in_abil1, bResetState );
+	CalcButtonBits( bits, IN_ABIL2, s_ClearInputState, &in_abil2, bResetState );
+	CalcButtonBits( bits, IN_ABIL3, s_ClearInputState, &in_abil3, bResetState );
+	CalcButtonBits( bits, IN_ABIL4, s_ClearInputState, &in_abil4, bResetState );
 	//CalcButtonBits( bits, IN_ATTACK3, s_ClearInputState, &in_attack3, bResetState );
 	//CalcButtonBits( bits, IN_ATTACK3, s_ClearInputState, &in_attack3, bResetState );
 	//CalcButtonBits( bits, IN_ATTACK3, s_ClearInputState, &in_attack3, bResetState );
@@ -1646,6 +1685,12 @@ static ConCommand endattack3("-attack3", IN_Attack3Up);
 
 static ConCommand useabil1("+ability1", IN_Abil1Down);
 static ConCommand endabil1("-ability1", IN_Abil1Up);
+static ConCommand useabil2("+ability2", IN_Abil2Down);
+static ConCommand endabil2("-ability2", IN_Abil2Up);
+static ConCommand useabil3("+ability3", IN_Abil3Down);
+static ConCommand endabil3("-ability3", IN_Abil3Up);
+static ConCommand useabil4("+ability4", IN_Abil4Down);
+static ConCommand endabil4("-ability4", IN_Abil4Up);
 
 #ifdef TF_CLIENT_DLL
 static ConCommand toggle_duck( "toggle_duck", IN_DuckToggle );

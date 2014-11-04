@@ -422,6 +422,16 @@ void CHL2_Player::SetStatusTime(int s, float time)
 	m_HL2Local.covenStatusTimers.Set(s, time);
 }
 
+int CHL2_Player::GetStatusMagnitude(int s)
+{
+	return m_HL2Local.covenStatusMagnitude.Get(s);
+}
+
+void CHL2_Player::SetStatusMagnitude(int s, int m)
+{
+	m_HL2Local.covenStatusMagnitude.Set(s, m);
+}
+
 //
 // SUIT POWER DEVICES
 //
@@ -1432,6 +1442,9 @@ void CHL2_Player::ComputeSpeed( void )
 	if (covenStatusEffects & COVEN_FLAG_SPRINT)
 		speed *= 1.25f;
 
+	if (gorephased)
+		speed *= 1.5f;
+
 	SetMaxSpeed( speed );
 }
 
@@ -1965,7 +1978,8 @@ void CHL2_Player::SuitPower_Update( void )
 	{
 		SuitPower_Charge( SUITPOWER_CHARGE_RATE * gpGlobals->frametime );
 	}
-	else if( m_HL2Local.m_bitsActiveDevices )
+	//BB: hacky hack override devices
+	else// if( m_HL2Local.m_bitsActiveDevices )
 	{
 		float flPowerLoad = m_flSuitPowerLoad;
 
@@ -2097,6 +2111,18 @@ bool CHL2_Player::SuitPower_AddDevice( const CSuitPowerDevice &device )
 	return true;
 }
 
+bool CHL2_Player::SuitPower_AddDrain( float drain )
+{
+	m_flSuitPowerLoad += drain;
+	return true;
+}
+
+bool CHL2_Player::SuitPower_ResetDrain()
+{
+	m_flSuitPowerLoad = 0.0f;
+	return true;
+}
+
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -2144,6 +2170,10 @@ bool CHL2_Player::SuitPower_ShouldRecharge( void )
 	// Has the system been in a no-load state for long enough
 	// to begin recharging?
 	if( gpGlobals->curtime < m_flTimeAllSuitDevicesOff + SUITPOWER_BEGIN_RECHARGE_DELAY )
+		return false;
+
+	//BB: hacky hack to make this work bypassing devices
+	if (m_flSuitPowerLoad > 0.0f)
 		return false;
 
 	return true;

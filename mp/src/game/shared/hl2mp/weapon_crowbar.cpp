@@ -134,6 +134,28 @@ void CWeaponCrowbar::ImpactEffect( trace_t &traceHit )
 	}
 }
 
+void CWeaponCrowbar::PrimaryAttack()
+{
+	CHL2MP_Player *pPlayer = ToHL2MPPlayer( GetOwner() );
+	if (pPlayer)
+	{
+#ifndef CLIENT_DLL
+		if (pPlayer->gorephased)
+		{
+			return;
+		}
+#else
+		C_BasePlayer *local = C_BasePlayer::GetLocalPlayer();
+		C_BaseHLPlayer *pPlayer2 = (C_BaseHLPlayer *)local;
+		if (pPlayer2->GetEffects() & EF_NODRAW)
+		{
+			return;
+		}
+#endif
+	}
+	BaseClass::PrimaryAttack();
+}
+
 #ifndef CLIENT_DLL
 //-----------------------------------------------------------------------------
 // Animation event handlers
