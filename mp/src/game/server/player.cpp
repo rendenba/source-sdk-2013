@@ -1236,8 +1236,10 @@ int CBasePlayer::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 		}
 	}
 
+	//BB: no effect either
 	// Display any effect associate with this damage type
-	DamageEffect(info.GetDamage(),bitsDamage);
+	if (!(info.GetDamageType() & DMG_NO))
+		DamageEffect(info.GetDamage(),bitsDamage);
 
 	// how bad is it, doc?
 	ftrivial = (m_iHealth > 75 || m_lastDamageAmount < 5);
@@ -1423,6 +1425,12 @@ int CBasePlayer::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 //-----------------------------------------------------------------------------
 void CBasePlayer::OnDamagedByExplosion( const CTakeDamageInfo &info )
 {
+	//BB: none of this for DMG_NO
+	if (info.GetDamageType() & DMG_NO)
+	{
+		return;
+	}
+
 	float lastDamage = info.GetDamage();
 
 	float distanceFromPlayer = 9999.0f;

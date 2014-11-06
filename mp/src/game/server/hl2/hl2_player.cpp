@@ -461,7 +461,14 @@ END_SEND_TABLE()
 
 void CHL2_Player::SetCurrentLoadout(int i, int load)
 {
-	m_HL2Local.covenCurrentLoadout1 = load;
+	if (i == 0)
+		m_HL2Local.covenCurrentLoadout1 = load;
+	else if (i == 1)
+		m_HL2Local.covenCurrentLoadout2 = load;
+	else if (i == 2)
+		m_HL2Local.covenCurrentLoadout3 = load;
+	else if (i == 3)
+		m_HL2Local.covenCurrentLoadout4 = load;
 }
 
 void CHL2_Player::SetPointsSpent(int pts)
@@ -1434,6 +1441,9 @@ void CHL2_Player::ComputeSpeed( void )
 			break;
 		case COVEN_CLASSID_GORE:
 			speed = COVEN_BASESPEED_GORE;
+			break;
+		case COVEN_CLASSID_DEGEN:
+			speed = COVEN_BASESPEED_DEGEN;
 			break;
 		default:break;
 		}

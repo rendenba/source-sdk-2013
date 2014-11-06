@@ -779,7 +779,7 @@ void CHL2MPRules::Think( void )
 	//BB: add team scores and reset
 	if (gpGlobals->curtime > scoreTimer)
 	{
-		scoreTimer = gpGlobals->curtime + 1.0f;
+		scoreTimer = gpGlobals->curtime + 1.2f*num_cap_points/COVEN_MAX_CAP_POINTS;
 		GetGlobalTeam( COVEN_TEAMID_SLAYERS )->AddScore(COVEN_CAP_SCORE_PERSEC*s_caps);
 		GetGlobalTeam( COVEN_TEAMID_VAMPIRES )->AddScore(COVEN_CAP_SCORE_PERSEC*v_caps);
 	}

@@ -133,6 +133,7 @@ public:
 
 	void GiveTeamXPCentered(int team, int xp, CBasePlayer *ignore);
 	void GiveBuffInRadius(int team, int buff, int mag, float duration, float distance);
+	void ResetStats();
 
 	//BB: thinking functions consolidated for convienience
 	void DoStatusThink();
@@ -153,6 +154,7 @@ public:
 
 	//BB: slayer helper functions
 	void DoBattleYell(int lev);
+	void DoSheerWill(int lev);
 	void DoSlayerAbilityThink();
 	void SlayerVampLeapDetect();
 	void Taunt();
