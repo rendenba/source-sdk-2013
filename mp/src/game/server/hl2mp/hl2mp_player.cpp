@@ -22,7 +22,12 @@
 #include "weapon_hl2mpbase.h"
 #include "grenade_satchel.h"
 #include "eventqueue.h"
+#include "items.h"
 #include "gamestats.h"
+
+
+#include "beam_flags.h"
+#include "te_effect_dispatch.h"
 
 #include "physics_prop_ragdoll.h"
 
@@ -252,8 +257,44 @@ void CHL2MP_Player::DoSlayerAbilityThink()
 				else
 					EmitSound("HL2Player.UseDeny");
 			}
+			else if (covenClassID == COVEN_CLASSID_AVENGER)
+			{
+				float mana = 10.0f;
+				float cool = 40.0f - 10.0f*lev;
+				if (SuitPower_GetCurrentPercentage() > mana)
+				{
+					SetCooldown(1, gpGlobals->curtime + cool);
+					GenerateBandage();
+					SuitPower_Drain(mana);
+				}
+				else
+					EmitSound("HL2Player.UseDeny");
+			}
 		}
 	}
+}
+
+void CHL2MP_Player::GenerateBandage()
+{
+	CBaseEntity *ent = CreateEntityByName( "item_healthkit" );
+	Vector	vecEye = EyePosition();
+	Vector	vForward, vRight;
+
+	EyeVectors( &vForward, &vRight, NULL );
+	Vector vecSrc = vecEye + vForward * 18.0f + vRight * 8.0f;
+
+	
+	ent->SetLocalOrigin(GetLocalOrigin()+vForward*18+Vector(0,0,40));
+	vForward[2] += 0.3f;
+
+	Vector vecThrow;
+	GetVelocity( &vecThrow, NULL );
+	vecThrow += vForward * 400;
+	((CItem *)ent)->creator = this;
+	ent->Spawn();
+	ent->SetLocalAngles(QAngle(random->RandomInt(-180,180),random->RandomInt(-180,180),random->RandomInt(-180,180)));
+	ent->ApplyAbsVelocityImpulse(vecThrow);//SetLocalVelocity(forward*200);
+	ent->AddSpawnFlags(SF_NORESPAWN);
 }
 
 void CHL2MP_Player::DoSheerWill(int lev)
@@ -484,8 +525,66 @@ bool CHL2MP_Player::LevelUp( int lvls )
 		default:break;
 		}
 	}*/
+	if (IsAlive())
+	{
+	#if !defined( TF_DLL )
+		// Since this code only runs on the server, make sure it shows the tempents it creates.
+		// This solves a problem with remote detonating the pipebombs (client wasn't seeing the explosion effect)
+		CDisablePredictionFiltering disabler;
+#endif
+
+			UTIL_ScreenShake( GetAbsOrigin(), 20.0f, 150.0, 1.0, 1250.0f, SHAKE_START );
+
+			CEffectData data;
+
+			data.m_vOrigin = GetAbsOrigin();
+
+			DispatchEffect( "cball_explode", data );
+
+			CBroadcastRecipientFilter filter2;
+
+			te->BeamRingPoint( filter2, 0, GetAbsOrigin(),	//origin
+				50,	//start radius
+				1024,		//end radius
+				s_nExplosionTexture, //texture
+				0,			//halo index
+				0,			//start frame
+				2,			//framerate
+				0.2f,		//life
+				64,			//width
+				0,			//spread
+				0,			//amplitude
+				255,	//r
+				255,	//g
+				225,	//b
+				32,		//a
+				0,		//speed
+				FBEAM_FADEOUT
+				);
+
+			//Shockring
+			te->BeamRingPoint( filter2, 0, GetAbsOrigin(),	//origin
+				50,	//start radius
+				1024,		//end radius
+				s_nExplosionTexture, //texture
+				0,			//halo index
+				0,			//start frame
+				2,			//framerate
+				0.5f,		//life
+				64,			//width
+				0,			//spread
+				0,			//amplitude
+				255,	//r
+				255,	//g
+				225,	//b
+				64,		//a
+				0,		//speed
+				FBEAM_FADEOUT
+				);
+	}
 	ResetVitals();
-	SetHealth(myConstitution()*COVEN_HP_PER_CON);
+	if (GetHealth() <= GetMaxHealth())
+		SetHealth(myConstitution()*COVEN_HP_PER_CON);
 	return BaseClass::LevelUp(lvls);
 }
 
@@ -569,12 +668,12 @@ void CHL2MP_Player::ResetStats()
 			SetIntellect(COVEN_BASEINT_FIEND);
 			break;
 		case COVEN_CLASSID_GORE:
-			SetConstitution(28);
+			SetConstitution(30);
 			SetStrength(COVEN_BASESTR_GORE);
 			SetIntellect(COVEN_BASEINT_GORE);
 			break;
 		case COVEN_CLASSID_DEGEN:
-			SetConstitution(25);
+			SetConstitution(28);
 			SetStrength(COVEN_BASESTR_DEGEN);
 			SetIntellect(COVEN_BASEINT_DEGEN);
 			break;
@@ -591,6 +690,8 @@ void CHL2MP_Player::ResetVitals( void )
 void CHL2MP_Player::Precache( void )
 {
 	BaseClass::Precache();
+
+	s_nExplosionTexture = PrecacheModel( "sprites/lgtning.vmt" );
 
 	PrecacheModel ( "sprites/glow01.vmt" );
 
@@ -837,6 +938,8 @@ void CHL2MP_Player::Spawn(void)
 	if (GetTeamNumber() == COVEN_TEAMID_SLAYERS && covenClassID > COVEN_CLASSCOUNT_SLAYERS)
 		return;
 
+	ResetStats();
+
 	BaseClass::Spawn();
 	
 	if ( !IsObserver() )
@@ -884,7 +987,6 @@ void CHL2MP_Player::Spawn(void)
 
 	m_bReady = false;
 
-	ResetStats();
 	ResetVitals();
 	SetHealth(myConstitution()*COVEN_HP_PER_CON);
 	lastCheckedCapPoint = 0;
@@ -1138,27 +1240,32 @@ float CHL2MP_Player::Feed()
 	else if (gpGlobals->curtime > coven_timer_feed)
 	{
 		coven_timer_feed = -1.0f;
-		int temp = m_iMaxHealth - m_iHealth;
+		int temp = 3;
 		//BB: new method...
 		if (covenClassID == COVEN_CLASSID_BLOOD)
 		{
-			if (temp > 6)
 				temp = 6;
 		}
+		//BB: Coven GORGE implementation
+		if (covenClassID == COVEN_CLASSID_GORE && GetLoadout(2) > 0)
+		{
+			int newmax = GetMaxHealth() * (1.0f + 0.1f*GetLoadout(2));
+			temp = newmax - GetHealth();
+			if (temp > 0)
+			{
+				if (temp > 3)
+					temp = 3;
+				SetHealth(GetHealth()+temp);
+			}
+		}
 		else
-		{
-			if (temp > 3)
-				temp = 3;
-		}
+			temp = TakeHealth(temp, DMG_GENERIC );
+		//BB: new method... remove this, body only counts as 1x, while BB gets 2x
+		if (temp > 3)
+			temp = 3;
 		if (temp > 0)
-		{
-			TakeHealth(temp, DMG_GENERIC );
-			//BB: new method... remove this, body only counts as 1x, while BB gets 2x
-			if (temp > 3)
-				temp = 3;
 			EmitSound("Vampire.Regen");
-			return (float)temp;
-		}
+		return (float)temp;
 	}
 
 	return 0.0f;
@@ -2146,7 +2253,6 @@ void CHL2MP_Player::DoStatusThink()
 		{
 			covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_STATS;
 			SetStatusTime(COVEN_BUFF_STATS, 0.0f);
-			SetStatusMagnitude(COVEN_BUFF_STATS, 0);
 			ResetStats();
 			//dont kill us!!!
 			int hp = max(GetHealth()-3*GetStatusMagnitude(COVEN_BUFF_STATS)*COVEN_HP_PER_CON,1);
@@ -2286,11 +2392,22 @@ bool CHL2MP_Player::ClientCommand( const CCommand &args )
 		{
 			if ( ShouldRunRateLimitedCommand( args ) )
 			{
-				int iSkill = atoi( args[1] );
-				if ((covenLevelCounter < 3 && GetLoadout(iSkill-1) > 0) || (covenLevelCounter < 5 && GetLoadout(iSkill-1) > 1))
+				int iSkill = atoi( args[1] )-1;
+				if (iSkill < 0 || iSkill > 3)
 					return true;
-				if (iSkill >= 1 && iSkill <= 4 && PointsToSpend() > 0 && GetLoadout(iSkill-1) < 3)
-					SpendPoint(iSkill-1);
+				if (iSkill == 3)
+				{
+					if (covenLevelCounter < 6)
+						return true;
+					if (covenLevelCounter < 8 && GetLoadout(iSkill) > 0)
+						return true;
+					if (covenLevelCounter < 10 && GetLoadout(iSkill) > 1)
+						return true;
+				}
+				if ((covenLevelCounter < 3 && GetLoadout(iSkill) > 0) || (covenLevelCounter < 5 && GetLoadout(iSkill) > 1))
+					return true;
+				if (PointsToSpend() > 0 && GetLoadout(iSkill) < 3)
+					SpendPoint(iSkill);
 			}
 			return true;
 		}

@@ -201,7 +201,7 @@ void CHudSuitPower::Paint()
 	}
 
 	//draw our value
-	surface()->DrawSetTextPos(text_xpos+50, text_ypos);
+	surface()->DrawSetTextPos(text_xpos+75, text_ypos);
 	wchar_t szText[ 63 ];
 	V_swprintf_safe(szText, L"%.00f", m_flSuitPower);
 	surface()->DrawPrintText(szText, wcslen(szText));

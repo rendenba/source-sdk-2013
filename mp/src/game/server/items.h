@@ -45,6 +45,8 @@ public:
 
 	CItem();
 
+	CBaseEntity *creator;
+
 	virtual void Spawn( void );
 	virtual void Precache();
 

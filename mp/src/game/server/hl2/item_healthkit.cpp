@@ -30,6 +30,7 @@ public:
 	void Spawn( void );
 	void Precache( void );
 	bool MyTouch( CBasePlayer *pPlayer );
+
 };
 
 LINK_ENTITY_TO_CLASS( item_healthkit, CHealthKit );
@@ -66,28 +67,41 @@ void CHealthKit::Precache( void )
 //-----------------------------------------------------------------------------
 bool CHealthKit::MyTouch( CBasePlayer *pPlayer )
 {
-	if ( pPlayer->TakeHealth( sk_healthkit.GetFloat(), DMG_GENERIC ) )
+	//BB: only slayers can pickup health kits now...
+	if (pPlayer && pPlayer->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
 	{
-		CSingleUserRecipientFilter user( pPlayer );
-		user.MakeReliable();
-
-		UserMessageBegin( user, "ItemPickup" );
-			WRITE_STRING( GetClassname() );
-		MessageEnd();
-
-		CPASAttenuationFilter filter( pPlayer, "HealthKit.Touch" );
-		EmitSound( filter, pPlayer->entindex(), "HealthKit.Touch" );
-
-		if ( g_pGameRules->ItemShouldRespawn( this ) )
+		if (pPlayer == creator)
 		{
-			Respawn();
+			IPhysicsObject *pPhysics = VPhysicsGetObject();
+			if ( pPhysics && !pPhysics->IsAsleep())
+			//if (!(GetFlags() & FL_ONGROUND))
+			{
+				return false;
+			}
 		}
-		else
+		if ( pPlayer->TakeHealth( sk_healthkit.GetFloat(), DMG_GENERIC ) )
 		{
-			UTIL_Remove(this);	
-		}
+			CSingleUserRecipientFilter user( pPlayer );
+			user.MakeReliable();
 
-		return true;
+			UserMessageBegin( user, "ItemPickup" );
+				WRITE_STRING( GetClassname() );
+			MessageEnd();
+
+			CPASAttenuationFilter filter( pPlayer, "HealthKit.Touch" );
+			EmitSound( filter, pPlayer->entindex(), "HealthKit.Touch" );
+
+			if ( g_pGameRules->ItemShouldRespawn( this ) )
+			{
+				Respawn();
+			}
+			else
+			{
+				UTIL_Remove(this);	
+			}
+
+			return true;
+		}
 	}
 
 	return false;

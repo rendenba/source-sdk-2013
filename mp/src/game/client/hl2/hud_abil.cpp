@@ -15,6 +15,10 @@
  
 using namespace vgui;
 
+static wchar_t *abilities[2][COVEN_MAX_CLASSCOUNT][4] =
+{{{L"Battle Yell",L"Bandage",L"",L""},{L"Sprint",L"Sheer Will",L"",L""},{L"",L"",L"Reflexes",L""}},
+{{L"Leap",L"",L"",L""},{L"Phase",L"",L"Gorge",L""},{L"",L"",L"",L""}}};
+
 struct ability_pic
 {
 	int abil;
@@ -36,8 +40,6 @@ class CHudAbils : public CHudElement, public Panel
    virtual void Paint();
    virtual void PaintBackground();
 
-   wchar_t *abilities[2][COVEN_MAX_CLASSCOUNT][4];
-
    int m_nImportAbil;
 
 	CPanelAnimationVar( vgui::HFont, m_hTextFont, "TextFont", "Default" );
@@ -52,10 +54,6 @@ CHudAbils::CHudAbils( const char *pElementName ) : CHudElement( pElementName ), 
  
    SetVisible( false );
    SetAlpha( 255 );
-
-   abilities[0][0][0] = L"Battle Yell";
-
-   abilities[1][0][0] = L"Leap";
  
    //AW Create Texture for Looking around
    m_nImportAbil = surface()->CreateNewTextureID();

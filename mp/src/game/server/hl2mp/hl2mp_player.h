@@ -155,6 +155,7 @@ public:
 	//BB: slayer helper functions
 	void DoBattleYell(int lev);
 	void DoSheerWill(int lev);
+	void GenerateBandage();
 	void DoSlayerAbilityThink();
 	void SlayerVampLeapDetect();
 	void Taunt();
@@ -174,6 +175,8 @@ public:
 
 	int lastCheckedCapPoint;
 	float lastCapPointTime;
+
+	int s_nExplosionTexture;
 
 	Vector store_loc;
 

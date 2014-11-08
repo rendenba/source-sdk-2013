@@ -48,6 +48,10 @@ static int BotNumber = 1;
 static int g_iNextBotTeam = -1;
 static int g_iNextBotClass = -1;
 
+static char *botnames[2][10] = 
+{{"Blade","Gabriel Van Helsing","Lucian","Edgar Frog", "Allan Frog","Anita Blake","Simon Belmont","Buffy Summers","Abraham Van Helsing","Mister"},
+{"Edward Cullen","Lestat de Lioncourt","Louis de Pointe du Lac","Liam","Jeanette","Therese","Bill Compton","Eric Northman","Armand","Eli"}};
+
 typedef struct
 {
 	bool			backwards;
@@ -104,10 +108,14 @@ bool Bot_Right_Team( CHL2MP_Player *pBot )
 //-----------------------------------------------------------------------------
 CBasePlayer *BotPutInServer( bool bFrozen, int iTeam )
 {
+	if (iTeam < 2)
+		return NULL;
+
 	g_iNextBotTeam = iTeam;
 
+	//BotNumber
 	char botname[ 64 ];
-	Q_snprintf( botname, sizeof( botname ), "Bot%02i", BotNumber );
+	Q_snprintf( botname, sizeof( botname ), "%s", botnames[iTeam-2][random->RandomInt(0,10)] );
 
 	// This is an evil hack, but we use it to prevent sv_autojointeam from kicking in.
 
