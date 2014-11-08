@@ -41,6 +41,7 @@ class CHudAuras : public CHudElement, public Panel
    int m_nImportSprint;
    int m_nImportFury;
    int m_nImportStats;
+   int m_nImportBerserk;
 
 	CPanelAnimationVar( vgui::HFont, m_hTextFont, "TextFont", "Default" );
 };
@@ -70,6 +71,9 @@ CHudAuras::CHudAuras( const char *pElementName ) : CHudElement( pElementName ), 
 
    m_nImportStats = surface()->CreateNewTextureID();
    surface()->DrawSetTextureFile( m_nImportStats, "effects/banner", true, true);
+
+   m_nImportBerserk = surface()->CreateNewTextureID();
+   surface()->DrawSetTextureFile( m_nImportBerserk, "effects/berserk", true, true);
 
    SetHiddenBits( HIDEHUD_PLAYERDEAD | HIDEHUD_NEEDSUIT );
 }
@@ -112,6 +116,10 @@ void CHudAuras::Paint()
 		else if (active_auras[i]->aura == COVEN_BUFF_STATS)
 		{
 			surface()->DrawSetTexture( m_nImportStats );
+		}
+		else if (active_auras[i]->aura == COVEN_BUFF_BERSERK)
+		{
+			surface()->DrawSetTexture( m_nImportBerserk );
 		}
 
 		surface()->DrawTexturedRect( x, 0, x+t, t );
@@ -156,10 +164,11 @@ void CHudAuras::OnThink()
 
 	if (pPlayer->covenStatusEffects & COVEN_FLAG_LEVEL)
 	{
+		int lev = min(pPlayer->covenLevelCounter, COVEN_MAX_LEVEL);
 		aura_pic *temp;
 		temp = new aura_pic;
 		temp->aura = COVEN_BUFF_LEVEL;
-		temp->text = pPlayer->covenLevelCounter-pPlayer->m_HL2Local.covenCurrentPointsSpent;
+		temp->text = lev-pPlayer->m_HL2Local.covenCurrentPointsSpent;
 		temp->timer = 0.0f;
 		active_auras.AddToTail(temp);
 	}
@@ -197,6 +206,15 @@ void CHudAuras::OnThink()
 		temp->aura = COVEN_BUFF_STATS;
 		temp->text = pPlayer->m_HL2Local.covenStatusMagnitude[COVEN_BUFF_STATS];
 		temp->timer = pPlayer->m_HL2Local.covenStatusTimers[COVEN_BUFF_STATS]-gpGlobals->curtime;
+		active_auras.AddToTail(temp);
+	}
+	if (pPlayer->covenStatusEffects & COVEN_FLAG_BERSERK)
+	{
+		aura_pic *temp;
+		temp = new aura_pic;
+		temp->aura = COVEN_BUFF_BERSERK;
+		temp->text = pPlayer->m_HL2Local.covenStatusMagnitude[COVEN_BUFF_BERSERK];
+		temp->timer = pPlayer->m_HL2Local.covenStatusTimers[COVEN_BUFF_BERSERK]-gpGlobals->curtime;
 		active_auras.AddToTail(temp);
 	}
 

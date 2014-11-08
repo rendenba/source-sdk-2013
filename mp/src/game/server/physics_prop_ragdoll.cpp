@@ -155,6 +155,7 @@ void CRagdollProp::DisableAutoFade()
 	
 void CRagdollProp::Spawn( void )
 {
+	BloodColor();
 	// Starts out as the default fade scale value
 	m_flDefaultFadeScale = m_flFadeScale;
 

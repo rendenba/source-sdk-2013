@@ -2293,6 +2293,7 @@ void CBaseEntity::TraceBleed( float flDamage, const Vector &vecDir, trace_t *ptr
 	}
 #endif
 
+
 	if (flDamage < 10)
 	{
 		flNoise = 0.1;
@@ -2308,6 +2309,10 @@ void CBaseEntity::TraceBleed( float flDamage, const Vector &vecDir, trace_t *ptr
 		flNoise = 0.3;
 		cCount = 4;
 	}
+
+	//BB: MORE BLOOD DECALS
+	cCount *=3;
+	//flNoise *=2;
 
 	float flTraceDist = (bitsDamageType & DMG_AIRBOAT) ? 384 : 172;
 	for ( i = 0 ; i < cCount ; i++ )

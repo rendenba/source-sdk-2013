@@ -471,6 +471,41 @@ void CHL2MP_Player::DoVampireAbilityThink()
 			}
 		}
 	}
+	if (m_afButtonPressed & IN_ABIL4)
+	{
+		float cd = GetCooldown(3);
+		int lev = GetLoadout(3);
+		if ((cd > 0.0f && gpGlobals->curtime < cd) || lev == 0)
+		{
+			EmitSound("HL2Player.UseDeny");
+		}
+		else
+		{
+			if (covenClassID == COVEN_CLASSID_FIEND)
+			{
+				float mana = 10.0f+5.0f*lev;
+				float cool = 20.0f;
+				if (SuitPower_GetCurrentPercentage() > mana)
+				{
+					SetCooldown(3, gpGlobals->curtime + cool);
+					SetStatusTime(COVEN_BUFF_BERSERK, gpGlobals->curtime + 15.0f);
+					covenStatusEffects |= COVEN_FLAG_BERSERK;
+					DoBerserk(lev);
+					SuitPower_Drain(mana);
+				}
+				else
+					EmitSound("HL2Player.UseDeny");
+			}
+		}
+	}
+}
+
+void CHL2MP_Player::DoBerserk(int lev)
+{
+	int oldmax = GetMaxHealth();
+	int newmax = oldmax*(1.2f + 0.2f*lev);
+	SetMaxHealth(newmax);
+	SetHealth(GetHealth()+(newmax-oldmax));
 }
 
 void CHL2MP_Player::UpdateOnRemove( void )
@@ -594,8 +629,8 @@ void CHL2MP_Player::SpendPoint(int on)
 	if (t > 1)
 	{
 		t -= 2;
-		covenLevelsSpent[t][covenClassID]++;
-		covenLoadouts[t][covenClassID][on]++;
+		covenLevelsSpent[t][covenClassID-1]++;
+		covenLoadouts[t][covenClassID-1][on]++;
 		RefreshLoadout();
 	}
 }
@@ -615,7 +650,7 @@ int CHL2MP_Player::GetLoadout(int n)
 	if (t > 1 && n >= 0 && n <= 3)
 	{
 		t -= 2;
-		return covenLoadouts[t][covenClassID][n];
+		return covenLoadouts[t][covenClassID-1][n];
 	}
 
 	return -1;
@@ -627,7 +662,7 @@ int CHL2MP_Player::GetLevelsSpent()
 	if (t > 1)
 	{
 		t -= 2;
-		return covenLevelsSpent[t][covenClassID];
+		return covenLevelsSpent[t][covenClassID-1];
 	}
 
 	return -1;
@@ -1418,52 +1453,63 @@ void CHL2MP_Player::PreThink( void )
 
 		if (IsAlive() && ((tVec-GetLocalOrigin()).Length() < pRules->cap_point_distance[lastCheckedCapPoint]))
 		{
-			covenStatusEffects |= COVEN_FLAG_CAPPOINT;
-			int n = pRules->cap_point_status.Get(lastCheckedCapPoint);
-			lastCapPointTime = gpGlobals->curtime+0.1f;
-			pRules->cap_point_timers[lastCheckedCapPoint] = gpGlobals->curtime+0.2f;
-			if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+			bool itsago = true;
+			if (pRules->cap_point_sightcheck[lastCheckedCapPoint])
 			{
-				if (n < 120)
+				trace_t tr;
+				UTIL_TraceLine( GetAbsOrigin(), tVec, MASK_SOLID, this, COLLISION_GROUP_DEBRIS, &tr );
+				if ( tr.fraction != 1.0 )
+					itsago = false;
+			}
+			if (itsago)
+			{
+				covenStatusEffects |= COVEN_FLAG_CAPPOINT;
+				int n = pRules->cap_point_status.Get(lastCheckedCapPoint);
+				lastCapPointTime = gpGlobals->curtime+0.1f;
+				pRules->cap_point_timers[lastCheckedCapPoint] = gpGlobals->curtime+0.2f;
+				if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
 				{
-					pRules->cap_point_status.Set(lastCheckedCapPoint, n+1);
-					if ((n+1)==120 && pRules->cap_point_state[lastCheckedCapPoint] != GetTeamNumber())
+					if (n < 120)
 					{
-						pRules->cap_point_state[lastCheckedCapPoint] = COVEN_TEAMID_SLAYERS;
-						GetGlobalTeam( GetTeamNumber() )->AddScore(COVEN_CAP_SCORE);
-						const char *killer_weapon_name = "cap_slay";
-						IGameEvent *event = gameeventmanager->CreateEvent( "player_death" );
-						if( event )
+						pRules->cap_point_status.Set(lastCheckedCapPoint, n+1);
+						if ((n+1)==120 && pRules->cap_point_state[lastCheckedCapPoint] != GetTeamNumber())
 						{
-							event->SetInt("userid",  GetUserID());
-							event->SetInt("attacker",  GetUserID());
-							event->SetString("weapon", killer_weapon_name );
-							event->SetString("point", pRules->cap_point_names[lastCheckedCapPoint]);
-							event->SetInt( "priority", 7 );
-							gameeventmanager->FireEvent( event );
+							pRules->cap_point_state[lastCheckedCapPoint] = COVEN_TEAMID_SLAYERS;
+							GetGlobalTeam( GetTeamNumber() )->AddScore(COVEN_CAP_SCORE);
+							const char *killer_weapon_name = "cap_slay";
+							IGameEvent *event = gameeventmanager->CreateEvent( "player_death" );
+							if( event )
+							{
+								event->SetInt("userid",  GetUserID());
+								event->SetInt("attacker",  GetUserID());
+								event->SetString("weapon", killer_weapon_name );
+								event->SetString("point", pRules->cap_point_names[lastCheckedCapPoint]);
+								event->SetInt( "priority", 7 );
+								gameeventmanager->FireEvent( event );
+							}
 						}
 					}
 				}
-			}
-			else
-			{
-				if (n >0)
+				else
 				{
-					pRules->cap_point_status.Set(lastCheckedCapPoint, n-1);
-					if ((n-1)==0  && pRules->cap_point_state[lastCheckedCapPoint] != GetTeamNumber())
+					if (n >0)
 					{
-						pRules->cap_point_state[lastCheckedCapPoint] = COVEN_TEAMID_VAMPIRES;
-						GetGlobalTeam( GetTeamNumber() )->AddScore(COVEN_CAP_SCORE);
-						const char *killer_weapon_name = "cap_vamp";
-						IGameEvent *event = gameeventmanager->CreateEvent( "player_death" );
-						if( event )
+						pRules->cap_point_status.Set(lastCheckedCapPoint, n-1);
+						if ((n-1)==0  && pRules->cap_point_state[lastCheckedCapPoint] != GetTeamNumber())
 						{
-							event->SetInt("userid",  GetUserID());
-							event->SetInt("attacker",  GetUserID());
-							event->SetString("weapon", killer_weapon_name );
-							event->SetString("point", pRules->cap_point_names[lastCheckedCapPoint]);
-							event->SetInt( "priority", 7 );
-							gameeventmanager->FireEvent( event );
+							pRules->cap_point_state[lastCheckedCapPoint] = COVEN_TEAMID_VAMPIRES;
+							GetGlobalTeam( GetTeamNumber() )->AddScore(COVEN_CAP_SCORE);
+							const char *killer_weapon_name = "cap_vamp";
+							IGameEvent *event = gameeventmanager->CreateEvent( "player_death" );
+							if( event )
+							{
+								event->SetInt("userid",  GetUserID());
+								event->SetInt("attacker",  GetUserID());
+								event->SetString("weapon", killer_weapon_name );
+								event->SetString("point", pRules->cap_point_names[lastCheckedCapPoint]);
+								event->SetInt( "priority", 7 );
+								gameeventmanager->FireEvent( event );
+							}
 						}
 					}
 				}
@@ -1605,11 +1651,18 @@ void CHL2MP_Player::VampireCheckResurrect()
 {
 	float x = 4.268f;
 	float y = 5.0f;
-		//BB: vampire ressurect... start the sound early...
+	if (covenClassID == COVEN_CLASSID_DEGEN)
+	{
+		x -= 0.66f*GetLoadout(3);
+		y -= 0.66f*GetLoadout(3);
+	}
+	//BB: vampire ressurect... start the sound early...
 	if (timeofdeath > 0 && /*gpGlobals->curtime < timeofdeath + 4.9f &&*/ gpGlobals->curtime > timeofdeath + x && !rezsound)
 	{
 		EmitSound( "Resurrect" );
 		rezsound = true;
+		if (covenClassID == COVEN_CLASSID_DEGEN)
+			SetHealth(GetMaxHealth()*(0.25f+0.1f*GetLoadout(3)));
 	}
 	else
 	//BB: release the vampire player if enough time has passed (and not freezetime)
@@ -2261,6 +2314,22 @@ void CHL2MP_Player::DoStatusThink()
 			SetStatusMagnitude(COVEN_BUFF_STATS, 0);
 		}
 	}
+
+	//BERSERK
+	if (covenStatusEffects & COVEN_FLAG_BERSERK)
+	{
+		if (gpGlobals->curtime > GetStatusTime(COVEN_BUFF_BERSERK))
+		{
+			covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_BERSERK;
+			SetStatusTime(COVEN_BUFF_BERSERK, 0.0f);
+			int oldmax = GetMaxHealth();
+			ResetVitals();
+			//dont kill us!!!
+			int hp = max(GetHealth()-(oldmax-GetMaxHealth()),1);
+			SetHealth(hp);
+			SetStatusMagnitude(COVEN_BUFF_BERSERK, 0);
+		}
+	}
 }
 
 bool CHL2MP_Player::HandleCommand_SelectClass( int select )
@@ -2376,6 +2445,8 @@ bool CHL2MP_Player::HandleCommand_JoinTeam( int team )
 
 int CHL2MP_Player::PointsToSpend()
 {
+	if (covenLevelCounter > COVEN_MAX_LEVEL)
+		return COVEN_MAX_LEVEL - GetLevelsSpent();
 	int ret = covenLevelCounter - GetLevelsSpent();
 	return ret;
 }
@@ -2805,6 +2876,14 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 
 	RemoveEffects( EF_NODRAW );	// still draw player body
 	StopZooming();
+}
+
+CON_COMMAND(level, "give me some XP")
+{
+	CHL2MP_Player *pPlayer = ToHL2MPPlayer( UTIL_GetCommandClient() );
+	if (!pPlayer)
+		return;
+	pPlayer->LevelUp(1);
 }
 
 CON_COMMAND(location, "print current location")

@@ -145,6 +145,7 @@ public:
 	//BB: vampire helper functions
 	void DoLeap();
 	void DoGorePhase();
+	void DoBerserk(int lev);
 	void DoVampireAbilityThink();
 	void VampireCheckGore();
 	void VampireCheckRegen();

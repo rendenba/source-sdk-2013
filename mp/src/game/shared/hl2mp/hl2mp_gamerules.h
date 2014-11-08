@@ -170,6 +170,7 @@ public:
 	float cap_point_timers[COVEN_MAX_CAP_POINTS];
 	int cap_point_state[COVEN_MAX_CAP_POINTS];
 	int cap_point_distance[COVEN_MAX_CAP_POINTS];
+	int cap_point_sightcheck[COVEN_MAX_CAP_POINTS];
 	float scoreTimer;
 	int last_verified_cap_point;
 

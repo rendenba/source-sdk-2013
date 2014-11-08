@@ -375,6 +375,11 @@ bool CHL2MPRules::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBa
 				buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
 				const char *v = temparray;
 				Q_snprintf(cap_point_names[num_cap_points], sizeof(cap_point_names[num_cap_points]), "%s", v);
+				buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
+				const char *w = temparray;
+				int m;
+				UTIL_StringToIntArray(&m, 1, w);
+				cap_point_sightcheck[num_cap_points] = m;
 				num_cap_points++;
 			}
 		}
