@@ -159,6 +159,9 @@ public:
 	void DoBattleYell(int lev);
 	void DoSheerWill(int lev);
 	void GenerateBandage();
+	void ThrowHolywaterGrenade();
+	void CheckThrowPosition(const Vector &vecEye, Vector &vecSrc);
+	void SlayerHolywaterThink();
 	void SlayerGutcheckThink();
 	void DoSlayerAbilityThink();
 	void SlayerVampLeapDetect();
@@ -194,6 +197,7 @@ public:
 	float coven_timer_leapdetectcooldown;
 	float coven_timer_vstealth;
 	float coven_timer_gcheck;
+	float coven_timer_holywater;
 
 	//BB: coven loadout/abil stuff
 	int GetLoadout(int n);

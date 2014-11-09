@@ -49,7 +49,7 @@ using namespace vgui;
 #endif // !TF_CLIENT_DLL
 
 static char *abilities[2][COVEN_MAX_CLASSCOUNT][4] =
-{{{"Battle Yell","Bandage","",""},{"Sprint","Sheer Will","","Gut Check"},{"","","Reflexes",""}},
+{{{"Battle Yell","Bandage","",""},{"Sprint","Sheer Will","","Gut Check"},{"Holy Water","","Reflexes",""}},
 {{"Leap","","Sneak","Berserk"},{"Phase","","Gorge",""},{"","","Masochist","Undying"}}};
 
 //-----------------------------------------------------------------------------
@@ -224,16 +224,64 @@ void CLevelMenu::UpdateButtons()
 
 	char temp[64];
 	Button *entry = dynamic_cast<Button *>(FindChildByName("abil1"));
-	Q_snprintf(temp, sizeof(temp), "%s - Rank %d", abilities[pPlayer->GetTeamNumber()-2][pPlayer->covenClassID-1][0], pPlayer->m_HL2Local.covenCurrentLoadout1+1);
+	int n = 1;
+	if (pPlayer->m_HL2Local.covenCurrentLoadout1 > 2)
+	{
+		n = 0;
+		entry->SetEnabled(false);
+	}
+	if ((pPlayer->m_HL2Local.covenCurrentLoadout1 > 0 && pPlayer->covenLevelCounter < 3) || (pPlayer->m_HL2Local.covenCurrentLoadout1 > 1 && pPlayer->covenLevelCounter < 5))
+	{
+		entry->SetEnabled(false);
+	}
+	else
+		entry->SetEnabled(true);
+	Q_snprintf(temp, sizeof(temp), "%s - Rank %d", abilities[pPlayer->GetTeamNumber()-2][pPlayer->covenClassID-1][0], pPlayer->m_HL2Local.covenCurrentLoadout1+n);
 	PostMessage( entry, new KeyValues( "SetText", "text", temp ) );
 	entry = dynamic_cast<Button *>(FindChildByName("abil2"));
-	Q_snprintf(temp, sizeof(temp), "%s - Rank %d", abilities[pPlayer->GetTeamNumber()-2][pPlayer->covenClassID-1][1], pPlayer->m_HL2Local.covenCurrentLoadout2+1);
+	n = 1;
+	if (pPlayer->m_HL2Local.covenCurrentLoadout2 > 2)
+	{
+		n = 0;
+		entry->SetEnabled(false);
+	}
+	if ((pPlayer->m_HL2Local.covenCurrentLoadout2 > 0 && pPlayer->covenLevelCounter < 3) || (pPlayer->m_HL2Local.covenCurrentLoadout2 > 1 && pPlayer->covenLevelCounter < 5))
+	{
+		entry->SetEnabled(false);
+	}
+	else
+		entry->SetEnabled(true);
+	Q_snprintf(temp, sizeof(temp), "%s - Rank %d", abilities[pPlayer->GetTeamNumber()-2][pPlayer->covenClassID-1][1], pPlayer->m_HL2Local.covenCurrentLoadout2+n);
 	PostMessage( entry, new KeyValues( "SetText", "text", temp ) );
 	entry = dynamic_cast<Button *>(FindChildByName("abil3"));
-	Q_snprintf(temp, sizeof(temp), "%s - Rank %d", abilities[pPlayer->GetTeamNumber()-2][pPlayer->covenClassID-1][2], pPlayer->m_HL2Local.covenCurrentLoadout3+1);
+	n = 1;
+	if (pPlayer->m_HL2Local.covenCurrentLoadout3 > 2)
+	{
+		n = 0;
+		entry->SetEnabled(false);
+	}
+	if ((pPlayer->m_HL2Local.covenCurrentLoadout3 > 0 && pPlayer->covenLevelCounter < 3) || (pPlayer->m_HL2Local.covenCurrentLoadout3 > 1 && pPlayer->covenLevelCounter < 5))
+	{
+		entry->SetEnabled(false);
+	}
+	else
+		entry->SetEnabled(true);
+	Q_snprintf(temp, sizeof(temp), "%s - Rank %d", abilities[pPlayer->GetTeamNumber()-2][pPlayer->covenClassID-1][2], pPlayer->m_HL2Local.covenCurrentLoadout3+n);
 	PostMessage( entry, new KeyValues( "SetText", "text", temp ) );
 	entry = dynamic_cast<Button *>(FindChildByName("abil4"));
-	Q_snprintf(temp, sizeof(temp), "%s - Rank %d", abilities[pPlayer->GetTeamNumber()-2][pPlayer->covenClassID-1][3], pPlayer->m_HL2Local.covenCurrentLoadout4+1);
+	n = 1;
+	if (pPlayer->m_HL2Local.covenCurrentLoadout4 > 2)
+	{
+		n = 0;
+		entry->SetEnabled(false);
+	}
+	if (pPlayer->covenLevelCounter < 6 || (pPlayer->m_HL2Local.covenCurrentLoadout4 > 1 && pPlayer->covenLevelCounter < 8) || (pPlayer->m_HL2Local.covenCurrentLoadout4 > 2 && pPlayer->covenLevelCounter < 10))
+	{
+		entry->SetEnabled(false);
+	}
+	else
+		entry->SetEnabled(true);
+	Q_snprintf(temp, sizeof(temp), "%s - Rank %d", abilities[pPlayer->GetTeamNumber()-2][pPlayer->covenClassID-1][3], pPlayer->m_HL2Local.covenCurrentLoadout4+n);
 	PostMessage( entry, new KeyValues( "SetText", "text", temp ) );
 }
 

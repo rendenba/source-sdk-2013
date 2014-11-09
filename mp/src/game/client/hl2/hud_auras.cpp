@@ -44,6 +44,7 @@ class CHudAuras : public CHudElement, public Panel
    int m_nImportBerserk;
    int m_nImportCoffin;
    int m_nImportBomb;
+   int m_nImportHH;
 
 	CPanelAnimationVar( vgui::HFont, m_hTextFont, "TextFont", "Default" );
 };
@@ -82,6 +83,9 @@ CHudAuras::CHudAuras( const char *pElementName ) : CHudElement( pElementName ), 
 
    m_nImportBomb = surface()->CreateNewTextureID();
    surface()->DrawSetTextureFile( m_nImportBomb, "effects/cowbomb", true, true);
+
+   m_nImportHH = surface()->CreateNewTextureID();
+   surface()->DrawSetTextureFile( m_nImportHH, "effects/holy_heal" , true, true);
 
    SetHiddenBits( HIDEHUD_PLAYERDEAD | HIDEHUD_NEEDSUIT );
 }
@@ -136,6 +140,10 @@ void CHudAuras::Paint()
 		else if (active_auras[i]->aura == COVEN_BUFF_GCHECK)
 		{
 			surface()->DrawSetTexture( m_nImportBomb );
+		}
+		else if (active_auras[i]->aura == COVEN_BUFF_HOLYWATER)
+		{
+			surface()->DrawSetTexture( m_nImportHH );
 		}
 
 		surface()->DrawTexturedRect( x, 0, x+t, t );
@@ -248,6 +256,15 @@ void CHudAuras::OnThink()
 		temp = new aura_pic;
 		temp->aura = COVEN_BUFF_GCHECK;
 		temp->text = 0;
+		temp->timer = 0;
+		active_auras.AddToTail(temp);
+	}
+	if (pPlayer->covenStatusEffects & COVEN_FLAG_HOLYWATER)
+	{
+		aura_pic *temp;
+		temp = new aura_pic;
+		temp->aura = COVEN_BUFF_HOLYWATER;
+		temp->text = pPlayer->m_HL2Local.covenStatusMagnitude[COVEN_BUFF_HOLYWATER];
 		temp->timer = 0;
 		active_auras.AddToTail(temp);
 	}

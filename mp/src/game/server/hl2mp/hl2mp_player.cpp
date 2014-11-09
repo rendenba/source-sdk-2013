@@ -24,6 +24,7 @@
 #include "eventqueue.h"
 #include "items.h"
 #include "gamestats.h"
+#include "grenade_hh.h"
 
 
 #include "beam_flags.h"
@@ -238,6 +239,19 @@ void CHL2MP_Player::DoSlayerAbilityThink()
 				else
 					EmitSound("HL2Player.UseDeny");
 			}
+			else if (covenClassID == COVEN_CLASSID_HELLION)
+			{
+				float mana = 4.0f+2.0f*lev;
+				float cool = 25.0f - 5.0f*lev;
+				if (SuitPower_GetCurrentPercentage() > mana)
+				{
+					SetCooldown(0, gpGlobals->curtime + cool);
+					ThrowHolywaterGrenade();
+					SuitPower_Drain(mana);
+				}
+				else
+					EmitSound("HL2Player.UseDeny");
+			}
 		}
 	}
 	if (m_afButtonPressed & IN_ABIL2)
@@ -280,6 +294,47 @@ void CHL2MP_Player::DoSlayerAbilityThink()
 					EmitSound("HL2Player.UseDeny");
 			}
 		}
+	}
+}
+
+void CHL2MP_Player::ThrowHolywaterGrenade()
+{
+	Vector	vecEye = EyePosition();
+	Vector	vForward, vRight;
+
+	EyeVectors( &vForward, &vRight, NULL );
+	Vector vecSrc = vecEye + vForward * 18.0f + vRight * 8.0f + Vector( 0, 0, -8 );
+	CheckThrowPosition( vecEye, vecSrc );
+	
+	Vector vecThrow;
+	GetVelocity( &vecThrow, NULL );
+	vecThrow = vecThrow * 0.3f;
+	vecThrow += vForward * 500 + Vector( 0, 0, 150 );
+	CGrenadeHH *pGrenade = (CGrenadeHH*)Create( "grenade_HH", vecSrc, vec3_angle, this );
+	pGrenade->SetAbsVelocity( vecThrow );
+	pGrenade->SetLocalAngularVelocity( RandomAngle( -200, 200 ) );
+	pGrenade->SetMoveType( MOVETYPE_FLYGRAVITY, MOVECOLLIDE_FLY_BOUNCE ); 
+	pGrenade->SetThrower( this );
+	pGrenade->SetDamage( 5.0f );
+	pGrenade->SetDamageRadius( 150.0f );
+	pGrenade->SetMoveType( MOVETYPE_FLYGRAVITY, MOVECOLLIDE_FLY_BOUNCE ); 
+	pGrenade->SetThrower( this );
+	pGrenade->SetDamage( 5.0f );
+	pGrenade->SetDamageRadius( 150.0f );
+}
+
+void CHL2MP_Player::CheckThrowPosition(const Vector &vecEye, Vector &vecSrc)
+{
+	trace_t tr;
+
+	float hw_gren_rad = 4.0f;
+
+	UTIL_TraceHull( vecEye, vecSrc, -Vector(hw_gren_rad+2,hw_gren_rad+2,hw_gren_rad+2), Vector(hw_gren_rad+2,hw_gren_rad+2,hw_gren_rad+2), 
+		PhysicsSolidMaskForEntity(), this, GetCollisionGroup(), &tr );
+	
+	if ( tr.DidHit() )
+	{
+		vecSrc = tr.endpos;
 	}
 }
 
@@ -742,6 +797,8 @@ void CHL2MP_Player::Precache( void )
 
 	PrecacheModel ( "sprites/glow01.vmt" );
 
+	UTIL_PrecacheOther("grenade_hh");
+
 	//Precache Citizen models
 	int nHeads = ARRAYSIZE( g_ppszRandomCitizenModels );
 	int i;	
@@ -1047,7 +1104,7 @@ void CHL2MP_Player::Spawn(void)
 	coven_timer_regen = 0.0f;
 	coven_timer_vstealth = 0.0f;
 	coven_timer_gcheck = 0.0f;
-
+	coven_timer_holywater = -1.0f;
 }
 
 void CHL2MP_Player::PickupObject( CBaseEntity *pObject, bool bLimitMassAndSize )
@@ -1630,6 +1687,7 @@ void CHL2MP_Player::DoSlayerPreThink()
 {
 	DoSlayerAbilityThink();
 	SlayerGutcheckThink();
+	SlayerHolywaterThink();
 }
 
 void CHL2MP_Player::DoVampirePostThink()
@@ -2425,6 +2483,27 @@ void CHL2MP_Player::DoStatusThink()
 	}
 }
 
+void CHL2MP_Player::SlayerHolywaterThink()
+{
+	//HOLYWATER
+	if (IsAlive() && covenStatusEffects & COVEN_FLAG_HOLYWATER && gpGlobals->curtime > coven_timer_holywater)
+	{
+		int mag = GetStatusMagnitude(COVEN_BUFF_HOLYWATER);
+		float temp = ceil(mag/50.0f);
+		int newtot = mag-temp;
+		if (newtot <= 0)
+		{
+			newtot = 0;
+			coven_timer_holywater = -1.0f;
+			covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_HOLYWATER;
+		}
+		else
+			coven_timer_holywater = gpGlobals->curtime + 1.0f;
+		SetStatusMagnitude(COVEN_BUFF_HOLYWATER, newtot);
+		TakeHealth(temp, DMG_GENERIC);
+	}
+}
+
 bool CHL2MP_Player::HandleCommand_SelectClass( int select )
 {
 	if (select < 0)
@@ -3029,6 +3108,34 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 
 	CTakeDamageInfo inputInfoAdjust = inputInfo;
 
+	if (GetTeamNumber() == COVEN_TEAMID_SLAYERS && covenStatusEffects & COVEN_FLAG_HOLYWATER)
+	{
+		float temp = floor(0.2f * inputInfoAdjust.GetDamage());
+		int mag = GetStatusMagnitude(COVEN_BUFF_HOLYWATER);
+		if (temp > mag)
+		{
+			temp = mag;
+		}
+		//moved this only fall damage
+		/*
+		flIntegerDamage -= temp;
+		holyhealtotal -= temp;
+		*/
+		if (inputInfoAdjust.GetDamageType() == DMG_FALL)
+		{
+			//holyhealtotal -= 30;
+			inputInfoAdjust.SetDamage(inputInfoAdjust.GetDamage() - temp);
+			int newtot = mag-temp;
+			if (newtot <= 0)
+			{
+				newtot = 0;
+				covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_HOLYWATER;
+				coven_timer_holywater = -1.0f;
+			}
+			SetStatusMagnitude(COVEN_BUFF_HOLYWATER, newtot);
+		}
+	}
+
 	//BB: level diff damage adjust
 	if (inputInfo.GetAttacker() && inputInfo.GetAttacker()->IsPlayer())
 	{
@@ -3078,6 +3185,46 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 			SetStatusMagnitude(COVEN_BUFF_MASOCHIST, stat);
 			SetStatusTime(COVEN_BUFF_MASOCHIST, gpGlobals->curtime + 6.0f);
 			ComputeSpeed();
+		}
+	}
+
+	//BB: DO HOLY WATER DAMAGE DETECT
+	if ((inputInfo.GetDamageType() & DMG_HOLY) && IsAlive() && !KO)
+	{
+		//do holy stuff...
+		inputInfoAdjust.SetDamage(0.0f);
+		if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+		{
+			//startup the healing aura...
+			int mag = GetStatusMagnitude(COVEN_BUFF_HOLYWATER)+inputInfo.GetDamage()/5.0f*50.0f;
+			if (mag > 150)
+				mag = 150;
+			SetStatusMagnitude(COVEN_BUFF_HOLYWATER, mag);
+			covenStatusEffects |= COVEN_FLAG_HOLYWATER;
+			coven_timer_holywater = gpGlobals->curtime + 1.0f;
+			//insta heal component
+			TakeHealth(inputInfo.GetDamage()/5.0f*30.0f, DMG_GENERIC);
+		}
+		else
+		{
+			//set me on fire or extend fire appropriately...
+			/*if (m_pFlame == NULL)
+			{
+				m_pFlame = CEntityFlame::Create( this );
+				if (m_pFlame)
+				{
+					m_pFlame->creator = (CBasePlayer *)inputInfo.GetInflictor();
+					m_pFlame->SetLifetime( max(inputInfo.GetDamage()/5.0f*15.0f,1.0f) );
+					AddFlag( FL_ONFIRE );
+
+					SetEffectEntity( m_pFlame );
+				}
+			}
+			else
+			{
+				m_pFlame->SupplementDamage(inputInfo.GetDamage());
+			}
+			m_HL2Local.watertime = ceil(gpGlobals->curtime+m_pFlame->GetRemainingLife());*/
 		}
 	}
 

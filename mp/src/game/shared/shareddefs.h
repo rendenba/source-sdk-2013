@@ -463,7 +463,7 @@ enum PLAYER_ANIM
 
 
 
-#define COVEN_MAX_BUFFS 9
+#define COVEN_MAX_BUFFS 10
 
 #define COVEN_BUFF_CAPPOINT 0
 #define COVEN_BUFF_LEVEL 1
@@ -473,6 +473,7 @@ enum PLAYER_ANIM
 #define COVEN_BUFF_BERSERK 5
 #define COVEN_BUFF_MASOCHIST 6
 #define COVEN_BUFF_GCHECK 7
+#define COVEN_BUFF_HOLYWATER 8
 
 #define COVEN_FLAG_CAPPOINT (1 << 0)
 #define COVEN_FLAG_LEVEL (1 << 1)
@@ -482,6 +483,7 @@ enum PLAYER_ANIM
 #define COVEN_FLAG_BERSERK (1 << 5)
 #define COVEN_FLAG_MASOCHIST (1 << 6)
 #define COVEN_FLAG_GCHECK (1 << 7)
+#define COVEN_FLAG_HOLYWATER (1 << 8)
 
 // instant damage
 
@@ -528,6 +530,7 @@ enum PLAYER_ANIM
 #define DMG_BUCKSHOT		(1<<29)		// not quite a bullet. Little, rounder, different.
 
 #define DMG_NO				(1<<30)
+#define DMG_HOLY			(1<<16)
 
 // NOTE: DO NOT ADD ANY MORE CUSTOM DMG_ TYPES. MODS USE THE DMG_LASTGENERICFLAG BELOW, AND
 //		 IF YOU ADD NEW DMG_ TYPES, THEIR TYPES WILL BE HOSED. WE NEED A BETTER SOLUTION.
