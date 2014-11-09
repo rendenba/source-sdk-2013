@@ -13,6 +13,8 @@
 #include "engine/IEngineSound.h"
 #include "explode.h"
 
+#include "hl2mp_player.h"
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -218,11 +220,17 @@ void CTripmineGrenade::BeamBreakThink( void  )
 
 	CBaseEntity *pEntity = tr.m_pEnt;
 	CBaseCombatCharacter *pBCC  = ToBaseCombatCharacter( pEntity );
-
-	if (pBCC || fabs( m_flBeamLength - tr.fraction ) > 0.001)
+	
+	if (pBCC && pBCC->GetTeamNumber() != m_nTeam)
+	//if (pBCC || fabs( m_flBeamLength - tr.fraction ) > 0.001)
 	{
 		m_iHealth = 0;
 		Event_Killed( CTakeDamageInfo( (CBaseEntity*)m_hOwner, this, 100, GIB_NORMAL ) );
+		if (m_hOwner && m_hOwner.Get()->IsPlayer())
+		{
+			((CHL2MP_Player *) m_hOwner.Get())->num_trip_mines--;
+		}
+
 		return;
 	}
 

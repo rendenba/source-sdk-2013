@@ -73,11 +73,13 @@ BEGIN_NETWORK_TABLE_NOBASE( CHL2MPRules, DT_HL2MPRules )
 		RecvPropBool( RECVINFO( m_bTeamPlayEnabled ) ),
 		RecvPropArray3( RECVINFO_ARRAY(cap_point_status), RecvPropInt( RECVINFO(cap_point_status[0]))),
 		RecvPropArray3( RECVINFO_ARRAY(cap_point_coords), RecvPropFloat( RECVINFO(cap_point_coords[0]))),
+		RecvPropArray3( RECVINFO_ARRAY(cap_point_state), RecvPropInt( RECVINFO(cap_point_state[0]))),
 	#else
 		SendPropInt( SENDINFO( num_cap_points ) ),
 		SendPropBool( SENDINFO( m_bTeamPlayEnabled ) ),
 		SendPropArray3( SENDINFO_ARRAY3(cap_point_status), SendPropInt( SENDINFO_ARRAY(cap_point_status), 0, SPROP_VARINT | SPROP_UNSIGNED ) ),
 		SendPropArray3( SENDINFO_ARRAY3(cap_point_coords), SendPropFloat( SENDINFO_ARRAY(cap_point_coords), 0, SPROP_NOSCALE ) ),
+		SendPropArray3( SENDINFO_ARRAY3(cap_point_state), SendPropInt( SENDINFO_ARRAY(cap_point_state), 0, SPROP_NOSCALE ) ),
 	#endif
 
 END_NETWORK_TABLE()
@@ -366,7 +368,7 @@ bool CHL2MPRules::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBa
 				cap_point_coords.Set(index+2, locs[2]);
 				cap_point_status.Set(num_cap_points, 60);
 				cap_point_timers[num_cap_points] = 0.0f;
-				cap_point_state[num_cap_points] = 0;
+				cap_point_state.Set(num_cap_points, 0);
 				buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
 				const char *u = temparray;
 				int n;
@@ -604,7 +606,7 @@ void CHL2MPRules::RestartRound()
 	{
 		cap_point_status.Set(i, 60);
 		cap_point_timers[i] = 0.0f;
-		cap_point_state[i] = 0;
+		cap_point_state.Set(i, 0);
 	}
 	GetGlobalTeam( COVEN_TEAMID_SLAYERS )->SetScore(0);
 	GetGlobalTeam( COVEN_TEAMID_VAMPIRES )->SetScore(0);

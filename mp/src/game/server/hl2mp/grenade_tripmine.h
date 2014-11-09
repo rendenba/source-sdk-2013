@@ -40,6 +40,8 @@ public:
 public:
 	EHANDLE		m_hOwner;
 
+	int			m_nTeam;
+
 private:
 	float		m_flPowerUp;
 	Vector		m_vecDir;

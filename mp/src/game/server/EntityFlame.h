@@ -27,6 +27,8 @@ public:
 
 	CEntityFlame( void );
 
+	CBasePlayer *creator;
+
 	static CEntityFlame	*Create( CBaseEntity *pTarget, bool useHitboxes = true );
 
 	void	AttachToEntity( CBaseEntity *pTarget );
@@ -38,6 +40,7 @@ public:
 	float	GetRemainingLife( void );
 	int		GetNumHitboxFires( void );
 	float	GetHitboxFireScale( void );
+	void SupplementDamage(float dmg);
 
 	virtual void Precache();
 	virtual void UpdateOnRemove();

@@ -14,6 +14,7 @@
 #include <vgui_controls/EditablePanel.h>
 #include <game/client/iviewport.h>
 #include "GameEventListener.h"
+#include "filesystem.h"
 
 //-----------------------------------------------------------------------------
 // Purpose: Game ScoreBoard
@@ -68,6 +69,17 @@ protected:
 
 private:
 
+	bool LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBaseFileSystem *pFileSystem, const char *pPathID );
+	bool LoadFromBuffer( char const *resourceName, const char *pBuffer, IBaseFileSystem* pFileSystem, const char *pPathID = NULL );
+	bool LoadDotFile( IBaseFileSystem *filesystem, const char *resourceName, const char *pathID );
+
+	int m_nMapTex;
+	int m_nGrayDot;
+	int m_nRedDot;
+	int m_nBlueDot;
+	char mapname[MAX_PATH];
+
+	CUtlVector<Vector> mapspots;
 	int			m_iDesiredHeight;
 	IViewPort	*m_pViewPort;
 	ButtonCode_t m_nCloseKey;

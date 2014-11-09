@@ -220,6 +220,11 @@ int CEntityFlame::GetNumHitboxFires( void )
 	return m_iNumHitboxFires;
 }
 
+void CEntityFlame::SupplementDamage(float dmg)
+{
+	SetLifetime((m_flLifetime - gpGlobals->curtime) + max(dmg/5.0f*15.0f, 1.0f));
+}
+
 float CEntityFlame::GetHitboxFireScale( void )
 {
 	return m_flHitboxFireScale;

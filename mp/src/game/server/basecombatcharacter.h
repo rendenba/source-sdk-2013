@@ -30,6 +30,8 @@
 #include "ai_utils.h"
 #include "physics_impact_damage.h"
 
+#include "EntityFlame.h"
+
 class CNavArea;
 class CScriptedTarget;
 typedef CHandle<CBaseCombatWeapon> CBaseCombatWeaponHandle;
@@ -483,6 +485,8 @@ public:
 	
 	//BB: coven vampire variables
 	bool KO;
+	//BB: stores your flame object for vampires on fire (holy water)
+	CEntityFlame *m_pFlame;
 	CBaseEntity *mykiller;
 	float timeofdeath;
 

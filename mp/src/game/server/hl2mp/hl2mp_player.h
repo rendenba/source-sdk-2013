@@ -133,8 +133,10 @@ public:
 	void State_PreThink_OBSERVER_MODE();
 
 	void GiveTeamXPCentered(int team, int xp, CBasePlayer *ignore);
-	void GiveBuffInRadius(int team, int buff, int mag, float duration, float distance);
+	void GiveBuffInRadius(int team, int buff, int mag, float duration, float distance, int classid);
 	void ResetStats();
+
+	void Extinguish();
 
 	//BB: thinking functions consolidated for convienience
 	void DoStatusThink();
@@ -158,8 +160,10 @@ public:
 	//BB: slayer helper functions
 	void DoBattleYell(int lev);
 	void DoSheerWill(int lev);
+	void RevengeCheck();
 	void GenerateBandage();
 	void ThrowHolywaterGrenade();
+	bool AttachTripmine();
 	void CheckThrowPosition(const Vector &vecEye, Vector &vecSrc);
 	void SlayerHolywaterThink();
 	void SlayerGutcheckThink();
@@ -189,6 +193,8 @@ public:
 
 	bool rezsound;
 	float solidcooldown;
+
+	int num_trip_mines;
 
 	//BB: coven timers
 	float coven_timer_damage;

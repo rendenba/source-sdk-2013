@@ -49,7 +49,7 @@ using namespace vgui;
 #endif // !TF_CLIENT_DLL
 
 static char *abilities[2][COVEN_MAX_CLASSCOUNT][4] =
-{{{"Battle Yell","Bandage","",""},{"Sprint","Sheer Will","","Gut Check"},{"Holy Water","","Reflexes",""}},
+{{{"Battle Yell","Bandage","Revenge",""},{"Sprint","Sheer Will","","Gut Check"},{"Holy Water","Trip Mine","Reflexes",""}},
 {{"Leap","","Sneak","Berserk"},{"Phase","","Gorge",""},{"","","Masochist","Undying"}}};
 
 //-----------------------------------------------------------------------------

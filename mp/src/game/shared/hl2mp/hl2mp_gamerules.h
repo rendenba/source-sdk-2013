@@ -168,7 +168,6 @@ public:
 	//BB: yeah, probably should have made this into a class... hindsight.
 	char cap_point_names[COVEN_MAX_CAP_POINTS][MAX_PLAYER_NAME_LENGTH];
 	float cap_point_timers[COVEN_MAX_CAP_POINTS];
-	int cap_point_state[COVEN_MAX_CAP_POINTS];
 	int cap_point_distance[COVEN_MAX_CAP_POINTS];
 	int cap_point_sightcheck[COVEN_MAX_CAP_POINTS];
 	float scoreTimer;
@@ -197,6 +196,7 @@ public:
 	CNetworkVar( int, num_cap_points );
 	CNetworkArray( int, cap_point_status, COVEN_MAX_CAP_POINTS );
 	CNetworkArray( float, cap_point_coords, COVEN_MAX_CAP_POINTS*3 );
+	CNetworkArray( int, cap_point_state, COVEN_MAX_CAP_POINTS );
 	
 private:
 	

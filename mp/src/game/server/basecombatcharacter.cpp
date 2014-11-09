@@ -2443,6 +2443,11 @@ int CBaseCombatCharacter::OnTakeDamage( const CTakeDamageInfo &info )
 				m_iHealth = GetMaxHealth()*0.25f;
 				mykiller = info.GetAttacker();
 				KO = true;
+				if (m_pFlame)
+				{
+					UTIL_Remove( m_pFlame );
+					Extinguish();
+				}
 				timeofdeath = gpGlobals->curtime;
 				AddFlag(FL_FROZEN);
 				//BB: WTF WHY DOESNT THIS WORK?!?!
