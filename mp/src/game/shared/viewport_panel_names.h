@@ -16,6 +16,8 @@
 #define PANEL_ACTIVE		"active"	// current active panel			
 
 #define PANEL_SCOREBOARD	"scores"
+#define PANEL_MINIMAP		"minimap"
+#define PANEL_LEVEL			"level"
 #define PANEL_OVERVIEW		"overview"
 #define PANEL_CLASS			"class"
 #define PANEL_CLASS2		"class2"

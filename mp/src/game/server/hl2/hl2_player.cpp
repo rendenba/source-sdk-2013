@@ -1455,6 +1455,9 @@ void CHL2_Player::ComputeSpeed( void )
 	if (gorephased)
 		speed *= 1.5f;
 
+	if (covenStatusEffects & COVEN_FLAG_MASOCHIST)
+		speed *= 1.0f + GetStatusMagnitude(COVEN_BUFF_MASOCHIST)/100.0f;
+
 	SetMaxSpeed( speed );
 }
 

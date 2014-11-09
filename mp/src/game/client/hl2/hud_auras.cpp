@@ -42,6 +42,8 @@ class CHudAuras : public CHudElement, public Panel
    int m_nImportFury;
    int m_nImportStats;
    int m_nImportBerserk;
+   int m_nImportCoffin;
+   int m_nImportBomb;
 
 	CPanelAnimationVar( vgui::HFont, m_hTextFont, "TextFont", "Default" );
 };
@@ -74,6 +76,12 @@ CHudAuras::CHudAuras( const char *pElementName ) : CHudElement( pElementName ), 
 
    m_nImportBerserk = surface()->CreateNewTextureID();
    surface()->DrawSetTextureFile( m_nImportBerserk, "effects/berserk", true, true);
+
+   m_nImportCoffin = surface()->CreateNewTextureID();
+   surface()->DrawSetTextureFile( m_nImportCoffin, "effects/undying", true, true);
+
+   m_nImportBomb = surface()->CreateNewTextureID();
+   surface()->DrawSetTextureFile( m_nImportBomb, "effects/cowbomb", true, true);
 
    SetHiddenBits( HIDEHUD_PLAYERDEAD | HIDEHUD_NEEDSUIT );
 }
@@ -120,6 +128,14 @@ void CHudAuras::Paint()
 		else if (active_auras[i]->aura == COVEN_BUFF_BERSERK)
 		{
 			surface()->DrawSetTexture( m_nImportBerserk );
+		}
+		else if (active_auras[i]->aura == COVEN_BUFF_MASOCHIST)
+		{
+			surface()->DrawSetTexture( m_nImportCoffin );
+		}
+		else if (active_auras[i]->aura == COVEN_BUFF_GCHECK)
+		{
+			surface()->DrawSetTexture( m_nImportBomb );
 		}
 
 		surface()->DrawTexturedRect( x, 0, x+t, t );
@@ -215,6 +231,24 @@ void CHudAuras::OnThink()
 		temp->aura = COVEN_BUFF_BERSERK;
 		temp->text = pPlayer->m_HL2Local.covenStatusMagnitude[COVEN_BUFF_BERSERK];
 		temp->timer = pPlayer->m_HL2Local.covenStatusTimers[COVEN_BUFF_BERSERK]-gpGlobals->curtime;
+		active_auras.AddToTail(temp);
+	}
+	if (pPlayer->covenStatusEffects & COVEN_FLAG_MASOCHIST)
+	{
+		aura_pic *temp;
+		temp = new aura_pic;
+		temp->aura = COVEN_BUFF_MASOCHIST;
+		temp->text = pPlayer->m_HL2Local.covenStatusMagnitude[COVEN_BUFF_MASOCHIST];
+		temp->timer = pPlayer->m_HL2Local.covenStatusTimers[COVEN_BUFF_MASOCHIST]-gpGlobals->curtime;
+		active_auras.AddToTail(temp);
+	}
+	if (pPlayer->covenStatusEffects & COVEN_FLAG_GCHECK)
+	{
+		aura_pic *temp;
+		temp = new aura_pic;
+		temp->aura = COVEN_BUFF_GCHECK;
+		temp->text = 0;
+		temp->timer = 0;
 		active_auras.AddToTail(temp);
 	}
 

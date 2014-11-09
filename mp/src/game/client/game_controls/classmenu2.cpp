@@ -233,6 +233,9 @@ void CClassMenu2::ShowPanel(bool bShow)
 				m_mouseoverButtons[i]->HidePage();	// Hide the rest
 			}
 		}*/
+
+		SetCloseButtonVisible( false); 
+
 		
 		if ( m_iScoreBoardKey == BUTTON_CODE_INVALID ) 
 		{

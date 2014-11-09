@@ -11,7 +11,7 @@
 
 #include <cdll_client_int.h>
 
-#include "classmenu.h"
+#include "levelmenu.h"
 
 #include <vgui/IScheme.h>
 #include <vgui/ILocalize.h>
@@ -23,6 +23,10 @@
 #include <vgui_controls/TextEntry.h>
 #include <vgui_controls/Button.h>
 #include <vgui_controls/Panel.h>
+
+
+#include "c_basehlplayer.h"
+
 
 #include "cdll_util.h"
 #include "IGameUIFuncs.h" // for key bindings
@@ -44,12 +48,14 @@ using namespace vgui;
 #define HUD_CLASSAUTOKILL_FLAGS		( FCVAR_CLIENTDLL | FCVAR_ARCHIVE )
 #endif // !TF_CLIENT_DLL
 
-ConVar hud_classautokill( "hud_classautokill", "1", HUD_CLASSAUTOKILL_FLAGS, "Automatically kill player after choosing a new playerclass." );
+static char *abilities[2][COVEN_MAX_CLASSCOUNT][4] =
+{{{"Battle Yell","Bandage","",""},{"Sprint","Sheer Will","","Gut Check"},{"","","Reflexes",""}},
+{{"Leap","","Sneak","Berserk"},{"Phase","","Gorge",""},{"","","Masochist","Undying"}}};
 
 //-----------------------------------------------------------------------------
 // Purpose: Constructor
 //-----------------------------------------------------------------------------
-CClassMenu::CClassMenu(IViewPort *pViewPort) : Frame(NULL, PANEL_CLASS)
+CLevelMenu::CLevelMenu(IViewPort *pViewPort) : Frame(NULL, PANEL_LEVEL)
 {
 	m_pViewPort = pViewPort;
 	m_iScoreBoardKey = BUTTON_CODE_INVALID; // this is looked up in Activate()
@@ -68,9 +74,9 @@ CClassMenu::CClassMenu(IViewPort *pViewPort) : Frame(NULL, PANEL_CLASS)
 	SetProportional(true);
 
 	// info window about this class
-	LoadControlSettings( "Resource/UI/ClassMenu.res" );
+	LoadControlSettings( "Resource/UI/LevelMenu.res" );
 	//m_pPanel = new RichText( this, "SClassInfo" );
-	m_pPanel = dynamic_cast<RichText *>(FindChildByName("SClassInfo"));
+	m_pPanel = dynamic_cast<RichText *>(FindChildByName("ClassInfo"));
 	for (int i = 0; i < m_mouseoverButtons.Count(); i++)
 	{
 		m_mouseoverButtons[i]->ChangePanel(m_pPanel);
@@ -78,7 +84,7 @@ CClassMenu::CClassMenu(IViewPort *pViewPort) : Frame(NULL, PANEL_CLASS)
 	m_pPanel->SetVerticalScrollbar(false);
 	
 }
-void CClassMenu::PerformLayout()
+void CLevelMenu::PerformLayout()
 {
 	int w,h;
 	GetHudSize(w, h);
@@ -94,7 +100,7 @@ void CClassMenu::PerformLayout()
 //-----------------------------------------------------------------------------
 // Purpose: Constructor
 //-----------------------------------------------------------------------------
-CClassMenu::CClassMenu(IViewPort *pViewPort, const char *panelName) : Frame(NULL, panelName)
+CLevelMenu::CLevelMenu(IViewPort *pViewPort, const char *panelName) : Frame(NULL, panelName)
 {
 	m_pViewPort = pViewPort;
 	m_iScoreBoardKey = BUTTON_CODE_INVALID; // this is looked up in Activate()
@@ -114,8 +120,8 @@ CClassMenu::CClassMenu(IViewPort *pViewPort, const char *panelName) : Frame(NULL
 
 	// info window about this class
 	//m_pPanel = new RichText( this, "SClassInfo" );
-	LoadControlSettings("Resource/UI/ClassMenu.res");
-	m_pPanel = dynamic_cast<RichText *>(FindChildByName("SClassInfo"));
+	LoadControlSettings("Resource/UI/LevelMenu.res");
+	m_pPanel = dynamic_cast<RichText *>(FindChildByName("ClassInfo"));
 	for (int i = 0; i < m_mouseoverButtons.Count(); i++)
 	{
 		m_mouseoverButtons[i]->ChangePanel(m_pPanel);
@@ -128,17 +134,17 @@ CClassMenu::CClassMenu(IViewPort *pViewPort, const char *panelName) : Frame(NULL
 //-----------------------------------------------------------------------------
 // Purpose: Destructor
 //-----------------------------------------------------------------------------
-CClassMenu::~CClassMenu()
+CLevelMenu::~CLevelMenu()
 {
 }
 
-MouseOverPanelButton* CClassMenu::CreateNewMouseOverPanelButton(RichText *panel)
+MouseOverPanelButton* CLevelMenu::CreateNewMouseOverPanelButton(RichText *panel)
 { 
 	return new MouseOverPanelButton(this, "MouseOverPanelButton", panel);
 }
 
 
-Panel *CClassMenu::CreateControlByName(const char *controlName)
+Panel *CLevelMenu::CreateControlByName(const char *controlName)
 {
 	if( !Q_stricmp( "MouseOverPanelButton", controlName ) )
 	{
@@ -156,7 +162,7 @@ Panel *CClassMenu::CreateControlByName(const char *controlName)
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CClassMenu::Reset()
+void CLevelMenu::Reset()
 {
 	/*for ( int i = 0 ; i < GetChildCount() ; ++i )
 	{
@@ -170,7 +176,7 @@ void CClassMenu::Reset()
 	}*/
 
 	// Turn the first button back on again (so we have a default description shown)
-	m_pPanel->SetText("Please select a class by choosing an option to the left or pressing the corresponding number key.");
+	m_pPanel->SetText("Please select an ability by choosing an option to the left or pressing the corresponding number key.");
 	Assert( m_mouseoverButtons.Count() );
 	/*for ( int i=0; i<m_mouseoverButtons.Count(); ++i )
 	{
@@ -188,7 +194,7 @@ void CClassMenu::Reset()
 //-----------------------------------------------------------------------------
 // Purpose: Called when the user picks a class
 //-----------------------------------------------------------------------------
-void CClassMenu::OnCommand( const char *command )
+void CLevelMenu::OnCommand( const char *command )
 {
 	if ( Q_stricmp( command, "vguicancel" ) )
 	{
@@ -197,10 +203,7 @@ void CClassMenu::OnCommand( const char *command )
 #if !defined( CSTRIKE_DLL ) && !defined( TF_CLIENT_DLL )
 		// They entered a command to change their class, kill them so they spawn with 
 		// the new class right away
-		if ( hud_classautokill.GetBool() )
-		{
-            //engine->ClientCmd( "kill" );
-		}
+
 #endif // !CSTRIKE_DLL && !TF_CLIENT_DLL
 	}
 
@@ -211,15 +214,40 @@ void CClassMenu::OnCommand( const char *command )
 	BaseClass::OnCommand( command );
 }
 
+void CLevelMenu::UpdateButtons()
+{
+	C_BaseHLPlayer *pPlayer = (C_BaseHLPlayer *)C_BasePlayer::GetLocalPlayer();
+	if ( !pPlayer )
+		return;
+	if (pPlayer->GetTeamNumber() < 2)
+		return;
+
+	char temp[64];
+	Button *entry = dynamic_cast<Button *>(FindChildByName("abil1"));
+	Q_snprintf(temp, sizeof(temp), "%s - Rank %d", abilities[pPlayer->GetTeamNumber()-2][pPlayer->covenClassID-1][0], pPlayer->m_HL2Local.covenCurrentLoadout1+1);
+	PostMessage( entry, new KeyValues( "SetText", "text", temp ) );
+	entry = dynamic_cast<Button *>(FindChildByName("abil2"));
+	Q_snprintf(temp, sizeof(temp), "%s - Rank %d", abilities[pPlayer->GetTeamNumber()-2][pPlayer->covenClassID-1][1], pPlayer->m_HL2Local.covenCurrentLoadout2+1);
+	PostMessage( entry, new KeyValues( "SetText", "text", temp ) );
+	entry = dynamic_cast<Button *>(FindChildByName("abil3"));
+	Q_snprintf(temp, sizeof(temp), "%s - Rank %d", abilities[pPlayer->GetTeamNumber()-2][pPlayer->covenClassID-1][2], pPlayer->m_HL2Local.covenCurrentLoadout3+1);
+	PostMessage( entry, new KeyValues( "SetText", "text", temp ) );
+	entry = dynamic_cast<Button *>(FindChildByName("abil4"));
+	Q_snprintf(temp, sizeof(temp), "%s - Rank %d", abilities[pPlayer->GetTeamNumber()-2][pPlayer->covenClassID-1][3], pPlayer->m_HL2Local.covenCurrentLoadout4+1);
+	PostMessage( entry, new KeyValues( "SetText", "text", temp ) );
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: shows the class menu
 //-----------------------------------------------------------------------------
-void CClassMenu::ShowPanel(bool bShow)
+void CLevelMenu::ShowPanel(bool bShow)
 {
 	if ( bShow )
 	{
 		Activate();
 		SetMouseInputEnabled( true );
+
+		UpdateButtons();
 
 		// load a default class page
 		/*for ( int i=0; i<m_mouseoverButtons.Count(); ++i )
@@ -233,9 +261,6 @@ void CClassMenu::ShowPanel(bool bShow)
 				m_mouseoverButtons[i]->HidePage();	// Hide the rest
 			}
 		}*/
-
-		SetCloseButtonVisible( false); 
-
 		
 		if ( m_iScoreBoardKey == BUTTON_CODE_INVALID ) 
 		{
@@ -248,12 +273,12 @@ void CClassMenu::ShowPanel(bool bShow)
 		SetMouseInputEnabled( false );
 	}
 	
-	m_pPanel->SetText("Please select a class by choosing an option to the left or pressing the corresponding number key.");
+	m_pPanel->SetText("Please select an ability by choosing an option to the left or pressing the corresponding number key.");
 	m_pViewPort->ShowBackGround( bShow );
 }
 
 
-void CClassMenu::SetData(KeyValues *data)
+void CLevelMenu::SetData(KeyValues *data)
 {
 	m_iTeam = data->GetInt( "team" );
 }
@@ -261,7 +286,7 @@ void CClassMenu::SetData(KeyValues *data)
 //-----------------------------------------------------------------------------
 // Purpose: Sets the text of a control by name
 //-----------------------------------------------------------------------------
-void CClassMenu::SetLabelText(const char *textEntryName, const char *text)
+void CLevelMenu::SetLabelText(const char *textEntryName, const char *text)
 {
 	Label *entry = dynamic_cast<Label *>(FindChildByName(textEntryName));
 	if (entry)
@@ -273,7 +298,7 @@ void CClassMenu::SetLabelText(const char *textEntryName, const char *text)
 //-----------------------------------------------------------------------------
 // Purpose: Sets the visibility of a button by name
 //-----------------------------------------------------------------------------
-void CClassMenu::SetVisibleButton(const char *textEntryName, bool state)
+void CLevelMenu::SetVisibleButton(const char *textEntryName, bool state)
 {
 	Button *entry = dynamic_cast<Button *>(FindChildByName(textEntryName));
 	if (entry)
@@ -282,7 +307,7 @@ void CClassMenu::SetVisibleButton(const char *textEntryName, bool state)
 	}
 }
 
-void CClassMenu::OnKeyCodePressed(KeyCode code)
+void CLevelMenu::OnKeyCodePressed(KeyCode code)
 {
 	int nDir = 0;
 

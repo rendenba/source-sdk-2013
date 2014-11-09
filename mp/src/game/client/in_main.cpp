@@ -150,6 +150,8 @@ static	kbutton_t	in_abil2;
 static	kbutton_t	in_abil3;
 static	kbutton_t	in_abil4;
 
+static	kbutton_t	in_minimap;
+
 /*
 ===========
 IN_CenterView_f
@@ -589,6 +591,25 @@ void IN_ScoreUp( const CCommand &args )
 	if ( gViewPortInterface )
 	{
 		gViewPortInterface->ShowPanel( PANEL_SCOREBOARD, false );
+		GetClientVoiceMgr()->StopSquelchMode();
+	}
+}
+
+void IN_MapDown( const CCommand &args )
+{
+	KeyDown( &in_minimap, args[1] );
+	if ( gViewPortInterface )
+	{
+		gViewPortInterface->ShowPanel( PANEL_MINIMAP, true );
+	}
+}
+
+void IN_MapUp( const CCommand &args )
+{
+	KeyUp( &in_minimap, args[1] );
+	if ( gViewPortInterface )
+	{
+		gViewPortInterface->ShowPanel( PANEL_MINIMAP, false );
 		GetClientVoiceMgr()->StopSquelchMode();
 	}
 }
@@ -1522,6 +1543,7 @@ int CInput::GetButtonBits( int bResetState )
 	CalcButtonBits( bits, IN_ABIL2, s_ClearInputState, &in_abil2, bResetState );
 	CalcButtonBits( bits, IN_ABIL3, s_ClearInputState, &in_abil3, bResetState );
 	CalcButtonBits( bits, IN_ABIL4, s_ClearInputState, &in_abil4, bResetState );
+	CalcButtonBits( bits, IN_MINIMAP, s_ClearInputState, &in_minimap, bResetState );
 	//CalcButtonBits( bits, IN_ATTACK3, s_ClearInputState, &in_attack3, bResetState );
 	//CalcButtonBits( bits, IN_ATTACK3, s_ClearInputState, &in_attack3, bResetState );
 	//CalcButtonBits( bits, IN_ATTACK3, s_ClearInputState, &in_attack3, bResetState );
@@ -1692,9 +1714,14 @@ static ConCommand endabil3("-ability3", IN_Abil3Up);
 static ConCommand useabil4("+ability4", IN_Abil4Down);
 static ConCommand endabil4("-ability4", IN_Abil4Up);
 
-#ifdef TF_CLIENT_DLL
+static ConCommand startmap("+map", IN_MapDown);
+static ConCommand endmap("-map", IN_MapUp);
+static ConCommand startshowmap("+showmap", IN_MapDown);
+static ConCommand endshowmap("-showmap", IN_MapUp);
+
+//#ifdef TF_CLIENT_DLL
 static ConCommand toggle_duck( "toggle_duck", IN_DuckToggle );
-#endif
+//#endif
 
 // Xbox 360 stub commands
 static ConCommand xboxmove("xmove", IN_XboxStub);

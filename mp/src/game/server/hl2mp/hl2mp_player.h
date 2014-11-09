@@ -69,6 +69,7 @@ public:
 	virtual bool BecomeRagdollOnClient( const Vector &force );
 	virtual void Event_Killed( const CTakeDamageInfo &info );
 	virtual int OnTakeDamage( const CTakeDamageInfo &inputInfo );
+	virtual int OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo );
 	virtual bool WantsLagCompensationOnEntity( const CBasePlayer *pPlayer, const CUserCmd *pCmd, const CBitVec<MAX_EDICTS> *pEntityTransmitBits ) const;
 	virtual void FireBullets ( const FireBulletsInfo_t &info );
 	virtual bool Weapon_Switch( CBaseCombatWeapon *pWeapon, int viewmodelindex = 0);
@@ -152,11 +153,13 @@ public:
 	void VampireCheckResurrect();
 	void VampireManageRagdoll();
 	void VampireReSolidify();
+	void VampireStealthCalc();
 
 	//BB: slayer helper functions
 	void DoBattleYell(int lev);
 	void DoSheerWill(int lev);
 	void GenerateBandage();
+	void SlayerGutcheckThink();
 	void DoSlayerAbilityThink();
 	void SlayerVampLeapDetect();
 	void Taunt();
@@ -189,6 +192,8 @@ public:
 	float coven_timer_regen;
 	float coven_timer_feed;
 	float coven_timer_leapdetectcooldown;
+	float coven_timer_vstealth;
+	float coven_timer_gcheck;
 
 	//BB: coven loadout/abil stuff
 	int GetLoadout(int n);

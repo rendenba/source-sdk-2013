@@ -235,31 +235,34 @@ void PlayerCheck( CHL2MP_Player *pBot )
 
 		if ((playerVec).Length() < 400)
 		{
-			QAngle angle = pBot->GetLocalAngles();
-			Vector forward;
-			AngleVectors(angle, &forward);
-			VectorNormalize(playerVec);
-			float botDot = DotProduct(playerVec,forward);
-			float test = 0.3f;
-			if (isVampDoll)
-				test = 0.0f;
-			if (botDot > test)
+			if (isVampDoll || ((pPlayer->GetRenderColor().a > 50 && !(pPlayer->GetFlags() & EF_NODRAW))))
 			{
-				trace_t trace;
-
+				QAngle angle = pBot->GetLocalAngles();
+				Vector forward;
+				AngleVectors(angle, &forward);
+				VectorNormalize(playerVec);
+				float botDot = DotProduct(playerVec,forward);
+				float test = 0.3f;
 				if (isVampDoll)
-					UTIL_TraceLine(vecSrc, vecEnd, MASK_SHOT, pBot, COLLISION_GROUP_WEAPON, &trace );
-				else
-					UTIL_TraceLine(vecSrc, vecEnd, MASK_SHOT, pBot, COLLISION_GROUP_PLAYER, &trace );
-
-				CBaseEntity	*pHitEnt = trace.m_pEnt;
-				if (pHitEnt == pPlayer || (isVampDoll && pHitEnt == pPlayer->myServerRagdoll))
+					test = 0.0f;
+				if (botDot > test)
 				{
-					//if (pHitEnt && isVampDoll)
-					//	Msg("%f %f %f\n", pHitEnt->GetAbsOrigin().x, pHitEnt->GetAbsOrigin().y, pHitEnt->GetAbsOrigin().z);
-					botdata->bCombat = true;
-					botdata->guardTimer = 0.0f;
-					return;
+					trace_t trace;
+
+					if (isVampDoll)
+						UTIL_TraceLine(vecSrc, vecEnd, MASK_SHOT, pBot, COLLISION_GROUP_WEAPON, &trace );
+					else
+						UTIL_TraceLine(vecSrc, vecEnd, MASK_SHOT, pBot, COLLISION_GROUP_PLAYER, &trace );
+
+					CBaseEntity	*pHitEnt = trace.m_pEnt;
+					if (pHitEnt == pPlayer || (isVampDoll && pHitEnt == pPlayer->myServerRagdoll))
+					{
+						//if (pHitEnt && isVampDoll)
+						//	Msg("%f %f %f\n", pHitEnt->GetAbsOrigin().x, pHitEnt->GetAbsOrigin().y, pHitEnt->GetAbsOrigin().z);
+						botdata->bCombat = true;
+						botdata->guardTimer = 0.0f;
+						return;
+					}
 				}
 			}
 		}

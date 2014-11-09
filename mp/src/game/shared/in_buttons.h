@@ -41,5 +41,6 @@
 #define IN_ABIL2		(1 << 27)
 #define IN_ABIL3		(1 << 28)
 #define IN_ABIL4		(1 << 29)
+#define IN_MINIMAP		(1 << 30)
 
 #endif // IN_BUTTONS_H

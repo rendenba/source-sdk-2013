@@ -161,6 +161,8 @@ void CTeamMenu::ShowPanel(bool bShow)
 	if ( BaseClass::IsVisible() == bShow )
 		return;
 
+	SetCloseButtonVisible( false); 
+
 	if ( bShow )
 	{
 		Activate();
