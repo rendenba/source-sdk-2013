@@ -50,7 +50,7 @@ using namespace vgui;
 
 static char *abilities[2][COVEN_MAX_CLASSCOUNT][4] =
 {{{"Battle Yell","Bandage","Revenge",""},{"Sprint","Sheer Will","","Gut Check"},{"Holy Water","Trip Mine","Reflexes",""}},
-{{"Leap","","Sneak","Berserk"},{"Phase","","Gorge",""},{"","","Masochist","Undying"}}};
+{{"Leap","","Sneak","Berserk"},{"Phase","","Gorge",""},{"","Bloodlust","Masochist","Undying"}}};
 
 //-----------------------------------------------------------------------------
 // Purpose: Constructor

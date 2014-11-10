@@ -45,6 +45,7 @@ class CHudAuras : public CHudElement, public Panel
    int m_nImportCoffin;
    int m_nImportBomb;
    int m_nImportHH;
+   int m_nImportHH_de;
 
 	CPanelAnimationVar( vgui::HFont, m_hTextFont, "TextFont", "Default" );
 };
@@ -87,24 +88,30 @@ CHudAuras::CHudAuras( const char *pElementName ) : CHudElement( pElementName ), 
    m_nImportHH = surface()->CreateNewTextureID();
    surface()->DrawSetTextureFile( m_nImportHH, "effects/holy_heal" , true, true);
 
+   m_nImportHH_de = surface()->CreateNewTextureID();
+   surface()->DrawSetTextureFile( m_nImportHH_de, "effects/holy_water" , true, true);
+
    SetHiddenBits( HIDEHUD_PLAYERDEAD | HIDEHUD_NEEDSUIT );
 }
 
 void CHudAuras::PaintBackground()
 {
-	int w,t;
+	/*int w,t;
 	GetSize(w,t);
 	t -= 24;
 	surface()->DrawSetColor( Color(0,0,0,125) );
-	surface()->DrawFilledRect(0,0,w,t);
+	surface()->DrawFilledRect(0,0,w,t);*/
 }
 
 void CHudAuras::Paint()
 {
-	int x = 0;
+	C_BaseHLPlayer *pPlayer = (C_BaseHLPlayer *)C_BasePlayer::GetLocalPlayer();
+	if ( !pPlayer )
+		return;
+	int x = 12;
 	int w,t;
 	GetSize(w,t);
-	t -= 24;
+	t -= 36;
 	int y = t;
 	SetPaintBorderEnabled(false);
 	for (int i = 0; i < active_auras.Count(); i++)
@@ -143,7 +150,14 @@ void CHudAuras::Paint()
 		}
 		else if (active_auras[i]->aura == COVEN_BUFF_HOLYWATER)
 		{
-			surface()->DrawSetTexture( m_nImportHH );
+			if (pPlayer->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+				surface()->DrawSetTexture( m_nImportHH );
+			else
+				surface()->DrawSetTexture( m_nImportHH_de );
+		}
+		else if (active_auras[i]->aura == COVEN_BUFF_BLUST)
+		{
+			surface()->DrawSetTexture( m_nImportCoffin );
 		}
 
 		surface()->DrawTexturedRect( x, 0, x+t, t );
@@ -160,7 +174,7 @@ void CHudAuras::Paint()
 			//surface()->DrawFilledRect(x+t/2-UTIL_ComputeStringWidth(m_hTextFont,uc_text)/2,t,x+t/2+UTIL_ComputeStringWidth(m_hTextFont,uc_text)/2,t+12);
 			surface()->DrawSetTextPos( x+t/2-UTIL_ComputeStringWidth(m_hTextFont,uc_text)/2, t );
 			surface()->DrawUnicodeString(uc_text);
-			n = 12;
+			n = 16;
 		}
 		if (active_auras[i]->timer > 0.0f)
 		{
@@ -174,8 +188,8 @@ void CHudAuras::Paint()
 			surface()->DrawUnicodeString(uc_text);
 		}
 
-		x += 42;//t=32
-		y += 42;//t=32
+		x += 56;//t=32
+		y += 56;//t=32
 	}
 }
 
@@ -268,13 +282,23 @@ void CHudAuras::OnThink()
 		temp->timer = 0;
 		active_auras.AddToTail(temp);
 	}
+	if (pPlayer->covenStatusEffects & COVEN_FLAG_BLUST)
+	{
+		aura_pic *temp;
+		temp = new aura_pic;
+		temp->aura = COVEN_BUFF_BLUST;
+		temp->text = pPlayer->m_HL2Local.covenStatusMagnitude[COVEN_BUFF_BLUST];
+		temp->timer = pPlayer->m_HL2Local.covenStatusTimers[COVEN_BUFF_BLUST]-gpGlobals->curtime;
+		active_auras.AddToTail(temp);
+	}
 
 	if (active_auras.Count() == 0)
 		SetVisible(false);
 	else
 		SetVisible(true);
 
-	SetSize(32*active_auras.Count()+10*(active_auras.Count()-1),32+24);
+	//SetSize(52*active_auras.Count()+10*(active_auras.Count()-1),32+32);
+	SetSize(56*active_auras.Count(),32+36);
  
    BaseClass::OnThink();
 }

@@ -17,7 +17,7 @@ using namespace vgui;
 
 static wchar_t *abilities[2][COVEN_MAX_CLASSCOUNT][4] =
 {{{L"Battle Yell",L"Bandage",L"Revenge",L""},{L"Sprint",L"Sheer Will",L"",L"Gut Check"},{L"Holy Water",L"Trip Mine",L"Reflexes",L""}},
-{{L"Leap",L"",L"Sneak",L"Berserk"},{L"Phase",L"",L"Gorge",L""},{L"",L"",L"Masochist",L"Undying"}}};
+{{L"Leap",L"",L"Sneak",L"Berserk"},{L"Phase",L"",L"Gorge",L""},{L"",L"Bloodlust",L"Masochist",L"Undying"}}};
 
 struct ability_pic
 {
@@ -66,7 +66,7 @@ void CHudAbils::PaintBackground()
 {
 	int w,t;
 	GetSize(w,t);
-	t -= 24;
+	t -= 36;
 	surface()->DrawSetColor( Color(0,0,0,125) );
 	surface()->DrawFilledRect(0,0,w,t);
 }
@@ -79,8 +79,9 @@ void CHudAbils::Paint()
 	int x = 0;
 	int w,t;
 	GetSize(w,t);
-	t -= 24;
+	t -= 36;
 	int y = t;
+	int arti_w = 128;
 	SetPaintBorderEnabled(false);
 	for (int i = 0; i < active_abils.Count(); i++)
 	{
@@ -91,7 +92,7 @@ void CHudAbils::Paint()
 		wchar_t uc_texts[16];
 		swprintf(uc_texts, L"%s", abilities[pPlayer->GetTeamNumber()-2][pPlayer->covenClassID-1][active_abils[i]->abil-1]);
 		surface()->DrawSetTextFont(m_hTextFont);
-		surface()->DrawSetTextPos( x+32-UTIL_ComputeStringWidth(m_hTextFont,uc_texts)/2, 0 );
+		surface()->DrawSetTextPos( x+arti_w/2-UTIL_ComputeStringWidth(m_hTextFont,uc_texts)/2, 0 );
 		surface()->DrawUnicodeString(uc_texts);
 
 		int n = 0;
@@ -104,9 +105,9 @@ void CHudAbils::Paint()
 			//BB: maybe do something like this later.... helps with contrast!
 			//surface()->DrawSetColor(Color(0,0,0,255));
 			//surface()->DrawFilledRect(x+t/2-UTIL_ComputeStringWidth(m_hTextFont,uc_text)/2,t,x+t/2+UTIL_ComputeStringWidth(m_hTextFont,uc_text)/2,t+12);
-			surface()->DrawSetTextPos( x+t/2-UTIL_ComputeStringWidth(m_hTextFont,uc_text)/2, t );
+			surface()->DrawSetTextPos( x+arti_w/2-UTIL_ComputeStringWidth(m_hTextFont,uc_text)/2, t );
 			surface()->DrawUnicodeString(uc_text);
-			n = 12;
+			n = 16;
 		}
 		if (active_abils[i]->timer > 0.0f)
 		{
@@ -116,12 +117,12 @@ void CHudAbils::Paint()
 			//BB: maybe do something like this later.... helps with contrast!
 			//surface()->DrawSetColor(Color(0,0,0,255));
 			//surface()->DrawFilledRect(x+t/2-UTIL_ComputeStringWidth(m_hTextFont,uc_text)/2,t,x+t/2+UTIL_ComputeStringWidth(m_hTextFont,uc_text)/2,t+12);
-			surface()->DrawSetTextPos( x+t/2-UTIL_ComputeStringWidth(m_hTextFont,uc_text)/2, t+n );
+			surface()->DrawSetTextPos( x+arti_w/2-UTIL_ComputeStringWidth(m_hTextFont,uc_text)/2, t+n );
 			surface()->DrawUnicodeString(uc_text);
 		}
 
-		x += 84;//t=32
-		y += 84;//t=32
+		x += 128;//t=32
+		y += 128;//t=32
 	}
 }
 
@@ -174,7 +175,8 @@ void CHudAbils::OnThink()
 	else
 		SetVisible(true);
 
-	SetSize(64*active_abils.Count()+20*(active_abils.Count()-1),64+24);
+	//SetSize(84*active_abils.Count()+20*(active_abils.Count()-1),84+32);
+	SetSize(128*active_abils.Count(),84+36);
  
    BaseClass::OnThink();
 }

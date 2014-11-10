@@ -34,6 +34,7 @@
 #include "hl2mpclientminimap.h"
 
 #include "hl2mp_gamerules.h"
+#include "c_team.h"
 
 using namespace vgui;
 
@@ -188,6 +189,15 @@ void CHL2MPClientMiniMapDialog::Update( void )
 	}
 	MoveToCenterOfScreen();
 
+	C_Team *team = GetGlobalTeam( COVEN_TEAMID_SLAYERS );
+	const char *pDialogVarTeamScore = "s_teamscore";
+	if (team)
+		SetDialogVariable( pDialogVarTeamScore, team->Get_Score() );
+	team = GetGlobalTeam( COVEN_TEAMID_VAMPIRES );
+	pDialogVarTeamScore = "v_teamscore";
+	if (team)
+		SetDialogVariable( pDialogVarTeamScore, team->Get_Score() );
+
 	// update every second
 	m_fNextUpdateTime = gpGlobals->curtime + 1.0f; 
 }
@@ -197,6 +207,30 @@ void CHL2MPClientMiniMapDialog::MoveToCenterOfScreen()
 	int wx, wy, ww, wt;
 	surface()->GetWorkspaceBounds(wx, wy, ww, wt);
 	SetPos((ww - GetWide()) / 2, (wt - GetTall()) / 2);
+	Panel *control = FindChildByName( "SlayerScoreLabel" );
+	if ( control )
+	{
+		control->SetPos(GetWide()/4-control->GetWide(), GetTall()-50);
+		control->MoveToFront();
+	}
+	control = FindChildByName( "SlayerScoreValue" );
+	if ( control )
+	{
+		control->SetPos(GetWide()/4+10, GetTall()-50);
+		control->MoveToFront();
+	}
+	control = FindChildByName( "VampireScoreLabel" );
+	if ( control )
+	{
+		control->SetPos(GetWide()-GetWide()/4-control->GetWide(), GetTall()-50);
+		control->MoveToFront();
+	}
+	control = FindChildByName( "VampireScoreValue" );
+	if ( control )
+	{
+		control->SetPos(GetWide()-GetWide()/4+10, GetTall()-50);
+		control->MoveToFront();
+	}
 }
 
 

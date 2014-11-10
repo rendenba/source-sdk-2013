@@ -548,6 +548,11 @@ void CHL2MP_Player::DoBattleYell(int lev)
 	GiveBuffInRadius(COVEN_TEAMID_SLAYERS, COVEN_BUFF_BYELL, lev, 10.0f, 400.0f, 0);
 }
 
+void CHL2MP_Player::DoBloodLust(int lev)
+{
+	GiveBuffInRadius(COVEN_TEAMID_VAMPIRES, COVEN_BUFF_BLUST, lev, 10.0f, 500.0f, 0);
+}
+
 void CHL2MP_Player::DoVampireAbilityThink()
 {
 	if (m_afButtonPressed & IN_ABIL1)
@@ -595,6 +600,31 @@ void CHL2MP_Player::DoVampireAbilityThink()
 					else
 						EmitSound("HL2Player.UseDeny");
 				}
+			}
+		}
+	}
+	if (m_afButtonPressed & IN_ABIL2)
+	{
+		float cd = GetCooldown(1);
+		int lev = GetLoadout(1);
+		if ((cd > 0.0f && gpGlobals->curtime < cd) || lev == 0)
+		{
+			EmitSound("HL2Player.UseDeny");
+		}
+		else
+		{
+			if (covenClassID == COVEN_CLASSID_DEGEN)
+			{
+				float mana = 5.0f + 5.0f*lev;
+				if (SuitPower_GetCurrentPercentage() > mana)
+				{
+					SetCooldown(1, gpGlobals->curtime + 25.0f);
+					DoBloodLust(lev);
+					EmitSound("HL2Player.Sweet");
+					SuitPower_Drain(mana);
+				}
+				else
+					EmitSound("HL2Player.UseDeny");
 			}
 		}
 	}
@@ -2529,6 +2559,17 @@ void CHL2MP_Player::DoStatusThink()
 		}
 	}
 
+	//BLOODLUST
+	if (covenStatusEffects & COVEN_FLAG_BLUST)
+	{
+		if (gpGlobals->curtime > GetStatusTime(COVEN_BUFF_BLUST))
+		{
+			covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_BLUST;
+			SetStatusTime(COVEN_BUFF_BLUST, 0.0f);
+			SetStatusMagnitude(COVEN_BUFF_BLUST, 0);
+		}
+	}
+
 	//MASOCHISM
 	if (covenStatusEffects & COVEN_FLAG_MASOCHIST)
 	{
@@ -3065,6 +3106,16 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 	if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
 		RevengeCheck();
 
+	SetRenderColorA(255.0f);
+	if (GetActiveWeapon() != NULL)
+	{
+		GetActiveWeapon()->SetRenderColorA(255.0f);
+	}
+	if (GetViewModel())
+	{
+		GetViewModel()->SetRenderColorA(255.0f);
+	}
+
 	//update damage info with our accumulated physics force
 	CTakeDamageInfo subinfo = info;
 	subinfo.SetDamageForce( m_vecTotalBulletForce );
@@ -3204,6 +3255,17 @@ int CHL2MP_Player::OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo )
 	
 	if (m_iHealth <= 0 && GetTeamNumber() == COVEN_TEAMID_VAMPIRES && covenClassID == COVEN_CLASSID_GORE && gorephased)
 		DoGorePhase();
+
+	//BLOODLUST
+	if (inputInfo.GetAttacker() && inputInfo.GetAttacker()->IsPlayer() && inputInfo.GetAttacker() != this)
+	{
+		CHL2MP_Player *temp = (CHL2MP_Player *)inputInfo.GetAttacker();
+		if (temp->covenStatusEffects & COVEN_FLAG_BLUST)
+		{
+			temp->TakeHealth(inputInfo.GetDamage()*0.1f*temp->GetStatusMagnitude(COVEN_BUFF_BLUST), DMG_GENERIC);
+		}
+	}
+
 	return ret;
 }
 

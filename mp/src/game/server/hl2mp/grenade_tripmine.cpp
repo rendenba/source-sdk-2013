@@ -85,7 +85,7 @@ void CTripmineGrenade::Spawn( void )
 	m_iHealth = 1;
 
 	EmitSound( "TripmineGrenade.Place" );
-	SetDamage ( 200 );
+	SetDamage ( 100 );
 
 	// Tripmine sits at 90 on wall so rotate back to get m_vecDir
 	QAngle angles = GetAbsAngles();
@@ -226,10 +226,7 @@ void CTripmineGrenade::BeamBreakThink( void  )
 	{
 		m_iHealth = 0;
 		Event_Killed( CTakeDamageInfo( (CBaseEntity*)m_hOwner, this, 100, GIB_NORMAL ) );
-		if (m_hOwner && m_hOwner.Get()->IsPlayer())
-		{
-			((CHL2MP_Player *) m_hOwner.Get())->num_trip_mines--;
-		}
+		
 
 		return;
 	}
@@ -261,6 +258,11 @@ int CTripmineGrenade::OnTakeDamage_Alive( const CTakeDamageInfo &info )
 void CTripmineGrenade::Event_Killed( const CTakeDamageInfo &info )
 {
 	m_takedamage		= DAMAGE_NO;
+
+	if (m_hOwner && m_hOwner.Get()->IsPlayer())
+	{
+		((CHL2MP_Player *) m_hOwner.Get())->num_trip_mines--;
+	}
 
 	SetThink( &CTripmineGrenade::DelayDeathThink );
 	SetNextThink( gpGlobals->curtime + 0.25 );
