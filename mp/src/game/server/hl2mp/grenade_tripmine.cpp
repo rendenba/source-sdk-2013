@@ -270,6 +270,14 @@ void CTripmineGrenade::Event_Killed( const CTakeDamageInfo &info )
 	EmitSound( "TripmineGrenade.StopSound" );
 }
 
+int CTripmineGrenade::OnTakeDamage( const CTakeDamageInfo &info )
+{
+	if (info.GetDamageType() & DMG_HOLY)
+		return 0;
+
+	return BaseClass::OnTakeDamage(info);
+}
+
 
 void CTripmineGrenade::DelayDeathThink( void )
 {

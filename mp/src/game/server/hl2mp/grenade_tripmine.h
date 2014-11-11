@@ -33,6 +33,7 @@ public:
 	void BeamBreakThink( void );
 	void DelayDeathThink( void );
 	void Event_Killed( const CTakeDamageInfo &info );
+	int OnTakeDamage( const CTakeDamageInfo &info );
 
 	void MakeBeam( void );
 	void KillBeam( void );

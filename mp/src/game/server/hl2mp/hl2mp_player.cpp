@@ -140,8 +140,16 @@ CON_COMMAND( levelmenu, "Opens a menu for leveling up")
 	CHL2MP_Player *pPlayer = ToHL2MPPlayer( UTIL_GetCommandClient() );
 	if (!pPlayer)
 		return;
-
-	pPlayer->ShowViewPortPanel( PANEL_LEVEL, true, NULL );
+	KeyValues *data = new KeyValues("data");
+	data->SetBool( "auto", false );
+	data->SetInt( "level", pPlayer->covenLevelCounter);
+	data->SetInt( "load1", pPlayer->GetLoadout(0));
+	data->SetInt( "load2", pPlayer->GetLoadout(1));
+	data->SetInt( "load3", pPlayer->GetLoadout(2));
+	data->SetInt( "load4", pPlayer->GetLoadout(3));
+	data->SetInt( "class", pPlayer->covenClassID);
+	pPlayer->ShowViewPortPanel( PANEL_LEVEL, true, data );
+	data->deleteThis();
 }
 
 CON_COMMAND( tracert, "Trace hit" )
@@ -169,6 +177,8 @@ CHL2MP_Player::CHL2MP_Player() : m_PlayerAnimState( this )
 	m_iLevel = 1;
 
 	num_trip_mines = 0;
+
+	coven_display_autolevel = false;
 
 	m_iLastWeaponFireUsercmd = 0;
 
@@ -385,6 +395,10 @@ void CHL2MP_Player::GenerateBandage()
 
 void CHL2MP_Player::DoSheerWill(int lev)
 {
+	int tlev = lev;
+	if (GetStatusMagnitude(COVEN_BUFF_STATS) > 0)
+		tlev -= GetStatusMagnitude(COVEN_BUFF_STATS);
+
 	int str = myStrength();
 	int intel = myIntellect();
 	int con = myConstitution();
@@ -401,12 +415,12 @@ void CHL2MP_Player::DoSheerWill(int lev)
 		conadd = 2;
 	}
 
-	SetConstitution(con+conadd*lev);
-	SetStrength(str+stradd*lev);
-	SetIntellect(intel+inteladd*lev);
+	SetConstitution(con+conadd*tlev);
+	SetStrength(str+stradd*tlev);
+	SetIntellect(intel+inteladd*tlev);
 	ResetVitals();
 	SetStatusMagnitude(COVEN_BUFF_STATS, lev);
-	SetHealth(GetHealth()+conadd*lev*COVEN_HP_PER_CON);
+	SetHealth(GetHealth()+conadd*tlev*COVEN_HP_PER_CON);
 }
 
 void CHL2MP_Player::RevengeCheck()
@@ -553,6 +567,11 @@ void CHL2MP_Player::DoBloodLust(int lev)
 	GiveBuffInRadius(COVEN_TEAMID_VAMPIRES, COVEN_BUFF_BLUST, lev, 10.0f, 500.0f, 0);
 }
 
+void CHL2MP_Player::DoDreadScream(int lev)
+{
+	GiveBuffInRadius(COVEN_TEAMID_SLAYERS, COVEN_BUFF_SLOW, lev, 8.0f, 400.0f, 0);
+}
+
 void CHL2MP_Player::DoVampireAbilityThink()
 {
 	if (m_afButtonPressed & IN_ABIL1)
@@ -600,6 +619,20 @@ void CHL2MP_Player::DoVampireAbilityThink()
 					else
 						EmitSound("HL2Player.UseDeny");
 				}
+			}
+			else if (covenClassID == COVEN_CLASSID_DEGEN)
+			{
+				float mana = 10.0f + 2.0f*lev;
+				//float cool = 25.0f - 5.0f*lev;
+				if (SuitPower_GetCurrentPercentage() > mana)
+				{
+					SetCooldown(0, gpGlobals->curtime + 15.0f);
+					DoDreadScream(lev);
+					EmitSound("HL2Player.Sweet");
+					SuitPower_Drain(mana);
+				}
+				else
+					EmitSound("HL2Player.UseDeny");
 			}
 		}
 	}
@@ -779,6 +812,9 @@ bool CHL2MP_Player::LevelUp( int lvls )
 	ResetVitals();
 	if (GetHealth() <= GetMaxHealth())
 		SetHealth(myConstitution()*COVEN_HP_PER_CON);
+
+	coven_display_autolevel = true;
+
 	return BaseClass::LevelUp(lvls);
 }
 
@@ -1675,6 +1711,20 @@ float CHL2MP_Player::DamageForce( const Vector &size, float damage )
 
 void CHL2MP_Player::PreThink( void )
 {
+	if (coven_display_autolevel)
+	{
+		KeyValues *data = new KeyValues("data");
+		data->SetBool( "auto", true );
+		data->SetInt( "level", covenLevelCounter);
+		data->SetInt( "load1", GetLoadout(0));
+		data->SetInt( "load2", GetLoadout(1));
+		data->SetInt( "load3", GetLoadout(2));
+		data->SetInt( "load4", GetLoadout(3));
+		data->SetInt( "class", covenClassID);
+		ShowViewPortPanel( PANEL_LEVEL, true, data );
+		data->deleteThis();
+		coven_display_autolevel = false;
+	}
 	QAngle vOldAngles = GetLocalAngles();
 	QAngle vTempAngles = GetLocalAngles();
 
@@ -2559,6 +2609,18 @@ void CHL2MP_Player::DoStatusThink()
 		}
 	}
 
+	//SLOW (actual slow handled in ComputeSpeed in HL2Player)
+	if (covenStatusEffects & COVEN_FLAG_SLOW)
+	{
+		if (gpGlobals->curtime > GetStatusTime(COVEN_BUFF_SLOW))
+		{
+			covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_SLOW;
+			SetStatusMagnitude(COVEN_BUFF_SLOW, 0);
+			SetStatusTime(COVEN_BUFF_SLOW, 0.0f);
+			ComputeSpeed();
+		}
+	}
+
 	//BLOODLUST
 	if (covenStatusEffects & COVEN_FLAG_BLUST)
 	{
@@ -2797,7 +2859,10 @@ bool CHL2MP_Player::ClientCommand( const CCommand &args )
 				if ((covenLevelCounter < 3 && GetLoadout(iSkill) > 0) || (covenLevelCounter < 5 && GetLoadout(iSkill) > 1))
 					return true;
 				if (PointsToSpend() > 0 && GetLoadout(iSkill) < 3)
+				{
 					SpendPoint(iSkill);
+					SetCooldown(iSkill, gpGlobals->curtime);
+				}
 			}
 			return true;
 		}
@@ -3354,7 +3419,7 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 			coven_timer_damage = gpGlobals->curtime + 2.0f;
 		}
 
-		if (covenClassID == COVEN_CLASSID_DEGEN && GetLoadout(2) > 0)
+		if (covenClassID == COVEN_CLASSID_DEGEN && GetLoadout(2) > 0 && !(inputInfoAdjust.GetDamageType() & DMG_NO))
 		{
 			covenStatusEffects |= COVEN_FLAG_MASOCHIST;
 			int stat = GetStatusMagnitude(COVEN_BUFF_MASOCHIST);

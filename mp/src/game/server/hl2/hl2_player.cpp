@@ -1449,6 +1449,9 @@ void CHL2_Player::ComputeSpeed( void )
 		}
 	}
 
+	if (covenStatusEffects & COVEN_FLAG_SLOW)
+		speed *= 1.0f - GetStatusMagnitude(COVEN_BUFF_SLOW)*0.15f;
+
 	if (covenStatusEffects & COVEN_FLAG_SPRINT)
 		speed *= 1.25f;
 

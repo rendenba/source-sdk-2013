@@ -115,7 +115,7 @@ CBasePlayer *BotPutInServer( bool bFrozen, int iTeam )
 
 	//BotNumber
 	char botname[ 64 ];
-	Q_snprintf( botname, sizeof( botname ), "%s", botnames[iTeam-2][random->RandomInt(0,10)] );
+	Q_snprintf( botname, sizeof( botname ), "%s", botnames[iTeam-2][random->RandomInt(0,9)] );
 
 	// This is an evil hack, but we use it to prevent sv_autojointeam from kicking in.
 

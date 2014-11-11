@@ -50,7 +50,9 @@ using namespace vgui;
 
 static char *abilities[2][COVEN_MAX_CLASSCOUNT][4] =
 {{{"Battle Yell","Bandage","Revenge",""},{"Sprint","Sheer Will","","Gut Check"},{"Holy Water","Trip Mine","Reflexes",""}},
-{{"Leap","","Sneak","Berserk"},{"Phase","","Gorge",""},{"","Bloodlust","Masochist","Undying"}}};
+{{"Leap","","Sneak","Berserk"},{"Phase","","Gorge",""},{"Dread Scream","Bloodlust","Masochist","Undying"}}};
+
+ConVar hideautolevel("hideautolevel", "0", FCVAR_CLIENTDLL | FCVAR_ARCHIVE);
 
 //-----------------------------------------------------------------------------
 // Purpose: Constructor
@@ -63,6 +65,14 @@ CLevelMenu::CLevelMenu(IViewPort *pViewPort) : Frame(NULL, PANEL_LEVEL)
 
 	// initialize dialog
 	SetTitle("", true);
+	m_bAuto = false;
+	m_iLevel = 0;
+	m_iLoad1 = 0;	
+	m_iLoad2 = 0;	
+	m_iLoad3 = 0;	
+	m_iLoad4 = 0;	
+
+	m_iClass = 0;
 
 	// load the new scheme early!!
 	SetScheme("ClientScheme");
@@ -76,7 +86,7 @@ CLevelMenu::CLevelMenu(IViewPort *pViewPort) : Frame(NULL, PANEL_LEVEL)
 	// info window about this class
 	LoadControlSettings( "Resource/UI/LevelMenu.res" );
 	//m_pPanel = new RichText( this, "SClassInfo" );
-	m_pPanel = dynamic_cast<RichText *>(FindChildByName("ClassInfo"));
+	m_pPanel = dynamic_cast<RichText *>(FindChildByName("LClassInfo"));
 	for (int i = 0; i < m_mouseoverButtons.Count(); i++)
 	{
 		m_mouseoverButtons[i]->ChangePanel(m_pPanel);
@@ -106,8 +116,17 @@ CLevelMenu::CLevelMenu(IViewPort *pViewPort, const char *panelName) : Frame(NULL
 	m_iScoreBoardKey = BUTTON_CODE_INVALID; // this is looked up in Activate()
 	m_iTeam = 0;
 
+	m_iLevel = 0;
+	m_iLoad1 = 0;	
+	m_iLoad2 = 0;	
+	m_iLoad3 = 0;	
+	m_iLoad4 = 0;
+
+	m_iClass = 0;
+
 	// initialize dialog
 	SetTitle("", true);
+	m_bAuto = false;
 
 	// load the new scheme early!!
 	SetScheme("ClientScheme");
@@ -121,7 +140,7 @@ CLevelMenu::CLevelMenu(IViewPort *pViewPort, const char *panelName) : Frame(NULL
 	// info window about this class
 	//m_pPanel = new RichText( this, "SClassInfo" );
 	LoadControlSettings("Resource/UI/LevelMenu.res");
-	m_pPanel = dynamic_cast<RichText *>(FindChildByName("ClassInfo"));
+	m_pPanel = dynamic_cast<RichText *>(FindChildByName("LClassInfo"));
 	for (int i = 0; i < m_mouseoverButtons.Count(); i++)
 	{
 		m_mouseoverButtons[i]->ChangePanel(m_pPanel);
@@ -219,69 +238,69 @@ void CLevelMenu::UpdateButtons()
 	C_BaseHLPlayer *pPlayer = (C_BaseHLPlayer *)C_BasePlayer::GetLocalPlayer();
 	if ( !pPlayer )
 		return;
-	if (pPlayer->GetTeamNumber() < 2)
+	if (pPlayer->GetTeamNumber() < 2 || m_iClass < 1)
 		return;
 
 	char temp[64];
 	Button *entry = dynamic_cast<Button *>(FindChildByName("abil1"));
 	int n = 1;
-	if (pPlayer->m_HL2Local.covenCurrentLoadout1 > 2)
+	if (m_iLoad1 > 2)
 	{
 		n = 0;
 		entry->SetEnabled(false);
 	}
-	if ((pPlayer->m_HL2Local.covenCurrentLoadout1 > 0 && pPlayer->covenLevelCounter < 3) || (pPlayer->m_HL2Local.covenCurrentLoadout1 > 1 && pPlayer->covenLevelCounter < 5))
+	else if ((m_iLoad1 > 0 && m_iLevel < 3) || (m_iLoad1 > 1 && m_iLevel < 5))
 	{
 		entry->SetEnabled(false);
 	}
 	else
 		entry->SetEnabled(true);
-	Q_snprintf(temp, sizeof(temp), "%s - Rank %d", abilities[pPlayer->GetTeamNumber()-2][pPlayer->covenClassID-1][0], pPlayer->m_HL2Local.covenCurrentLoadout1+n);
+	Q_snprintf(temp, sizeof(temp), "%s - Rank %d", abilities[pPlayer->GetTeamNumber()-2][m_iClass-1][0], m_iLoad1+n);
 	PostMessage( entry, new KeyValues( "SetText", "text", temp ) );
 	entry = dynamic_cast<Button *>(FindChildByName("abil2"));
 	n = 1;
-	if (pPlayer->m_HL2Local.covenCurrentLoadout2 > 2)
+	if (m_iLoad2 > 2)
 	{
 		n = 0;
 		entry->SetEnabled(false);
 	}
-	if ((pPlayer->m_HL2Local.covenCurrentLoadout2 > 0 && pPlayer->covenLevelCounter < 3) || (pPlayer->m_HL2Local.covenCurrentLoadout2 > 1 && pPlayer->covenLevelCounter < 5))
+	else if ((m_iLoad2 > 0 && m_iLevel < 3) || (m_iLoad2 > 1 && m_iLevel < 5))
 	{
 		entry->SetEnabled(false);
 	}
 	else
 		entry->SetEnabled(true);
-	Q_snprintf(temp, sizeof(temp), "%s - Rank %d", abilities[pPlayer->GetTeamNumber()-2][pPlayer->covenClassID-1][1], pPlayer->m_HL2Local.covenCurrentLoadout2+n);
+	Q_snprintf(temp, sizeof(temp), "%s - Rank %d", abilities[pPlayer->GetTeamNumber()-2][m_iClass-1][1], m_iLoad2+n);
 	PostMessage( entry, new KeyValues( "SetText", "text", temp ) );
 	entry = dynamic_cast<Button *>(FindChildByName("abil3"));
 	n = 1;
-	if (pPlayer->m_HL2Local.covenCurrentLoadout3 > 2)
+	if (m_iLoad3 > 2)
 	{
 		n = 0;
 		entry->SetEnabled(false);
 	}
-	if ((pPlayer->m_HL2Local.covenCurrentLoadout3 > 0 && pPlayer->covenLevelCounter < 3) || (pPlayer->m_HL2Local.covenCurrentLoadout3 > 1 && pPlayer->covenLevelCounter < 5))
+	else if ((m_iLoad3 > 0 && m_iLevel < 3) || (m_iLoad3 > 1 && m_iLevel < 5))
 	{
 		entry->SetEnabled(false);
 	}
 	else
 		entry->SetEnabled(true);
-	Q_snprintf(temp, sizeof(temp), "%s - Rank %d", abilities[pPlayer->GetTeamNumber()-2][pPlayer->covenClassID-1][2], pPlayer->m_HL2Local.covenCurrentLoadout3+n);
+	Q_snprintf(temp, sizeof(temp), "%s - Rank %d", abilities[pPlayer->GetTeamNumber()-2][m_iClass-1][2], m_iLoad3+n);
 	PostMessage( entry, new KeyValues( "SetText", "text", temp ) );
 	entry = dynamic_cast<Button *>(FindChildByName("abil4"));
 	n = 1;
-	if (pPlayer->m_HL2Local.covenCurrentLoadout4 > 2)
+	if (m_iLoad4 > 2)
 	{
 		n = 0;
 		entry->SetEnabled(false);
 	}
-	if (pPlayer->covenLevelCounter < 6 || (pPlayer->m_HL2Local.covenCurrentLoadout4 > 1 && pPlayer->covenLevelCounter < 8) || (pPlayer->m_HL2Local.covenCurrentLoadout4 > 2 && pPlayer->covenLevelCounter < 10))
+	else if (m_iLevel < 6 || (m_iLoad4 > 1 && m_iLevel < 8) || (m_iLoad4 > 2 && m_iLevel < 10))
 	{
 		entry->SetEnabled(false);
 	}
 	else
 		entry->SetEnabled(true);
-	Q_snprintf(temp, sizeof(temp), "%s - Rank %d", abilities[pPlayer->GetTeamNumber()-2][pPlayer->covenClassID-1][3], pPlayer->m_HL2Local.covenCurrentLoadout4+n);
+	Q_snprintf(temp, sizeof(temp), "%s - Rank %d", abilities[pPlayer->GetTeamNumber()-2][m_iClass-1][3], m_iLoad4+n);
 	PostMessage( entry, new KeyValues( "SetText", "text", temp ) );
 }
 
@@ -290,6 +309,12 @@ void CLevelMenu::UpdateButtons()
 //-----------------------------------------------------------------------------
 void CLevelMenu::ShowPanel(bool bShow)
 {
+	if (hideautolevel.GetInt() != 0 && m_bAuto)
+			bShow = false;
+
+	if (m_iLevel > COVEN_MAX_LEVEL && m_bAuto)
+		bShow = false;
+
 	if ( bShow )
 	{
 		Activate();
@@ -329,6 +354,13 @@ void CLevelMenu::ShowPanel(bool bShow)
 void CLevelMenu::SetData(KeyValues *data)
 {
 	m_iTeam = data->GetInt( "team" );
+	m_bAuto = data->GetBool( "auto" );
+	m_iLevel = data->GetInt( "level" );
+	m_iLoad1 = data->GetInt( "load1" );
+	m_iLoad2 = data->GetInt( "load2" );
+	m_iLoad3 = data->GetInt( "load3" );
+	m_iLoad4 = data->GetInt( "load4" );
+	m_iClass = data->GetInt( "class" );
 }
 
 //-----------------------------------------------------------------------------

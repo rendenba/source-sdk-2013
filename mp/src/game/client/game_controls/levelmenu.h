@@ -73,6 +73,13 @@ protected:
 	IViewPort	*m_pViewPort;
 	ButtonCode_t m_iScoreBoardKey;
 	int			m_iTeam;
+	bool		m_bAuto;
+	int			m_iLevel;
+	int			m_iLoad1;
+	int			m_iLoad2;
+	int			m_iLoad3;
+	int			m_iLoad4;
+	int			m_iClass;
 	vgui::RichText *m_pPanel;
 
 	CUtlVector< MouseOverPanelButton * > m_mouseoverButtons;

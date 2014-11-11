@@ -149,6 +149,7 @@ public:
 	void DoLeap();
 	void DoGorePhase();
 	void DoBloodLust(int lev);
+	void DoDreadScream(int lev);
 	void DoBerserk(int lev);
 	void DoVampireAbilityThink();
 	void VampireCheckGore();
@@ -244,6 +245,8 @@ private:
 
     bool m_bEnterObserver;
 	bool m_bReady;
+
+	bool coven_display_autolevel;
 };
 
 inline CHL2MP_Player *ToHL2MPPlayer( CBaseEntity *pEntity )

@@ -467,7 +467,7 @@ int CHL2MPRules::TotalTeamXP(int team)
 	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
 		CHL2MP_Player *pPlayer = (CHL2MP_Player *)UTIL_PlayerByIndex( i );
-		if (pPlayer->GetTeamNumber() == team)
+		if (pPlayer && pPlayer->GetTeamNumber() == team)
 		{
 			sum += pPlayer->GetTotalXP();
 		}
@@ -1190,18 +1190,19 @@ void CHL2MPRules::ClientDisconnected( edict_t *pClient )
 	CBasePlayer *pPlayer = (CBasePlayer *)CBaseEntity::Instance( pClient );
 	if ( pPlayer )
 	{
+		CHL2MP_Player *play = (CHL2MP_Player *)pPlayer;
+		if (play->GetTeamNumber() == COVEN_TEAMID_VAMPIRES && play->myServerRagdoll != NULL)
+		{
+			UTIL_RemoveImmediate(play->myServerRagdoll);
+			play->myServerRagdoll = NULL;
+		}
 		// Remove the player from his team
 		if ( pPlayer->GetTeam() )
 		{
 			pPlayer->GetTeam()->RemovePlayer( pPlayer );
 		}
 
-		CHL2MP_Player *play = (CHL2MP_Player *)pPlayer;
-		if (play->myServerRagdoll != NULL)
-		{
-			UTIL_RemoveImmediate(play->myServerRagdoll);
-			play->myServerRagdoll = NULL;
-		}
+		
 	}
 
 	BaseClass::ClientDisconnected( pClient );
