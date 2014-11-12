@@ -476,6 +476,7 @@ enum PLAYER_ANIM
 #define COVEN_BUFF_HOLYWATER 8
 #define COVEN_BUFF_BLUST 9
 #define COVEN_BUFF_SLOW 10
+#define COVEN_BUFF_STUN 11
 
 #define COVEN_FLAG_CAPPOINT (1 << 0)
 #define COVEN_FLAG_LEVEL (1 << 1)
@@ -488,6 +489,7 @@ enum PLAYER_ANIM
 #define COVEN_FLAG_HOLYWATER (1 << 8)
 #define COVEN_FLAG_BLUST (1 << 9)
 #define COVEN_FLAG_SLOW (1 << 10)
+#define COVEN_FLAG_STUN (1 << 11)
 
 // instant damage
 

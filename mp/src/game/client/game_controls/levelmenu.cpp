@@ -50,7 +50,7 @@ using namespace vgui;
 
 static char *abilities[2][COVEN_MAX_CLASSCOUNT][4] =
 {{{"Battle Yell","Bandage","Revenge",""},{"Sprint","Sheer Will","","Gut Check"},{"Holy Water","Trip Mine","Reflexes",""}},
-{{"Leap","","Sneak","Berserk"},{"Phase","","Gorge",""},{"Dread Scream","Bloodlust","Masochist","Undying"}}};
+{{"Leap","","Sneak","Berserk"},{"Phase","Charge","Gorge",""},{"Dread Scream","Bloodlust","Masochist","Undying"}}};
 
 ConVar hideautolevel("hideautolevel", "0", FCVAR_CLIENTDLL | FCVAR_ARCHIVE);
 

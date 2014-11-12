@@ -126,6 +126,10 @@ public:
 					{
 						m_pPanel->SetText("Bloodlust:\n\nEnergy: 10/15/20\nCooldown: 25 seconds\n\nCauses all teammates within 500 units to regain 10/20/30% of all damage dealt to enemies for 10 seconds.");
 					}
+					else if ( !Q_stricmp( "Charge - Rank 1", temp) || !Q_stricmp( "Charge - Rank 2", temp) || !Q_stricmp( "Charge - Rank 3", temp) )
+					{
+						m_pPanel->SetText("Charge:\n\nEnergy: 6/5/4 plus 10/9/8 per second\nCooldown: 3 seconds\n\nCharges straight ahead at immense speed. Usable while phased. Hold the effect to continue charging.");
+					}
 					else
 					{
 						m_pPanel->SetText(" ");
@@ -150,6 +154,10 @@ public:
 					else if ( !Q_stricmp( "Masochist - Rank 1", temp) || !Q_stricmp( "Masochist - Rank 2", temp) || !Q_stricmp( "Masochist - Rank 3", temp) )
 					{
 						m_pPanel->SetText("Masochist:\n\Passive Bonus\n\nGrants a speed bonus for 5/10/15% of all damage taken (up 100% bonus speed) for 6 seconds. Effect is cumulative until no damage is received for 6 seconds.");
+					}
+					else if ( !Q_stricmp( "Gorge - Rank 1", temp) || !Q_stricmp( "Gorge - Rank 2", temp) || !Q_stricmp( "Gorge - Rank 3", temp) )
+					{
+						m_pPanel->SetText("Gorge:\n\Passive Bonus\n\nAllows feeding to grant health 10/20/30% past normal maximum health.");
 					}
 					else
 					{

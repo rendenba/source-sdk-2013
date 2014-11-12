@@ -464,6 +464,14 @@ void CHL2MP_Player::GiveBuffInRadius(int team, int buff, int mag, float duration
 	}
 }
 
+void CHL2MP_Player::DoGoreCharge()
+{
+	gorelock = true;
+	AngleVectors(GetLocalAngles(), &lock_ts);
+	VectorNormalize(lock_ts);
+	lock_ts.z = 0.0f;
+}
+
 void CHL2MP_Player::DoGorePhase()
 {
 	if (GetRenderMode() != kRenderTransTexture)
@@ -482,7 +490,6 @@ void CHL2MP_Player::DoGorePhase()
 	{
 		alpha = 255;
 		RemoveEffects(EF_NODRAW);
-		SuitPower_ResetDrain();
 	}
 
 	SetRenderColorA(alpha);
@@ -572,6 +579,17 @@ void CHL2MP_Player::DoDreadScream(int lev)
 	GiveBuffInRadius(COVEN_TEAMID_SLAYERS, COVEN_BUFF_SLOW, lev, 8.0f, 400.0f, 0);
 }
 
+void CHL2MP_Player::RecalcGoreDrain()
+{
+	SuitPower_ResetDrain();
+	float mdrain_phase = 4.0f - 1.0f*GetLoadout(0);
+	float mdrain_charge = 11.0f - 1.0f*GetLoadout(1);
+	if (gorephased)
+		SuitPower_AddDrain(mdrain_phase);
+	if (gorelock)
+		SuitPower_AddDrain(mdrain_charge);
+}
+
 void CHL2MP_Player::DoVampireAbilityThink()
 {
 	if (m_afButtonPressed & IN_ABIL1)
@@ -603,18 +621,17 @@ void CHL2MP_Player::DoVampireAbilityThink()
 				{
 					DoGorePhase();
 					SetCooldown(0, gpGlobals->curtime + 3.0f);
-					SuitPower_ResetDrain();
+					RecalcGoreDrain();
 				}
 				else
 				{
 					float mana = 7.0f - 1.0f*lev;
-					float mdrain = 4.0f - 1.0f*lev;
 					if (SuitPower_GetCurrentPercentage() > mana)
 					{
 						SetCooldown(0, gpGlobals->curtime + 3.0f);
 						SuitPower_Drain(mana);
 						DoGorePhase();
-						SuitPower_AddDrain(mdrain);
+						RecalcGoreDrain();
 					}
 					else
 						EmitSound("HL2Player.UseDeny");
@@ -655,6 +672,20 @@ void CHL2MP_Player::DoVampireAbilityThink()
 					DoBloodLust(lev);
 					EmitSound("HL2Player.Sweet");
 					SuitPower_Drain(mana);
+				}
+				else
+					EmitSound("HL2Player.UseDeny");
+			}
+			else if (covenClassID == COVEN_CLASSID_GORE)
+			{
+				float mana = 7.0f - 1.0f*lev;
+				if (SuitPower_GetCurrentPercentage() > mana)
+				{
+					SetCooldown(1, gpGlobals->curtime + 3.0f);
+					SuitPower_Drain(mana);
+					DoGoreCharge();
+					RecalcGoreDrain();
+					EmitSound("HL2Player.Sweet");
 				}
 				else
 					EmitSound("HL2Player.UseDeny");
@@ -1183,6 +1214,8 @@ void CHL2MP_Player::Spawn(void)
 	mykiller = NULL;
 	rezsound = false;
 	solidcooldown = -1.0f;
+
+	gorelock = false;
 	/*if (myServerRagdoll)
 	{
 		UTIL_RemoveImmediate(myServerRagdoll);
@@ -1860,9 +1893,57 @@ void CHL2MP_Player::VampireCheckGore()
 		if (SuitPower_GetCurrentPercentage() <= 0.0f && gorephased)
 		{
 			DoGorePhase();
-			SuitPower_ResetDrain();
+			RecalcGoreDrain();
+
+		}
+		if (gorelock)
+		{
+			SetMaxSpeed(HL2_NITRO_SPEED);
+			Vector t = GetAbsVelocity();
+			t.x = t.y = 0;
+			SetAbsVelocity(lock_ts*800 + t);
+		}
+		if (m_afButtonReleased & IN_ABIL2 && gorelock)
+		{
+			gorelock = false;
+			RecalcGoreDrain();
+			ComputeSpeed();
+		}
+		if (gorelock && SuitPower_GetCurrentPercentage() <= 0.0f)
+		{
+			gorelock = false;
+			RecalcGoreDrain();
+			ComputeSpeed();
 		}
 	}
+}
+
+void CHL2MP_Player::Touch(CBaseEntity *pOther)
+{
+	if (pOther->IsPlayer())
+	{
+		if (pOther->GetTeamNumber() == COVEN_TEAMID_SLAYERS && GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+		{
+			/*if (covenClassID == COVEN_CLASSID_GORE && gorelock)
+			{
+				//CTakeDamageInfo info(this, this, 0.0f, DMG_CLUB);
+				Vector temp = GetAbsVelocity();
+				//trace_t tr;
+				//UTIL_TraceLine( GetAbsOrigin(), pOther->GetAbsOrigin(), MASK_SHOT_HULL, pOther, COLLISION_GROUP_NONE, &tr );
+				VectorNormalize(temp);
+				//pOther->DispatchTraceAttack(info, temp, &tr);
+				temp.z = 1;
+				//pOther->SetAbsVelocity(Vector(0,0,200));
+				pOther->ApplyAbsVelocityImpulse(250*temp);
+				Vector temp2 = pOther->GetAbsVelocity();
+				if (temp2.z > 250)
+					temp2.z = 250;
+				pOther->SetAbsVelocity(temp2);
+				//VectorAdd(temp2, 450*temp, temp2);
+			}*/
+		}
+	}
+	BaseClass::Touch(pOther);
 }
 
 void CHL2MP_Player::DoSlayerPreThink()

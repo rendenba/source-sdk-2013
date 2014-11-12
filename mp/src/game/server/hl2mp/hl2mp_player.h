@@ -119,6 +119,8 @@ public:
 	bool IsReady();
 	void SetReady( bool bReady );
 
+	void CHL2MP_Player::Touch(CBaseEntity *pOther);
+
 	void CheckChatText( char *p, int bufsize );
 
 	void State_Transition( HL2MPPlayerState newState );
@@ -148,6 +150,8 @@ public:
 	//BB: vampire helper functions
 	void DoLeap();
 	void DoGorePhase();
+	void DoGoreCharge();
+	void RecalcGoreDrain();
 	void DoBloodLust(int lev);
 	void DoDreadScream(int lev);
 	void DoBerserk(int lev);
@@ -192,11 +196,14 @@ public:
 	int s_nExplosionTexture;
 
 	Vector store_loc;
+	bool gorelock;
 
 	bool rezsound;
 	float solidcooldown;
 
 	int num_trip_mines;
+
+	Vector lock_ts;
 
 	//BB: coven timers
 	float coven_timer_damage;

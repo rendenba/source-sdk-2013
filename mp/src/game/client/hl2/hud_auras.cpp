@@ -47,6 +47,7 @@ class CHudAuras : public CHudElement, public Panel
    int m_nImportHH;
    int m_nImportHH_de;
    int m_nImportSlow;
+   int m_nImportStun;
 
 	CPanelAnimationVar( vgui::HFont, m_hTextFont, "TextFont", "Default" );
 };
@@ -94,6 +95,9 @@ CHudAuras::CHudAuras( const char *pElementName ) : CHudElement( pElementName ), 
 
    m_nImportSlow = surface()->CreateNewTextureID();
    surface()->DrawSetTextureFile( m_nImportSlow, "effects/slow", true, true);
+
+   m_nImportStun = surface()->CreateNewTextureID();
+   surface()->DrawSetTextureFile( m_nImportStun, "effects/cowpain", true, true);
 
    SetHiddenBits( HIDEHUD_PLAYERDEAD | HIDEHUD_NEEDSUIT );
 }
