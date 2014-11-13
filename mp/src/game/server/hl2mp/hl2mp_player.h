@@ -166,6 +166,7 @@ public:
 	//BB: slayer helper functions
 	void DoBattleYell(int lev);
 	void DoSheerWill(int lev);
+	void DoIntimidatingShout(int lev);
 	void RevengeCheck();
 	void GenerateBandage();
 	void ThrowHolywaterGrenade();

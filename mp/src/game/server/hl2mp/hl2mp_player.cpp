@@ -327,6 +327,37 @@ void CHL2MP_Player::DoSlayerAbilityThink()
 			}
 		}
 	}
+	if (m_afButtonPressed & IN_ABIL3)
+	{
+		float cd = GetCooldown(2);
+		int lev = GetLoadout(2);
+		if ((cd > 0.0f && gpGlobals->curtime < cd) || lev == 0)
+		{
+			EmitSound("HL2Player.UseDeny");
+		}
+		else
+		{
+			if (covenClassID == COVEN_CLASSID_REAVER)
+			{
+				float mana = 8.0f + 4.0f*lev;
+				float cool = 20.0f;
+				if (SuitPower_GetCurrentPercentage() > mana)
+				{
+					SetCooldown(2, gpGlobals->curtime + cool);
+					SuitPower_Drain(mana);
+					EmitSound( "Weapon_StunStick.Activate" );
+					DoIntimidatingShout(lev);
+				}
+				else
+					EmitSound("HL2Player.UseDeny");
+			}
+		}
+	}
+}
+
+void CHL2MP_Player::DoIntimidatingShout(int lev)
+{
+	GiveBuffInRadius(COVEN_TEAMID_VAMPIRES, COVEN_BUFF_STUN, lev, 1.5f, 100.0f+100.0f*lev, 0);
 }
 
 void CHL2MP_Player::ThrowHolywaterGrenade()
@@ -428,7 +459,7 @@ void CHL2MP_Player::RevengeCheck()
 	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
 		CHL2MP_Player *pPlayer = (CHL2MP_Player *)UTIL_PlayerByIndex( i );
-		if (pPlayer && pPlayer->IsAlive() && pPlayer->covenClassID == COVEN_CLASSID_AVENGER && pPlayer->GetLoadout(2) > 0)
+		if (pPlayer && pPlayer->IsAlive() && pPlayer->GetTeamNumber() == COVEN_TEAMID_SLAYERS && pPlayer->covenClassID == COVEN_CLASSID_AVENGER && pPlayer->GetLoadout(2) > 0)
 		{
 			if ((pPlayer->GetLocalOrigin()-GetLocalOrigin()).Length() > 600.0f)
 				continue;
@@ -496,7 +527,7 @@ void CHL2MP_Player::DoGorePhase()
 	if (GetViewModel())
 		GetViewModel()->SetRenderColorA(alpha);
 
-	float m_DmgRadius = 300.0f;
+	float m_DmgRadius = 51.2f;
 	trace_t		pTrace;
 	Vector		vecSpot;// trace starts here!
 
@@ -554,7 +585,7 @@ void CHL2MP_Player::DoGorePhase()
 
 	CTakeDamageInfo info( this, this, vec3_origin, GetAbsOrigin(), damn, bits, 0, &vecReported );
 
-	RadiusDamage( info, GetAbsOrigin(), m_DmgRadius, CLASS_NONE, ignore );
+	RadiusDamage( info, GetAbsOrigin(), 300.0f, CLASS_NONE, ignore );
 
 	UTIL_DecalTrace( &pTrace, "Scorch" );
 
@@ -1050,6 +1081,8 @@ void CHL2MP_Player::Precache( void )
 
 	PrecacheScriptSound( "Leap" );
 
+	PrecacheScriptSound( "Weapon_StunStick.Activate" );
+
 	/*PrecacheModel( "models/items/ammocrate_pistol.mdl" );
 
 	PrecacheScriptSound( "AmmoCrate.Open" );
@@ -1114,7 +1147,7 @@ void CHL2MP_Player::GiveDefaultItems( void )
 		case COVEN_CLASSID_HELLION:
 			//CBasePlayer::GiveAmmo( 60,	"Pistol");
 			//GiveNamedItem( "weapon_pistol" );
-			CBasePlayer::GiveAmmo( 12,	"357");
+			CBasePlayer::GiveAmmo( 18,	"357");
 			GiveNamedItem( "weapon_357" );
 		default:
 			break;
@@ -2123,7 +2156,7 @@ void CHL2MP_Player::VampireCheckResurrect()
 			color32 nothing = {75,0,0,200};
 			UTIL_ScreenFade( this, nothing, 1, 0, FFADE_IN | FFADE_PURGE );
 			RemoveAllDecals();
-			float m_DmgRadius = 300.0f;
+			float m_DmgRadius = 51.2f;
 			trace_t		pTrace;
 			Vector		vecSpot;// trace starts here!
 
@@ -2175,7 +2208,7 @@ void CHL2MP_Player::VampireCheckResurrect()
 		
 				CTakeDamageInfo info( this, this, vec3_origin, GetAbsOrigin(), 40.0, DMG_NO | DMG_BLAST, 0, &vecReported );
 
-				RadiusDamage( info, GetAbsOrigin(), m_DmgRadius, CLASS_NONE, NULL );
+				RadiusDamage( info, GetAbsOrigin(), 300.0f, CLASS_NONE, NULL );
 
 				UTIL_DecalTrace( &pTrace, "Scorch" );
 			#endif
@@ -2688,6 +2721,21 @@ void CHL2MP_Player::DoStatusThink()
 			SetStatusTime(COVEN_BUFF_SPRINT, 0.0f);
 			ComputeSpeed();
 		}
+	}
+
+	//STUN (handle it here)
+	if (covenStatusEffects & COVEN_FLAG_STUN)
+	{
+		if (gpGlobals->curtime > GetStatusTime(COVEN_BUFF_STUN))
+		{
+			covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_STUN;
+			SetStatusTime(COVEN_BUFF_STUN, 0.0f);
+			SetStatusMagnitude(COVEN_BUFF_STUN, 0);
+			RemoveFlag(FL_FROZEN);
+		}
+		else
+			AddFlag(FL_FROZEN);
+
 	}
 
 	//SLOW (actual slow handled in ComputeSpeed in HL2Player)

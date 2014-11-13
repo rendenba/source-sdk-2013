@@ -765,7 +765,7 @@ void CHL2MPRules::Think( void )
 			//BB: seriously? this is really dumb.
 			if ( pPlayer->IsBot() )
 			{
-				if (!Bot_Right_Team((CHL2MP_Player *)pPlayer))
+				/*if (!Bot_Right_Team((CHL2MP_Player *)pPlayer))
 				{
 					if (pPlayer->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
 					{
@@ -777,7 +777,7 @@ void CHL2MPRules::Think( void )
 						numVampires++;
 						numSlayers--;
 					}
-				}
+				}*/
 				Bot_Think((CHL2MP_Player*)pPlayer);
 			}
 		}
@@ -786,7 +786,7 @@ void CHL2MPRules::Think( void )
 	//BB: add team scores and reset
 	if (gpGlobals->curtime > scoreTimer)
 	{
-		scoreTimer = gpGlobals->curtime + 1.2f*num_cap_points/COVEN_MAX_CAP_POINTS;
+		scoreTimer = gpGlobals->curtime + 2.0f*num_cap_points/COVEN_MAX_CAP_POINTS;
 		GetGlobalTeam( COVEN_TEAMID_SLAYERS )->AddScore(COVEN_CAP_SCORE_PERSEC*s_caps);
 		GetGlobalTeam( COVEN_TEAMID_VAMPIRES )->AddScore(COVEN_CAP_SCORE_PERSEC*v_caps);
 	}
@@ -1353,20 +1353,22 @@ void CHL2MPRules::ClientSettingsChanged( CBasePlayer *pPlayer )
 		}
 		else
 		{
-			if ( Q_stristr( szModelName, "models/human") )
+			//BB: WAT
+			/*if ( Q_stristr( szModelName, "models/human") )
 			{
 				pHL2Player->ChangeTeam( TEAM_REBELS );
 			}
 			else
 			{
 				pHL2Player->ChangeTeam( TEAM_COMBINE );
-			}
+			}*/
 		}
 	}
 	if ( sv_report_client_settings.GetInt() == 1 )
 	{
 		UTIL_LogPrintf( "\"%s\" cl_cmdrate = \"%s\"\n", pHL2Player->GetPlayerName(), engine->GetClientConVarValue( pHL2Player->entindex(), "cl_cmdrate" ));
 	}
+
 
 	BaseClass::ClientSettingsChanged( pPlayer );
 #endif
@@ -1483,7 +1485,7 @@ CAmmoDef *GetAmmoDef()
 		def.AddAmmoType("AR2AltFire",		DMG_DISSOLVE,				TRACER_NONE,			0,			0,			3,			0,							0 );
 		def.AddAmmoType("Pistol",			DMG_BULLET,					TRACER_LINE_AND_WHIZ,	0,			0,			60,		BULLET_IMPULSE(200, 1225),	0 );
 		def.AddAmmoType("SMG1",				DMG_BULLET,					TRACER_LINE_AND_WHIZ,	0,			0,			90,		BULLET_IMPULSE(200, 1225),	0 );
-		def.AddAmmoType("357",				DMG_BULLET,					TRACER_LINE_AND_WHIZ,	0,			0,			12,			BULLET_IMPULSE(800, 5000),	0 );
+		def.AddAmmoType("357",				DMG_BULLET,					TRACER_LINE_AND_WHIZ,	0,			0,			18,			BULLET_IMPULSE(800, 5000),	0 );
 		def.AddAmmoType("XBowBolt",			DMG_BULLET,					TRACER_LINE,			0,			0,			12,			BULLET_IMPULSE(800, 8000),	0 );
 		def.AddAmmoType("Buckshot",			DMG_BULLET | DMG_BUCKSHOT,	TRACER_LINE,			0,			0,			16,			BULLET_IMPULSE(400, 1200),	0 );
 		def.AddAmmoType("RPG_Round",		DMG_BURN,					TRACER_NONE,			0,			0,			3,			0,							0 );

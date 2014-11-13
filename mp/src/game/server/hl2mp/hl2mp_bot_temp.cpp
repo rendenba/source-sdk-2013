@@ -133,12 +133,12 @@ CBasePlayer *BotPutInServer( bool bFrozen, int iTeam )
 	pPlayer->ClearFlags();
 	pPlayer->AddFlag( FL_CLIENT | FL_FAKECLIENT );
 
-	//pPlayer->ChangeTeam(iTeam);
+	pPlayer->ChangeTeam(iTeam);
 
 	if ( bFrozen )
 		pPlayer->AddEFlags( EFL_BOT_FROZEN );
 
-	//pPlayer->Spawn();
+	pPlayer->Spawn();
 
 	BotNumber++;
 
@@ -385,11 +385,11 @@ void Bot_Think( CHL2MP_Player *pBot )
 	botdata_t *botdata = &g_BotData[ ENTINDEX( pBot->edict() ) - 1 ];
 
 	//BB: not sure why the fuck I have to do it this way...
-	if (pBot->GetTeamNumber() != botdata->m_WantedTeam)
+	/*if (pBot->GetTeamNumber() != botdata->m_WantedTeam)
 	{
 		pBot->ChangeTeam(botdata->m_WantedTeam);
 		return;
-	}
+	}*/
 
 	//BB: try to spawn
 	if (!pBot->IsAlive())

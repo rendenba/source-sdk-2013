@@ -145,19 +145,23 @@ public:
 					}
 					else if ( !Q_stricmp( "Reflexes - Rank 1", temp) || !Q_stricmp( "Reflexes - Rank 2", temp) || !Q_stricmp( "Reflexes - Rank 3", temp) )
 					{
-						m_pPanel->SetText("Reflexes:\n\Passive Bonus\n\nIncreases safe fall distance by 15/30/45%.");
+						m_pPanel->SetText("Reflexes:\n\nPassive Bonus\n\nIncreases safe fall distance by 15/30/45%.");
 					}
 					else if ( !Q_stricmp( "Sneak - Rank 1", temp) || !Q_stricmp( "Sneak - Rank 2", temp) || !Q_stricmp( "Sneak - Rank 3", temp) )
 					{
-						m_pPanel->SetText("Sneak:\n\Passive Bonus\n\nFade partially invisible over 5/2.5/1.5 seconds. Movement or receiving damage cancels the effect.");
+						m_pPanel->SetText("Sneak:\n\nPassive Bonus\n\nFade partially invisible over 5/2.5/1.5 seconds. Movement or receiving damage cancels the effect.");
 					}
 					else if ( !Q_stricmp( "Masochist - Rank 1", temp) || !Q_stricmp( "Masochist - Rank 2", temp) || !Q_stricmp( "Masochist - Rank 3", temp) )
 					{
-						m_pPanel->SetText("Masochist:\n\Passive Bonus\n\nGrants a speed bonus for 5/10/15% of all damage taken (up 100% bonus speed) for 6 seconds. Effect is cumulative until no damage is received for 6 seconds.");
+						m_pPanel->SetText("Masochist:\n\nPassive Bonus\n\nGrants a speed bonus for 5/10/15% of all damage taken (up 100% bonus speed) for 6 seconds. Effect is cumulative until no damage is received for 6 seconds.");
 					}
 					else if ( !Q_stricmp( "Gorge - Rank 1", temp) || !Q_stricmp( "Gorge - Rank 2", temp) || !Q_stricmp( "Gorge - Rank 3", temp) )
 					{
-						m_pPanel->SetText("Gorge:\n\Passive Bonus\n\nAllows feeding to grant health 10/20/30% past normal maximum health.");
+						m_pPanel->SetText("Gorge:\n\nPassive Bonus\n\nAllows feeding to grant health 10/20/30% past normal maximum health.");
+					}
+					else if ( !Q_stricmp( "Intimidating Shout - Rank 1", temp) || !Q_stricmp( "Intimidating Shout - Rank 2", temp) || !Q_stricmp( "Intimidating Shout - Rank 3", temp) )
+					{
+						m_pPanel->SetText("Intimidating Shout:\n\nEnergy: 12/16/20\nCooldown: 20 seconds\n\nStuns all enemies within 200/300/400 units for 1.5 seconds.");
 					}
 					else
 					{
