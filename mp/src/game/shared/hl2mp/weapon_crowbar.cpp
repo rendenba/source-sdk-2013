@@ -142,7 +142,10 @@ void CWeaponCrowbar::PrimaryAttack()
 #ifndef CLIENT_DLL
 		if (pPlayer->gorephased)
 		{
-			return;
+			//BB: JAM Request... sneak attacks
+			pPlayer->DoGorePhase();
+			pPlayer->SetCooldown(0, gpGlobals->curtime + 3.0f);
+			pPlayer->RecalcGoreDrain();
 		}
 #else
 		C_BasePlayer *local = C_BasePlayer::GetLocalPlayer();

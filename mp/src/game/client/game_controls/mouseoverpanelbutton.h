@@ -91,11 +91,11 @@ public:
 					}
 					else if ( !Q_stricmp( "Leap - Rank 1", temp) || !Q_stricmp( "Leap - Rank 2", temp) || !Q_stricmp( "Leap - Rank 3", temp) )
 					{
-						m_pPanel->SetText("Leap:\n\nEnergy: 8\nCooldown: 8/6/4 seconds\n\nCauses you to accelerate quicky through the air.");
+						m_pPanel->SetText("Leap:\n\nEnergy: 12/9/6\nCooldown: 3.5 seconds\n\nCauses you to accelerate quicky through the air.");
 					}
 					else if ( !Q_stricmp( "Phase - Rank 1", temp) || !Q_stricmp( "Phase - Rank 2", temp) || !Q_stricmp( "Phase - Rank 3", temp) )
 					{
-						m_pPanel->SetText("Phase:\n\nEnergy: 6/5/4 plus 3/2/1 per second\nCooldown: 3 seconds\n\nDisappears from sight and greatly boosts movement speed. Cannot attack while phased.");
+						m_pPanel->SetText("Phase:\n\nEnergy: 6/5/4 plus 3/2/1 per second\nCooldown: 3 seconds\n\nDisappears from sight and greatly boosts movement speed. Attacking phases back into sight.");
 					}
 					else if ( !Q_stricmp( "Dread Scream - Rank 1", temp) || !Q_stricmp( "Dread Scream - Rank 2", temp) || !Q_stricmp( "Dread Scream - Rank 3", temp) )
 					{

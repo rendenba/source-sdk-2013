@@ -215,6 +215,9 @@ public:
 	float coven_timer_gcheck;
 	float coven_timer_holywater;
 
+	int coven_debug_nodeloc;
+	int coven_debug_prevnode;
+
 	//BB: coven loadout/abil stuff
 	int GetLoadout(int n);
 	int GetLevelsSpent();

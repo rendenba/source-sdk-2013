@@ -176,6 +176,9 @@ CHL2MP_Player::CHL2MP_Player() : m_PlayerAnimState( this )
 
 	m_iLevel = 1;
 
+	coven_debug_nodeloc = -1;
+	coven_debug_prevnode = -1;
+
 	num_trip_mines = 0;
 
 	coven_display_autolevel = false;
@@ -635,13 +638,14 @@ void CHL2MP_Player::DoVampireAbilityThink()
 		{
 			if (covenClassID == COVEN_CLASSID_FIEND)
 			{
-				//float mana = 4.0f+2.0f*lev;
-				float cool = 10.0f - 2.0f*lev;
-				if (SuitPower_GetCurrentPercentage() > 8.0f)
+				//BB: JAM request. fixed lowered leap cooldown... mana costs dec
+				float mana = 15.0f-3.0f*lev;
+				//float cool = 10.0f - 2.0f*lev;
+				if (SuitPower_GetCurrentPercentage() > mana)
 				{
-					SetCooldown(0, gpGlobals->curtime + cool);
+					SetCooldown(0, gpGlobals->curtime + 3.5);
 					DoLeap();
-					SuitPower_Drain(8.0f);
+					SuitPower_Drain(mana);
 				}
 				else
 					EmitSound("HL2Player.UseDeny");
@@ -1576,7 +1580,7 @@ void CHL2MP_Player::VampireStealthCalc()
 				GetActiveWeapon()->SetRenderMode( kRenderTransTexture );
 
 		int max_velocity = 10;
-		float alpha = 255.0f;
+		float alpha = 1.0f;
 
 		if (/*m_Local.m_bDucked && */coven_timer_vstealth == 0.0f && VectorLength(GetAbsVelocity()) <= max_velocity)
 		{
@@ -1584,41 +1588,43 @@ void CHL2MP_Player::VampireStealthCalc()
 		}
 		else if (/*m_Local.m_bDucked && */coven_timer_vstealth > 0.0f && VectorLength(GetAbsVelocity()) <= max_velocity)
 		{
-				alpha = 255.0f - 50.0f * GetLoadout(2) * (gpGlobals->curtime - coven_timer_vstealth);//180
+				alpha = 1.0f - 0.2f * GetLoadout(2) * (gpGlobals->curtime - coven_timer_vstealth);//180
 		}
 		else if (/*!m_Local.m_bDucked || */VectorLength(GetAbsVelocity()) >= 0)
 		{
 			coven_timer_vstealth = 0.0f;
-			alpha = 255.0f;
+			alpha = 1.0f;
 		}
 		if (GetFlags() & FL_ONFIRE)
 		{
-			alpha = 255.0f;
+			alpha = 1.0f;
 		}
 
-		if (alpha > 255.0f)
+		if (alpha > 1.0f)
 		{
-			alpha = 255.0f;
+			alpha = 1.0f;
 		}
-		if (alpha < 8.0f)
+		float min = 0.09f - 0.03f*GetLoadout(2);
+		if (alpha < min)
 		{
-			alpha = 8.0f;
+			alpha = min;
 		}
-		SetRenderColorA(alpha);
+		m_floatCloakFactor = 1.0f-alpha;
 		if (GetActiveWeapon() != NULL)
 		{
-			GetActiveWeapon()->SetRenderColorA(alpha);
+			//GetActiveWeapon()->SetRenderColorA(alpha);
 		}
 		if (GetViewModel())
 		{
-			GetViewModel()->SetRenderColorA(alpha);
+			//GetViewModel()->SetRenderColorA(alpha);
 		}
 	}
 }
 
 float CHL2MP_Player::Feed()
 {
-	coven_timer_vstealth = 0.0f;
+	//BB: JAM request... dont break stealth to feed
+	//coven_timer_vstealth = 0.0f;
 
 	if (coven_timer_damage > 0.0f)
 		return 0.0f;
@@ -3399,6 +3405,93 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 
 	RemoveEffects( EF_NODRAW );	// still draw player body
 	StopZooming();
+}
+
+//BB: BOT PATH DEBUGGING
+CON_COMMAND(next_node, "Move to next node")
+{
+	CHL2MP_Player *pPlayer = ToHL2MPPlayer( UTIL_GetCommandClient() );
+	if (!pPlayer)
+		return;
+	if (pPlayer->coven_debug_nodeloc < 0)
+		return;
+	if (pPlayer->coven_debug_prevnode < 0)
+		pPlayer->coven_debug_prevnode = 0;
+	
+	int con_count = HL2MPRules()->botnet[pPlayer->coven_debug_nodeloc]->connectors.Count();
+	int redflag = HL2MPRules()->botnet[pPlayer->coven_debug_prevnode]->ID;
+
+	if (con_count == 2)
+	{
+		int i = 0;
+		if (redflag == HL2MPRules()->botnet[pPlayer->coven_debug_nodeloc]->connectors[i])
+			i++;
+		int id = HL2MPRules()->botnet[pPlayer->coven_debug_nodeloc]->connectors[i];
+		int sel = 0;
+		for (int j = 0; j < HL2MPRules()->botnet.Count(); j++)
+		{
+			if (HL2MPRules()->botnet[j]->ID == id)
+			{
+				sel = j;
+				break;
+			}
+		}
+		pPlayer->SetLocalOrigin(HL2MPRules()->botnet[sel]->location);
+		pPlayer->coven_debug_prevnode = pPlayer->coven_debug_nodeloc;
+		pPlayer->coven_debug_nodeloc = sel;
+		int c = HL2MPRules()->botnet[pPlayer->coven_debug_nodeloc]->connectors.Count();
+		Msg("At node %d. %d connectors: ", HL2MPRules()->botnet[pPlayer->coven_debug_nodeloc]->ID, c);
+		for (int j = 0; j < c; j++)
+		{
+			Msg("%d,", HL2MPRules()->botnet[pPlayer->coven_debug_nodeloc]->connectors[j]);
+		}
+		Msg("\n");
+	}
+}
+
+CON_COMMAND(prev_node, "Go to previous node")
+{
+	CHL2MP_Player *pPlayer = ToHL2MPPlayer( UTIL_GetCommandClient() );
+	if (!pPlayer)
+		return;
+	if (pPlayer->coven_debug_prevnode < 0)
+		return;
+	int temp = pPlayer->coven_debug_prevnode;
+	pPlayer->coven_debug_prevnode = pPlayer->coven_debug_nodeloc;
+	pPlayer->coven_debug_nodeloc = temp;
+	pPlayer->SetLocalOrigin(HL2MPRules()->botnet[temp]->location);
+	int c = HL2MPRules()->botnet[pPlayer->coven_debug_nodeloc]->connectors.Count();
+	Msg("At node %d. %d connectors: ", HL2MPRules()->botnet[pPlayer->coven_debug_nodeloc]->ID, c);
+	for (int j = 0; j < c; j++)
+	{
+		Msg("%d,", HL2MPRules()->botnet[pPlayer->coven_debug_nodeloc]->connectors[j]);
+	}
+	Msg("\n");
+}
+
+CON_COMMAND(go_to_node, "Go to a node <id>")
+{
+	CHL2MP_Player *pPlayer = ToHL2MPPlayer( UTIL_GetCommandClient() );
+	if (!pPlayer)
+		return;
+	if ( args.ArgC() != 2 )
+		return;
+	int temp = atoi(args[ 1 ]);
+	if (temp > HL2MPRules()->botnet.Count())
+		return;
+	int sel = 0;
+	for (int i = 0; i < HL2MPRules()->botnet.Count(); i++)
+	{
+		if (HL2MPRules()->botnet[i]->ID == temp)
+		{
+			sel = i;
+			break;
+		}
+	}
+	pPlayer->coven_debug_prevnode = pPlayer->coven_debug_nodeloc;
+	pPlayer->coven_debug_nodeloc = sel;
+	pPlayer->SetLocalOrigin(HL2MPRules()->botnet[sel]->location);
+	Msg("At node %d.\n", HL2MPRules()->botnet[sel]->ID);
 }
 
 CON_COMMAND(level, "give me some XP")

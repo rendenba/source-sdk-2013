@@ -737,6 +737,9 @@ void CHL2MPRules::Think( void )
 	}
 
 	//BB: Coven Player Things!
+	if (sv_coven_minplayers.GetInt()*2 > gpGlobals->maxClients)
+		sv_coven_minplayers.SetValue(floor(gpGlobals->maxClients/2.0f));
+
 	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
 		CBasePlayer *pPlayer = UTIL_PlayerByIndex( i );
@@ -750,12 +753,12 @@ void CHL2MPRules::Think( void )
 
 			if (pPlayer->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
 			{
-				xp_tick = COVEN_XP_CAP_PERSEC * s_caps;
+				xp_tick = COVEN_XP_CAP_PERSEC * s_caps * 4.0f*COVEN_MAX_CAP_POINTS/num_cap_points;
 				numSlayers++;
 			}
 			else if (pPlayer->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
 			{
-				xp_tick = COVEN_XP_CAP_PERSEC * v_caps;
+				xp_tick = COVEN_XP_CAP_PERSEC * v_caps * 4.0f*COVEN_MAX_CAP_POINTS/num_cap_points;
 				numVampires++;
 			}
 
@@ -786,7 +789,8 @@ void CHL2MPRules::Think( void )
 	//BB: add team scores and reset
 	if (gpGlobals->curtime > scoreTimer)
 	{
-		scoreTimer = gpGlobals->curtime + 2.0f*num_cap_points/COVEN_MAX_CAP_POINTS;
+		//BB: make sure to check above if you change this formula if we want flat xp gains for scoreTimer intervals.
+		scoreTimer = gpGlobals->curtime + 4.0f*num_cap_points/COVEN_MAX_CAP_POINTS;
 		GetGlobalTeam( COVEN_TEAMID_SLAYERS )->AddScore(COVEN_CAP_SCORE_PERSEC*s_caps);
 		GetGlobalTeam( COVEN_TEAMID_VAMPIRES )->AddScore(COVEN_CAP_SCORE_PERSEC*v_caps);
 	}

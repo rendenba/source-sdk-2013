@@ -395,6 +395,8 @@ public:
 	float				GetNextAttack() const { return m_flNextAttack; }
 	void				SetNextAttack( float flWait ) { m_flNextAttack = flWait; }
 
+	CNetworkVar( float, m_floatCloakFactor );
+
 	bool				m_bForceServerRagdoll;
 
 	// Pickup prevention

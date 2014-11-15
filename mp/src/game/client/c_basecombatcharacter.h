@@ -83,6 +83,8 @@ public:
 	void				CreateObjectiveCircle();
 	CFXCharSprite		*m_objectiveCircle;
 
+	float            m_floatCloakFactor;
+
 	enum LineOfSightCheckType
 	{
 		IGNORE_NOTHING,

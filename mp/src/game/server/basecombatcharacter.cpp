@@ -90,6 +90,7 @@ BEGIN_DATADESC( CBaseCombatCharacter )
 	DEFINE_FIELD( m_eHull, FIELD_INTEGER ),
 	DEFINE_FIELD( m_bloodColor, FIELD_INTEGER ),
 	DEFINE_FIELD( m_iDamageCount, FIELD_INTEGER ),
+	DEFINE_FIELD( m_floatCloakFactor, FIELD_FLOAT ),
 	
 	DEFINE_FIELD( m_flFieldOfView, FIELD_FLOAT ),
 	DEFINE_FIELD( m_HackedGunPos, FIELD_VECTOR ),
@@ -200,6 +201,7 @@ IMPLEMENT_SERVERCLASS_ST(CBaseCombatCharacter, DT_BaseCombatCharacter)
 
 	SendPropEHandle( SENDINFO( m_hActiveWeapon ) ),
 	SendPropArray3( SENDINFO_ARRAY3(m_hMyWeapons), SendPropEHandle( SENDINFO_ARRAY(m_hMyWeapons) ) ),
+	SendPropFloat( SENDINFO ( m_floatCloakFactor ) ),
 
 #ifdef INVASION_DLL
 	SendPropInt( SENDINFO(m_iPowerups), MAX_POWERUPS, SPROP_UNSIGNED ), 
@@ -716,6 +718,8 @@ CBaseCombatCharacter::CBaseCombatCharacter( void )
 
 	// Zero the damage accumulator.
 	m_flDamageAccumulator = 0.0f;
+
+	m_floatCloakFactor.Set( 0.0f );
 
 	// Init weapon and Ammo data
 	m_hActiveWeapon			= NULL;

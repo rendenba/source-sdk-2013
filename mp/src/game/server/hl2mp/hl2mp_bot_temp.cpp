@@ -235,7 +235,7 @@ void PlayerCheck( CHL2MP_Player *pBot )
 
 		if ((playerVec).Length() < 400)
 		{
-			if (isVampDoll || ((pPlayer->GetRenderColor().a > 50 && !(pPlayer->GetFlags() & EF_NODRAW))))
+			if (isVampDoll || ((pPlayer->m_floatCloakFactor < 0.1f && !(pPlayer->GetFlags() & EF_NODRAW))))
 			{
 				QAngle angle = pBot->GetLocalAngles();
 				Vector forward;
@@ -736,7 +736,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 			}
 			if (gpGlobals->curtime - botdata->stuckTimer >= 2.0f) //STUCK!
 			{
-				botdata->goWild = gpGlobals->curtime + 3.0f;
+				botdata->goWild = gpGlobals->curtime + 8.0f;
 			}
 		}
 		else
