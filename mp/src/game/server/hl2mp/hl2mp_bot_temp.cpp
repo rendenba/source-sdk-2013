@@ -55,9 +55,12 @@ static char *botnames[2][10] =
 typedef struct
 {
 	bool			backwards;
+	bool			left;
+	int				turns;
 
 	float			nextstrafetime;
 	float			nextjumptime;
+	float			nextusetime;
 	float			sidemove;
 
 	float			stuckTimer;
@@ -154,6 +157,8 @@ CBasePlayer *BotPutInServer( bool bFrozen, int iTeam )
 	g_BotData[pPlayer->entindex()-1].guardTimer = 0.0f;
 	g_BotData[pPlayer->entindex()-1].bLost = true;
 	g_BotData[pPlayer->entindex()-1].bCombat = false;
+	g_BotData[pPlayer->entindex()-1].left = false;
+	g_BotData[pPlayer->entindex()-1].turns = 0;
 
 	return pPlayer;
 }
@@ -297,10 +302,14 @@ void FindNearestNode( CHL2MP_Player *pBot )
 	//skip "stop" nodes
 	if (temp->connectors.Count() > 1)
 	{
-		//We found a closer node
-		if ((pBot->GetAbsOrigin() - temp->location).Length() < (pBot->GetAbsOrigin() - cur->location).Length())
+		//skip nodes without +/- 50 z
+		if (abs(pBot->GetAbsOrigin().z - temp->location.z) < 50)
 		{
-			botdata->m_targetNode = botdata->m_lastNodeProbe;
+			//We found a closer node
+			if ((pBot->GetAbsOrigin() - temp->location).Length() < (pBot->GetAbsOrigin() - cur->location).Length())
+			{
+				botdata->m_targetNode = botdata->m_lastNodeProbe;
+			}
 		}
 	}
 
@@ -492,7 +501,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 		if ( !pBot->IsEFlagSet(EFL_BOT_FROZEN))
 		{
 			Vector forward;
-			QAngle angle = botdata->lastAngles;
+			QAngle angle = pBot->GetLocalAngles();//botdata->lastAngles;
 			if (botdata->goWild > 0.0f)
 			{
 				if (gpGlobals->curtime > botdata->goWild)
@@ -509,25 +518,44 @@ void Bot_Think( CHL2MP_Player *pBot )
 				angle = pBot->GetLocalAngles();
 
 				Vector vecSrc;
+
+				int dir = -1;
+				botdata->turns++;
+				if (botdata->left)
+					dir = 1;
+
+				if (botdata->left && botdata->turns > 1)
+				{
+					botdata->left = false;
+					botdata->turns = 0;
+				}
+				else if (!botdata->left && botdata->turns > 1)
+				{
+					botdata->left = true;
+					botdata->turns = 0;
+				}
+
 				while ( --maxtries >= 0 )
 				{
 					AngleVectors( angle, &forward );
 
-					vecSrc = pBot->GetLocalOrigin() + Vector( 0, 0, 36 );
+					vecSrc = pBot->GetLocalOrigin();// + Vector( 0, 0, 36 );
 
 					vecEnd = vecSrc + forward * 10;
 
+					//UTIL_TraceLine(vecSrc, vecEnd, MASK_PLAYERSOLID, pBot, COLLISION_GROUP_NONE, &trace);
 					UTIL_TraceHull( vecSrc, vecEnd, VEC_HULL_MIN_SCALED( pBot ), VEC_HULL_MAX_SCALED( pBot ), 
-						MASK_PLAYERSOLID, pBot, COLLISION_GROUP_NONE, &trace );
+						MASK_PLAYERSOLID, pBot, COLLISION_GROUP_PLAYER, &trace );
 
 					if ( trace.fraction == 1.0 )
 					{
-						maxtries = 0;
+						maxtries = -1;
 					}
 					else
 					{
+						angle.y += dir*angledelta;
+						//Msg("%d %.02f\n", maxtries, angle.y);
 
-						angle.y += angledelta;
 
 						if ( angle.y > 180 )
 							angle.y -= 360;
@@ -540,6 +568,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 						botdata->lastAngles = angle;
 					}
 				}
+				pBot->SetLocalAngles( angle );
 			}
 			else if (botdata->guardTimer == 0.0f)
 			{
@@ -647,7 +676,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 			vecViewAngles = angle;
 		}
 
-		// Is my team being forced to defend?
+		/*// Is my team being forced to defend?
 		if ( bot_defend.GetInt() == pBot->GetTeamNumber() )
 		{
 			buttons |= IN_ATTACK2;
@@ -676,9 +705,9 @@ void Bot_Think( CHL2MP_Player *pBot )
 					}
 				}
 			}
-		}
+		}*/
 
-		if ( bot_flipout.GetInt() )
+		/*if ( bot_flipout.GetInt() )
 		{
 			if ( bot_forceattackon.GetBool() || (RandomFloat(0.0,1.0) > 0.5) )
 			{
@@ -694,10 +723,10 @@ void Bot_Think( CHL2MP_Player *pBot )
 			pBot->ClientCommand( args );
 
 			bot_sendcmd.SetValue("");
-		}
+		}*/
 	}
 
-	if ( bot_flipout.GetInt() >= 2 )
+	/*if ( bot_flipout.GetInt() >= 2 )
 	{
 
 		QAngle angOffset = RandomAngle( -1, 1 );
@@ -722,12 +751,18 @@ void Bot_Think( CHL2MP_Player *pBot )
 		botdata->lastAngles[ 2 ] = 0;
 
 		pBot->SetLocalAngles( botdata->lastAngles );
-	}
+	}*/
 
 	if (botdata->guardTimer == 0.0f && (pBot->GetLocalOrigin() - botdata->lastPos).Length() < 4.0f) //STUCK?
 	{
 		if (botdata->stuckTimer > 0.0f)
 		{
+			if (gpGlobals->curtime - botdata->stuckTimer >= 0.2f && gpGlobals->curtime >= botdata->nextusetime)
+			{
+				//door?
+				buttons |= IN_USE;
+				botdata->nextusetime = gpGlobals->curtime + 3.0f;
+			}
 			if (gpGlobals->curtime - botdata->stuckTimer >= 0.5f && gpGlobals->curtime >= botdata->nextjumptime)
 			{
 				//try a jump
@@ -737,6 +772,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 			if (gpGlobals->curtime - botdata->stuckTimer >= 2.0f) //STUCK!
 			{
 				botdata->goWild = gpGlobals->curtime + 8.0f;
+				botdata->turns = 0;
 			}
 		}
 		else
