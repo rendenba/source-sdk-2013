@@ -797,6 +797,8 @@ void CBasePlayer::SetStepSoundTime( stepsoundtimes_t iStepSoundTime, bool bWalki
 	case STEPSOUNDTIME_NORMAL:
 	case STEPSOUNDTIME_WATER_FOOT:
 		m_flStepSoundTime = bWalking ? 400 : 300;
+		//BB: TODO: Fix footsteps timing???
+		//m_flStepSoundTime = 100.0f*50000.0f/GetAbsVelocity().Length();
 		break;
 
 	case STEPSOUNDTIME_ON_LADDER:

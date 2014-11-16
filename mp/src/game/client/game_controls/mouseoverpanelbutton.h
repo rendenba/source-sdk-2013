@@ -83,7 +83,7 @@ public:
 					}
 					else if ( !Q_stricmp( "Battle Yell - Rank 1", temp) || !Q_stricmp( "Battle Yell - Rank 2", temp) || !Q_stricmp( "Battle Yell - Rank 3", temp) )
 					{
-						m_pPanel->SetText("Battle Yell:\n\nEnergy: 15/20/25\nCooldown: 25 seconds\n\nBoosts damage by 10/20/30% for all teammates within 400 units for 10 seconds.");
+						m_pPanel->SetText("Battle Yell:\n\nEnergy: 15/20/25\nCooldown: 25 seconds\n\nBoosts damage by 10/20/30% for all team mates within 400 units for 10 seconds.");
 					}
 					else if ( !Q_stricmp( "Holy Water - Rank 1", temp) || !Q_stricmp( "Holy Water - Rank 2", temp) || !Q_stricmp( "Holy Water - Rank 3", temp) )
 					{
@@ -149,7 +149,7 @@ public:
 					}
 					else if ( !Q_stricmp( "Sneak - Rank 1", temp) || !Q_stricmp( "Sneak - Rank 2", temp) || !Q_stricmp( "Sneak - Rank 3", temp) )
 					{
-						m_pPanel->SetText("Sneak:\n\nPassive Bonus\n\nFade partially invisible over 5/2.5/1.5 seconds. Movement or receiving damage cancels the effect.");
+						m_pPanel->SetText("Sneak:\n\nPassive Bonus\n\nFade invisible over 6/3/2 seconds. Magnitude of invisibility increases with rank. Movement or receiving damage cancels the effect.");
 					}
 					else if ( !Q_stricmp( "Masochist - Rank 1", temp) || !Q_stricmp( "Masochist - Rank 2", temp) || !Q_stricmp( "Masochist - Rank 3", temp) )
 					{
@@ -184,10 +184,52 @@ public:
 					{
 						m_pPanel->SetText("Undying:\n\nPassive Bonus\nResurrect 0.66/1.33/2.0 seconds faster and with 10/20/30% more health.");
 					}
+					else if ( !Q_stricmp( "Detonate Blood - Rank 1", temp) || !Q_stricmp( "Detonate Blood - Rank 2", temp) || !Q_stricmp( "Detonate Blood - Rank 3", temp) )
+					{
+						m_pPanel->SetText("Detonate Blood:\n\nEnergy: 8/10/12\nCooldown: 10 seconds\n\nExplode inflicting 15/30/45% max health damage to self and 25/50/75% max health to enemies. Causes 1.5 second stun.");
+					}
 					else
 					{
 						m_pPanel->SetText(" ");
 					}
+				}
+				else
+				{
+					m_pPanel->SetText(" ");
+				}
+			}
+			else if ( !Q_stricmp( "SClassInfo", m_pPanel->GetName() ))
+			{
+				if( !Q_stricmp( "reaver", GetName() ) )
+				{
+					m_pPanel->SetText("Reaver:\nClose range tank, also somewhat effective at medium range. Slow speed.\nMax HP: 120\n\n10 Gauge Double Barrel Shotgun:\nVery slow reload, but backs a close to mid range whallop.\n\nAbilities:\n\nSprint: Boosts speed.\n\nSheer Will: Boosts all stats.\n\nIntimidating Shout: Stuns all enemies within range.\n\nGut Check: Grants immunity from one damaging effect while active.");
+				}
+				else if( !Q_stricmp( "hellion", GetName() ) )
+				{
+					m_pPanel->SetText("Hellion:\nLightweight scout and expert at mischief. Fastest speed.\nMax HP: 100\n\n357 Magnum:\nStandard big pistol. Very accurate.\n\nAbilities:\n\nHoly Water: Throws a holy water grenade healing allies and setting vampires on fire.\n\nTrip Mine: Plants a laser activated trip mine on a wall in front of you.\n\nReflexes: Increases safe fall distance.\n\n");
+				}
+				else if( !Q_stricmp( "avenger", GetName() ) )
+				{
+					m_pPanel->SetText("Avenger:\nStandard meatshield. Average speed.\nMax HP: 100\n\n12 Gauge Pump Action Shotgun:\nHas a six shot clip.  Packs a decent punch.\n\nAbilities:\n\nBattle Yell: Boosts damage for team mates in range.\n\nBandage: Throws a med kit for team mates to pick up.\n\nRevenge: Increases all stats when a nearby ally dies.\n\n");
+				}
+				else
+				{
+					m_pPanel->SetText(" ");
+				}
+			}
+			else if ( !Q_stricmp( "VClassInfo", m_pPanel->GetName() ))
+			{
+				if( !Q_stricmp( "fiend", GetName() ) )
+				{
+					m_pPanel->SetText("Fiend:\nLightweight flyer. Insanely mobile.\nMax HP: 72\n\nAbilities:\n\nLeap: Causes you to accelerate quicky through the air.\n\n\n\nSneak: Fade invisible. Movement or receiving damage cancels the effect.\n\nBerserk: Increases health and max health.");
+				}
+				else if( !Q_stricmp( "gore", GetName() ) )
+				{
+					m_pPanel->SetText("Gore:\nPretty tough. Pretty slow.\nMax HP: 120\n\nAbilities:\n\nPhase: Disappears from sight and greatly boosts movement speed. Attacking phases back into sight.\n\nCharge: Charges straight ahead at immense speed. Usable while phased. Hold the effect to continue charging.\n\nGorge: Allows feeding to grant health past normal maximum health.\n\nDetonate Blood: Explode inflicting damage to self and enemies. Causes stun.");
+				}
+				else if( !Q_stricmp( "degen", GetName() ) )
+				{
+					m_pPanel->SetText("Degenerate:\nSlow and \"non-threatening,\" but excels at one-on-one combat.\nMax HP: 112\n\nAbilities:\n\nDread Scream: Scream instilling fear in Slayers within ranges. Players afflicted are slowed.\n\nBloodlust:  Causes all teammates within range to regain some of damage dealt to enemies.\n\nMasochist: Grants a speed bonus for some of all damage taken.\n\nUndying: Resurrect faster and with more health.");
 				}
 				else
 				{

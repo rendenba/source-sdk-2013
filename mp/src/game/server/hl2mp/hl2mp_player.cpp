@@ -233,7 +233,7 @@ void CHL2MP_Player::DoSlayerAbilityThink()
 				float cool = 50.0f - 10.0f*lev;
 				if (SuitPower_GetCurrentPercentage() > mana)
 				{
-					SetCooldown(0, gpGlobals->curtime + cool);
+					SetGlobalCooldown(0, gpGlobals->curtime + cool);
 					SetStatusTime(COVEN_BUFF_SPRINT, gpGlobals->curtime + 10.0f);
 					covenStatusEffects |= COVEN_FLAG_SPRINT;
 					ComputeSpeed();
@@ -248,7 +248,7 @@ void CHL2MP_Player::DoSlayerAbilityThink()
 				float mana = 10.0f + 5.0f*lev;
 				if (SuitPower_GetCurrentPercentage() > mana)
 				{
-					SetCooldown(0, gpGlobals->curtime + 25.0f);
+					SetGlobalCooldown(0, gpGlobals->curtime + 25.0f);
 					DoBattleYell(lev);
 					EmitSound("HL2Player.SprintStart");
 					SuitPower_Drain(mana);
@@ -262,7 +262,7 @@ void CHL2MP_Player::DoSlayerAbilityThink()
 				float cool = 20.0f - 5.0f*lev;
 				if (SuitPower_GetCurrentPercentage() > mana)
 				{
-					SetCooldown(0, gpGlobals->curtime + cool);
+					SetGlobalCooldown(0, gpGlobals->curtime + cool);
 					ThrowHolywaterGrenade();
 					SuitPower_Drain(mana);
 				}
@@ -287,7 +287,7 @@ void CHL2MP_Player::DoSlayerAbilityThink()
 				float cool = 20.0f;
 				if (SuitPower_GetCurrentPercentage() > mana)
 				{
-					SetCooldown(1, gpGlobals->curtime + cool);
+					SetGlobalCooldown(1, gpGlobals->curtime + cool);
 					SetStatusTime(COVEN_BUFF_STATS, gpGlobals->curtime + 10.0f);
 					covenStatusEffects |= COVEN_FLAG_STATS;
 					DoSheerWill(lev);
@@ -303,7 +303,7 @@ void CHL2MP_Player::DoSlayerAbilityThink()
 				float cool = 40.0f - 10.0f*lev;
 				if (SuitPower_GetCurrentPercentage() > mana)
 				{
-					SetCooldown(1, gpGlobals->curtime + cool);
+					SetGlobalCooldown(1, gpGlobals->curtime + cool);
 					GenerateBandage();
 					SuitPower_Drain(mana);
 				}
@@ -318,7 +318,7 @@ void CHL2MP_Player::DoSlayerAbilityThink()
 				{
 					if (num_trip_mines < (1+lev) && AttachTripmine())
 					{
-						SetCooldown(1, gpGlobals->curtime + cool);
+						SetGlobalCooldown(1, gpGlobals->curtime + cool);
 						SuitPower_Drain(mana);
 
 					}
@@ -346,7 +346,7 @@ void CHL2MP_Player::DoSlayerAbilityThink()
 				float cool = 20.0f;
 				if (SuitPower_GetCurrentPercentage() > mana)
 				{
-					SetCooldown(2, gpGlobals->curtime + cool);
+					SetGlobalCooldown(2, gpGlobals->curtime + cool);
 					SuitPower_Drain(mana);
 					EmitSound( "Weapon_StunStick.Activate" );
 					DoIntimidatingShout(lev);
@@ -643,7 +643,7 @@ void CHL2MP_Player::DoVampireAbilityThink()
 				//float cool = 10.0f - 2.0f*lev;
 				if (SuitPower_GetCurrentPercentage() > mana)
 				{
-					SetCooldown(0, gpGlobals->curtime + 3.5);
+					SetGlobalCooldown(0, gpGlobals->curtime + 3.5);
 					DoLeap();
 					SuitPower_Drain(mana);
 				}
@@ -655,7 +655,7 @@ void CHL2MP_Player::DoVampireAbilityThink()
 				if (gorephased)
 				{
 					DoGorePhase();
-					SetCooldown(0, gpGlobals->curtime + 3.0f);
+					SetGlobalCooldown(0, gpGlobals->curtime + 3.0f);
 					RecalcGoreDrain();
 				}
 				else
@@ -663,7 +663,7 @@ void CHL2MP_Player::DoVampireAbilityThink()
 					float mana = 7.0f - 1.0f*lev;
 					if (SuitPower_GetCurrentPercentage() > mana)
 					{
-						SetCooldown(0, gpGlobals->curtime + 3.0f);
+						SetGlobalCooldown(0, gpGlobals->curtime + 3.0f);
 						SuitPower_Drain(mana);
 						DoGorePhase();
 						RecalcGoreDrain();
@@ -678,7 +678,7 @@ void CHL2MP_Player::DoVampireAbilityThink()
 				//float cool = 25.0f - 5.0f*lev;
 				if (SuitPower_GetCurrentPercentage() > mana)
 				{
-					SetCooldown(0, gpGlobals->curtime + 15.0f);
+					SetGlobalCooldown(0, gpGlobals->curtime + 15.0f);
 					DoDreadScream(lev);
 					EmitSound("HL2Player.Sweet");
 					SuitPower_Drain(mana);
@@ -703,7 +703,7 @@ void CHL2MP_Player::DoVampireAbilityThink()
 				float mana = 5.0f + 5.0f*lev;
 				if (SuitPower_GetCurrentPercentage() > mana)
 				{
-					SetCooldown(1, gpGlobals->curtime + 25.0f);
+					SetGlobalCooldown(1, gpGlobals->curtime + 25.0f);
 					DoBloodLust(lev);
 					EmitSound("HL2Player.Sweet");
 					SuitPower_Drain(mana);
@@ -716,7 +716,7 @@ void CHL2MP_Player::DoVampireAbilityThink()
 				float mana = 7.0f - 1.0f*lev;
 				if (SuitPower_GetCurrentPercentage() > mana)
 				{
-					SetCooldown(1, gpGlobals->curtime + 3.0f);
+					SetGlobalCooldown(1, gpGlobals->curtime + 3.0f);
 					SuitPower_Drain(mana);
 					DoGoreCharge();
 					RecalcGoreDrain();
@@ -743,7 +743,7 @@ void CHL2MP_Player::DoVampireAbilityThink()
 				float cool = 20.0f;
 				if (SuitPower_GetCurrentPercentage() > mana)
 				{
-					SetCooldown(3, gpGlobals->curtime + cool);
+					SetGlobalCooldown(3, gpGlobals->curtime + cool);
 					SetStatusTime(COVEN_BUFF_BERSERK, gpGlobals->curtime + 15.0f);
 					covenStatusEffects |= COVEN_FLAG_BERSERK;
 					DoBerserk(lev);
@@ -752,8 +752,95 @@ void CHL2MP_Player::DoVampireAbilityThink()
 				else
 					EmitSound("HL2Player.UseDeny");
 			}
+			else if (covenClassID == COVEN_CLASSID_GORE)
+			{
+				float mana = 6.0f+2.0f*lev;
+				float cool = 10.0f;
+				if (SuitPower_GetCurrentPercentage() > mana)
+				{
+					SetGlobalCooldown(3, gpGlobals->curtime + cool);
+					BloodExplode(lev);
+					SuitPower_Drain(mana);
+				}
+				else
+					EmitSound("HL2Player.UseDeny");
+			}
 		}
 	}
+}
+
+void CHL2MP_Player::BloodExplode(int lev)
+{
+	float m_DmgRadius = 51.2f;
+	trace_t		pTrace;
+	Vector		vecSpot;// trace starts here!
+
+	vecSpot = GetAbsOrigin() + Vector ( 0 , 0 , 8 );
+	UTIL_TraceLine ( vecSpot, vecSpot + Vector ( 0, 0, -32 ), MASK_SHOT_HULL, this, COLLISION_GROUP_NONE, & pTrace);
+
+#if !defined( CLIENT_DLL )
+
+	Vector vecAbsOrigin = GetAbsOrigin();
+	int contents = UTIL_PointContents ( vecAbsOrigin );
+
+#if !defined( TF_DLL )
+	// Since this code only runs on the server, make sure it shows the tempents it creates.
+	// This solves a problem with remote detonating the pipebombs (client wasn't seeing the explosion effect)
+	CDisablePredictionFiltering disabler;
+#endif
+
+	if ( pTrace.fraction != 1.0 )
+	{
+		Vector vecNormal = pTrace.plane.normal;
+		surfacedata_t *pdata = physprops->GetSurfaceData( pTrace.surface.surfaceProps );	
+		CPASFilter filter( vecAbsOrigin );
+
+		te->Explosion( filter, -1.0, // don't apply cl_interp delay
+			&vecAbsOrigin,
+			!( contents & MASK_WATER ) ? g_sModelIndexFireball : g_sModelIndexWExplosion,
+			m_DmgRadius,// * .03, 
+			12,
+			TE_EXPLFLAG_NONE | TE_EXPLFLAG_NOSOUND,
+			m_DmgRadius,
+			0.0,
+			&vecNormal,
+			(char) pdata->game.material );
+	}
+	else
+	{
+		CPASFilter filter( vecAbsOrigin );
+		te->Explosion( filter, -1.0, // don't apply cl_interp delay
+			&vecAbsOrigin, 
+			!( contents & MASK_WATER ) ? g_sModelIndexFireball : g_sModelIndexWExplosion,
+			m_DmgRadius,// * .03, 
+			12,
+			TE_EXPLFLAG_NONE | TE_EXPLFLAG_NOSOUND,
+			m_DmgRadius,
+			0.0 );
+	}
+
+	// Use the thrower's position as the reported position
+	Vector vecReported = GetAbsOrigin();
+
+	int bits = DMG_PARALYZE;
+	float damn = 0.25f*lev*GetMaxHealth();
+	CBaseEntity *ignore;
+	ignore = this;
+
+	CTakeDamageInfo info( this, this, vec3_origin, GetAbsOrigin(), damn, bits, 0, &vecReported );
+
+	RadiusDamage( info, GetAbsOrigin(), 300.0f, CLASS_NONE, ignore );
+
+	UTIL_DecalTrace( &pTrace, "Scorch" );
+
+	//bits = DMG_CLUB;
+	damn = 0.15f*lev*GetMaxHealth();
+	info.SetDamage(damn);
+	info.SetDamageType(bits);
+	TakeDamage(info);
+
+	EmitSound( "NPC_SScanner.DiveBombFlyby" );
+#endif
 }
 
 void CHL2MP_Player::DoBerserk(int lev)
@@ -884,6 +971,18 @@ bool CHL2MP_Player::LevelUp( int lvls )
 	return BaseClass::LevelUp(lvls);
 }
 
+void CHL2MP_Player::SetGlobalCooldown(int n, float time)
+{
+	int t = GetTeamNumber();
+	if (t > 1)
+	{
+		t -= 2;
+		covenLevelsSpent[t][covenClassID-1]++;
+		covenCooldowns[t][covenClassID-1][n] = time;
+		RefreshCooldowns();
+	}
+}
+
 void CHL2MP_Player::SpendPoint(int on)
 {
 	int t = GetTeamNumber();
@@ -903,6 +1002,27 @@ void CHL2MP_Player::RefreshLoadout()
 	SetCurrentLoadout(2, GetLoadout(2));
 	SetCurrentLoadout(3, GetLoadout(3));
 	SetPointsSpent(GetLevelsSpent());
+}
+
+void CHL2MP_Player::RefreshCooldowns()
+{
+	SetCooldown(0, GetCooldown(0));
+	SetCooldown(1, GetCooldown(1));
+	SetCooldown(2, GetCooldown(2));
+	SetCooldown(3, GetCooldown(3));
+}
+
+
+float CHL2MP_Player::GetCooldown(int n)
+{
+	int t = GetTeamNumber();
+	if (t > 1 && n >= 0 && n <= 3)
+	{
+		t -= 2;
+		return covenCooldowns[t][covenClassID-1][n];
+	}
+
+	return -1;
 }
 
 int CHL2MP_Player::GetLoadout(int n)
@@ -1086,6 +1206,7 @@ void CHL2MP_Player::Precache( void )
 	PrecacheScriptSound( "Leap" );
 
 	PrecacheScriptSound( "Weapon_StunStick.Activate" );
+	PrecacheScriptSound( "NPC_SScanner.DiveBombFlyby" );
 
 	/*PrecacheModel( "models/items/ammocrate_pistol.mdl" );
 
@@ -1836,7 +1957,7 @@ void CHL2MP_Player::PreThink( void )
 			if (pRules->cap_point_sightcheck[lastCheckedCapPoint])
 			{
 				trace_t tr;
-				UTIL_TraceLine( GetAbsOrigin(), tVec, MASK_SOLID, this, COLLISION_GROUP_DEBRIS, &tr );
+				UTIL_TraceLine( EyePosition(), tVec, MASK_SOLID, this, COLLISION_GROUP_DEBRIS, &tr );
 				if ( tr.fraction != 1.0 )
 					itsago = false;
 			}
@@ -2709,6 +2830,7 @@ void CHL2MP_Player::SlayerGutcheckThink()
 void CHL2MP_Player::DoStatusThink()
 {
 	RefreshLoadout();
+	RefreshCooldowns();
 	if (PointsToSpend() > 0)
 	{
 		covenStatusEffects |= COVEN_FLAG_LEVEL;
@@ -2996,7 +3118,7 @@ bool CHL2MP_Player::ClientCommand( const CCommand &args )
 				if (PointsToSpend() > 0 && GetLoadout(iSkill) < 3)
 				{
 					SpendPoint(iSkill);
-					SetCooldown(iSkill, gpGlobals->curtime);
+					SetGlobalCooldown(iSkill, gpGlobals->curtime);
 				}
 			}
 			return true;
@@ -3477,8 +3599,8 @@ CON_COMMAND(go_to_node, "Go to a node <id>")
 	if ( args.ArgC() != 2 )
 		return;
 	int temp = atoi(args[ 1 ]);
-	if (temp > HL2MPRules()->botnet.Count())
-		return;
+	//if (temp > HL2MPRules()->botnet.Count())
+	//	return;
 	int sel = 0;
 	for (int i = 0; i < HL2MPRules()->botnet.Count(); i++)
 	{
@@ -3574,6 +3696,15 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 
 	CTakeDamageInfo inputInfoAdjust = inputInfo;
 
+	//BLOOD EXPLODE
+	if (inputInfoAdjust.GetDamageType() & DMG_PARALYZE)
+	{
+		int bits = inputInfoAdjust.GetDamageType() & ~DMG_PARALYZE;
+		covenStatusEffects |= COVEN_FLAG_STUN;
+		SetStatusTime(COVEN_BUFF_STUN, gpGlobals->curtime + 1.5f);
+		inputInfoAdjust.SetDamageType(bits);
+	}
+
 	if (GetTeamNumber() == COVEN_TEAMID_SLAYERS && covenStatusEffects & COVEN_FLAG_HOLYWATER)
 	{
 		float temp = floor(0.2f * inputInfoAdjust.GetDamage());
@@ -3625,7 +3756,7 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 		{
 			covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_GCHECK;
 			coven_timer_gcheck = gpGlobals->curtime + 20.0f - 5.0f*GetLoadout(3);
-			SetCooldown(3,coven_timer_gcheck);
+			SetGlobalCooldown(3,coven_timer_gcheck);
 			EmitSound("Weapon_Crowbar.Melee_HitWorld");
 			inputInfoAdjust.SetDamage(0.0f);
 		}

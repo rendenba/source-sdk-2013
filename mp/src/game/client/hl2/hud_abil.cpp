@@ -17,7 +17,7 @@ using namespace vgui;
 
 static wchar_t *abilities[2][COVEN_MAX_CLASSCOUNT][4] =
 {{{L"Battle Yell",L"Bandage",L"Revenge",L""},{L"Sprint",L"Sheer Will",L"Intimidating Shout",L"Gut Check"},{L"Holy Water",L"Trip Mine",L"Reflexes",L""}},
-{{L"Leap",L"",L"Sneak",L"Berserk"},{L"Phase",L"Charge",L"Gorge",L""},{L"Dread Scream",L"Bloodlust",L"Masochist",L"Undying"}}};
+{{L"Leap",L"",L"Sneak",L"Berserk"},{L"Phase",L"Charge",L"Gorge",L"Detonate Blood"},{L"Dread Scream",L"Bloodlust",L"Masochist",L"Undying"}}};
 
 struct ability_pic
 {

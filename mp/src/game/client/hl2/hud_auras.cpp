@@ -320,7 +320,7 @@ void CHudAuras::OnThink()
 	{
 		aura_pic *temp;
 		temp = new aura_pic;
-		temp->aura = COVEN_BUFF_SLOW;
+		temp->aura = COVEN_BUFF_STUN;
 		temp->text = 0;
 		temp->timer = pPlayer->m_HL2Local.covenStatusTimers[COVEN_BUFF_STUN]-gpGlobals->curtime;
 		active_auras.AddToTail(temp);

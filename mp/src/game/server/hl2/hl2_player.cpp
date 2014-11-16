@@ -484,13 +484,13 @@ void CHL2_Player::SetCooldown(int abil, float time)
 	}
 }
 
-float CHL2_Player::GetCooldown(int abil)
+/*float CHL2_Player::GetCooldown(int abil)
 {
 	if (abil < 0 || abil > 3)
 		return 0.0f;
 
 	return m_HL2Local.covenCooldownTimers.Get(abil);
-}
+}*/
 
 void CHL2_Player::Precache( void )
 {

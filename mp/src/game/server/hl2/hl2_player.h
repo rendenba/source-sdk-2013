@@ -311,7 +311,7 @@ public:
 
 	void SetPointsSpent(int pts);
 	void SetCurrentLoadout(int i, int load);
-	float GetCooldown(int abil);
+	//float GetCooldown(int abil);
 	void SetCooldown(int abil, float time);
 	void SetStatusTime(int s, float time);
 	float GetStatusTime(int s);

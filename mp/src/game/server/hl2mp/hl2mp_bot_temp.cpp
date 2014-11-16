@@ -498,6 +498,12 @@ void Bot_Think( CHL2MP_Player *pBot )
 			}
 		}
 
+		if (pBot->GetMoveType() == MOVETYPE_LADDER)
+		{
+			forwardmove = 0;
+			buttons |= IN_JUMP;
+		}
+
 		if ( !pBot->IsEFlagSet(EFL_BOT_FROZEN))
 		{
 			Vector forward;
@@ -760,8 +766,11 @@ void Bot_Think( CHL2MP_Player *pBot )
 			if (gpGlobals->curtime - botdata->stuckTimer >= 0.2f && gpGlobals->curtime >= botdata->nextusetime)
 			{
 				//door?
-				buttons |= IN_USE;
-				botdata->nextusetime = gpGlobals->curtime + 3.0f;
+				if (pBot->GetMoveType() != MOVETYPE_LADDER)
+				{
+					buttons |= IN_USE;
+					botdata->nextusetime = gpGlobals->curtime + 3.0f;
+				}
 			}
 			if (gpGlobals->curtime - botdata->stuckTimer >= 0.5f && gpGlobals->curtime >= botdata->nextjumptime)
 			{

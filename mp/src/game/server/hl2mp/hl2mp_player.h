@@ -151,6 +151,7 @@ public:
 	void DoLeap();
 	void DoGorePhase();
 	void DoGoreCharge();
+	void BloodExplode(int lev);
 	void RecalcGoreDrain();
 	void DoBloodLust(int lev);
 	void DoDreadScream(int lev);
@@ -220,12 +221,16 @@ public:
 
 	//BB: coven loadout/abil stuff
 	int GetLoadout(int n);
+	float GetCooldown(int n);
 	int GetLevelsSpent();
 	void SpendPoint(int on);
 	int PointsToSpend();
 	void RefreshLoadout();
+	void RefreshCooldowns();
+	void SetGlobalCooldown(int n, float time);
 	int covenLoadouts[2][COVEN_MAX_CLASSCOUNT][4];
 	int covenLevelsSpent[2][COVEN_MAX_CLASSCOUNT];
+	float covenCooldowns[2][COVEN_MAX_CLASSCOUNT][4];
 		
 private:
 

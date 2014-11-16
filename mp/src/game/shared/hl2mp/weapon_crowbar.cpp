@@ -144,16 +144,17 @@ void CWeaponCrowbar::PrimaryAttack()
 		{
 			//BB: JAM Request... sneak attacks
 			pPlayer->DoGorePhase();
-			pPlayer->SetCooldown(0, gpGlobals->curtime + 3.0f);
+			pPlayer->SetGlobalCooldown(0, gpGlobals->curtime + 3.0f);
 			pPlayer->RecalcGoreDrain();
 		}
 #else
-		C_BasePlayer *local = C_BasePlayer::GetLocalPlayer();
+		//second half of sneak attacks
+		/*C_BasePlayer *local = C_BasePlayer::GetLocalPlayer();
 		C_BaseHLPlayer *pPlayer2 = (C_BaseHLPlayer *)local;
 		if (pPlayer2->GetEffects() & EF_NODRAW)
 		{
 			return;
-		}
+		}*/
 #endif
 	}
 	BaseClass::PrimaryAttack();
