@@ -977,7 +977,6 @@ void CHL2MP_Player::SetGlobalCooldown(int n, float time)
 	if (t > 1)
 	{
 		t -= 2;
-		covenLevelsSpent[t][covenClassID-1]++;
 		covenCooldowns[t][covenClassID-1][n] = time;
 		RefreshCooldowns();
 	}

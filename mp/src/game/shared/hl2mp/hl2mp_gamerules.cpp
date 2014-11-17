@@ -451,7 +451,7 @@ void CHL2MPRules::GiveItemXP(int team)
 			CHL2MP_Player *pPlayer = (CHL2MP_Player *)UTIL_PlayerByIndex( i );
 			if (pPlayer && pPlayer->GetTeamNumber() == team)
 			{
-				float xp = max(((1.0f/n)-(pPlayer->GetTotalXP()-avgxp)/txp)*(avgxp/10.0f),1.0f);
+				float xp = max(((1.0f/n)-(pPlayer->GetTotalXP()-avgxp)/txp)*(avgxp/COVEN_XP_ITEM_SCALE),1.0f);
 				//Msg("Player: %d, %fxp\n",pPlayer->GetTotalXP(), xp);
 				pPlayer->GiveXP(xp);
 			}
