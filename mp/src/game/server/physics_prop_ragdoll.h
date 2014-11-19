@@ -46,6 +46,8 @@ public:
 	};
 	//BB: the override for Use which ultimately lets us feed
 	virtual void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
+	//BB: force collisions with player blocks
+	virtual unsigned int	PhysicsSolidMaskForEntity( void ) const { return MASK_PLAYERSOLID; }
 	virtual void UpdateOnRemove( void );
 
 	void DrawDebugGeometryOverlays();

@@ -515,20 +515,21 @@ void CHL2MP_Player::DoGorePhase()
 				GetViewModel()->SetRenderMode( kRenderTransTexture );
 
 	gorephased = !gorephased;
-	int alpha = 0;
+	float cloak = 1.0f;
 	if (gorephased)
 	{
-		AddEffects(EF_NODRAW);
+		//AddEffects(EF_NODRAW);
 	}
 	else
 	{
-		alpha = 255;
-		RemoveEffects(EF_NODRAW);
+		cloak = 0.0f;
+		//RemoveEffects(EF_NODRAW);
 	}
 
-	SetRenderColorA(alpha);
-	if (GetViewModel())
-		GetViewModel()->SetRenderColorA(alpha);
+	this->m_floatCloakFactor = cloak;
+	//SetRenderColorA(alpha);
+	//if (GetViewModel())
+	//	GetViewModel()->SetRenderColorA(alpha);
 
 	float m_DmgRadius = 51.2f;
 	trace_t		pTrace;
@@ -716,7 +717,6 @@ void CHL2MP_Player::DoVampireAbilityThink()
 				float mana = 7.0f - 1.0f*lev;
 				if (SuitPower_GetCurrentPercentage() > mana)
 				{
-					SetGlobalCooldown(1, gpGlobals->curtime + 3.0f);
 					SuitPower_Drain(mana);
 					DoGoreCharge();
 					RecalcGoreDrain();
@@ -829,7 +829,7 @@ void CHL2MP_Player::BloodExplode(int lev)
 
 	CTakeDamageInfo info( this, this, vec3_origin, GetAbsOrigin(), damn, bits, 0, &vecReported );
 
-	RadiusDamage( info, GetAbsOrigin(), 300.0f, CLASS_NONE, ignore );
+	RadiusDamage( info, GetAbsOrigin(), 400.0f, CLASS_NONE, ignore );
 
 	UTIL_DecalTrace( &pTrace, "Scorch" );
 
@@ -1151,6 +1151,9 @@ void CHL2MP_Player::Precache( void )
 
 	UTIL_PrecacheOther("grenade_hh");
 	UTIL_PrecacheOther( "npc_tripmine" );
+	UTIL_PrecacheOther( "item_ammo_crate" );
+	UTIL_PrecacheOther( "item_xp_slayers" );
+	UTIL_PrecacheOther( "item_xp_vampires" );
 
 	//Precache Citizen models
 	int nHeads = ARRAYSIZE( g_ppszRandomCitizenModels );
@@ -2067,12 +2070,14 @@ void CHL2MP_Player::VampireCheckGore()
 			gorelock = false;
 			RecalcGoreDrain();
 			ComputeSpeed();
+			SetGlobalCooldown(1, gpGlobals->curtime + 1.0f);
 		}
 		if (gorelock && SuitPower_GetCurrentPercentage() <= 0.0f)
 		{
 			gorelock = false;
 			RecalcGoreDrain();
 			ComputeSpeed();
+			SetGlobalCooldown(1, gpGlobals->curtime + 1.0f);
 		}
 	}
 }
@@ -3528,6 +3533,7 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 	StopZooming();
 }
 
+#if defined(COVEN_DEVELOPER_MODE)
 //BB: BOT PATH DEBUGGING
 CON_COMMAND(next_node, "Move to next node")
 {
@@ -3656,6 +3662,7 @@ CON_COMMAND(distance, "distance from store_loc")
 	Q_snprintf( szReturnString, sizeof( szReturnString ), "Distance from: \"%f %f %f\" %f\n", temp.x, temp.y, temp.z, (temp-pPlayer->store_loc).Length());
 	ClientPrint( pPlayer, HUD_PRINTCONSOLE, szReturnString );
 }
+#endif
 
 int CHL2MP_Player::OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo )
 {

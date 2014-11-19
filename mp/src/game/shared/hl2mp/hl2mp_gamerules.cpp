@@ -47,10 +47,17 @@ ConVar sv_hl2mp_item_respawn_time( "sv_hl2mp_item_respawn_time", "30", FCVAR_GAM
 ConVar sv_report_client_settings("sv_report_client_settings", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 
 //BB: Coven ConVars
+#if defined(COVEN_DEVELOPER_MODE)
 ConVar sv_coven_minplayers("sv_coven_minplayers", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY );//3
 ConVar sv_coven_freezetime("sv_coven_freezetime", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY );//5
 ConVar sv_coven_usexpitems("sv_coven_usexpitems", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_coven_warmuptime("sv_coven_warmuptime", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY );//10
+#else
+ConVar sv_coven_minplayers("sv_coven_minplayers", "3", FCVAR_GAMEDLL | FCVAR_NOTIFY );//3
+ConVar sv_coven_freezetime("sv_coven_freezetime", "5", FCVAR_GAMEDLL | FCVAR_NOTIFY );//5
+ConVar sv_coven_usexpitems("sv_coven_usexpitems", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY );
+ConVar sv_coven_warmuptime("sv_coven_warmuptime", "10", FCVAR_GAMEDLL | FCVAR_NOTIFY );//10
+#endif
 
 extern ConVar mp_chattime;
 
@@ -1538,11 +1545,19 @@ CAmmoDef *GetAmmoDef()
 
 #endif
 
+#if defined(COVEN_DEVELOPER_MODE)
 	//BB: xp scaling for testing or just tom foolery... set to 1 for normal
 	ConVar coven_xp_scale( "coven_xp_scale", "4", FCVAR_NOTIFY | FCVAR_CHEAT );
 
 	//BB: >0 = ignore respawn timers for testing or just tom foolery... set to 0 for normal
 	ConVar coven_ignore_respawns( "coven_ignore_respawns", "0", FCVAR_NOTIFY | FCVAR_CHEAT );
+#else
+	//BB: xp scaling for testing or just tom foolery... set to 1 for normal
+	ConVar coven_xp_scale( "coven_xp_scale", "1", FCVAR_NOTIFY | FCVAR_CHEAT );
+
+	//BB: >0 = ignore respawn timers for testing or just tom foolery... set to 0 for normal
+	ConVar coven_ignore_respawns( "coven_ignore_respawns", "0", FCVAR_NOTIFY | FCVAR_CHEAT );
+#endif
 
 	bool CHL2MPRules::FShouldSwitchWeapon( CBasePlayer *pPlayer, CBaseCombatWeapon *pWeapon )
 	{		
