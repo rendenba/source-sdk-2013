@@ -40,7 +40,7 @@ public:
 	//BB: this holds a team for simplicity
 	int team;
 	//BB: this allows for us to detect dolls for the stake
-	bool IsServerdoll()
+	virtual bool IsServerdoll()
 	{
 		return true;
 	};

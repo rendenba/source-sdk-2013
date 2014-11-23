@@ -2427,7 +2427,7 @@ int CBaseCombatCharacter::OnTakeDamage( const CTakeDamageInfo &info )
 		//BB: if vampire is KO'ed we only want to take damage if it is a slayer stake
 		if (KO)
 		{
-			if ((info.GetAttacker()->GetTeamNumber() == COVEN_TEAMID_SLAYERS) && info.GetDamageType() == DMG_CLUB)
+			if ((info.GetAttacker()->GetTeamNumber() == COVEN_TEAMID_SLAYERS) && (info.GetDamageType() == DMG_CLUB || info.GetDamageType() == DMG_DISSOLVE))
 			{
 				CTakeDamageInfo newinfo = info;
 				newinfo.SetDamage(999.0f);
@@ -2443,9 +2443,12 @@ int CBaseCombatCharacter::OnTakeDamage( const CTakeDamageInfo &info )
 			//BB: DO NOT KILL VAMPIRES
 			if (!KO && GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
 			{
-				//BB: make them rez a little weaker?
-				m_iHealth = GetMaxHealth()*0.25f;
-				mykiller = info.GetAttacker();
+				if (!(info.GetDamageType() & DMG_DISSOLVE))
+				{
+					//BB: make them rez a little weaker?
+					m_iHealth = GetMaxHealth()*0.25f;
+					mykiller = info.GetAttacker();
+				}
 				KO = true;
 				if (m_pFlame)
 				{
@@ -2480,7 +2483,10 @@ int CBaseCombatCharacter::OnTakeDamage( const CTakeDamageInfo &info )
 				{
 					pPlayer->GetViewModel()->AddEffects(EF_NODRAW);
 				}
-				return retVal;
+				if (!(info.GetDamageType() & DMG_DISSOLVE))
+				{
+					return retVal;
+				}
 			}
 			else if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
 			{

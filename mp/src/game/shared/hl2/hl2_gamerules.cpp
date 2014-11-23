@@ -1539,8 +1539,9 @@ bool CHalfLife2::ShouldCollide( int collisionGroup0, int collisionGroup1 )
 		( collisionGroup0 == COLLISION_GROUP_PLAYER ) ||
 		( collisionGroup0 == COLLISION_GROUP_PROJECTILE ) )
 	{
+		//BB: changed
 		if ( collisionGroup1 == HL2COLLISION_GROUP_COMBINE_BALL )
-			return false;
+			return true;
 	}
 
 	if ( collisionGroup0 == COLLISION_GROUP_DEBRIS )

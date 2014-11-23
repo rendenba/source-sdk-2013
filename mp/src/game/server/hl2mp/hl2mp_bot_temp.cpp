@@ -38,6 +38,8 @@ ConVar bot_sendcmd( "bot_sendcmd", "", 0, "Forces bots to send the specified com
 
 ConVar bot_crouch( "bot_crouch", "0", 0, "Bot crouches" );
 
+ConVar bot_difficulty("bot_difficulty", "1", FCVAR_ARCHIVE, "Bot difficulty: 0 easy, 1 medium, 2 hard."); 
+
 #ifdef NEXT_BOT
 extern ConVar bot_mimic;
 #else
@@ -78,6 +80,7 @@ typedef struct
 
 	int				m_lastPlayerCheck; //index
 	bool			bCombat;
+	bool			bForceCombat;
 
 	int				m_lastNode; //index
 	int				m_lastNodeProbe; //index (not id) of last probe into the botnet
@@ -86,6 +89,22 @@ typedef struct
 } botdata_t;
 
 static botdata_t g_BotData[ MAX_PLAYERS ];
+
+void Bot_Combat_Check( CHL2MP_Player *pBot, CBaseEntity *pAtk )
+{
+	if (!pBot)
+		return;
+
+	if (g_BotData[pBot->entindex()-1].bCombat || !pAtk->IsPlayer() || pAtk->GetTeamNumber() == pBot->GetTeamNumber())
+		return;
+	
+	if (bot_difficulty.GetInt() < 2)
+		return;
+
+	g_BotData[pBot->entindex()-1].m_lastPlayerCheck = ((CHL2MP_Player *)pAtk)->entindex();
+	g_BotData[pBot->entindex()-1].bCombat = true;
+	g_BotData[pBot->entindex()-1].bForceCombat = true;
+}
 
 void BotRemove( CHL2MP_Player *pBot )
 {
@@ -157,6 +176,7 @@ CBasePlayer *BotPutInServer( bool bFrozen, int iTeam )
 	g_BotData[pPlayer->entindex()-1].guardTimer = 0.0f;
 	g_BotData[pPlayer->entindex()-1].bLost = true;
 	g_BotData[pPlayer->entindex()-1].bCombat = false;
+	g_BotData[pPlayer->entindex()-1].bForceCombat = false;
 	g_BotData[pPlayer->entindex()-1].left = false;
 	g_BotData[pPlayer->entindex()-1].turns = 0;
 
@@ -227,7 +247,7 @@ void PlayerCheck( CHL2MP_Player *pBot )
 		if (isVampDoll)
 			vecSrc = pBot->GetAbsOrigin() + Vector( 0, 0, 36 );
 		else
-			vecSrc = pBot->GetLocalOrigin() + Vector( 0, 0, 36 );
+			vecSrc = pBot->EyePosition();//pBot->GetLocalOrigin() + Vector( 0, 0, 36 );
 
 		if (isVampDoll)
 		{
@@ -238,7 +258,7 @@ void PlayerCheck( CHL2MP_Player *pBot )
 
 		Vector playerVec = vecEnd-vecSrc;
 
-		if ((playerVec).Length() < 400)
+		if (botdata->bForceCombat || (playerVec).Length() < 400)
 		{
 			if (isVampDoll || ((pPlayer->m_floatCloakFactor < 0.1f && !(pPlayer->GetFlags() & EF_NODRAW))))
 			{
@@ -250,7 +270,7 @@ void PlayerCheck( CHL2MP_Player *pBot )
 				float test = 0.3f;
 				if (isVampDoll)
 					test = 0.0f;
-				if (botDot > test)
+				if (botdata->bForceCombat || botDot > test)
 				{
 					trace_t trace;
 
@@ -280,6 +300,7 @@ void PlayerCheck( CHL2MP_Player *pBot )
 	}
 
 	botdata->bCombat = false;
+	botdata->bForceCombat = false;
 	botdata->m_lastPlayerCheck++;
 	
 	if (botdata->m_lastPlayerCheck > gpGlobals->maxClients)
@@ -508,7 +529,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 		{
 			Vector forward;
 			QAngle angle = pBot->GetLocalAngles();//botdata->lastAngles;
-			if (botdata->goWild > 0.0f)
+			if (botdata->goWild > 0.0f && !botdata->bCombat)
 			{
 				if (gpGlobals->curtime > botdata->goWild)
 				{
@@ -590,9 +611,13 @@ void Bot_Think( CHL2MP_Player *pBot )
 						}
 						else
 						{
-							int accuracy = 19;
-							if (pPlayer->IsBot())
-								accuracy = 25;
+							int accuracy = 16;
+							if (bot_difficulty.GetInt() < 1)
+								accuracy = 24;
+							else if (bot_difficulty.GetInt() > 1)
+								accuracy = 8;
+							//if (pPlayer->IsBot())
+							//	accuracy = 25;
 							forward = (pPlayer->GetLocalOrigin() + Vector(random->RandomInt(-accuracy,accuracy), random->RandomInt(-accuracy,accuracy), random->RandomInt(-accuracy,accuracy))) - pBot->GetLocalOrigin();
 						}
 						VectorAngles(forward, angle);

@@ -115,6 +115,15 @@ public:
 	void SetOriginalOwner( CBaseEntity *pEntity ) { m_hOriginalOwner = pEntity; }
 	CBaseEntity *GetOriginalOwner() { return m_hOriginalOwner; }
 
+	bool OutOfBounces( void ) const
+	{
+		return ( m_nMaxBounces != 0 && m_nBounceCount >= m_nMaxBounces );
+		//return ( m_nState == STATE_LAUNCHED && m_nMaxBounces != 0 && m_nBounceCount >= m_nMaxBounces );
+	}
+
+	bool	m_bStruckEntity;		// Has hit an entity already (control accuracy)
+	CNetworkVar( float, m_flRadius );
+	CNetworkVar( bool, m_bEmit );
 private:
 
 	void SetPlayerLaunched( CBasePlayer *pOwner );
@@ -123,7 +132,7 @@ private:
 	float GetBallHoldSoundRampTime();
 
 	// Pow!
-	void DoExplosion( );
+	virtual void DoExplosion( );
 
 	void StartAnimating( void );
 	void StopAnimating( void );
@@ -156,11 +165,6 @@ private:
 	void FadeOut( float flDuration );
 
 
-	bool OutOfBounces( void ) const
-	{
-		return ( m_nState == STATE_LAUNCHED && m_nMaxBounces != 0 && m_nBounceCount >= m_nMaxBounces );
-	}
-
 private:
 
 	int		m_nBounceCount;
@@ -170,7 +174,6 @@ private:
 	float	m_flLastBounceTime;
 
 	bool	m_bFiredGrabbedOutput;
-	bool	m_bStruckEntity;		// Has hit an entity already (control accuracy)
 	bool	m_bWeaponLaunched;		// Means this was fired from the AR2
 	bool	m_bForward;				// Movement direction in ball spawner
 
@@ -189,10 +192,9 @@ private:
 
 	EHANDLE m_hOriginalOwner;
 
-	CNetworkVar( bool, m_bEmit );
+
 	CNetworkVar( bool, m_bHeld );
 	CNetworkVar( bool, m_bLaunched );
-	CNetworkVar( float, m_flRadius );
 };
 
 class CFuncCombineBallSpawner : public CBaseEntity

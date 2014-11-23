@@ -175,6 +175,10 @@ void CHudAuras::Paint()
 		{
 			surface()->DrawSetTexture( m_nImportStun );
 		}
+		else if (active_auras[i]->aura == COVEN_BUFF_SOULENERGY)
+		{
+			surface()->DrawSetTexture( m_nImportBomb );
+		}
 
 		surface()->DrawTexturedRect( x, 0, x+t, t );
 
@@ -323,6 +327,15 @@ void CHudAuras::OnThink()
 		temp->aura = COVEN_BUFF_STUN;
 		temp->text = 0;
 		temp->timer = pPlayer->m_HL2Local.covenStatusTimers[COVEN_BUFF_STUN]-gpGlobals->curtime;
+		active_auras.AddToTail(temp);
+	}
+	if (pPlayer->covenStatusEffects & COVEN_FLAG_SOULENERGY)
+	{
+		aura_pic *temp;
+		temp = new aura_pic;
+		temp->aura = COVEN_BUFF_SOULENERGY;
+		temp->text = pPlayer->m_HL2Local.covenStatusMagnitude[COVEN_BUFF_SOULENERGY];
+		temp->timer = 0;
 		active_auras.AddToTail(temp);
 	}
 

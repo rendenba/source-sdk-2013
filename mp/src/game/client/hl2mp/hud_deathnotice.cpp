@@ -403,6 +403,10 @@ void CHudDeathNotice::FireGameEvent( IGameEvent * event )
 		{
 			Q_snprintf( sDeathMsg, sizeof( sDeathMsg ), "%s clawed %s's eyes out.\n", deathMsg.Killer.szName, deathMsg.Victim.szName );
 		}
+		else if (!strcmp( fullkilledwith, "death_prop_soul" ))
+		{
+			Q_snprintf( sDeathMsg, sizeof( sDeathMsg ), "%s smited %s.\n", deathMsg.Killer.szName, deathMsg.Victim.szName );
+		}
 		else if (!strcmp( fullkilledwith, "death_bloodbar" ))
 		{
 			Q_snprintf( sDeathMsg, sizeof( sDeathMsg ), "%s clawed %s's eyes out.\n", deathMsg.Killer.szName, deathMsg.Victim.szName );

@@ -94,7 +94,7 @@ public:
 	Vector GetAttackSpread( CBaseCombatWeapon *pWeapon, CBaseEntity *pTarget = NULL );
 
 	void CheatImpulseCommands( int iImpulse );
-	void CreateRagdollEntity( void );
+	void CreateRagdollEntity( int damagetype );
 	void GiveAllItems( void );
 	void GiveDefaultItems( void );
 
@@ -165,16 +165,18 @@ public:
 	void VampireStealthCalc();
 
 	//BB: slayer helper functions
+	void UnleashSoul();
 	void DoBattleYell(int lev);
 	void DoSheerWill(int lev);
 	void DoIntimidatingShout(int lev);
 	void RevengeCheck();
 	void GenerateBandage();
-	void ThrowHolywaterGrenade();
+	void ThrowHolywaterGrenade(int lev);
 	bool AttachTripmine();
 	void CheckThrowPosition(const Vector &vecEye, Vector &vecSrc);
 	void SlayerHolywaterThink();
 	void SlayerGutcheckThink();
+	void SlayerSoulThink();
 	void DoSlayerAbilityThink();
 	void SlayerVampLeapDetect();
 	void Taunt();
@@ -213,7 +215,8 @@ public:
 	float coven_timer_feed;
 	float coven_timer_leapdetectcooldown;
 	float coven_timer_vstealth;
-	float coven_timer_gcheck;
+	//float coven_timer_gcheck;
+	//float coven_timer_soul;
 	float coven_timer_holywater;
 
 	int coven_debug_nodeloc;

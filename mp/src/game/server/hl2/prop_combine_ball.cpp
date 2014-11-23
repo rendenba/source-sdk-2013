@@ -379,6 +379,7 @@ void CPropCombineBall::Spawn( void )
 	{
 		SetCollisionGroup( HL2COLLISION_GROUP_COMBINE_BALL );
 	}
+		SetCollisionGroup( COLLISION_GROUP_PLAYER );
 
 	CreateVPhysics();
 
@@ -541,7 +542,7 @@ void CPropCombineBall::SetMass( float mass )
 // Purpose: 
 //-----------------------------------------------------------------------------
 bool CPropCombineBall::ShouldHitPlayer() const 
-{ 
+{
 	if ( GetOwnerEntity() ) 
 	{
 		CAI_BaseNPC *pNPC = GetOwnerEntity()->MyNPCPointer();
@@ -1322,13 +1323,16 @@ void CPropCombineBall::DoImpactEffect( const Vector &preVelocity, int index, gam
 		DispatchEffect( "cball_bounce", data );
 	}
 
-	if ( hl2_episodic.GetBool() )
+	if (!OutOfBounces())
 	{
-		EmitSound( "NPC_CombineBall_Episodic.Impact" );
-	}
-	else
-	{
-		EmitSound( "NPC_CombineBall.Impact" );
+		if ( hl2_episodic.GetBool() )
+		{
+			EmitSound( "NPC_CombineBall_Episodic.Impact" );
+		}
+		else
+		{
+			EmitSound( "NPC_CombineBall.Impact" );
+		}
 	}
 }
 
@@ -1614,6 +1618,8 @@ void CPropCombineBall::VPhysicsCollision( int index, gamevcollisionevent_t *pEve
 	if ( pHitEntity && IsHittableEntity( pHitEntity ) )
 	{
 		OnHitEntity( pHitEntity, flSpeed, index, pEvent );
+		Msg("hit %s\n", pHitEntity->GetClassname());
+
 		return;
 	}
 
@@ -1658,7 +1664,7 @@ void CPropCombineBall::VPhysicsCollision( int index, gamevcollisionevent_t *pEve
 
 	if ( OutOfBounces() && m_bBounceDie == false )
 	{
-		StartLifetime( 0.5 );
+		StartLifetime( 0.00 );
 		//Hack: Stop this from being called by doing this.
 		m_bBounceDie = true;
 	}

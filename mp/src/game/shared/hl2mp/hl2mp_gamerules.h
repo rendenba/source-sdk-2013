@@ -108,6 +108,7 @@ public:
 
 	int TotalTeamXP(int team);
 	void GiveItemXP(int team);
+	void GiveItemXP_OLD(int team);
 	void AddScore(int team, int score);
 	bool LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBaseFileSystem *pFileSystem, const char *pPathID );
 	bool LoadFromBuffer( char const *resourceName, const char *pBuffer, IBaseFileSystem* pFileSystem, const char *pPathID = NULL );
@@ -145,7 +146,7 @@ public:
 	void RestartRound();
 	void FreezeAll(bool unfreeze = false);
 	float GetSlayerRespawnTime();
-	int AverageLevel(int team);
+	float AverageLevel(int team, int &n);
 
 	float covenSlayerRespawnTime;
 	int covenGameState;

@@ -250,11 +250,11 @@ CHL2MPRules::CHL2MPRules()
 #endif
 }
 
-int CHL2MPRules::AverageLevel(int team)
+float CHL2MPRules::AverageLevel(int team, int &n)
 {
-	int ret = 0;
+	float ret = 0.0f;
 #ifndef CLIENT_DLL
-	int n = 0;
+	n = 0;
 	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
 		CHL2MP_Player *pPlayer = (CHL2MP_Player *)UTIL_PlayerByIndex( i );
@@ -273,6 +273,7 @@ int CHL2MPRules::AverageLevel(int team)
 float CHL2MPRules::GetSlayerRespawnTime()
 {
 	float ret = 0.0f;
+	int n = 0;
 #ifndef CLIENT_DLL
 	if (gpGlobals->curtime > covenSlayerRespawnTime)
 		covenSlayerRespawnTime = 0.0f;
@@ -281,7 +282,7 @@ float CHL2MPRules::GetSlayerRespawnTime()
 		return covenSlayerRespawnTime;
 	else
 	{
-		ret = gpGlobals->curtime + COVEN_RESPAWNTIME_BASE + COVEN_RESPAWNTIME_SLAYERS_MULT*AverageLevel(COVEN_TEAMID_SLAYERS);
+		ret = gpGlobals->curtime + COVEN_RESPAWNTIME_BASE + COVEN_RESPAWNTIME_SLAYERS_MULT*AverageLevel(COVEN_TEAMID_SLAYERS, n);
 		covenSlayerRespawnTime = ret;
 	}
 #endif
@@ -434,6 +435,26 @@ void CHL2MPRules::AddScore(int team, int score)
 }
 
 void CHL2MPRules::GiveItemXP(int team)
+{
+#ifndef CLIENT_DLL
+	int n = 0;
+	float avg = AverageLevel(team, n);
+	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
+	{
+		CHL2MP_Player *pPlayer = (CHL2MP_Player *)UTIL_PlayerByIndex( i );
+		if (pPlayer && pPlayer->GetTeamNumber() == team)
+		{
+			float basexp = ((avg-1.0f)*COVEN_XP_INCREASE_PER_LEVEL+COVEN_MAX_XP_PER_LEVEL) / ((float)n) / COVEN_XP_ITEM_SCALE;
+			float calcxp = basexp*(1.0f+avg-pPlayer->covenLevelCounter);
+			float xp = max(calcxp,basexp);
+			pPlayer->GiveXP(xp);
+			//Msg("Level: %d XP: %.02f\n", pPlayer->covenLevelCounter, xp);
+		}
+	}
+#endif
+}
+
+void CHL2MPRules::GiveItemXP_OLD(int team)
 {
 #ifndef CLIENT_DLL
 	float txp = 0.0f;

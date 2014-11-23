@@ -320,7 +320,7 @@ void CombineBallImpactCallback( const CEffectData &data )
 				(FXQUAD_BIAS_SCALE|FXQUAD_BIAS_ALPHA) );
 
 	// Throw sparks
-	FX_ElectricSpark( data.m_vOrigin, 2, 1, &data.m_vNormal );
+	FX_ElectricSpark( data.m_vOrigin, 1, 1, &data.m_vNormal );
 }
 
 DECLARE_CLIENT_EFFECT( "cball_bounce", CombineBallImpactCallback );
@@ -334,7 +334,7 @@ void CombineBallExplosionCallback( const CEffectData &data )
 	Vector normal(0,0,1);
 
 	// Throw sparks
-	FX_ElectricSpark( data.m_vOrigin, 4, 1, &normal );
+	FX_ElectricSpark( data.m_vOrigin, 8, 1, &normal );
 }
 
 DECLARE_CLIENT_EFFECT( "cball_explode", CombineBallExplosionCallback );
