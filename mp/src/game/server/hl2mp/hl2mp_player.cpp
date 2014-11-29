@@ -843,6 +843,32 @@ void CHL2MP_Player::DoVampireAbilityThink()
 				else
 					EmitSound("HL2Player.UseDeny");
 			}
+			else if (covenClassID == COVEN_CLASSID_FIEND)
+			{
+				float mana = 4.0f;
+				if (GetRenderColor().a < 255)
+				{
+					SuitPower_ResetDrain();
+					SetGlobalCooldown(1, gpGlobals->curtime + 3.0f);
+					SetRenderColorA(255);
+					if( IsAlive() )
+					{
+						EmitSound( "HL2Player.FlashlightOff" );
+					}
+				}
+				else
+				{
+					if (SuitPower_GetCurrentPercentage() > mana)
+					{
+						SuitPower_Drain(mana);
+						EmitSound("HL2Player.SprintStart");
+						SetRenderColorA(100);
+						SuitPower_AddDrain(4.0f);
+					}
+					else
+						EmitSound("HL2Player.UseDeny");
+				}
+			}
 		}
 	}
 	if (m_afButtonPressed & IN_ABIL4)
@@ -1831,15 +1857,15 @@ void CHL2MP_Player::VampireStealthCalc()
 		int max_velocity = 10;
 		float alpha = 1.0f;
 
-		if (/*m_Local.m_bDucked && */coven_timer_vstealth == 0.0f && VectorLength(GetAbsVelocity()) <= max_velocity)
+		if (/*m_Local.m_bDucked && */coven_timer_vstealth == 0.0f && VectorLength(GetAbsVelocity()) <= max_velocity && IsAlive())
 		{
 			coven_timer_vstealth = gpGlobals->curtime;
 		}
-		else if (/*m_Local.m_bDucked && */coven_timer_vstealth > 0.0f && VectorLength(GetAbsVelocity()) <= max_velocity)
+		else if (/*m_Local.m_bDucked && */coven_timer_vstealth > 0.0f && VectorLength(GetAbsVelocity()) <= max_velocity && IsAlive())
 		{
 				alpha = 1.0f - 0.2f * GetLoadout(2) * (gpGlobals->curtime - coven_timer_vstealth);//180
 		}
-		else if (/*!m_Local.m_bDucked || */VectorLength(GetAbsVelocity()) >= 0)
+		else if (/*!m_Local.m_bDucked || */VectorLength(GetAbsVelocity()) >= 0 || !IsAlive())
 		{
 			coven_timer_vstealth = 0.0f;
 			alpha = 1.0f;
@@ -2172,7 +2198,7 @@ void CHL2MP_Player::DoVampirePreThink()
 	VampireCheckRegen();
 	VampireManageRagdoll();
 	VampireStealthCalc();
-	
+	VampireDodgeHandler();
 }
 
 void CHL2MP_Player::VampireCheckGore()
@@ -3838,6 +3864,20 @@ CON_COMMAND(distance, "distance from store_loc")
 }
 #endif
 
+void CHL2MP_Player::VampireDodgeHandler()
+{
+	if (covenClassID == COVEN_CLASSID_FIEND && GetRenderColor().a < 255 && (SuitPower_GetCurrentPercentage() <= 0.0f))
+	{
+		SuitPower_ResetDrain();
+		SetGlobalCooldown(1, gpGlobals->curtime + 3.0f);
+		SetRenderColorA(255);
+		if( IsAlive() )
+		{
+			EmitSound( "HL2Player.FlashlightOff" );
+		}
+	}
+}
+
 void CHL2MP_Player::SlayerLightHandler()
 {
 	if (FlashlightIsOn() && IsAlive())
@@ -3941,6 +3981,12 @@ int CHL2MP_Player::OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo )
 		SetStatusMagnitude(COVEN_BUFF_BERSERK, 0);
 	}
 
+	if (m_iHealth <= 0 && GetTeamNumber() == COVEN_TEAMID_VAMPIRES && covenClassID == COVEN_CLASSID_FIEND && GetRenderColor().a < 255)
+	{
+		SetRenderColorA(255);
+		SuitPower_ResetDrain();
+	}
+
 	//BLOODLUST
 	if (inputInfo.GetAttacker() && inputInfo.GetAttacker()->IsPlayer() && inputInfo.GetAttacker() != this)
 	{
@@ -3974,6 +4020,15 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 	m_vecTotalBulletForce += inputInfo.GetDamageForce();
 
 	CTakeDamageInfo inputInfoAdjust = inputInfo;
+
+	//DODGE
+	if (covenClassID == COVEN_CLASSID_FIEND && GetRenderColor().a < 255)
+	{
+		inputInfoAdjust.SetDamage(inputInfoAdjust.GetDamage() * (0.9f - 0.2f*GetLoadout(1)));
+		int r = random->RandomInt(0,5);
+		if (r < GetLoadout(1))
+			inputInfoAdjust.SetDamage(0.0f);
+	}
 
 	//BLOOD EXPLODE
 	if (inputInfoAdjust.GetDamageType() & DMG_PARALYZE)

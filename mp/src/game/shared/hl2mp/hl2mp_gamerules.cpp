@@ -823,8 +823,14 @@ void CHL2MPRules::Think( void )
 	{
 		//BB: make sure to check above if you change this formula if we want flat xp gains for scoreTimer intervals.
 		scoreTimer = gpGlobals->curtime + 4.0f*num_cap_points/COVEN_MAX_CAP_POINTS;
-		GetGlobalTeam( COVEN_TEAMID_SLAYERS )->AddScore(COVEN_CAP_SCORE_PERSEC*s_caps);
-		GetGlobalTeam( COVEN_TEAMID_VAMPIRES )->AddScore(COVEN_CAP_SCORE_PERSEC*v_caps);
+		
+		int mult = 1;
+		//JAM: MERCY CLAUSE
+		if (s_caps == num_cap_points || v_caps == num_cap_points)
+			mult = 6;
+
+		GetGlobalTeam( COVEN_TEAMID_SLAYERS )->AddScore(COVEN_CAP_SCORE_PERSEC*s_caps*mult);
+		GetGlobalTeam( COVEN_TEAMID_VAMPIRES )->AddScore(COVEN_CAP_SCORE_PERSEC*v_caps*mult);
 	}
 
 	//BB: add bots to make playercounts

@@ -130,6 +130,10 @@ public:
 					{
 						m_pPanel->SetText("Charge:\n\nEnergy: 4 plus 10/9/8 per second\nCooldown: 3 seconds\n\nCharges straight ahead at immense speed. Usable while phased. Hold the effect to continue charging.");
 					}
+					else if ( !Q_stricmp( "Dodge - Rank 1", temp) || !Q_stricmp( "Dodge - Rank 2", temp) || !Q_stricmp( "Dodge - Rank 3", temp) )
+					{
+						m_pPanel->SetText("Dodge:\n\nEnergy: 4 plus 5 per second\nCooldown: 3 seconds\n\nToggles dodging. Damage taken while dodging is reduced by 30/50/70%. 1/2/3 in 6 chance to take no damage.");
+					}
 					else
 					{
 						m_pPanel->SetText(" ");
@@ -229,7 +233,7 @@ public:
 			{
 				if( !Q_stricmp( "fiend", GetName() ) )
 				{
-					m_pPanel->SetText("Fiend:\nLightweight flyer. Insanely mobile.\nMax HP: 72\n\nAbilities:\n\nLeap: Causes you to accelerate quicky through the air.\n\n\n\nSneak: Fade invisible. Movement or receiving damage cancels the effect.\n\nBerserk: Increases health and max health.");
+					m_pPanel->SetText("Fiend:\nLightweight flyer. Insanely mobile.\nMax HP: 72\n\nAbilities:\n\nLeap: Causes you to accelerate quicky through the air.\n\nDodge: Toggle to reduce damage taken.\n\nSneak: Fade invisible. Movement or receiving damage cancels the effect.\n\nBerserk: Increases health and max health.");
 				}
 				else if( !Q_stricmp( "gore", GetName() ) )
 				{

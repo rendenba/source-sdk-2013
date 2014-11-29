@@ -163,6 +163,7 @@ public:
 	void VampireManageRagdoll();
 	void VampireReSolidify();
 	void VampireStealthCalc();
+	void VampireDodgeHandler();
 
 	//BB: slayer helper functions
 	void UnleashSoul();

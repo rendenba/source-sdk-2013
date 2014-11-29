@@ -802,7 +802,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 		pBot->SetLocalAngles( botdata->lastAngles );
 	}*/
 
-	if (botdata->guardTimer == 0.0f && (pBot->GetLocalOrigin() - botdata->lastPos).Length() < 4.0f) //STUCK?
+	if (botdata->guardTimer == 0.0f && (pBot->GetLocalOrigin() - botdata->lastPos).Length() < 10.0f) //STUCK? 4.0
 	{
 		if (botdata->stuckTimer > 0.0f)
 		{
