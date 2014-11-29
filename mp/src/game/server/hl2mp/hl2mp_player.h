@@ -166,6 +166,7 @@ public:
 
 	//BB: slayer helper functions
 	void UnleashSoul();
+	void SlayerLightHandler();
 	void DoBattleYell(int lev);
 	void DoSheerWill(int lev);
 	void DoIntimidatingShout(int lev);
@@ -215,6 +216,7 @@ public:
 	float coven_timer_feed;
 	float coven_timer_leapdetectcooldown;
 	float coven_timer_vstealth;
+	float coven_timer_light;
 	//float coven_timer_gcheck;
 	//float coven_timer_soul;
 	float coven_timer_holywater;

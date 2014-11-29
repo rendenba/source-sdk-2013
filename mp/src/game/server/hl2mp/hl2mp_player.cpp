@@ -261,7 +261,7 @@ void CHL2MP_Player::DoSlayerAbilityThink()
 			}
 			else if (covenClassID == COVEN_CLASSID_HELLION)
 			{
-				float mana = 10.0f;//+2.0f*lev;
+				float mana = 12.0f;//+2.0f*lev;
 				float cool = 5.0f;//20.0f - 5.0f*lev;
 				if (SuitPower_GetCurrentPercentage() > mana)
 				{
@@ -363,12 +363,40 @@ void CHL2MP_Player::DoSlayerAbilityThink()
 	{
 		float cd = GetCooldown(3);
 		int lev = GetLoadout(3);
-		if ((cd > 0.0f && gpGlobals->curtime < cd) || lev == 0)
+		if (covenClassID != COVEN_CLASSID_AVENGER && (cd > 0.0f && gpGlobals->curtime < cd) || lev == 0)
 		{
 			EmitSound("HL2Player.UseDeny");
 		}
 		else
 		{
+			if (covenClassID == COVEN_CLASSID_HELLION)
+			{
+				float mana = 4.0f;// - lev;
+				float cool = 3.0f;
+				if (IsAlive() && FlashlightIsOn())
+				{
+					RemoveEffects( EF_DIMLIGHT );
+					SuitPower_ResetDrain();
+					SetGlobalCooldown(3, gpGlobals->curtime + cool);
+	
+					if( IsAlive() )
+					{
+						EmitSound( "HL2Player.FlashlightOff" );
+					}
+				}
+				else if (SuitPower_GetCurrentPercentage() > mana)
+				{
+					if (IsAlive())
+					{
+						SuitPower_Drain(mana);
+						SuitPower_AddDrain(8.5f-1.5f*lev);
+						AddEffects( EF_DIMLIGHT );
+						EmitSound( "HL2Player.FlashlightOn" );
+					}
+				}
+				else
+					EmitSound("HL2Player.UseDeny");
+			}
 		}
 
 		//exception
@@ -383,8 +411,10 @@ void CHL2MP_Player::DoSlayerAbilityThink()
 			else
 				EmitSound("HL2Player.UseDeny");
 		}
-		else
+		else if (covenClassID == COVEN_CLASSID_AVENGER)
+		{
 			EmitSound("HL2Player.UseDeny");
+		}
 	}
 }
 
@@ -749,7 +779,7 @@ void CHL2MP_Player::DoVampireAbilityThink()
 				}
 				else
 				{
-					float mana = 7.0f - 1.0f*lev;
+					float mana = 4.0f;//7.0f - 1.0f*lev;
 					if (SuitPower_GetCurrentPercentage() > mana)
 					{
 						SetGlobalCooldown(0, gpGlobals->curtime + 3.0f);
@@ -802,7 +832,7 @@ void CHL2MP_Player::DoVampireAbilityThink()
 			}
 			else if (covenClassID == COVEN_CLASSID_GORE)
 			{
-				float mana = 7.0f - 1.0f*lev;
+				float mana = 4.0f;//7.0f - 1.0f*lev;
 				if (SuitPower_GetCurrentPercentage() > mana)
 				{
 					SuitPower_Drain(mana);
@@ -1560,6 +1590,7 @@ void CHL2MP_Player::Spawn(void)
 	coven_timer_vstealth = 0.0f;
 	//coven_timer_gcheck = 0.0f;
 	//coven_timer_soul = 0.0f;
+	coven_timer_light = 0.0f;
 	coven_timer_holywater = -1.0f;
 }
 
@@ -2048,6 +2079,8 @@ void CHL2MP_Player::PreThink( void )
 			tVec = Vector(pRules->cap_point_coords.Get(index), pRules->cap_point_coords.Get(index+1), pRules->cap_point_coords.Get(index+2));
 		}
 
+		covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_CAPPOINT;
+
 		if (IsAlive() && ((tVec-GetLocalOrigin()).Length() < pRules->cap_point_distance[lastCheckedCapPoint]))
 		{
 			bool itsago = true;
@@ -2114,7 +2147,6 @@ void CHL2MP_Player::PreThink( void )
 		}
 		else
 		{
-			covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_CAPPOINT;
 			lastCheckedCapPoint++;
 		}
 
@@ -2153,6 +2185,11 @@ void CHL2MP_Player::VampireCheckGore()
 			RecalcGoreDrain();
 
 		}
+		else if (gorephased)
+		{
+			m_floatCloakFactor = 1.0f;
+		}
+
 		if (gorelock)
 		{
 			SetMaxSpeed(HL2_NITRO_SPEED);
@@ -2210,6 +2247,7 @@ void CHL2MP_Player::DoSlayerPreThink()
 	DoSlayerAbilityThink();
 	SlayerGutcheckThink();
 	SlayerSoulThink();
+	SlayerLightHandler();
 	SlayerHolywaterThink();
 }
 
@@ -3635,6 +3673,34 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 }
 
 #if defined(COVEN_DEVELOPER_MODE)
+CON_COMMAND(testprobe, "test probe")
+{
+	CHL2MP_Player *pPlayer = ToHL2MPPlayer( UTIL_GetCommandClient() );
+	if (!pPlayer)
+		return;
+	trace_t	tr;
+	QAngle angle = pPlayer->GetAbsAngles();
+	Vector forward, right, up;
+	AngleVectors( angle, &forward, &right, &up );
+	UTIL_TraceLine(pPlayer->GetAbsOrigin()+right*16, pPlayer->GetAbsOrigin()-up*25, MASK_SHOT_HULL, pPlayer, COLLISION_GROUP_WEAPON, &tr);
+	if (tr.fraction < 1.0)
+	{
+		Msg("Ground Right\n");
+	}
+	else
+	{
+		Msg("Air Right\n");
+	}
+	UTIL_TraceLine(pPlayer->GetAbsOrigin()-right*16, pPlayer->GetAbsOrigin()-up*25, MASK_SHOT_HULL, pPlayer, COLLISION_GROUP_WEAPON, &tr);
+	if (tr.fraction < 1.0)
+	{
+		Msg("Ground Left\n");
+	}
+	else
+	{
+		Msg("Air Left\n");
+	}
+}
 //BB: BOT PATH DEBUGGING
 CON_COMMAND(next_node, "Move to next node")
 {
@@ -3719,7 +3785,14 @@ CON_COMMAND(go_to_node, "Go to a node <id>")
 	pPlayer->coven_debug_prevnode = pPlayer->coven_debug_nodeloc;
 	pPlayer->coven_debug_nodeloc = sel;
 	pPlayer->SetLocalOrigin(HL2MPRules()->botnet[sel]->location);
-	Msg("At node %d.\n", HL2MPRules()->botnet[sel]->ID);
+	//Msg("At node %d.\n", HL2MPRules()->botnet[sel]->ID);
+	int c = HL2MPRules()->botnet[pPlayer->coven_debug_nodeloc]->connectors.Count();
+	Msg("At node %d. %d connectors: ", HL2MPRules()->botnet[pPlayer->coven_debug_nodeloc]->ID, c);
+	for (int j = 0; j < c; j++)
+	{
+		Msg("%d,", HL2MPRules()->botnet[pPlayer->coven_debug_nodeloc]->connectors[j]);
+	}
+	Msg("\n");
 }
 
 CON_COMMAND(level, "give me some XP")
@@ -3764,6 +3837,95 @@ CON_COMMAND(distance, "distance from store_loc")
 	ClientPrint( pPlayer, HUD_PRINTCONSOLE, szReturnString );
 }
 #endif
+
+void CHL2MP_Player::SlayerLightHandler()
+{
+	if (FlashlightIsOn() && IsAlive())
+	{
+		CTeam *pRebels = GetGlobalTeam( TEAM_REBELS );
+		for (int i=0; i < pRebels->GetNumPlayers(); i++)
+		{
+			if (pRebels->GetPlayer(i))
+			{
+				CHL2MP_Player *temp = ((CHL2MP_Player *)pRebels->GetPlayer(i));
+				Vector direction = temp->EyePosition() - EyePosition();
+				float distance = direction.Length();
+				if (distance <= 750.0f)
+				{
+					//close enough to be in range of flashlight, continue...
+					Vector forward;
+					AngleVectors(EyeAngles(), &forward);
+					VectorNormalize(forward);
+					VectorNormalize(direction);
+					float dot = DotProduct(direction, forward);
+					if (dot >= 0.9397f) //.9703f good number... version 2.5
+					{
+						//within correct FOV, check to see line of sight...
+						if (distance < 128.0f)
+						{
+							//too close... problems happen
+							distance = 128.0f;
+						}
+
+						trace_t tr;
+						Vector dt = EyePosition();
+						UTIL_TraceLine(dt, dt + direction*750.0f, MASK_SOLID, this, COLLISION_GROUP_PLAYER, &tr);
+						if (tr.DidHitNonWorldEntity() && tr.m_pEnt->IsPlayer() && temp == tr.m_pEnt)
+						{
+							//WE GOT ONE!!!!!
+							/*float adjustedmaxalpha = (750.0f - distance)/450.0f;
+							if (adjustedmaxalpha > 1.0f)
+								adjustedmaxalpha = 1.0f;
+							if (adjustedmaxalpha < 0.0f)
+								adjustedmaxalpha = 0.0f;
+							//do alpha stuff*/
+							temp->m_floatCloakFactor = 0.0f;
+							temp->coven_timer_vstealth = 0.0f;
+
+							//do pushback stuff
+							if (distance < 250.0f)
+							{
+								float prop = 100.0f/distance * 100.0f;
+								if (prop < 0.0f)
+									prop = 0.0f;
+								if (prop > 100.0f)
+									prop = 100.0f;
+								Vector vel = temp->GetAbsVelocity();
+								VectorAdd(vel, prop*direction, vel);
+								temp->SetAbsVelocity(vel);
+							}
+							//do damage stuff
+							if (distance < 225.0f && (gpGlobals->curtime - temp->coven_timer_light) >= 0.2f )//0.1f
+							{
+								//BB: boost UV light damage
+								float dmg = 3.0f;
+								//more damage from light to vamps on fire
+								if (temp->GetFlags() & FL_ONFIRE)
+									dmg = 5.5f;
+
+								CTakeDamageInfo burn(this, this, dmg, DMG_BURN | DMG_DIRECT);
+								temp->OnTakeDamage(burn);
+								temp->coven_timer_light = gpGlobals->curtime;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	if (FlashlightIsOn() && IsAlive() && SuitPower_GetCurrentPercentage() <= 0.0f)
+	{
+		RemoveEffects( EF_DIMLIGHT );
+		SuitPower_ResetDrain();
+		SetGlobalCooldown(3, gpGlobals->curtime + 3.0f);
+	
+		if( IsAlive() )
+		{
+			EmitSound( "HL2Player.FlashlightOff" );
+		}
+	}
+}
 
 int CHL2MP_Player::OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo )
 {

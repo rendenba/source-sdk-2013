@@ -49,7 +49,7 @@ using namespace vgui;
 #endif // !TF_CLIENT_DLL
 
 static char *abilities[2][COVEN_MAX_CLASSCOUNT][4] =
-{{{"Battle Yell","Bandage","Revenge","Vengeful Soul"},{"Sprint","Sheer Will","Intimidating Shout","Gut Check"},{"Holy Water","Trip Mine","Reflexes",""}},
+{{{"Battle Yell","Bandage","Revenge","Vengeful Soul"},{"Sprint","Sheer Will","Intimidating Shout","Gut Check"},{"Holy Water","Trip Mine","Reflexes","UV Light"}},
 {{"Leap","","Sneak","Berserk"},{"Phase","Charge","Gorge","Detonate Blood"},{"Dread Scream","Bloodlust","Masochist","Undying"}}};
 
 ConVar hideautolevel("hideautolevel", "0", FCVAR_CLIENTDLL | FCVAR_ARCHIVE);

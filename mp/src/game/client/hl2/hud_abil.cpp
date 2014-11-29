@@ -16,7 +16,7 @@
 using namespace vgui;
 
 static wchar_t *abilities[2][COVEN_MAX_CLASSCOUNT][4] =
-{{{L"Battle Yell",L"Bandage",L"Revenge",L"Vengeful Soul"},{L"Sprint",L"Sheer Will",L"Intimidating Shout",L"Gut Check"},{L"Holy Water",L"Trip Mine",L"Reflexes",L""}},
+{{{L"Battle Yell",L"Bandage",L"Revenge",L"Vengeful Soul"},{L"Sprint",L"Sheer Will",L"Intimidating Shout",L"Gut Check"},{L"Holy Water",L"Trip Mine",L"Reflexes",L"UV Light"}},
 {{L"Leap",L"",L"Sneak",L"Berserk"},{L"Phase",L"Charge",L"Gorge",L"Detonate Blood"},{L"Dread Scream",L"Bloodlust",L"Masochist",L"Undying"}}};
 
 struct ability_pic
@@ -76,6 +76,9 @@ void CHudAbils::Paint()
 	C_BaseHLPlayer *pPlayer = (C_BaseHLPlayer *)C_BasePlayer::GetLocalPlayer();
 	if ( !pPlayer )
 		return;
+	if (pPlayer->GetTeamNumber() < 2)
+		return;
+
 	int x = 0;
 	int w,t;
 	GetSize(w,t);

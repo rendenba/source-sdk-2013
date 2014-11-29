@@ -221,7 +221,7 @@ void CTripmineGrenade::BeamBreakThink( void  )
 	CBaseEntity *pEntity = tr.m_pEnt;
 	CBaseCombatCharacter *pBCC  = ToBaseCombatCharacter( pEntity );
 	
-	if (pBCC && pBCC->GetTeamNumber() != m_nTeam)
+	if (pBCC && pBCC->GetTeamNumber() != m_nTeam && pBCC->m_floatCloakFactor < 1.0f)
 	//if (pBCC || fabs( m_flBeamLength - tr.fraction ) > 0.001)
 	{
 		m_iHealth = 0;

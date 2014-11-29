@@ -320,6 +320,10 @@ bool CHL2MPRules::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBa
 			return false;
 		}
 
+#ifdef COVEN_DEVELOPER_MODE
+		Msg("%s\n", s);
+#endif
+
 		if (Q_strcmp(s,"botnode") == 0)
 		{
 			int num,id;

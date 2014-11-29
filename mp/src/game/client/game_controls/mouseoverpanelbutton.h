@@ -87,7 +87,7 @@ public:
 					}
 					else if ( !Q_stricmp( "Holy Water - Rank 1", temp) || !Q_stricmp( "Holy Water - Rank 2", temp) || !Q_stricmp( "Holy Water - Rank 3", temp) )
 					{
-						m_pPanel->SetText("Holy Water:\n\nEnergy: 10\nCooldown: 5 seconds\n\nThrows a holy water grenade healing allies and setting vampires on fire. Effect increases with rank.");
+						m_pPanel->SetText("Holy Water:\n\nEnergy: 12\nCooldown: 5 seconds\n\nThrows a holy water grenade healing allies and setting vampires on fire. Effect increases with rank.");
 					}
 					else if ( !Q_stricmp( "Leap - Rank 1", temp) || !Q_stricmp( "Leap - Rank 2", temp) || !Q_stricmp( "Leap - Rank 3", temp) )
 					{
@@ -95,7 +95,7 @@ public:
 					}
 					else if ( !Q_stricmp( "Phase - Rank 1", temp) || !Q_stricmp( "Phase - Rank 2", temp) || !Q_stricmp( "Phase - Rank 3", temp) )
 					{
-						m_pPanel->SetText("Phase:\n\nEnergy: 6/5/4 plus 2.0/1.5/1.0 per second\nCooldown: 3 seconds\n\nDisappears from sight and greatly boosts movement speed. Attacking phases back into sight.");
+						m_pPanel->SetText("Phase:\n\nEnergy: 4 plus 2.0/1.5/1.0 per second\nCooldown: 3 seconds\n\nDisappears from sight and greatly boosts movement speed. Attacking phases back into sight.");
 					}
 					else if ( !Q_stricmp( "Dread Scream - Rank 1", temp) || !Q_stricmp( "Dread Scream - Rank 2", temp) || !Q_stricmp( "Dread Scream - Rank 3", temp) )
 					{
@@ -128,7 +128,7 @@ public:
 					}
 					else if ( !Q_stricmp( "Charge - Rank 1", temp) || !Q_stricmp( "Charge - Rank 2", temp) || !Q_stricmp( "Charge - Rank 3", temp) )
 					{
-						m_pPanel->SetText("Charge:\n\nEnergy: 6/5/4 plus 10/9/8 per second\nCooldown: 3 seconds\n\nCharges straight ahead at immense speed. Usable while phased. Hold the effect to continue charging.");
+						m_pPanel->SetText("Charge:\n\nEnergy: 4 plus 10/9/8 per second\nCooldown: 3 seconds\n\nCharges straight ahead at immense speed. Usable while phased. Hold the effect to continue charging.");
 					}
 					else
 					{
@@ -192,6 +192,10 @@ public:
 					{
 						m_pPanel->SetText("Vengeful Soul:\n\nEnergy: 12\nCooldown: N/A\n\nUnleash the vengeance of your soul to smite vampires. Soul energy regenerates at 5/6/7 per 4 seconds. Damage caused is proportional to soul energy spent. Soul energy totally obliterates vampires and their corpses.");
 					}
+					else if ( !Q_stricmp( "UV Light - Rank 1", temp) || !Q_stricmp( "UV Light - Rank 2", temp) || !Q_stricmp( "UV Light - Rank 3", temp) )
+					{
+						m_pPanel->SetText("UV Light:\n\nEnergy: 4 plus 7.0/5.5/4.0 per second\nCooldown: 3 seconds\n\nToggle a flashlight emitting high powered UV light. Damages and pushes back vampires. Vampires under the effects of holy water take additional damage.");
+					}
 					else
 					{
 						m_pPanel->SetText(" ");
@@ -210,7 +214,7 @@ public:
 				}
 				else if( !Q_stricmp( "hellion", GetName() ) )
 				{
-					m_pPanel->SetText("Hellion:\nLightweight scout and expert at mischief. Fastest speed.\nMax HP: 100\n\n357 Magnum:\nStandard big pistol. Very accurate.\n\nAbilities:\n\nHoly Water: Throws a holy water grenade healing allies and setting vampires on fire.\n\nTrip Mine: Plants a laser activated trip mine on a wall in front of you.\n\nReflexes: Increases safe fall distance.\n\n");
+					m_pPanel->SetText("Hellion:\nLightweight scout and expert at mischief. Fastest speed.\nMax HP: 100\n\n357 Magnum:\nStandard big pistol. Very accurate.\n\nAbilities:\n\nHoly Water: Throws a holy water grenade healing allies and setting vampires on fire.\n\nTrip Mine: Plants a laser activated trip mine on a wall in front of you.\n\nReflexes: Increases safe fall distance.\n\nUV Light: Toggle a flashlight emitting high powered UV light. Damages and pushes back vampires.");
 				}
 				else if( !Q_stricmp( "avenger", GetName() ) )
 				{

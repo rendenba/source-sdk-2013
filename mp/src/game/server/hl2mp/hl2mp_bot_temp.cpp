@@ -414,6 +414,14 @@ void Bot_Think( CHL2MP_Player *pBot )
 
 	botdata_t *botdata = &g_BotData[ ENTINDEX( pBot->edict() ) - 1 ];
 
+	if ((pBot->covenLevelCounter < 3 && pBot->GetLoadout(2) > 0) || (pBot->covenLevelCounter < 5 && pBot->GetLoadout(2) > 1))
+	{
+	}
+	else if (pBot->PointsToSpend() > 0 && pBot->GetLoadout(2) < 3)
+	{
+		pBot->SpendPoint(2);
+	}
+
 	//BB: not sure why the fuck I have to do it this way...
 	/*if (pBot->GetTeamNumber() != botdata->m_WantedTeam)
 	{
@@ -519,16 +527,15 @@ void Bot_Think( CHL2MP_Player *pBot )
 			}
 		}
 
-		if (pBot->GetMoveType() == MOVETYPE_LADDER)
-		{
-			forwardmove = 0;
-			buttons |= IN_JUMP;
-		}
-
 		if ( !pBot->IsEFlagSet(EFL_BOT_FROZEN))
 		{
 			Vector forward;
 			QAngle angle = pBot->GetLocalAngles();//botdata->lastAngles;
+			if (pBot->GetMoveType() == MOVETYPE_LADDER)
+			{
+				//forwardmove = 0;
+				buttons |= IN_JUMP;
+			}
 			if (botdata->goWild > 0.0f && !botdata->bCombat)
 			{
 				if (gpGlobals->curtime > botdata->goWild)
@@ -702,6 +709,17 @@ void Bot_Think( CHL2MP_Player *pBot )
 					botdata->backwards = false;
 				}*/
 			}
+			if (sidemove != 0.0f)
+			{
+				trace_t	tr;
+				Vector forward, right, up;
+				AngleVectors( angle, &forward, &right, &up );
+				if (sidemove < 0)
+					right = -right;
+				UTIL_TraceLine(pBot->GetAbsOrigin()+right*16, pBot->GetAbsOrigin()-up*25, MASK_SHOT_HULL, pBot, COLLISION_GROUP_WEAPON, &tr);
+				if (tr.fraction == 1.0)
+					sidemove = botdata->sidemove = 0;
+			}
 
 			pBot->SetLocalAngles( angle );
 			vecViewAngles = angle;
@@ -797,7 +815,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 					botdata->nextusetime = gpGlobals->curtime + 3.0f;
 				}
 			}
-			if (gpGlobals->curtime - botdata->stuckTimer >= 0.5f && gpGlobals->curtime >= botdata->nextjumptime)
+			if (gpGlobals->curtime - botdata->stuckTimer >= 0.5f && gpGlobals->curtime >= botdata->nextjumptime && pBot->GetMoveType() != MOVETYPE_LADDER)
 			{
 				//try a jump
 				buttons |= IN_JUMP;
