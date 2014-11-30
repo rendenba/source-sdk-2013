@@ -81,7 +81,7 @@ ConVar mp_timelimit( "mp_timelimit", "0", FCVAR_NOTIFY|FCVAR_REPLICATED, "game t
 #endif
 					);
 
-ConVar fraglimit( "mp_fraglimit","0", FCVAR_NOTIFY|FCVAR_REPLICATED, "The number of kills at which the map ends");
+ConVar fraglimit( "mp_fraglimit","1600", FCVAR_NOTIFY|FCVAR_REPLICATED|FCVAR_ARCHIVE, "The number of kills at which the map ends");
 
 ConVar mp_show_voice_icons( "mp_show_voice_icons", "1", FCVAR_REPLICATED, "Show overhead player voice icons when players are speaking.\n" );
 
