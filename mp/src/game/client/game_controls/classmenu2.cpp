@@ -236,7 +236,10 @@ void CClassMenu2::ShowPanel(bool bShow)
 
 		SetCloseButtonVisible( false); 
 
-		
+		if( m_iJumpKey == BUTTON_CODE_INVALID ) // you need to lookup the jump key AFTER the engine has loaded
+		{
+			m_iJumpKey = gameuifuncs->GetButtonCodeForBind( "jump" );
+		}
 		if ( m_iScoreBoardKey == BUTTON_CODE_INVALID ) 
 		{
 			m_iScoreBoardKey = gameuifuncs->GetButtonCodeForBind( "showscores" );
@@ -311,7 +314,27 @@ void CClassMenu2::OnKeyCodePressed(KeyCode code)
 		break;
 	}
 
-	if ( m_iScoreBoardKey != BUTTON_CODE_INVALID && m_iScoreBoardKey == code )
+	if (code == KEY_1 || code == KEY_PAD_1)
+	{
+		ShowPanel(false);
+		engine->ClientCmd("class 1");
+	}
+	else if (code == KEY_2 || code == KEY_PAD_2)
+	{
+		ShowPanel(false);
+		engine->ClientCmd("class 2");
+	}
+	else if (code == KEY_3 || code == KEY_PAD_3)
+	{
+		ShowPanel(false);
+		engine->ClientCmd("class 3");
+	}
+	else if( code == KEY_0 || code == KEY_PAD_0)
+	{
+		ShowPanel(false);
+		engine->ClientCmd("class 0");
+	}
+	else if ( m_iScoreBoardKey != BUTTON_CODE_INVALID && m_iScoreBoardKey == code )
 	{
 		gViewPortInterface->ShowPanel( PANEL_SCOREBOARD, true );
 		gViewPortInterface->PostMessageToPanel( PANEL_SCOREBOARD, new KeyValues( "PollHideCode", "code", code ) );

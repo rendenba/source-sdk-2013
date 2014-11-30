@@ -70,6 +70,7 @@ protected:
 
 	IViewPort	*m_pViewPort;
 	ButtonCode_t m_iScoreBoardKey;
+	ButtonCode_t m_iJumpKey;
 	int			m_iTeam;
 	vgui::RichText *m_pPanel;
 

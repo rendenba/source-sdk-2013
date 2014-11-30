@@ -846,7 +846,7 @@ void CHL2MP_Player::DoVampireAbilityThink()
 			else if (covenClassID == COVEN_CLASSID_FIEND)
 			{
 				float mana = 4.0f;
-				if (GetRenderColor().a < 255)
+				/*if (GetRenderColor().a < 255)
 				{
 					SuitPower_ResetDrain();
 					SetGlobalCooldown(1, gpGlobals->curtime + 3.0f);
@@ -856,7 +856,7 @@ void CHL2MP_Player::DoVampireAbilityThink()
 						EmitSound( "HL2Player.FlashlightOff" );
 					}
 				}
-				else
+				else*/
 				{
 					if (SuitPower_GetCurrentPercentage() > mana)
 					{
@@ -2978,6 +2978,19 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 	{
 		CommitSuicide();
 	}
+
+	covenClassID = 0;
+
+
+	if (coven_ignore_respawns.GetInt() == 0 && covenLevelCounter > 0)
+	{
+		if (iTeam == COVEN_TEAMID_VAMPIRES)
+			covenRespawnTimer = gpGlobals->curtime + COVEN_RESPAWNTIME_BASE + COVEN_RESPAWNTIME_VAMPIRES_MULT*covenLevelCounter;
+		else if (iTeam == COVEN_TEAMID_SLAYERS)
+			covenRespawnTimer = HL2MPRules()->GetSlayerRespawnTime();
+	}
+	else
+		covenRespawnTimer = gpGlobals->curtime;
 }
 
 void CHL2MP_Player::SlayerGutcheckThink()
@@ -3866,10 +3879,10 @@ CON_COMMAND(distance, "distance from store_loc")
 
 void CHL2MP_Player::VampireDodgeHandler()
 {
-	if (covenClassID == COVEN_CLASSID_FIEND && GetRenderColor().a < 255 && (SuitPower_GetCurrentPercentage() <= 0.0f))
+	if (covenClassID == COVEN_CLASSID_FIEND && GetRenderColor().a < 255 && (SuitPower_GetCurrentPercentage() <= 0.0f || m_afButtonReleased & IN_ABIL2))
 	{
 		SuitPower_ResetDrain();
-		SetGlobalCooldown(1, gpGlobals->curtime + 3.0f);
+		SetGlobalCooldown(1, gpGlobals->curtime + 5.0f);
 		SetRenderColorA(255);
 		if( IsAlive() )
 		{

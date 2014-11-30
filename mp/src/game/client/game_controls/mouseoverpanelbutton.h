@@ -132,7 +132,7 @@ public:
 					}
 					else if ( !Q_stricmp( "Dodge - Rank 1", temp) || !Q_stricmp( "Dodge - Rank 2", temp) || !Q_stricmp( "Dodge - Rank 3", temp) )
 					{
-						m_pPanel->SetText("Dodge:\n\nEnergy: 4 plus 5 per second\nCooldown: 3 seconds\n\nToggles dodging. Damage taken while dodging is reduced by 30/50/70%. 1/2/3 in 6 chance to take no damage.");
+						m_pPanel->SetText("Dodge:\n\nEnergy: 4 plus 4 per second\nCooldown: 5 seconds\n\nToggles dodging. Damage taken while dodging is reduced by 30/50/70%. 1/2/3 in 6 chance to take no damage.");
 					}
 					else
 					{

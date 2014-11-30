@@ -147,7 +147,13 @@ void CWeaponCrowbar::PrimaryAttack()
 			pPlayer->SetGlobalCooldown(0, gpGlobals->curtime + 3.0f);
 			pPlayer->RecalcGoreDrain();
 		}
+		if (pPlayer->covenClassID == COVEN_CLASSID_FIEND && pPlayer->GetRenderColor().a < 255)
+			return;
 #else
+		C_BasePlayer *local = C_BasePlayer::GetLocalPlayer();
+		C_BaseHLPlayer *pPlayer2 = (C_BaseHLPlayer *)local;
+		if (pPlayer2->covenClassID == COVEN_CLASSID_FIEND && pPlayer2->GetRenderColor().a < 255)
+			return;
 		//second half of sneak attacks
 		/*C_BasePlayer *local = C_BasePlayer::GetLocalPlayer();
 		C_BaseHLPlayer *pPlayer2 = (C_BaseHLPlayer *)local;
