@@ -76,7 +76,7 @@ void CHudAbils::Paint()
 	C_BaseHLPlayer *pPlayer = (C_BaseHLPlayer *)C_BasePlayer::GetLocalPlayer();
 	if ( !pPlayer )
 		return;
-	if (pPlayer->GetTeamNumber() < 2)
+	if (pPlayer->GetTeamNumber() < 2 || pPlayer->covenClassID < 1)
 		return;
 
 	int x = 0;

@@ -1857,15 +1857,15 @@ void CHL2MP_Player::VampireStealthCalc()
 		int max_velocity = 10;
 		float alpha = 1.0f;
 
-		if (/*m_Local.m_bDucked && */coven_timer_vstealth == 0.0f && VectorLength(GetAbsVelocity()) <= max_velocity && IsAlive())
+		if (/*m_Local.m_bDucked && */coven_timer_vstealth == 0.0f && VectorLength(GetAbsVelocity()) <= max_velocity && !KO)
 		{
 			coven_timer_vstealth = gpGlobals->curtime;
 		}
-		else if (/*m_Local.m_bDucked && */coven_timer_vstealth > 0.0f && VectorLength(GetAbsVelocity()) <= max_velocity && IsAlive())
+		else if (/*m_Local.m_bDucked && */coven_timer_vstealth > 0.0f && VectorLength(GetAbsVelocity()) <= max_velocity && !KO)
 		{
 				alpha = 1.0f - 0.2f * GetLoadout(2) * (gpGlobals->curtime - coven_timer_vstealth);//180
 		}
-		else if (/*!m_Local.m_bDucked || */VectorLength(GetAbsVelocity()) >= 0 || !IsAlive())
+		else if (/*!m_Local.m_bDucked || */VectorLength(GetAbsVelocity()) >= 0 || KO)
 		{
 			coven_timer_vstealth = 0.0f;
 			alpha = 1.0f;
