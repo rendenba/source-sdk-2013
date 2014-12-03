@@ -1235,6 +1235,8 @@ void CHL2MPRules::ClientDisconnected( edict_t *pClient )
 		CHL2MP_Player *play = (CHL2MP_Player *)pPlayer;
 		if (play->GetTeamNumber() == COVEN_TEAMID_VAMPIRES && play->myServerRagdoll != NULL)
 		{
+			if (play->myServerRagdoll == play->m_hRagdoll)
+				play->m_hRagdoll = NULL;
 			UTIL_RemoveImmediate(play->myServerRagdoll);
 			play->myServerRagdoll = NULL;
 		}

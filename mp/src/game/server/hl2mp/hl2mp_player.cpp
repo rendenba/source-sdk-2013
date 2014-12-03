@@ -2343,11 +2343,11 @@ void CHL2MP_Player::VampireManageRagdoll()
 	{
 		if (gpGlobals->curtime > ((CRagdollProp *)myServerRagdoll)->flClearTime)
 		{
-			UTIL_Remove(myServerRagdoll);
 			if (myServerRagdoll == m_hRagdoll)
 			{
 				m_hRagdoll = NULL;
 			}
+			UTIL_Remove(myServerRagdoll);
 			myServerRagdoll = NULL;
 		}
 		else

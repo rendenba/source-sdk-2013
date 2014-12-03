@@ -1871,7 +1871,9 @@ IServerGCLobby *CServerGameDLL::GetServerGCLobby()
 
 void CServerGameDLL::SetServerHibernation( bool bHibernating )
 {
-	m_bIsHibernating = bHibernating;
+	//BB: attempt to remove hibernating
+	m_bIsHibernating = false;
+	//m_bIsHibernating = bHibernating;
 
 #ifdef INFESTED_DLL
 	if ( engine && engine->IsDedicatedServer() && m_bIsHibernating && ASWGameRules() )
