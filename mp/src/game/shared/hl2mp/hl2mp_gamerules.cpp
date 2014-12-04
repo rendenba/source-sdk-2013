@@ -785,12 +785,12 @@ void CHL2MPRules::Think( void )
 
 			if (pPlayer->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
 			{
-				xp_tick = COVEN_XP_CAP_PERSEC * s_caps * 4.0f*COVEN_MAX_CAP_POINTS/num_cap_points;
+				xp_tick = COVEN_XP_CAP_PERSEC * s_caps * 4.0f*num_cap_points/COVEN_MAX_CAP_POINTS;
 				numSlayers++;
 			}
 			else if (pPlayer->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
 			{
-				xp_tick = COVEN_XP_CAP_PERSEC * v_caps * 4.0f*COVEN_MAX_CAP_POINTS/num_cap_points;
+				xp_tick = COVEN_XP_CAP_PERSEC * v_caps * 4.0f*num_cap_points/COVEN_MAX_CAP_POINTS;
 				numVampires++;
 			}
 
@@ -1237,7 +1237,7 @@ void CHL2MPRules::ClientDisconnected( edict_t *pClient )
 		{
 			if (play->myServerRagdoll == play->m_hRagdoll)
 				play->m_hRagdoll = NULL;
-			UTIL_RemoveImmediate(play->myServerRagdoll);
+			UTIL_Remove(play->myServerRagdoll);
 			play->myServerRagdoll = NULL;
 		}
 		// Remove the player from his team

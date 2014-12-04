@@ -86,6 +86,8 @@ typedef struct
 	int				m_lastNodeProbe; //index (not id) of last probe into the botnet
 	int				m_targetNode; //index
 	bool			bLost;
+
+	int				strikes;
 } botdata_t;
 
 static botdata_t g_BotData[ MAX_PLAYERS ];
@@ -179,6 +181,7 @@ CBasePlayer *BotPutInServer( bool bFrozen, int iTeam )
 	g_BotData[pPlayer->entindex()-1].bForceCombat = false;
 	g_BotData[pPlayer->entindex()-1].left = false;
 	g_BotData[pPlayer->entindex()-1].turns = 0;
+	g_BotData[pPlayer->entindex()-1].strikes = 0;
 
 	return pPlayer;
 }
@@ -825,6 +828,9 @@ void Bot_Think( CHL2MP_Player *pBot )
 			{
 				botdata->goWild = gpGlobals->curtime + 8.0f;
 				botdata->turns = 0;
+				
+				botdata->stuckTimer = 0.0f;
+				botdata->strikes++;
 			}
 		}
 		else
@@ -837,6 +843,15 @@ void Bot_Think( CHL2MP_Player *pBot )
 	{
 		botdata->lastPos = pBot->GetLocalOrigin();
 		botdata->stuckTimer = 0.0f;
+		botdata->strikes = 0;
+	}
+
+	//BB: strikes clause
+	if (botdata->strikes == 3)
+	{
+		botdata->strikes = 0;
+		pBot->CommitSuicide();
+		return;
 	}
 
 	RunPlayerMove( pBot, pBot->GetLocalAngles(), forwardmove, sidemove, upmove, buttons, impulse, frametime );

@@ -1000,7 +1000,7 @@ void CHL2MP_Player::UpdateOnRemove( void )
 {
 	if ( m_hRagdoll )
 	{
-		UTIL_RemoveImmediate( m_hRagdoll );
+		UTIL_Remove( m_hRagdoll );
 		m_hRagdoll = NULL;
 	}
 

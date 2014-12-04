@@ -308,6 +308,7 @@ $Project
 		$File	"clientsideeffects_test.cpp"
 		$File	"clientsteamcontext.cpp"
 		$File	"clientsteamcontext.h"
+		$File	"cloakproxy.cpp"
 		$File	"colorcorrectionmgr.cpp"
 		$File	"commentary_modelviewer.cpp"
 		$File	"commentary_modelviewer.h"
@@ -653,8 +654,11 @@ $Project
 			$File	"game_controls\NavProgress.cpp"
 			$File	"game_controls\SpectatorGUI.cpp"
 			$File	"game_controls\teammenu.cpp"
+			$File	"game_controls\classmenu.cpp"
+			$File	"game_controls\classmenu2.cpp"
 			$File	"game_controls\vguitextwindow.cpp"
 			$File	"game_controls\IconPanel.cpp"
+			$File	"game_controls\levelmenu.cpp"
 		}
 
 	}
