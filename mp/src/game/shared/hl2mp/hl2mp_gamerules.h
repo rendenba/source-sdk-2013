@@ -152,6 +152,8 @@ public:
 	int covenGameState;
 	float covenGameStateTimer;
 	float covenFlashTimer;
+
+	CBaseEntity *thects;
 	
 #ifndef CLIENT_DLL
 	virtual Vector VecItemRespawnSpot( CItem *pItem );
@@ -198,6 +200,12 @@ public:
 	CNetworkArray( int, cap_point_status, COVEN_MAX_CAP_POINTS );
 	CNetworkArray( float, cap_point_coords, COVEN_MAX_CAP_POINTS*3 );
 	CNetworkArray( int, cap_point_state, COVEN_MAX_CAP_POINTS );
+
+	bool cts_inplay;
+	Vector cts_zone;
+	Vector cts_position;
+	int cts_zone_radius;
+	float cts_return_timer;
 	
 private:
 	

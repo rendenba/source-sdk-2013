@@ -1303,6 +1303,7 @@ void CHL2MP_Player::Precache( void )
 	UTIL_PrecacheOther( "item_ammo_crate" );
 	UTIL_PrecacheOther( "item_xp_slayers" );
 	UTIL_PrecacheOther( "item_xp_vampires" );
+	UTIL_PrecacheOther( "item_cts" );
 
 	//Precache Citizen models
 	int nHeads = ARRAYSIZE( g_ppszRandomCitizenModels );
@@ -2093,6 +2094,25 @@ void CHL2MP_Player::PreThink( void )
 	//Reset bullet force accumulator, only lasts one frame
 	m_vecTotalBulletForce = vec3_origin;
 	SetLocalAngles( vOldAngles );
+
+	//BB: CTS logic
+	if (HL2MPRules()->cts_inplay && covenStatusEffects & COVEN_FLAG_CTS)
+	{
+		if ((HL2MPRules()->cts_zone-GetLocalOrigin()).Length() < HL2MPRules()->cts_zone_radius)
+		{
+			covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_CTS;
+			HL2MPRules()->AddScore(COVEN_TEAMID_SLAYERS, COVEN_PTS_PER_CTS);
+			HL2MPRules()->GiveItemXP(COVEN_TEAMID_SLAYERS);
+			EmitSound( "ItemBattery.Touch" );
+
+			CBaseEntity *ent = CreateEntityByName( "item_cts" );
+			ent->SetLocalOrigin(HL2MPRules()->cts_position);
+			ent->SetLocalAngles(QAngle(random->RandomInt(0,180), random->RandomInt(0,90), random->RandomInt(0,180)));
+			ent->Spawn();
+			ent->AddSpawnFlags(SF_NORESPAWN);
+			HL2MPRules()->thects = ent;
+		}
+	}
 
 	//BB: cap point logic
 	if (IsAlive() && gpGlobals->curtime > lastCapPointTime) //no spectators allowed
@@ -3607,6 +3627,17 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 
 	if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
 		RevengeCheck();
+
+	if (covenStatusEffects & COVEN_FLAG_CTS && HL2MPRules()->cts_inplay)
+	{
+		CBaseEntity *ent = CreateEntityByName( "item_cts" );
+		ent->SetLocalOrigin(EyePosition());
+		ent->SetLocalAngles(QAngle(random->RandomInt(0,180), random->RandomInt(0,90), random->RandomInt(0,180)));
+		ent->Spawn();
+		ent->AddSpawnFlags(SF_NORESPAWN);
+		HL2MPRules()->thects = ent;
+		HL2MPRules()->cts_return_timer = gpGlobals->curtime + 15.0f;
+	}
 
 	SetRenderColorA(255.0f);
 	if (GetActiveWeapon() != NULL)

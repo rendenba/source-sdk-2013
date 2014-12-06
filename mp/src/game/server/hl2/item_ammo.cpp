@@ -72,10 +72,10 @@ public:
 LINK_ENTITY_TO_CLASS(item_box_srounds, CItem_BoxSRounds);
 LINK_ENTITY_TO_CLASS(item_ammo_pistol, CItem_BoxSRounds);
 
-class CItem_SlayerXPItem : public CItem
+class CItem_CTS : public CItem
 {
 public:
-	DECLARE_CLASS( CItem_SlayerXPItem, CItem );
+	DECLARE_CLASS( CItem_CTS, CItem );
 
 	void Spawn( void )
 	{ 
@@ -87,6 +87,41 @@ public:
 	{
 		PrecacheScriptSound( "ItemBattery.Touch" );
 		PrecacheModel ("models/weapons/w_suitcase_passenger.mdl");
+	}
+	bool MyTouch( CBasePlayer *pPlayer )
+	{
+		if (pPlayer->IsAlive() && pPlayer->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+		{
+			if ( g_pGameRules->ItemShouldRespawn( this ) == GR_ITEM_RESPAWN_NO )
+			{
+				UTIL_Remove(this);
+				HL2MPRules()->thects = NULL;
+				HL2MPRules()->cts_return_timer = 0.0f;
+			}
+			((CHL2MP_Player *)pPlayer)->covenStatusEffects |= COVEN_FLAG_CTS;
+			pPlayer->EmitSound( "ItemBattery.Touch" );
+			return true;
+		}
+		return false;
+	}
+};
+LINK_ENTITY_TO_CLASS(item_cts, CItem_CTS);
+
+class CItem_SlayerXPItem : public CItem
+{
+public:
+	DECLARE_CLASS( CItem_SlayerXPItem, CItem );
+
+	void Spawn( void )
+	{ 
+		Precache( );
+		SetModel( "models/items/boxsrounds.mdl");
+		BaseClass::Spawn( );
+	}
+	void Precache( void )
+	{
+		PrecacheScriptSound( "ItemBattery.Touch" );
+		PrecacheModel ("models/items/boxsrounds.mdl");
 	}
 	bool MyTouch( CBasePlayer *pPlayer )
 	{

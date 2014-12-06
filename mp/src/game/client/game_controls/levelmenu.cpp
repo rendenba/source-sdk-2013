@@ -241,10 +241,12 @@ void CLevelMenu::UpdateButtons()
 	if (pPlayer->GetTeamNumber() < 2 || m_iClass < 1)
 		return;
 
+	int points = m_iLevel - m_iLoad1 - m_iLoad2 - m_iLoad3 - m_iLoad4;
+
 	char temp[64];
 	Button *entry = dynamic_cast<Button *>(FindChildByName("abil1"));
 	int n = 1;
-	if (m_iLoad1 > 2)
+	if (m_iLoad1 > 2 || points == 0)
 	{
 		n = 0;
 		entry->SetEnabled(false);
@@ -259,7 +261,7 @@ void CLevelMenu::UpdateButtons()
 	PostMessage( entry, new KeyValues( "SetText", "text", temp ) );
 	entry = dynamic_cast<Button *>(FindChildByName("abil2"));
 	n = 1;
-	if (m_iLoad2 > 2)
+	if (m_iLoad2 > 2 || points == 0)
 	{
 		n = 0;
 		entry->SetEnabled(false);
@@ -274,7 +276,7 @@ void CLevelMenu::UpdateButtons()
 	PostMessage( entry, new KeyValues( "SetText", "text", temp ) );
 	entry = dynamic_cast<Button *>(FindChildByName("abil3"));
 	n = 1;
-	if (m_iLoad3 > 2)
+	if (m_iLoad3 > 2 || points == 0)
 	{
 		n = 0;
 		entry->SetEnabled(false);
@@ -289,12 +291,12 @@ void CLevelMenu::UpdateButtons()
 	PostMessage( entry, new KeyValues( "SetText", "text", temp ) );
 	entry = dynamic_cast<Button *>(FindChildByName("abil4"));
 	n = 1;
-	if (m_iLoad4 > 2)
+	if (m_iLoad4 > 2 || points == 0)
 	{
 		n = 0;
 		entry->SetEnabled(false);
 	}
-	else if (m_iLevel < 6 || (m_iLoad4 > 1 && m_iLevel < 8) || (m_iLoad4 > 2 && m_iLevel < 10))
+	else if (m_iLevel < 6 || (m_iLoad4 > 0 && m_iLevel < 8) || (m_iLoad4 > 1 && m_iLevel < 10))
 	{
 		entry->SetEnabled(false);
 	}

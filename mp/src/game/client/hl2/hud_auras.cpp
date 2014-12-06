@@ -36,6 +36,8 @@ class CHudAuras : public CHudElement, public Panel
    virtual void Paint();
    virtual void PaintBackground();
 
+   void PaintMiniBackground(int x, int y, int wide, int tall);
+
    int m_nImportCapPoint;
    int m_nImportStar;
    int m_nImportSprint;
@@ -50,6 +52,10 @@ class CHudAuras : public CHudElement, public Panel
    int m_nImportStun;
 
 	CPanelAnimationVar( vgui::HFont, m_hTextFont, "TextFont", "Default" );
+	CPanelAnimationVarAliasType( int, m_nCBgTextureId1, "Texture1", "vgui/hud/800corner1", "textureid" );
+	CPanelAnimationVarAliasType( int, m_nCBgTextureId2, "Texture2", "vgui/hud/800corner2", "textureid" );
+	CPanelAnimationVarAliasType( int, m_nCBgTextureId3, "Texture3", "vgui/hud/800corner3", "textureid" );
+	CPanelAnimationVarAliasType( int, m_nCBgTextureId4, "Texture4", "vgui/hud/800corner4", "textureid" );
 };
 
 DECLARE_HUDELEMENT( CHudAuras );
@@ -100,6 +106,7 @@ CHudAuras::CHudAuras( const char *pElementName ) : CHudElement( pElementName ), 
    surface()->DrawSetTextureFile( m_nImportStun, "effects/cowpain", true, true);
 
    SetHiddenBits( HIDEHUD_PLAYERDEAD | HIDEHUD_NEEDSUIT );
+	SetBgColor(Color(0,0,0,250));
 }
 
 void CHudAuras::PaintBackground()
@@ -111,6 +118,35 @@ void CHudAuras::PaintBackground()
 	surface()->DrawFilledRect(0,0,w,t);*/
 }
 
+void CHudAuras::PaintMiniBackground(int x, int y, int wide, int tall)
+{
+	int cornerWide, cornerTall;
+	GetCornerTextureSize( cornerWide, cornerTall );
+	surface()->DrawFilledRect(x + cornerWide, y, x + wide - cornerWide,	y + cornerTall);
+	surface()->DrawFilledRect(x, y + cornerTall, x + wide, y + tall - cornerTall);
+	surface()->DrawFilledRect(x + cornerWide, y + tall - cornerTall, x + wide - cornerWide, y + tall);
+	//TOP-LEFT
+		surface()->DrawSetTexture(m_nCBgTextureId1);
+		surface()->DrawTexturedRect(x, y, x + cornerWide, y + cornerTall);
+
+
+
+	//TOP-RIGHT
+		surface()->DrawSetTexture(m_nCBgTextureId2);
+		surface()->DrawTexturedRect(x + wide - cornerWide, y, x + wide, y + cornerTall);
+
+
+	//BOTTOM-LEFT
+		surface()->DrawSetTexture(m_nCBgTextureId4);
+		surface()->DrawTexturedRect(x + 0, y + tall - cornerTall, x + cornerWide, y + tall);
+
+
+
+	//BOTTOM-RIGHT
+		surface()->DrawSetTexture(m_nCBgTextureId3);
+		surface()->DrawTexturedRect(x + wide - cornerWide, y + tall - cornerTall, x + wide, y + tall);
+}
+
 void CHudAuras::Paint()
 {
 	C_BaseHLPlayer *pPlayer = (C_BaseHLPlayer *)C_BasePlayer::GetLocalPlayer();
@@ -119,11 +155,14 @@ void CHudAuras::Paint()
 	int x = 12;
 	int w,t;
 	GetSize(w,t);
-	t -= 36;
+	t -= 44;
 	int y = t;
 	SetPaintBorderEnabled(false);
 	for (int i = 0; i < active_auras.Count(); i++)
 	{
+		surface()->DrawSetTextColor(Color(120,120,120,250));
+		surface()->DrawSetColor( Color(0,0,0,250) );
+		PaintMiniBackground(x-6,0,44,t+44);
 		if (active_auras[i]->aura == COVEN_BUFF_CAPPOINT)
 		{
 			surface()->DrawSetTexture( m_nImportCapPoint );
@@ -179,32 +218,36 @@ void CHudAuras::Paint()
 		{
 			surface()->DrawSetTexture( m_nImportBomb );
 		}
+		else if (active_auras[i]->aura == COVEN_BUFF_CTS)
+		{
+			surface()->DrawSetTexture( m_nImportStats );
+		}
 
-		surface()->DrawTexturedRect( x, 0, x+t, t );
+		surface()->DrawTexturedRect( x, 4, x+t, t+4 );
 
 		int n = 0;
 
 		if (active_auras[i]->text)
 		{
 			wchar_t uc_text[4];
-			swprintf(uc_text, L"%d", active_auras[i]->text);
+			swprintf(uc_text, sizeof(uc_text), L"%d", active_auras[i]->text);
 			surface()->DrawSetTextFont(m_hTextFont);
 			//BB: maybe do something like this later.... helps with contrast!
 			//surface()->DrawSetColor(Color(0,0,0,255));
 			//surface()->DrawFilledRect(x+t/2-UTIL_ComputeStringWidth(m_hTextFont,uc_text)/2,t,x+t/2+UTIL_ComputeStringWidth(m_hTextFont,uc_text)/2,t+12);
-			surface()->DrawSetTextPos( x+t/2-UTIL_ComputeStringWidth(m_hTextFont,uc_text)/2, t );
+			surface()->DrawSetTextPos( x+t/2-UTIL_ComputeStringWidth(m_hTextFont,uc_text)/2, t+4 );
 			surface()->DrawUnicodeString(uc_text);
 			n = 16;
 		}
 		if (active_auras[i]->timer > 0.0f)
 		{
 			wchar_t uc_text[8];
-			swprintf(uc_text, L"%.1f", active_auras[i]->timer);
+			swprintf(uc_text, sizeof(uc_text), L"%.1f", active_auras[i]->timer);
 			surface()->DrawSetTextFont(m_hTextFont);
 			//BB: maybe do something like this later.... helps with contrast!
 			//surface()->DrawSetColor(Color(0,0,0,255));
 			//surface()->DrawFilledRect(x+t/2-UTIL_ComputeStringWidth(m_hTextFont,uc_text)/2,t,x+t/2+UTIL_ComputeStringWidth(m_hTextFont,uc_text)/2,t+12);
-			surface()->DrawSetTextPos( x+t/2-UTIL_ComputeStringWidth(m_hTextFont,uc_text)/2, t+n );
+			surface()->DrawSetTextPos( x+t/2-UTIL_ComputeStringWidth(m_hTextFont,uc_text)/2, t+n+4 );
 			surface()->DrawUnicodeString(uc_text);
 		}
 
@@ -338,6 +381,15 @@ void CHudAuras::OnThink()
 		temp->timer = 0;
 		active_auras.AddToTail(temp);
 	}
+	if (pPlayer->covenStatusEffects & COVEN_FLAG_CTS)
+	{
+		aura_pic *temp;
+		temp = new aura_pic;
+		temp->aura = COVEN_BUFF_CTS;
+		temp->text = 0;
+		temp->timer = 0;
+		active_auras.AddToTail(temp);
+	}
 
 	if (active_auras.Count() == 0)
 		SetVisible(false);
@@ -345,7 +397,7 @@ void CHudAuras::OnThink()
 		SetVisible(true);
 
 	//SetSize(52*active_auras.Count()+10*(active_auras.Count()-1),32+32);
-	SetSize(56*active_auras.Count(),32+36);
+	SetSize(56*active_auras.Count(),32+44);
  
    BaseClass::OnThink();
 }

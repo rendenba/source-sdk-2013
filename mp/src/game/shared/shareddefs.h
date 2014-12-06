@@ -418,6 +418,7 @@ enum PLAYER_ANIM
 #define COVEN_CAP_SCORE 10
 #define COVEN_CAP_SCORE_PERSEC 1
 #define COVEN_PTS_PER_ITEM 5
+#define COVEN_PTS_PER_CTS 125
 
 #define COVEN_MELEE_STR_MULT 2
 #define COVEN_RANGE_STR_MULT 1
@@ -481,6 +482,7 @@ enum PLAYER_ANIM
 #define COVEN_BUFF_SLOW 10
 #define COVEN_BUFF_STUN 11
 #define COVEN_BUFF_SOULENERGY 12
+#define COVEN_BUFF_CTS 13
 
 #define COVEN_FLAG_CAPPOINT (1 << 0)
 #define COVEN_FLAG_LEVEL (1 << 1)
@@ -495,6 +497,7 @@ enum PLAYER_ANIM
 #define COVEN_FLAG_SLOW (1 << 10)
 #define COVEN_FLAG_STUN (1 << 11)
 #define COVEN_FLAG_SOULENERGY (1 << 12)
+#define COVEN_FLAG_CTS (1 << 13)
 
 // instant damage
 

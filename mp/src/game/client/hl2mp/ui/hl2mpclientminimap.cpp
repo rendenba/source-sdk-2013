@@ -528,8 +528,8 @@ bool CHL2MPClientMiniMapDialog::LoadFromBuffer( char const *resourceName, const 
 
 bool CHL2MPClientMiniMapDialog::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBaseFileSystem *pFileSystem, const char *pPathID )
 {
-	//while (buf.IsValid())
-	//{
+	while (buf.IsValid())
+	{
 		buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
 		const char *s = temparray;
 		if (!s || *s == 0 )
@@ -537,23 +537,28 @@ bool CHL2MPClientMiniMapDialog::LoadFromBuffer( char const *resourceName, CUtlBu
 			return false;
 		}
 
-		int n = 0;
-
-		UTIL_StringToIntArray(&n, 1, s);
-
-		for (int i = 0; i < n; i++)
+		if (Q_strcmp(s,"capturepoints") == 0)
 		{
-			int x,y;
 			buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
 			const char *t = temparray;
-			UTIL_StringToIntArray(&x, 1, t);
-			buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
-			const char *u = temparray;
-			UTIL_StringToIntArray(&y, 1, u);
-			Vector temp(x,y,0);
-			mapspots.AddToTail(temp);
+			int n = 0;
+
+			UTIL_StringToIntArray(&n, 1, t);
+
+			for (int i = 0; i < n; i++)
+			{
+				int x,y;
+				buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
+				const char *u = temparray;
+				UTIL_StringToIntArray(&x, 1, u);
+				buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
+				const char *v = temparray;
+				UTIL_StringToIntArray(&y, 1, v);
+				Vector temp(x,y,0);
+				mapspots.AddToTail(temp);
+			}
 		}
-	//}
+	}
 	return true;
 }
 

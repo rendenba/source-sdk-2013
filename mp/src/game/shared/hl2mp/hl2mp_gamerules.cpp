@@ -51,11 +51,13 @@ ConVar sv_report_client_settings("sv_report_client_settings", "0", FCVAR_GAMEDLL
 ConVar sv_coven_minplayers("sv_coven_minplayers", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY );//3
 ConVar sv_coven_freezetime("sv_coven_freezetime", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY );//5
 ConVar sv_coven_usexpitems("sv_coven_usexpitems", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY );
+ConVar sv_coven_usects("sv_coven_usects", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_coven_warmuptime("sv_coven_warmuptime", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY );//10
 #else
 ConVar sv_coven_minplayers("sv_coven_minplayers", "3", FCVAR_GAMEDLL | FCVAR_NOTIFY );//3
 ConVar sv_coven_freezetime("sv_coven_freezetime", "5", FCVAR_GAMEDLL | FCVAR_NOTIFY );//5
 ConVar sv_coven_usexpitems("sv_coven_usexpitems", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY );
+ConVar sv_coven_usects("sv_coven_usects", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_coven_warmuptime("sv_coven_warmuptime", "10", FCVAR_GAMEDLL | FCVAR_NOTIFY );//10
 #endif
 
@@ -221,6 +223,10 @@ CHL2MPRules::CHL2MPRules()
 
 		g_Teams.AddToTail( pTeam );
 	}
+
+	thects = NULL;
+	cts_inplay = false;
+	cts_return_timer = 0.0f;
 
 	m_bTeamPlayEnabled = teamplay.GetBool();
 	m_flIntermissionEndTime = 0.0f;
@@ -423,6 +429,43 @@ bool CHL2MPRules::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBa
 				ent->SetLocalOrigin(Vector(locs[0], locs[1], locs[2]+10.0f));
 				ent->SetLocalAngles(QAngle(random->RandomInt(0,180), random->RandomInt(0,90), random->RandomInt(0,180)));
 				ent->Spawn();
+			}
+		}
+		else if (Q_strcmp(s,"cts") == 0)
+		{
+			buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
+			const char *t = temparray;
+			float locs[3];
+			UTIL_StringToVector(locs, t);
+			if (sv_coven_usects.GetInt() > 0)
+			{
+				CBaseEntity *ent = CreateEntityByName( "item_cts" );
+				cts_position = Vector(locs[0], locs[1], locs[2]+10.0f);
+				ent->SetLocalOrigin(cts_position);
+				ent->SetLocalAngles(QAngle(random->RandomInt(0,180), random->RandomInt(0,90), random->RandomInt(0,180)));
+				ent->Spawn();
+				ent->AddSpawnFlags(SF_NORESPAWN);
+				thects = ent;
+				cts_inplay = true;
+			}
+		}
+		else if (Q_strcmp(s,"ctszone") == 0)
+		{
+			buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
+			const char *t = temparray;
+			float locs[3];
+			UTIL_StringToVector(locs, t);
+			if (sv_coven_usects.GetInt() > 0)
+			{
+				cts_zone = Vector(locs[0], locs[1], locs[2]);
+			}
+			buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
+			const char *u = temparray;
+			int n;
+			UTIL_StringToIntArray(&n, 1, u);
+			if (sv_coven_usects.GetInt() > 0)
+			{
+				cts_zone_radius = n;
 			}
 		}
 	}
@@ -729,6 +772,20 @@ void CHL2MPRules::Think( void )
 				UTIL_ClientPrintAll( HUD_PRINTCENTER, "FIGHT!" );
 			covenGameStateTimer = 0.0f;
 			FreezeAll(true);
+			if (thects)
+			{
+				UTIL_Remove(thects);
+				thects = NULL;
+			}
+			if (cts_inplay)
+			{
+				CBaseEntity *ent = CreateEntityByName( "item_cts" );
+				ent->SetLocalOrigin(cts_position);
+				ent->SetLocalAngles(QAngle(random->RandomInt(0,180), random->RandomInt(0,90), random->RandomInt(0,180)));
+				ent->Spawn();
+				ent->AddSpawnFlags(SF_NORESPAWN);
+				thects = ent;
+			}
 		}
 
 	}
@@ -768,9 +825,22 @@ void CHL2MPRules::Think( void )
 		}
 	}
 
+	//BB: Coven CTS Things!
+	if (cts_inplay && cts_return_timer > 0.0f && gpGlobals->curtime > cts_return_timer)
+	{
+		cts_return_timer = 0.0f;
+		AddScore(COVEN_TEAMID_VAMPIRES, COVEN_PTS_PER_CTS/2);
+		GiveItemXP(COVEN_TEAMID_VAMPIRES);
+		if (thects)
+		{
+			thects->EmitSound( "AlyxEmp.Charge" );
+			thects->Teleport(&cts_position, &thects->GetLocalAngles(), NULL);
+		}
+	}
+
 	//BB: Coven Player Things!
 	if (sv_coven_minplayers.GetInt()*2 > gpGlobals->maxClients)
-		sv_coven_minplayers.SetValue(floor(gpGlobals->maxClients/2.0f));
+		sv_coven_minplayers.SetValue((float)floor(gpGlobals->maxClients/2.0f));
 
 	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
@@ -1336,6 +1406,10 @@ void CHL2MPRules::DeathNotice( CBasePlayer *pVictim, const CTakeDamageInfo &info
 		else if ( strcmp( killer_weapon_name, "satchel" ) == 0 || strcmp( killer_weapon_name, "tripmine" ) == 0)
 		{
 			killer_weapon_name = "slam";
+		}
+		else if ( strcmp( killer_weapon_name, "crowbar" ) == 0 )
+		{
+			killer_weapon_name = "claw";
 		}
 
 

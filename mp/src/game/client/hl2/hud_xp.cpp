@@ -41,6 +41,7 @@ CHudXP::CHudXP( const char *pElementName ) : CHudElement( pElementName ), BaseCl
 void CHudXP::Init( void )
 {
 	m_XP = XP_INIT;
+	SetBgColor(Color(0,0,0,250));
 }
 
 //-----------------------------------------------------------------------------

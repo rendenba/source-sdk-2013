@@ -43,6 +43,10 @@ class CHudAbils : public CHudElement, public Panel
    int m_nImportAbil;
 
 	CPanelAnimationVar( vgui::HFont, m_hTextFont, "TextFont", "Default" );
+	CPanelAnimationVarAliasType( int, m_nCBgTextureId1, "Texture1", "vgui/hud/800corner1", "textureid" );
+	CPanelAnimationVarAliasType( int, m_nCBgTextureId2, "Texture2", "vgui/hud/800corner2", "textureid" );
+	CPanelAnimationVarAliasType( int, m_nCBgTextureId3, "Texture3", "vgui/hud/800corner3", "textureid" );
+	CPanelAnimationVarAliasType( int, m_nCBgTextureId4, "Texture4", "vgui/hud/800corner4", "textureid" );
 };
 
 DECLARE_HUDELEMENT( CHudAbils );
@@ -60,15 +64,43 @@ CHudAbils::CHudAbils( const char *pElementName ) : CHudElement( pElementName ), 
    surface()->DrawSetTextureFile( m_nImportAbil, "effects/cowbomb", true, true);
 
    SetHiddenBits( HIDEHUD_PLAYERDEAD | HIDEHUD_NEEDSUIT );
+	SetBgColor(Color(0,0,0,250));
 }
 
 void CHudAbils::PaintBackground()
 {
-	int w,t;
-	GetSize(w,t);
-	t -= 36;
-	surface()->DrawSetColor( Color(0,0,0,125) );
-	surface()->DrawFilledRect(0,0,w,t);
+	int wide,tall;
+	GetSize(wide,tall);
+	//t -= 36;
+	int x = 0;
+	int y = 0;
+	surface()->DrawSetColor( Color(0,0,0,250) );
+	//surface()->DrawFilledRect(0,0,w,t+32);
+	int cornerWide, cornerTall;
+	GetCornerTextureSize( cornerWide, cornerTall );
+	surface()->DrawFilledRect(x + cornerWide, y, x + wide - cornerWide,	y + cornerTall);
+	surface()->DrawFilledRect(x, y + cornerTall, x + wide, y + tall - cornerTall);
+	surface()->DrawFilledRect(x + cornerWide, y + tall - cornerTall, x + wide - cornerWide, y + tall);
+	//TOP-LEFT
+		surface()->DrawSetTexture(m_nCBgTextureId1);
+		surface()->DrawTexturedRect(x, y, x + cornerWide, y + cornerTall);
+
+
+
+	//TOP-RIGHT
+		surface()->DrawSetTexture(m_nCBgTextureId2);
+		surface()->DrawTexturedRect(x + wide - cornerWide, y, x + wide, y + cornerTall);
+
+
+	//BOTTOM-LEFT
+		surface()->DrawSetTexture(m_nCBgTextureId4);
+		surface()->DrawTexturedRect(x + 0, y + tall - cornerTall, x + cornerWide, y + tall);
+
+
+
+	//BOTTOM-RIGHT
+		surface()->DrawSetTexture(m_nCBgTextureId3);
+		surface()->DrawTexturedRect(x + wide - cornerWide, y + tall - cornerTall, x + wide, y + tall);
 }
 
 void CHudAbils::Paint()
@@ -93,8 +125,9 @@ void CHudAbils::Paint()
 		//surface()->DrawTexturedRect( x, 0, x+t, t );
 
 		wchar_t uc_texts[16];
-		swprintf(uc_texts, L"%s", abilities[pPlayer->GetTeamNumber()-2][pPlayer->covenClassID-1][active_abils[i]->abil-1]);
+		swprintf(uc_texts, sizeof(uc_texts), L"%s", abilities[pPlayer->GetTeamNumber()-2][pPlayer->covenClassID-1][active_abils[i]->abil-1]);
 		surface()->DrawSetTextFont(m_hTextFont);
+		surface()->DrawSetTextColor(Color(120,120,120,250));
 		surface()->DrawSetTextPos( x+arti_w/2-UTIL_ComputeStringWidth(m_hTextFont,uc_texts)/2, 0 );
 		surface()->DrawUnicodeString(uc_texts);
 
@@ -103,7 +136,7 @@ void CHudAbils::Paint()
 		if (active_abils[i]->text)
 		{
 			wchar_t uc_text[10];
-			swprintf(uc_text, L"Rank %d", active_abils[i]->text);
+			swprintf(uc_text, sizeof(uc_text), L"Rank %d", active_abils[i]->text);
 			surface()->DrawSetTextFont(m_hTextFont);
 			//BB: maybe do something like this later.... helps with contrast!
 			//surface()->DrawSetColor(Color(0,0,0,255));
@@ -115,7 +148,7 @@ void CHudAbils::Paint()
 		if (active_abils[i]->timer > 0.0f)
 		{
 			wchar_t uc_text[8];
-			swprintf(uc_text, L"%.1f", active_abils[i]->timer);
+			swprintf(uc_text, sizeof(uc_text), L"%.1f", active_abils[i]->timer);
 			surface()->DrawSetTextFont(m_hTextFont);
 			//BB: maybe do something like this later.... helps with contrast!
 			//surface()->DrawSetColor(Color(0,0,0,255));
@@ -174,9 +207,15 @@ void CHudAbils::OnThink()
 	}
 
 	if (active_abils.Count() == 0)
+	{
+		SetPaintEnabled(false);
 		SetVisible(false);
+	}
 	else
+	{
+		SetPaintEnabled(true);
 		SetVisible(true);
+	}
 
 	//SetSize(84*active_abils.Count()+20*(active_abils.Count()-1),84+32);
 	SetSize(128*active_abils.Count(),84+36);

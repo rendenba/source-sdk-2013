@@ -444,6 +444,9 @@ void Bot_Think( CHL2MP_Player *pBot )
 			{
 				botdata->spawnTimer = 0.0f;
 				pBot->Spawn();
+				botdata->stuckTimer = 0.0f;
+				botdata->nextjumptime = 0.0f;
+				botdata->nextusetime = 0.0f;
 				GetLost(pBot);
 			}
 		}
@@ -847,7 +850,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 	}
 
 	//BB: strikes clause
-	if (botdata->strikes == 3)
+	if (botdata->strikes == 3 && !(pBot->GetFlags() & FL_FROZEN))
 	{
 		botdata->strikes = 0;
 		pBot->CommitSuicide();
