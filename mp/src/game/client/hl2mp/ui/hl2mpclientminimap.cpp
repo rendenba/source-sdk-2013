@@ -96,6 +96,9 @@ CHL2MPClientMiniMapDialog::CHL2MPClientMiniMapDialog(IViewPort *pViewPort) : Edi
 
 	m_nBlueDot = surface()->CreateNewTextureID();
 	surface()->DrawSetTextureFile( m_nBlueDot, "effects/bluedot", true, true);
+
+	m_nGoldStar = surface()->CreateNewTextureID();
+	surface()->DrawSetTextureFile( m_nGoldStar, "effects/goldstar", true, true);
 }
 
 //-----------------------------------------------------------------------------
@@ -367,6 +370,22 @@ void CHL2MPClientMiniMapDialog::PaintBackground()
 		surface()->DrawTexturedRect( mapspots[i].x, mapspots[i].y, mapspots[i].x+32, mapspots[i].y+32 );
 	}
 
+	if (usingCTS)
+	{
+		surface()->DrawSetTexture( m_nGoldStar );
+		if (HL2MPRules()->cts_net.Get() == NULL)
+		{
+			surface()->DrawTexturedRect(cts_zone.x, cts_zone.y, cts_zone.x+32, cts_zone.y+32 );
+		}
+		else if ((HL2MPRules()->cts_net.Get()->GetLocalOrigin()-cts_origin).Length() < 200)
+		{
+			surface()->DrawTexturedRect(cts.x, cts.y, cts.x+32, cts.y+32 );
+		}
+		else
+		{
+			//CTS IS LOST SOMEWHERE
+		}
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -558,6 +577,34 @@ bool CHL2MPClientMiniMapDialog::LoadFromBuffer( char const *resourceName, CUtlBu
 				mapspots.AddToTail(temp);
 			}
 		}
+		else if (Q_strcmp(s,"cts") == 0)
+		{
+			usingCTS = true;
+			int x,y;
+			buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
+			const char *u = temparray;
+			UTIL_StringToIntArray(&x, 1, u);
+			buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
+			const char *v = temparray;
+			UTIL_StringToIntArray(&y, 1, v);
+			cts = Vector(x,y,0);
+			buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
+			const char *t = temparray;
+			float locs[3];
+			UTIL_StringToVector(locs, t);
+			cts_origin = Vector(locs[0], locs[1], locs[2]);
+		}
+		else if (Q_strcmp(s,"ctszone") == 0)
+		{
+			int x,y;
+			buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
+			const char *u = temparray;
+			UTIL_StringToIntArray(&x, 1, u);
+			buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
+			const char *v = temparray;
+			UTIL_StringToIntArray(&y, 1, v);
+			cts_zone = Vector(x,y,0);
+		}
 	}
 	return true;
 }
@@ -595,6 +642,7 @@ void CHL2MPClientMiniMapDialog::FireGameEvent( IGameEvent *event )
 
 	if ( Q_strcmp(type, "game_newmap") == 0 )
 	{
+		usingCTS = false;
 		mapspots.RemoveAll();
 		Q_snprintf( mapname, sizeof( mapname ), "maps/%s", event->GetString("mapname") );
 

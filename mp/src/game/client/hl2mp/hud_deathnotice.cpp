@@ -399,7 +399,7 @@ void CHudDeathNotice::FireGameEvent( IGameEvent * event )
 		{
 			Q_snprintf( sDeathMsg, sizeof( sDeathMsg ), "%s staked %s.\n", deathMsg.Killer.szName, deathMsg.Victim.szName );
 		}
-		else if (!strcmp( fullkilledwith, "death_crowbar" ))
+		else if (!strcmp( fullkilledwith, "death_claw" ))
 		{
 			Q_snprintf( sDeathMsg, sizeof( sDeathMsg ), "%s clawed %s's eyes out.\n", deathMsg.Killer.szName, deathMsg.Victim.szName );
 		}

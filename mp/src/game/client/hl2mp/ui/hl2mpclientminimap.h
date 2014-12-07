@@ -77,9 +77,14 @@ private:
 	int m_nGrayDot;
 	int m_nRedDot;
 	int m_nBlueDot;
+	int m_nGoldStar;
 	char mapname[MAX_PATH];
 
 	CUtlVector<Vector> mapspots;
+	Vector cts;
+	Vector cts_zone;
+	Vector cts_origin;
+	bool usingCTS;
 	int			m_iDesiredHeight;
 	IViewPort	*m_pViewPort;
 	ButtonCode_t m_nCloseKey;

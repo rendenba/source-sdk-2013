@@ -1591,10 +1591,12 @@ void CHL2MP_Player::Spawn(void)
 	if ( HL2MPRules()->IsIntermission() || (HL2MPRules()->covenGameState == COVEN_GAME_STATE_FREEZE && sv_coven_freezetime.GetInt() > 0))
 	{
 		AddFlag( FL_FROZEN );
+		AddEFlags( EFL_BOT_FROZEN );
 	}
 	else
 	{
 		RemoveFlag( FL_FROZEN );
+		RemoveEFlags( EFL_BOT_FROZEN );
 	}
 
 	m_impactEnergyScale = HL2MPPLAYER_PHYSDAMAGE_SCALE;
@@ -2523,6 +2525,7 @@ void CHL2MP_Player::VampireCheckResurrect()
 				if (!HL2MPRules()->IsIntermission())
 				{
 					RemoveFlag(FL_FROZEN);
+					RemoveEFlags(EFL_BOT_FROZEN);
 				}
 			RemoveEffects(EF_NODRAW);
 

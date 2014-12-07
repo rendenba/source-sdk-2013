@@ -730,6 +730,8 @@ void Bot_Think( CHL2MP_Player *pBot )
 			pBot->SetLocalAngles( angle );
 			vecViewAngles = angle;
 		}
+		else
+			GetLost(pBot);
 
 		/*// Is my team being forced to defend?
 		if ( bot_defend.GetInt() == pBot->GetTeamNumber() )
@@ -808,49 +810,52 @@ void Bot_Think( CHL2MP_Player *pBot )
 		pBot->SetLocalAngles( botdata->lastAngles );
 	}*/
 
-	if (botdata->guardTimer == 0.0f && (pBot->GetLocalOrigin() - botdata->lastPos).Length() < 10.0f) //STUCK? 4.0
+	if (!(pBot->GetFlags() & FL_FROZEN) && !(pBot->GetEFlags() & EFL_BOT_FROZEN))
 	{
-		if (botdata->stuckTimer > 0.0f)
+		if (botdata->guardTimer == 0.0f && (pBot->GetLocalOrigin() - botdata->lastPos).Length() < 10.0f) //STUCK? 4.0
 		{
-			if (gpGlobals->curtime - botdata->stuckTimer >= 0.2f && gpGlobals->curtime >= botdata->nextusetime)
+			if (botdata->stuckTimer > 0.0f)
 			{
-				//door?
-				if (pBot->GetMoveType() != MOVETYPE_LADDER)
+				if (gpGlobals->curtime - botdata->stuckTimer >= 0.2f && gpGlobals->curtime >= botdata->nextusetime)
 				{
-					buttons |= IN_USE;
-					botdata->nextusetime = gpGlobals->curtime + 3.0f;
+					//door?
+					if (pBot->GetMoveType() != MOVETYPE_LADDER)
+					{
+						buttons |= IN_USE;
+						botdata->nextusetime = gpGlobals->curtime + 3.0f;
+					}
+				}
+				if (gpGlobals->curtime - botdata->stuckTimer >= 0.5f && gpGlobals->curtime >= botdata->nextjumptime && pBot->GetMoveType() != MOVETYPE_LADDER)
+				{
+					//try a jump
+					buttons |= IN_JUMP;
+					botdata->nextjumptime = gpGlobals->curtime + 3.0f;
+				}
+				if (gpGlobals->curtime - botdata->stuckTimer >= 2.0f) //STUCK!
+				{
+					botdata->goWild = gpGlobals->curtime + 8.0f;
+					botdata->turns = 0;
+				
+					botdata->stuckTimer = 0.0f;
+					botdata->strikes++;
 				}
 			}
-			if (gpGlobals->curtime - botdata->stuckTimer >= 0.5f && gpGlobals->curtime >= botdata->nextjumptime && pBot->GetMoveType() != MOVETYPE_LADDER)
+			else
 			{
-				//try a jump
-				buttons |= IN_JUMP;
-				botdata->nextjumptime = gpGlobals->curtime + 3.0f;
-			}
-			if (gpGlobals->curtime - botdata->stuckTimer >= 2.0f) //STUCK!
-			{
-				botdata->goWild = gpGlobals->curtime + 8.0f;
-				botdata->turns = 0;
-				
-				botdata->stuckTimer = 0.0f;
-				botdata->strikes++;
+				botdata->stuckTimer = gpGlobals->curtime;
+			
 			}
 		}
 		else
 		{
-			botdata->stuckTimer = gpGlobals->curtime;
-			
+			botdata->lastPos = pBot->GetLocalOrigin();
+			botdata->stuckTimer = 0.0f;
+			botdata->strikes = 0;
 		}
-	}
-	else
-	{
-		botdata->lastPos = pBot->GetLocalOrigin();
-		botdata->stuckTimer = 0.0f;
-		botdata->strikes = 0;
 	}
 
 	//BB: strikes clause
-	if (botdata->strikes == 3 && !(pBot->GetFlags() & FL_FROZEN))
+	if (botdata->strikes == 3 && !(pBot->GetFlags() & FL_FROZEN) && !(pBot->GetEFlags() & EFL_BOT_FROZEN))
 	{
 		botdata->strikes = 0;
 		pBot->CommitSuicide();

@@ -516,11 +516,13 @@ bool CHL2_Player::GiveXP(float XP)
 		iXP = floor(xp_part);
 		xp_part -= iXP;
 	}
-	m_HL2Local.covenXPCounter += coven_xp_scale.GetInt()*iXP;
-	totalXP += coven_xp_scale.GetInt()*iXP;
-	if (m_HL2Local.covenXPCounter >= (COVEN_MAX_XP_PER_LEVEL+COVEN_XP_INCREASE_PER_LEVEL*covenLevelCounter))
+	iXP *= coven_xp_scale.GetInt();
+	m_HL2Local.covenXPCounter += iXP;
+	totalXP += iXP;
+	int xpcap = COVEN_MAX_XP_PER_LEVEL + COVEN_XP_INCREASE_PER_LEVEL*(covenLevelCounter-1);
+	if (m_HL2Local.covenXPCounter >= xpcap)
 	{
-		m_HL2Local.covenXPCounter -= (COVEN_MAX_XP_PER_LEVEL+COVEN_XP_INCREASE_PER_LEVEL*covenLevelCounter);
+		m_HL2Local.covenXPCounter -= xpcap;
 		return LevelUp(1);
 	}
 	return true;

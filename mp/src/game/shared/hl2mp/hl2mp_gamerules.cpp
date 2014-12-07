@@ -54,11 +54,11 @@ ConVar sv_coven_usexpitems("sv_coven_usexpitems", "1", FCVAR_GAMEDLL | FCVAR_NOT
 ConVar sv_coven_usects("sv_coven_usects", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_coven_warmuptime("sv_coven_warmuptime", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY );//10
 #else
-ConVar sv_coven_minplayers("sv_coven_minplayers", "3", FCVAR_GAMEDLL | FCVAR_NOTIFY );//3
+ConVar sv_coven_minplayers("sv_coven_minplayers", "4", FCVAR_GAMEDLL | FCVAR_NOTIFY );//3
 ConVar sv_coven_freezetime("sv_coven_freezetime", "5", FCVAR_GAMEDLL | FCVAR_NOTIFY );//5
 ConVar sv_coven_usexpitems("sv_coven_usexpitems", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_coven_usects("sv_coven_usects", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY );
-ConVar sv_coven_warmuptime("sv_coven_warmuptime", "10", FCVAR_GAMEDLL | FCVAR_NOTIFY );//10
+ConVar sv_coven_warmuptime("sv_coven_warmuptime", "20", FCVAR_GAMEDLL | FCVAR_NOTIFY );//10
 #endif
 
 extern ConVar mp_chattime;
@@ -668,9 +668,15 @@ void CHL2MPRules::FreezeAll(bool unfreeze)
 		if (pPlayer && pPlayer->GetTeamNumber() > TEAM_SPECTATOR)
 		{
 			if (unfreeze)
+			{
 				pPlayer->RemoveFlag( FL_FROZEN );
+				pPlayer->RemoveEFlags( EFL_BOT_FROZEN );
+			}
 			else
+			{
 				pPlayer->AddFlag( FL_FROZEN );
+				pPlayer->AddEFlags( EFL_BOT_FROZEN );
+			}
 		}
 	}
 #endif
@@ -766,6 +772,12 @@ void CHL2MPRules::Think( void )
 		{
 			covenFlashTimer = gpGlobals->curtime + 25.0f;
 			UTIL_ClientPrintAll( HUD_PRINTCENTER, "READY?" );
+			if (cts_inplay)
+			{
+				UTIL_Remove(thects);
+				thects = NULL;
+				SpawnCTS = 5.0f;
+			}
 		}
 		if (gpGlobals->curtime > covenGameStateTimer)
 		{
@@ -775,19 +787,12 @@ void CHL2MPRules::Think( void )
 				UTIL_ClientPrintAll( HUD_PRINTCENTER, "FIGHT!" );
 			covenGameStateTimer = 0.0f;
 			FreezeAll(true);
-			if (thects)
-			{
-				UTIL_Remove(thects);
-				thects = NULL;
-			}
 			if (cts_inplay)
 			{
-				CBaseEntity *ent = CreateEntityByName( "item_cts" );
-				ent->SetLocalOrigin(cts_position);
-				ent->SetLocalAngles(QAngle(random->RandomInt(0,180), random->RandomInt(0,90), random->RandomInt(0,180)));
-				ent->Spawn();
-				ent->AddSpawnFlags(SF_NORESPAWN);
-				thects = ent;
+				if (thects)
+					UTIL_Remove(thects);
+				thects = NULL;
+				SpawnCTS = gpGlobals->curtime + 5.0f;
 			}
 		}
 
@@ -917,10 +922,12 @@ void CHL2MPRules::Think( void )
 		int mult = 1;
 		//JAM: MERCY CLAUSE
 		if (s_caps == num_cap_points || v_caps == num_cap_points)
-			mult = 6;
-
-		GetGlobalTeam( COVEN_TEAMID_SLAYERS )->AddScore(COVEN_CAP_SCORE_PERSEC*s_caps*mult);
-		GetGlobalTeam( COVEN_TEAMID_VAMPIRES )->AddScore(COVEN_CAP_SCORE_PERSEC*v_caps*mult);
+			mult = 3;//6
+		if (!IsIntermission())
+		{
+			GetGlobalTeam( COVEN_TEAMID_SLAYERS )->AddScore(COVEN_CAP_SCORE_PERSEC*s_caps*mult);
+			GetGlobalTeam( COVEN_TEAMID_VAMPIRES )->AddScore(COVEN_CAP_SCORE_PERSEC*v_caps*mult);
+		}
 	}
 
 	//BB: add bots to make playercounts

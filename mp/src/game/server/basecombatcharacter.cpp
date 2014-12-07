@@ -2457,6 +2457,7 @@ int CBaseCombatCharacter::OnTakeDamage( const CTakeDamageInfo &info )
 				}
 				timeofdeath = gpGlobals->curtime;
 				AddFlag(FL_FROZEN);
+				AddEFlags(EFL_BOT_FROZEN);
 				//BB: WTF WHY DOESNT THIS WORK?!?!
 				color32 red = {75, 0, 0, 200};
 				UTIL_ScreenFade( this, red, 3.0, 60.0, FFADE_OUT | FFADE_STAYOUT );
