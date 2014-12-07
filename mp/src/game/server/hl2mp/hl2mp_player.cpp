@@ -998,11 +998,12 @@ void CHL2MP_Player::DoBerserk(int lev)
 
 void CHL2MP_Player::UpdateOnRemove( void )
 {
-	if ( m_hRagdoll )
+	//BB: i think this is causing more trouble than it's worth... we are pretty good about cleaning up after ourselves.
+	/*if ( m_hRagdoll )
 	{
 		UTIL_Remove( m_hRagdoll );
 		m_hRagdoll = NULL;
-	}
+	}*/
 
 	BaseClass::UpdateOnRemove();
 }
@@ -2105,12 +2106,7 @@ void CHL2MP_Player::PreThink( void )
 			HL2MPRules()->GiveItemXP(COVEN_TEAMID_SLAYERS);
 			EmitSound( "ItemBattery.Touch" );
 
-			CBaseEntity *ent = CreateEntityByName( "item_cts" );
-			ent->SetLocalOrigin(HL2MPRules()->cts_position);
-			ent->SetLocalAngles(QAngle(random->RandomInt(0,180), random->RandomInt(0,90), random->RandomInt(0,180)));
-			ent->Spawn();
-			ent->AddSpawnFlags(SF_NORESPAWN);
-			HL2MPRules()->thects = ent;
+			HL2MPRules()->SpawnCTS = gpGlobals->curtime + 5.0f;
 		}
 	}
 

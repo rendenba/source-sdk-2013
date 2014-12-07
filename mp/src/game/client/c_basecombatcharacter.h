@@ -66,6 +66,7 @@ public:
 
 	virtual bool	IsBaseCombatCharacter( void ) { return true; };
 	virtual C_BaseCombatCharacter *MyCombatCharacterPointer( void ) { return this; }
+	virtual int		GetCovenStatusEffects( void ) { return 0; }
 
 	// -----------------------
 	// Vision
@@ -140,7 +141,9 @@ protected:
 
 #ifdef GLOWS_ENABLE	
 	virtual void		UpdateGlowEffect( void );
+	virtual void		ForceGlowEffect( void );
 	virtual void		DestroyGlowEffect( void );
+	bool bGlowCase;
 #endif // GLOWS_ENABLE
 
 	int			m_bloodColor;			// color of blood particless

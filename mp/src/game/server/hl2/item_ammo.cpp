@@ -82,6 +82,7 @@ public:
 		Precache( );
 		SetModel( "models/weapons/w_suitcase_passenger.mdl");
 		BaseClass::Spawn( );
+		SetTransmitState( FL_EDICT_ALWAYS );
 	}
 	void Precache( void )
 	{
@@ -99,6 +100,7 @@ public:
 				HL2MPRules()->cts_return_timer = 0.0f;
 			}
 			((CHL2MP_Player *)pPlayer)->covenStatusEffects |= COVEN_FLAG_CTS;
+			pPlayer->AddGlowEffect();
 			pPlayer->EmitSound( "ItemBattery.Touch" );
 			return true;
 		}

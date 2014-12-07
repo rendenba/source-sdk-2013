@@ -20,6 +20,10 @@
 #undef CHL2MP_Player	
 #endif
 
+#ifdef GLOWS_ENABLE
+extern CGlowObjectManager g_GlowObjectManager;
+#endif
+
 LINK_ENTITY_TO_CLASS( player, C_HL2MP_Player );
 
 IMPLEMENT_CLIENTCLASS_DT(C_HL2MP_Player, DT_HL2MP_Player, CHL2MP_Player)
@@ -225,6 +229,39 @@ void C_HL2MP_Player::UpdateLookAt( void )
 
 void C_HL2MP_Player::ClientThink( void )
 {
+	//BB: do a local think
+	if (CBasePlayer::GetLocalPlayer() == this)
+	{
+		C_BaseEntity *bcase = HL2MPRules()->cts_net.Get();
+		if (bcase && !bGlowCase)
+		{
+			bGlowCase = true;
+			g_GlowObjectManager.RegisterGlowObject(bcase, Vector(1.0f, 1.0f, 0.0f), 1.0f, true, true, -1);
+		}
+		else if (bcase == NULL)
+			bGlowCase = false;
+	}
+
+	//BB: non-local think
+	if (GetTeamNumber() == CBasePlayer::GetLocalPlayer()->GetTeamNumber())
+	{
+		if (m_floatCloakFactor > 0.0f && (CBasePlayer::GetLocalPlayer()->EyePosition()-EyePosition()).Length() < 250)
+		{
+			trace_t tr;
+			Vector dt = EyePosition();
+			UTIL_TraceLine(CBasePlayer::GetLocalPlayer()->EyePosition(), dt, MASK_SOLID, CBasePlayer::GetLocalPlayer(), COLLISION_GROUP_PLAYER, &tr);
+			bool tracecheck = false;
+			if (tr.DidHitNonWorldEntity() && tr.m_pEnt->IsPlayer() && this == tr.m_pEnt)
+				tracecheck = true;
+			if (tracecheck)
+				ForceGlowEffect();
+			else
+				UpdateGlowEffect();
+		}
+		else
+			UpdateGlowEffect();
+	}
+
 	bool bFoundViewTarget = false;
 	
 	Vector vForward;

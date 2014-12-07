@@ -238,9 +238,39 @@ void C_BaseCombatCharacter::DoMuzzleFlash()
 //-----------------------------------------------------------------------------
 void C_BaseCombatCharacter::GetGlowEffectColor( float *r, float *g, float *b )
 {
-	*r = 0.76f;
-	*g = 0.76f;
-	*b = 0.76f;
+	if (GetCovenStatusEffects() & COVEN_FLAG_CTS)
+	{
+		*r = 1.0f;
+		*g = 1.0f;
+		*b = 0.0f;
+	}
+	else if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES && GetTeamNumber() == C_BasePlayer::GetLocalPlayer()->GetTeamNumber())
+	{
+		*r = 0.0f;
+		*g = 1.0f;
+		*b = 0.0f;
+	}
+	else
+	{
+		*r = 0.76f;
+		*g = 0.76f;
+		*b = 0.76f;
+	}
+}
+
+void C_BaseCombatCharacter::ForceGlowEffect( void )
+{
+	if ( m_pGlowEffect )
+	{
+		DestroyGlowEffect();
+	}
+
+	//m_bGlowEnabled = true;
+
+	float r, g, b;
+	GetGlowEffectColor( &r, &g, &b );
+
+	m_pGlowEffect = new CGlowObject( this, Vector( r, g, b ), 1.0, true, true );
 }
 
 //-----------------------------------------------------------------------------
@@ -260,7 +290,7 @@ void C_BaseCombatCharacter::UpdateGlowEffect( void )
 		float r, g, b;
 		GetGlowEffectColor( &r, &g, &b );
 
-		m_pGlowEffect = new CGlowObject( this, Vector( r, g, b ), 1.0, true );
+		m_pGlowEffect = new CGlowObject( this, Vector( r, g, b ), 1.0, true, true );
 	}
 }
 

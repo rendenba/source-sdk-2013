@@ -83,12 +83,14 @@ BEGIN_NETWORK_TABLE_NOBASE( CHL2MPRules, DT_HL2MPRules )
 		RecvPropArray3( RECVINFO_ARRAY(cap_point_status), RecvPropInt( RECVINFO(cap_point_status[0]))),
 		RecvPropArray3( RECVINFO_ARRAY(cap_point_coords), RecvPropFloat( RECVINFO(cap_point_coords[0]))),
 		RecvPropArray3( RECVINFO_ARRAY(cap_point_state), RecvPropInt( RECVINFO(cap_point_state[0]))),
+		RecvPropEHandle( RECVINFO(cts_net) ),
 	#else
 		SendPropInt( SENDINFO( num_cap_points ) ),
 		SendPropBool( SENDINFO( m_bTeamPlayEnabled ) ),
 		SendPropArray3( SENDINFO_ARRAY3(cap_point_status), SendPropInt( SENDINFO_ARRAY(cap_point_status), 0, SPROP_VARINT | SPROP_UNSIGNED ) ),
 		SendPropArray3( SENDINFO_ARRAY3(cap_point_coords), SendPropFloat( SENDINFO_ARRAY(cap_point_coords), 0, SPROP_NOSCALE ) ),
 		SendPropArray3( SENDINFO_ARRAY3(cap_point_state), SendPropInt( SENDINFO_ARRAY(cap_point_state), 0, SPROP_NOSCALE ) ),
+		SendPropEHandle( SENDINFO(cts_net) ),
 	#endif
 
 END_NETWORK_TABLE()
@@ -227,6 +229,7 @@ CHL2MPRules::CHL2MPRules()
 	thects = NULL;
 	cts_inplay = false;
 	cts_return_timer = 0.0f;
+	SpawnCTS = 0.0f;
 
 	m_bTeamPlayEnabled = teamplay.GetBool();
 	m_flIntermissionEndTime = 0.0f;
@@ -826,6 +829,17 @@ void CHL2MPRules::Think( void )
 	}
 
 	//BB: Coven CTS Things!
+	if (cts_inplay && thects == NULL && SpawnCTS > 0.0f && gpGlobals->curtime > SpawnCTS)
+	{
+		CBaseEntity *ent = CreateEntityByName( "item_cts" );
+		ent->SetLocalOrigin(cts_position);
+		ent->SetLocalAngles(QAngle(random->RandomInt(0,180), random->RandomInt(0,90), random->RandomInt(0,180)));
+		ent->Spawn();
+		ent->AddSpawnFlags(SF_NORESPAWN);
+		thects = ent;
+		thects->EmitSound( "AlyxEmp.Charge" );
+		SpawnCTS = 0.0f;
+	}
 	if (cts_inplay && cts_return_timer > 0.0f && gpGlobals->curtime > cts_return_timer)
 	{
 		cts_return_timer = 0.0f;
@@ -834,8 +848,14 @@ void CHL2MPRules::Think( void )
 		if (thects)
 		{
 			thects->EmitSound( "AlyxEmp.Charge" );
-			thects->Teleport(&cts_position, &thects->GetLocalAngles(), NULL);
+			UTIL_Remove(thects);
+			thects = NULL;
+			SpawnCTS = gpGlobals->curtime + 1.0f;
 		}
+	}
+	if (cts_inplay)
+	{
+		cts_net.Set(thects);
 	}
 
 	//BB: Coven Player Things!
