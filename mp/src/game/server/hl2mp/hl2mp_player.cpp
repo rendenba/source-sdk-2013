@@ -54,6 +54,10 @@ CBaseEntity	 *g_pLastRebelSpawn = NULL;
 extern CBaseEntity				*g_pLastSpawn;
 extern ConVar sv_coven_freezetime;
 extern ConVar coven_ignore_respawns;
+extern ConVar sv_coven_pts_cts;
+extern ConVar sv_coven_xp_basekill;
+extern ConVar sv_coven_xp_inckill;
+extern ConVar sv_coven_xp_diffkill;
 
 #define HL2MP_COMMAND_MAX_RATE 0.3
 
@@ -2104,7 +2108,7 @@ void CHL2MP_Player::PreThink( void )
 		if ((HL2MPRules()->cts_zone-GetLocalOrigin()).Length() < HL2MPRules()->cts_zone_radius)
 		{
 			covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_CTS;
-			HL2MPRules()->AddScore(COVEN_TEAMID_SLAYERS, COVEN_PTS_PER_CTS);
+			HL2MPRules()->AddScore(COVEN_TEAMID_SLAYERS, sv_coven_pts_cts.GetInt());
 			HL2MPRules()->GiveItemXP(COVEN_TEAMID_SLAYERS);
 			EmitSound( "ItemBattery.Touch" );
 
@@ -2149,7 +2153,8 @@ void CHL2MP_Player::PreThink( void )
 						if ((n+1)==120 && pRules->cap_point_state[lastCheckedCapPoint] != GetTeamNumber())
 						{
 							pRules->cap_point_state.Set(lastCheckedCapPoint,COVEN_TEAMID_SLAYERS);
-							GetGlobalTeam( GetTeamNumber() )->AddScore(COVEN_CAP_SCORE);
+							//GetGlobalTeam( GetTeamNumber() )->AddScore(COVEN_CAP_SCORE);
+							pRules->GiveItemXP(COVEN_TEAMID_SLAYERS);
 							const char *killer_weapon_name = "cap_slay";
 							IGameEvent *event = gameeventmanager->CreateEvent( "player_death" );
 							if( event )
@@ -2172,7 +2177,8 @@ void CHL2MP_Player::PreThink( void )
 						if ((n-1)==0  && pRules->cap_point_state[lastCheckedCapPoint] != GetTeamNumber())
 						{
 							pRules->cap_point_state.Set(lastCheckedCapPoint,COVEN_TEAMID_VAMPIRES);
-							GetGlobalTeam( GetTeamNumber() )->AddScore(COVEN_CAP_SCORE);
+							pRules->GiveItemXP(COVEN_TEAMID_VAMPIRES);
+							//GetGlobalTeam( GetTeamNumber() )->AddScore(COVEN_CAP_SCORE);
 							const char *killer_weapon_name = "cap_vamp";
 							IGameEvent *event = gameeventmanager->CreateEvent( "player_death" );
 							if( event )
@@ -3574,9 +3580,11 @@ int CHL2MP_Player::XPForKill(CHL2MP_Player *pAttacker)
 	//	return 5;
 
 	//BB: TODO: make this more ellaborate... based on player lvl difference
-	int retval = COVEN_XP_PER_KILL;
+	int retval = sv_coven_xp_basekill.GetInt();
 
-	retval += COVEN_XP_LEVEL_DIFF_MULT*(covenLevelCounter-pAttacker->covenLevelCounter);
+	retval += sv_coven_xp_inckill.GetInt()*(covenLevelCounter-1);
+
+	retval += sv_coven_xp_diffkill.GetInt()*(covenLevelCounter-pAttacker->covenLevelCounter);
 	//Msg("XPForKill: %s %d\n",pAttacker->GetPlayerName(), retval);
 
 	retval = max(1,retval);
@@ -3685,7 +3693,7 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 		}
 		else
 		{
-			team->AddScore( iScoreToAdd );
+			//team->AddScore( iScoreToAdd );
 		}
 
 		//BB: this generates the taunt for slayers staking vampires...

@@ -134,7 +134,7 @@ bool CEventLog::PrintPlayerEvent( IGameEvent *event )
 		{
 			attackerTeam = pAttacker->GetTeam();
 		}
-		if ( pPlayer == pAttacker && pPlayer && (Q_strncmp( weapon, "cap_slay", Q_strlen("cap_slay" )) == 0 || Q_strncmp( weapon, "cap_vamp", Q_strlen("cap_vamp" ))) ) 
+		if ( pPlayer == pAttacker && pPlayer && (Q_strncmp( weapon, "cap_slay", Q_strlen("cap_slay" )) == 0 || Q_strncmp( weapon, "cap_vamp", Q_strlen("cap_vamp" )) == 0) ) 
 		{
 			const char *point = event->GetString( "point" );
 			UTIL_LogPrintf( "\"%s<%i><%s><%s>\" captured point \"%s\"\n",  

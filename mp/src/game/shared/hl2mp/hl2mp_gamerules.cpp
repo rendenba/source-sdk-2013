@@ -61,6 +61,14 @@ ConVar sv_coven_usects("sv_coven_usects", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_coven_warmuptime("sv_coven_warmuptime", "20", FCVAR_GAMEDLL | FCVAR_NOTIFY );//10
 #endif
 
+ConVar sv_coven_xp_basekill("sv_coven_xp_basekill", "40", FCVAR_GAMEDLL | FCVAR_NOTIFY );
+ConVar sv_coven_xp_inckill("sv_coven_xp_inckill", "4", FCVAR_GAMEDLL | FCVAR_NOTIFY );
+ConVar sv_coven_xp_diffkill("sv_coven_xp_diffkill", "12", FCVAR_GAMEDLL | FCVAR_NOTIFY );
+ConVar sv_coven_xp_cappersec("sv_coven_xp_cappersec", "1.0", FCVAR_GAMEDLL | FCVAR_NOTIFY );
+ConVar sv_coven_pts_cappersec("sv_coven_pts_cappersec", "0.75", FCVAR_GAMEDLL | FCVAR_NOTIFY );
+ConVar sv_coven_pts_cts("sv_coven_pts_cts", "125", FCVAR_GAMEDLL | FCVAR_NOTIFY );
+ConVar sv_coven_pts_item("sv_coven_pts_item", "5", FCVAR_GAMEDLL | FCVAR_NOTIFY );
+
 extern ConVar mp_chattime;
 
 extern CBaseEntity	 *g_pLastCombineSpawn;
@@ -161,6 +169,7 @@ static const char *s_PreserveEnts[] =
 	"item_xp_slayers",
 	"item_xp_vampires",
 	"item_ammo_crate",
+	"item_cts",
 	"", // END Marker
 };
 //BB: TODO: item_ammo_crate might need to come off this list once they are actually baked into maps...
@@ -494,7 +503,9 @@ void CHL2MPRules::GiveItemXP(int team)
 		CHL2MP_Player *pPlayer = (CHL2MP_Player *)UTIL_PlayerByIndex( i );
 		if (pPlayer && pPlayer->GetTeamNumber() == team)
 		{
-			float basexp = ((avg-1.0f)*COVEN_XP_INCREASE_PER_LEVEL+COVEN_MAX_XP_PER_LEVEL) / ((float)n) / COVEN_XP_ITEM_SCALE;
+			//float basexp = ((avg-1.0f)*COVEN_XP_INCREASE_PER_LEVEL+COVEN_MAX_XP_PER_LEVEL) / ((float)n) / COVEN_XP_ITEM_SCALE;
+			float basexp = ((avg-1.0f)*COVEN_XP_INCREASE_PER_LEVEL+COVEN_MAX_XP_PER_LEVEL)/20.0f;
+			//float calcxp = basexp*(1.0f+avg-pPlayer->covenLevelCounter);
 			float calcxp = basexp*(1.0f+avg-pPlayer->covenLevelCounter);
 			float xp = max(calcxp,basexp);
 			pPlayer->GiveXP(xp);
@@ -507,7 +518,7 @@ void CHL2MPRules::GiveItemXP(int team)
 void CHL2MPRules::GiveItemXP_OLD(int team)
 {
 #ifndef CLIENT_DLL
-	float txp = 0.0f;
+	/*float txp = 0.0f;
 	float n = 0.0f;
 	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
@@ -534,7 +545,7 @@ void CHL2MPRules::GiveItemXP_OLD(int team)
 				pPlayer->GiveXP(xp);
 			}
 		}
-	}
+	}*/
 #endif
 }
 
@@ -760,7 +771,22 @@ void CHL2MPRules::Think( void )
 			covenFlashTimer = 0.0f;
 			covenGameStateTimer = gpGlobals->curtime + sv_coven_freezetime.GetInt();
 			if (sv_coven_warmuptime.GetInt() > 0)
+			{
 				RestartRound();
+				if (cts_inplay)
+				{
+					if (thects)
+					{
+						UTIL_Remove(thects);
+						thects = NULL;
+					}
+					if (sv_coven_freezetime.GetInt() > 0)
+						SpawnCTS = gpGlobals->curtime + sv_coven_freezetime.GetInt();
+					else
+						SpawnCTS = gpGlobals->curtime + 5.0f;
+					cts_return_timer = 0.0f;
+				}
+			}
 			if (sv_coven_freezetime.GetInt() > 0)
 				FreezeAll();
 
@@ -772,12 +798,6 @@ void CHL2MPRules::Think( void )
 		{
 			covenFlashTimer = gpGlobals->curtime + 25.0f;
 			UTIL_ClientPrintAll( HUD_PRINTCENTER, "READY?" );
-			if (cts_inplay)
-			{
-				UTIL_Remove(thects);
-				thects = NULL;
-				SpawnCTS = 5.0f;
-			}
 		}
 		if (gpGlobals->curtime > covenGameStateTimer)
 		{
@@ -787,13 +807,6 @@ void CHL2MPRules::Think( void )
 				UTIL_ClientPrintAll( HUD_PRINTCENTER, "FIGHT!" );
 			covenGameStateTimer = 0.0f;
 			FreezeAll(true);
-			if (cts_inplay)
-			{
-				if (thects)
-					UTIL_Remove(thects);
-				thects = NULL;
-				SpawnCTS = gpGlobals->curtime + 5.0f;
-			}
 		}
 
 	}
@@ -848,7 +861,7 @@ void CHL2MPRules::Think( void )
 	if (cts_inplay && cts_return_timer > 0.0f && gpGlobals->curtime > cts_return_timer)
 	{
 		cts_return_timer = 0.0f;
-		AddScore(COVEN_TEAMID_VAMPIRES, COVEN_PTS_PER_CTS/2);
+		GetGlobalTeam( COVEN_TEAMID_VAMPIRES )->AddScore(sv_coven_pts_cts.GetFloat()/2.0f);
 		GiveItemXP(COVEN_TEAMID_VAMPIRES);
 		if (thects)
 		{
@@ -880,12 +893,12 @@ void CHL2MPRules::Think( void )
 
 			if (pPlayer->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
 			{
-				xp_tick = COVEN_XP_CAP_PERSEC * s_caps * 4.0f*num_cap_points/COVEN_MAX_CAP_POINTS;
+				xp_tick = sv_coven_xp_cappersec.GetFloat() * s_caps * 2.0f/num_cap_points;
 				numSlayers++;
 			}
 			else if (pPlayer->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
 			{
-				xp_tick = COVEN_XP_CAP_PERSEC * v_caps * 4.0f*num_cap_points/COVEN_MAX_CAP_POINTS;
+				xp_tick = sv_coven_xp_cappersec.GetFloat() * v_caps * 2.0f/num_cap_points;
 				numVampires++;
 			}
 
@@ -917,7 +930,7 @@ void CHL2MPRules::Think( void )
 	if (gpGlobals->curtime > scoreTimer)
 	{
 		//BB: make sure to check above if you change this formula if we want flat xp gains for scoreTimer intervals.
-		scoreTimer = gpGlobals->curtime + 4.0f*num_cap_points/COVEN_MAX_CAP_POINTS;
+		scoreTimer = gpGlobals->curtime + 1.0f;
 		
 		int mult = 1;
 		//JAM: MERCY CLAUSE
@@ -925,8 +938,8 @@ void CHL2MPRules::Think( void )
 			mult = 3;//6
 		if (!IsIntermission())
 		{
-			GetGlobalTeam( COVEN_TEAMID_SLAYERS )->AddScore(COVEN_CAP_SCORE_PERSEC*s_caps*mult);
-			GetGlobalTeam( COVEN_TEAMID_VAMPIRES )->AddScore(COVEN_CAP_SCORE_PERSEC*v_caps*mult);
+			GetGlobalTeam( COVEN_TEAMID_SLAYERS )->AddScore(2.0f*sv_coven_pts_cappersec.GetFloat()*s_caps*mult/num_cap_points);
+			GetGlobalTeam( COVEN_TEAMID_VAMPIRES )->AddScore(2.0f*sv_coven_pts_cappersec.GetFloat()*v_caps*mult/num_cap_points);
 		}
 	}
 

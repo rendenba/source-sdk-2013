@@ -64,8 +64,8 @@ public:
 	//-----------------------------------------------------------------------------
 	// Scoring
 	//-----------------------------------------------------------------------------
-	virtual void AddScore( int iScore );
-	virtual void SetScore( int iScore );
+	virtual void AddScore( float fScore );
+	virtual void SetScore( float fScore );
 	virtual int  GetScore( void );
 	virtual void ResetScores( void );
 
@@ -85,6 +85,7 @@ public:
 	// Data
 	CNetworkString( m_szTeamname, MAX_TEAM_NAME_LENGTH );
 	CNetworkVar( int, m_iScore );
+	float m_fScore;
 	CNetworkVar( int, m_iRoundsWon );
 	int		m_iDeaths;
 

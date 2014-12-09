@@ -127,6 +127,7 @@ void CTeam::Init( const char *pName, int iNumber )
 	InitializePlayers();
 
 	m_iScore = 0;
+	m_fScore = 0.0f;
 
 	Q_strncpy( m_szTeamname.GetForModify(), pName, MAX_TEAM_NAME_LENGTH );
 	m_iTeamNum = iNumber;
@@ -278,14 +279,26 @@ CBasePlayer *CTeam::GetPlayer( int iIndex )
 //-----------------------------------------------------------------------------
 // Purpose: Add / Remove score for this team
 //-----------------------------------------------------------------------------
-void CTeam::AddScore( int iScore )
+void CTeam::AddScore( float fScore )
 {
-	m_iScore += iScore;
+	int trunc = floor(fScore);
+	float rem = fScore - trunc;
+	m_iScore += fScore;
+	m_fScore += rem;
+	if (m_fScore > 1.0f)
+	{
+		int retrunc = floor(m_fScore);
+		m_fScore = m_fScore - retrunc;
+		m_iScore += retrunc;
+	}
 }
 
-void CTeam::SetScore( int iScore )
+void CTeam::SetScore( float fScore )
 {
-	m_iScore = iScore;
+	int trunc = floor(fScore);
+	float rem = fScore - trunc;
+	m_iScore = fScore;
+	m_fScore = rem;
 }
 
 //-----------------------------------------------------------------------------
