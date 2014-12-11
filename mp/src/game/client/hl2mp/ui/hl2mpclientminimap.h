@@ -81,6 +81,8 @@ private:
 	char mapname[MAX_PATH];
 
 	CUtlVector<Vector> mapspots;
+	CUtlVector<Vector> textspots;
+	char text_names[COVEN_MAX_CAP_POINTS][MAX_PLAYER_NAME_LENGTH];
 	Vector cts;
 	Vector cts_zone;
 	Vector cts_origin;
@@ -106,6 +108,7 @@ private:
 	// rounded corners
 	Color					 m_bgColor;
 	Color					 m_borderColor;
+	CPanelAnimationVar( vgui::HFont, m_hTextFont, "TextFont", "Default" );
 };
 
 

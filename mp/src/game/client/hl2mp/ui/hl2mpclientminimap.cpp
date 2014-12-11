@@ -370,6 +370,24 @@ void CHL2MPClientMiniMapDialog::PaintBackground()
 		surface()->DrawTexturedRect( mapspots[i].x, mapspots[i].y, mapspots[i].x+32, mapspots[i].y+32 );
 	}
 
+	for (int j = 0; j < textspots.Size(); j++)
+	{
+		Color c;
+		if (HL2MPRules()->cap_point_state[j] == COVEN_TEAMID_SLAYERS)
+			c = GameResources()->GetTeamColor( COVEN_TEAMID_SLAYERS );
+		else if (HL2MPRules()->cap_point_state[j] == COVEN_TEAMID_VAMPIRES)
+			c = GameResources()->GetTeamColor( COVEN_TEAMID_VAMPIRES );
+		else
+			c = Color(120,120,120,250);
+		surface()->DrawSetTextColor(c);
+		surface()->DrawSetTextPos( textspots[j].x, textspots[j].y );
+		wchar_t sIDString[ MAX_PLAYER_NAME_LENGTH ];
+		sIDString[0] = 0;
+		g_pVGuiLocalize->ConvertANSIToUnicode( text_names[j],  sIDString, sizeof(sIDString) );
+		surface()->DrawSetTextFont(m_hTextFont);
+		surface()->DrawPrintText( sIDString, wcslen(sIDString) );
+	}
+
 	if (usingCTS)
 	{
 		surface()->DrawSetTexture( m_nGoldStar );
@@ -575,6 +593,18 @@ bool CHL2MPClientMiniMapDialog::LoadFromBuffer( char const *resourceName, CUtlBu
 				UTIL_StringToIntArray(&y, 1, v);
 				Vector temp(x,y,0);
 				mapspots.AddToTail(temp);
+				buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
+				const char *a = temparray;
+				UTIL_StringToIntArray(&x, 1, a);
+				buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
+				const char *b = temparray;
+				UTIL_StringToIntArray(&y, 1, b);
+				Vector temp2(x,y,0);
+				textspots.AddToTail(temp2);
+				buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
+				const char *c = temparray;
+				if (textspots.Size()-1 >= 0)
+					Q_snprintf(text_names[textspots.Size()-1], sizeof(text_names[textspots.Size()-1]), "%s", c);
 			}
 		}
 		else if (Q_strcmp(s,"cts") == 0)
@@ -644,6 +674,7 @@ void CHL2MPClientMiniMapDialog::FireGameEvent( IGameEvent *event )
 	{
 		usingCTS = false;
 		mapspots.RemoveAll();
+		textspots.RemoveAll();
 		Q_snprintf( mapname, sizeof( mapname ), "maps/%s", event->GetString("mapname") );
 
 		char tempfile[MAX_PATH];
