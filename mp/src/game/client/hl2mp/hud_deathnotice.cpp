@@ -298,6 +298,55 @@ void CHudDeathNotice::FireGameEvent( IGameEvent * event )
 		m_DeathNotices.Remove(0);
 	}
 
+	if (!strcmp( fullkilledwith, "death_cap_cts_vamp" ) || !strcmp( fullkilledwith, "death_cap_cts_slay" ))
+	{
+		const char *champion;
+		if (!strcmp( fullkilledwith, "death_cap_cts_vamp" ))
+		{
+			champion = "Vampires";
+			killer = -3;
+		}
+		else
+		{
+			champion = "Slayers";
+			killer = -2;
+		}
+
+		if (!champion)
+			champion = "";
+
+		char missionconfig[32];
+
+		Q_snprintf(missionconfig, sizeof(missionconfig), "%s", event->GetString( "point" ));
+
+		DeathNoticeItem deathMsg;
+		deathMsg.Killer.iEntIndex = killer;
+		deathMsg.Victim.iEntIndex = 0;
+		Q_strncpy( deathMsg.Killer.szName, champion, MAX_PLAYER_NAME_LENGTH );
+		Q_strncpy( deathMsg.Victim.szName, missionconfig, MAX_PLAYER_NAME_LENGTH );
+		deathMsg.flDisplayTime = gpGlobals->curtime + hud_deathnotice_time.GetFloat();
+		deathMsg.iSuicide = 0;
+
+		deathMsg.iconDeath = gHUD.GetIcon( fullkilledwith );
+
+		if ( !deathMsg.iconDeath )
+		{
+			// Can't find it, so use the default skull & crossbones icon
+			deathMsg.iconDeath = m_iconD_skull;
+		}
+
+		m_DeathNotices.AddToTail( deathMsg );
+
+		char sDeathMsg[512];
+
+		Q_snprintf( sDeathMsg, sizeof( sDeathMsg ), "%s captured %s.\n", deathMsg.Killer.szName, missionconfig );
+
+
+		Msg( "%s", sDeathMsg );
+
+		return;
+	}
+
 	if (!strcmp( fullkilledwith, "death_cap_vamp" ) || !strcmp( fullkilledwith, "death_cap_slay" ))
 	{
 		const char *champion;

@@ -210,7 +210,7 @@ void CHL2MPClientMiniMapDialog::MoveToCenterOfScreen()
 	int wx, wy, ww, wt;
 	surface()->GetWorkspaceBounds(wx, wy, ww, wt);
 	SetPos((ww - GetWide()) / 2, (wt - GetTall()) / 2);
-	Panel *control = FindChildByName( "SlayerScoreLabel" );
+	/*Panel *control = FindChildByName( "SlayerScoreLabel" );
 	if ( control )
 	{
 		control->SetPos(GetWide()/4-control->GetWide(), GetTall()-50);
@@ -233,7 +233,7 @@ void CHL2MPClientMiniMapDialog::MoveToCenterOfScreen()
 	{
 		control->SetPos(GetWide()-GetWide()/4+10, GetTall()-50);
 		control->MoveToFront();
-	}
+	}*/
 }
 
 

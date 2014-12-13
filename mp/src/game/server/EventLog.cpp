@@ -145,6 +145,17 @@ bool CEventLog::PrintPlayerEvent( IGameEvent *event )
 							point
 							);
 		}
+		else if ( pPlayer == pAttacker && pPlayer && (Q_strncmp( weapon, "cap_cts_slay", Q_strlen("cap_cts_slay" )) == 0 || Q_strncmp( weapon, "cap_cts_vamp", Q_strlen("cap_cts_vamp" )) == 0) ) 
+		{
+			const char *point = event->GetString( "point" );
+			UTIL_LogPrintf( "\"%s<%i><%s><%s>\" captured \"%s\"\n",  
+							pPlayer->GetPlayerName(),
+							userid,
+							pPlayer->GetNetworkIDString(),
+							team ? team->GetName() : "",
+							point
+							);
+		}
 		else if ( pPlayer == pAttacker && pPlayer)  
 		{  
 

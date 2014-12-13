@@ -58,6 +58,7 @@ extern ConVar sv_coven_pts_cts;
 extern ConVar sv_coven_xp_basekill;
 extern ConVar sv_coven_xp_inckill;
 extern ConVar sv_coven_xp_diffkill;
+extern ConVar sv_coven_cts_returntime;
 
 #define HL2MP_COMMAND_MAX_RATE 0.3
 
@@ -2109,10 +2110,21 @@ void CHL2MP_Player::PreThink( void )
 		{
 			covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_CTS;
 			HL2MPRules()->AddScore(COVEN_TEAMID_SLAYERS, sv_coven_pts_cts.GetInt());
-			HL2MPRules()->GiveItemXP(COVEN_TEAMID_SLAYERS);
+			HL2MPRules()->GiveItemXP(COVEN_TEAMID_SLAYERS, sv_coven_xp_basekill.GetInt()+sv_coven_xp_inckill.GetInt()*(covenLevelCounter-1));
 			EmitSound( "ItemBattery.Touch" );
 
 			HL2MPRules()->SpawnCTS = gpGlobals->curtime + 5.0f;
+			const char *killer_weapon_name = "cap_cts_slay";
+			IGameEvent *event = gameeventmanager->CreateEvent( "player_death" );
+			if( event )
+			{
+				event->SetInt("userid",  GetUserID());
+				event->SetInt("attacker",  GetUserID());
+				event->SetString("weapon", killer_weapon_name );
+				event->SetString("point", "Supplies");
+				event->SetInt( "priority", 7 );
+				gameeventmanager->FireEvent( event );
+			}
 		}
 	}
 
@@ -3366,6 +3378,42 @@ bool CHL2MP_Player::ClientCommand( const CCommand &args )
 	{
 		return true;
 	}
+	else if ( FStrEq( args[0], "drop_supplies" ) )
+	{
+		if (HL2MPRules()->cts_inplay && (covenStatusEffects & COVEN_FLAG_CTS))
+		{
+			Vector forward, forwardvel, pos;
+			forwardvel = GetAbsVelocity();
+			VectorNormalize(forwardvel);
+			forwardvel.z = 0;
+			AngleVectors(GetAbsAngles(), &forward);
+			VectorNormalize(forward);
+			forward.z = 0;
+			trace_t tr;
+			if (forwardvel.Length() > 0)
+			{
+				pos = GetAbsOrigin()-forwardvel*64+Vector(0,0,32);
+			}
+			else
+			{
+				pos = GetAbsOrigin()+forward*64+Vector(0,0,32);
+			}
+			UTIL_TraceLine(GetAbsOrigin(), pos, MASK_SOLID, this, COLLISION_GROUP_PLAYER, &tr);
+			//drop it... if theres room
+			if (!tr.DidHit())
+			{
+				covenStatusEffects &= ~COVEN_FLAG_CTS;
+				CBaseEntity *mysupplies = CreateEntityByName( "item_cts" );
+				mysupplies->SetAbsOrigin(pos);
+				mysupplies->SetLocalAngles(QAngle(random->RandomInt(0,180), random->RandomInt(0,90), random->RandomInt(0,180)));
+				mysupplies->AddSpawnFlags( SF_NORESPAWN );
+				mysupplies->Spawn();
+				HL2MPRules()->thects = mysupplies;
+				HL2MPRules()->cts_return_timer = gpGlobals->curtime + sv_coven_cts_returntime.GetFloat();
+			}
+		}
+		return true;
+	}
 
 	return BaseClass::ClientCommand( args );
 }
@@ -3643,7 +3691,7 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 		ent->Spawn();
 		ent->AddSpawnFlags(SF_NORESPAWN);
 		HL2MPRules()->thects = ent;
-		HL2MPRules()->cts_return_timer = gpGlobals->curtime + 15.0f;
+		HL2MPRules()->cts_return_timer = gpGlobals->curtime + sv_coven_cts_returntime.GetFloat();
 	}
 
 	SetRenderColorA(255.0f);

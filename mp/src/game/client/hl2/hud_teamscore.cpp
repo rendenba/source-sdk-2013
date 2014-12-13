@@ -17,6 +17,7 @@
 #include <vgui/ILocalize.h>
 #include "c_team.h"
 #include "hl2mp_gamerules.h"
+#include "in_buttons.h"
 
 using namespace vgui;
 
@@ -88,7 +89,9 @@ bool CHudTeamScore::ShouldDraw()
 	// needs draw if suit power changed or animation in progress
 	bNeedsDraw = ( ( sscore != m_TeamSScore ) || ( vscore != m_TeamVScore ) || ( m_AuxPowerColor[3] > 0 ));
 
-	return ( bNeedsDraw && CHudElement::ShouldDraw() );
+	bool bScoreScreen = pPlayer->m_nButtons & IN_SCORE;
+
+	return ( bNeedsDraw && !bScoreScreen && CHudElement::ShouldDraw() );
 }
 
 //-----------------------------------------------------------------------------
@@ -209,15 +212,33 @@ void CHudTeamScore::Paint()
 
 	xpos = (w-m_flBarChunkWidth*HL2MPRules()->num_cap_points-m_flBarChunkGap*(max(HL2MPRules()->num_cap_points,2)-1))/2;
 	ypos = m_flBarInsetY+m_flBarHeight*2;
+	int bluedots = 0;
+	int reddots = 0;
+	int graydots = 0;
 	for (int i = 0; i < HL2MPRules()->num_cap_points; i++)
 	{
 		if (HL2MPRules()->cap_point_state[i] == COVEN_TEAMID_SLAYERS)
-			surface()->DrawSetTexture( m_nBlueDot );
+			bluedots++;
 		else if (HL2MPRules()->cap_point_state[i] == COVEN_TEAMID_VAMPIRES)
-			surface()->DrawSetTexture( m_nRedDot );
+			reddots++;
 		else
-			surface()->DrawSetTexture( m_nGrayDot );
-
+			graydots++;
+	}
+	surface()->DrawSetTexture( m_nRedDot );
+	for (int i = 0; i < reddots; i++)
+	{
+		surface()->DrawTexturedRect(xpos, ypos, xpos+m_flBarHeight, ypos+m_flBarHeight );
+		xpos += (m_flBarChunkWidth+m_flBarChunkGap);
+	}
+	surface()->DrawSetTexture( m_nGrayDot );
+	for (int i = 0; i < graydots; i++)
+	{
+		surface()->DrawTexturedRect(xpos, ypos, xpos+m_flBarHeight, ypos+m_flBarHeight );
+		xpos += (m_flBarChunkWidth+m_flBarChunkGap);
+	}
+	surface()->DrawSetTexture( m_nBlueDot );
+	for (int i = 0; i < bluedots; i++)
+	{
 		surface()->DrawTexturedRect(xpos, ypos, xpos+m_flBarHeight, ypos+m_flBarHeight );
 		xpos += (m_flBarChunkWidth+m_flBarChunkGap);
 	}

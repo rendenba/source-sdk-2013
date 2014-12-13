@@ -68,6 +68,7 @@ ConVar sv_coven_xp_cappersec("sv_coven_xp_cappersec", "1.0", FCVAR_GAMEDLL | FCV
 ConVar sv_coven_pts_cappersec("sv_coven_pts_cappersec", "0.75", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_coven_pts_cts("sv_coven_pts_cts", "125", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_coven_pts_item("sv_coven_pts_item", "5", FCVAR_GAMEDLL | FCVAR_NOTIFY );
+ConVar sv_coven_cts_returntime("sv_coven_cts_returntime", "16", FCVAR_GAMEDLL | FCVAR_NOTIFY);
 
 extern ConVar mp_chattime;
 
@@ -493,7 +494,7 @@ void CHL2MPRules::AddScore(int team, int score)
 #endif
 }
 
-void CHL2MPRules::GiveItemXP(int team)
+void CHL2MPRules::GiveItemXP(int team, float overridexp)
 {
 #ifndef CLIENT_DLL
 	int n = 0;
@@ -508,8 +509,10 @@ void CHL2MPRules::GiveItemXP(int team)
 			//float calcxp = basexp*(1.0f+avg-pPlayer->covenLevelCounter);
 			float calcxp = basexp*(1.0f+avg-pPlayer->covenLevelCounter);
 			float xp = max(calcxp,basexp);
+			if (overridexp > 0.0f)
+				xp = overridexp;
 			pPlayer->GiveXP(xp);
-			//Msg("Level: %d XP: %.02f\n", pPlayer->covenLevelCounter, xp);
+			//Msg("Player: %s Level: %d XP: %.02f\n", pPlayer->GetPlayerName(), pPlayer->covenLevelCounter, xp);
 		}
 	}
 #endif
@@ -862,13 +865,24 @@ void CHL2MPRules::Think( void )
 	{
 		cts_return_timer = 0.0f;
 		GetGlobalTeam( COVEN_TEAMID_VAMPIRES )->AddScore(sv_coven_pts_cts.GetFloat()/2.0f);
-		GiveItemXP(COVEN_TEAMID_VAMPIRES);
+		GiveItemXP(COVEN_TEAMID_VAMPIRES, sv_coven_xp_basekill.GetInt());
 		if (thects)
 		{
 			thects->EmitSound( "AlyxEmp.Charge" );
 			UTIL_Remove(thects);
 			thects = NULL;
 			SpawnCTS = gpGlobals->curtime + 1.0f;
+		}
+		const char *killer_weapon_name = "cap_cts_vamp";
+		IGameEvent *event = gameeventmanager->CreateEvent( "player_death" );
+		if( event )
+		{
+			event->SetInt("userid", 0);
+			event->SetInt("attacker",  0);
+			event->SetString("weapon", killer_weapon_name );
+			event->SetString("point", "Supplies");
+			event->SetInt( "priority", 7 );
+			gameeventmanager->FireEvent( event );
 		}
 	}
 	if (cts_inplay)

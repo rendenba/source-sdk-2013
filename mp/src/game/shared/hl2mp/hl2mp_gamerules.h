@@ -107,7 +107,7 @@ public:
 	virtual ~CHL2MPRules();
 
 	int TotalTeamXP(int team);
-	void GiveItemXP(int team);
+	void GiveItemXP(int team, float overridexp = 0.0f);
 	void GiveItemXP_OLD(int team);
 	void AddScore(int team, int score);
 	bool LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBaseFileSystem *pFileSystem, const char *pPathID );
