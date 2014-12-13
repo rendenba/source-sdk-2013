@@ -163,6 +163,7 @@ public:
 
 	//BB: COVEN
 	bool GiveXP(float XP);
+	void SetXP(float XP);
 	int GetTotalXP();
 	int GetXP();
 	float xp_part;

@@ -1551,7 +1551,10 @@ void CHL2MP_Player::Spawn(void)
 	//PickDefaultSpawnTeam();
 
 	if (covenClassID <= 0)
+	{
+		StartObserverMode(OBS_MODE_ROAMING);
 		return;
+	}
 
 	//BB: first spawn... give us a level
 	if (covenLevelCounter == 0)
@@ -3014,20 +3017,18 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 	if ( bKill == true )
 	{
 		CommitSuicide();
+		covenClassID = 0;
+
+		if (coven_ignore_respawns.GetInt() == 0 && covenLevelCounter > 0)
+		{
+			if (iTeam == COVEN_TEAMID_VAMPIRES)
+				covenRespawnTimer = gpGlobals->curtime + COVEN_RESPAWNTIME_BASE + COVEN_RESPAWNTIME_VAMPIRES_MULT*covenLevelCounter;
+			else if (iTeam == COVEN_TEAMID_SLAYERS)
+				covenRespawnTimer = HL2MPRules()->GetSlayerRespawnTime();
+		}
+		else
+			covenRespawnTimer = gpGlobals->curtime;
 	}
-
-	covenClassID = 0;
-
-
-	if (coven_ignore_respawns.GetInt() == 0 && covenLevelCounter > 0)
-	{
-		if (iTeam == COVEN_TEAMID_VAMPIRES)
-			covenRespawnTimer = gpGlobals->curtime + COVEN_RESPAWNTIME_BASE + COVEN_RESPAWNTIME_VAMPIRES_MULT*covenLevelCounter;
-		else if (iTeam == COVEN_TEAMID_SLAYERS)
-			covenRespawnTimer = HL2MPRules()->GetSlayerRespawnTime();
-	}
-	else
-		covenRespawnTimer = gpGlobals->curtime;
 }
 
 void CHL2MP_Player::SlayerGutcheckThink()

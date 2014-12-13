@@ -507,6 +507,14 @@ void CHL2_Player::Precache( void )
 	PrecacheScriptSound( "HL2Player.BurnPain" );
 }
 
+void CHL2_Player::SetXP(float XP)
+{
+	int iXP = 0;
+	iXP = floor(XP);
+	m_HL2Local.covenXPCounter = iXP;
+	xp_part = XP-iXP;
+}
+
 bool CHL2_Player::GiveXP(float XP)
 {
 	int iXP = 0;

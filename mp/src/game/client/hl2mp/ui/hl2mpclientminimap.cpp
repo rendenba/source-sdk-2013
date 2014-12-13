@@ -391,7 +391,11 @@ void CHL2MPClientMiniMapDialog::PaintBackground()
 	if (usingCTS)
 	{
 		surface()->DrawSetTexture( m_nGoldStar );
-		if (HL2MPRules()->cts_net.Get() == NULL)
+		if (HL2MPRules()->cts_net.Get() == NULL && HL2MPRules()->SpawnCTS > 0.0f)
+		{
+			//CTS IS RETURNING HOME AWAITING RESPAWN
+		}
+		else if (HL2MPRules()->cts_net.Get() == NULL)
 		{
 			surface()->DrawTexturedRect(cts_zone.x, cts_zone.y, cts_zone.x+32, cts_zone.y+32 );
 		}

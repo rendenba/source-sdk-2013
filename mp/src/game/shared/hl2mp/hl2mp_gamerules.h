@@ -206,7 +206,7 @@ public:
 	Vector cts_position;
 	int cts_zone_radius;
 	float cts_return_timer;
-	float SpawnCTS;
+	CNetworkVar(float,SpawnCTS);
 
 	CNetworkVar (EHANDLE, cts_net);
 	

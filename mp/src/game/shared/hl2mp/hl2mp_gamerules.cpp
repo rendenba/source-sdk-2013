@@ -93,6 +93,7 @@ BEGIN_NETWORK_TABLE_NOBASE( CHL2MPRules, DT_HL2MPRules )
 		RecvPropArray3( RECVINFO_ARRAY(cap_point_coords), RecvPropFloat( RECVINFO(cap_point_coords[0]))),
 		RecvPropArray3( RECVINFO_ARRAY(cap_point_state), RecvPropInt( RECVINFO(cap_point_state[0]))),
 		RecvPropEHandle( RECVINFO(cts_net) ),
+		RecvPropFloat( RECVINFO(SpawnCTS) ),
 	#else
 		SendPropInt( SENDINFO( num_cap_points ) ),
 		SendPropBool( SENDINFO( m_bTeamPlayEnabled ) ),
@@ -100,6 +101,7 @@ BEGIN_NETWORK_TABLE_NOBASE( CHL2MPRules, DT_HL2MPRules )
 		SendPropArray3( SENDINFO_ARRAY3(cap_point_coords), SendPropFloat( SENDINFO_ARRAY(cap_point_coords), 0, SPROP_NOSCALE ) ),
 		SendPropArray3( SENDINFO_ARRAY3(cap_point_state), SendPropInt( SENDINFO_ARRAY(cap_point_state), 0, SPROP_NOSCALE ) ),
 		SendPropEHandle( SENDINFO(cts_net) ),
+		SendPropFloat( SENDINFO(SpawnCTS) ),
 	#endif
 
 END_NETWORK_TABLE()
@@ -718,6 +720,11 @@ void CHL2MPRules::RestartRound()
 			continue;
 
 		pPlayer->RemoveAllItems(true);
+		pPlayer->covenLevelCounter = 0;
+		pPlayer->SetXP(0.0f);
+		Q_memset(pPlayer->covenLoadouts,0,sizeof(pPlayer->covenLoadouts));
+		Q_memset(pPlayer->covenLevelsSpent,0,sizeof(pPlayer->covenLevelsSpent));
+		pPlayer->m_lifeState = LIFE_RESPAWNABLE;
 		pPlayer->Spawn();
 	}
 #endif
