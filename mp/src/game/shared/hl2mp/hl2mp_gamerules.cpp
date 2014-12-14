@@ -238,6 +238,8 @@ CHL2MPRules::CHL2MPRules()
 		g_Teams.AddToTail( pTeam );
 	}
 
+	botnet.SetCount(255);
+
 	thects = NULL;
 	cts_inplay = false;
 	cts_return_timer = 0.0f;
@@ -370,7 +372,10 @@ bool CHL2MPRules::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBa
 				UTIL_StringToIntArray(&n, 1, w);
 				node->connectors.AddToTail(n);
 			}
-			botnet.AddToTail(node);
+			//if (node->ID > (botnet.Size()-1))
+			//	botnet.SetCountNonDestructively(node->ID+1);
+			botnet[node->ID] = node;
+			//botnet.AddToTail(node);
 		}
 		else if (Q_strcmp(s,"ammocrate") == 0)
 		{

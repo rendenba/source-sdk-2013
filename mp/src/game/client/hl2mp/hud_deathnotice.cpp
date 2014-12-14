@@ -17,7 +17,6 @@
 #include "c_baseplayer.h"
 #include "c_team.h"
 
-
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -344,6 +343,9 @@ void CHudDeathNotice::FireGameEvent( IGameEvent * event )
 
 		Msg( "%s", sDeathMsg );
 
+		CLocalPlayerFilter filter;
+		C_BaseEntity::EmitSound(filter, -1, "Capture");
+
 		return;
 	}
 
@@ -393,6 +395,9 @@ void CHudDeathNotice::FireGameEvent( IGameEvent * event )
 
 
 		Msg( "%s", sDeathMsg );
+
+		CLocalPlayerFilter filter;
+		C_BaseEntity::EmitSound(filter, -1, "Capture");
 
 		return;
 	}

@@ -54,6 +54,14 @@ static char *botnames[2][10] =
 {{"Blade","Gabriel Van Helsing","Lucian","Edgar Frog", "Allan Frog","Anita Blake","Simon Belmont","Buffy Summers","Abraham Van Helsing","Mister"},
 {"Edward Cullen","Lestat de Lioncourt","Louis de Pointe du Lac","Liam","Jeanette","Therese","Bill Compton","Eric Northman","Armand","Eli"}};
 
+#define OBJECTIVE_TYPE_NONE -1
+#define OBJECTIVE_TYPE_ROGUE 0
+#define OBJECTIVE_TYPE_CAPPOINT 1
+#define OBJECTIVE_TYPE_CTS 2
+
+#define ROLE_ATK 1
+#define ROLE_DEF 2
+
 typedef struct
 {
 	bool			backwards;
@@ -86,6 +94,11 @@ typedef struct
 	int				m_lastNodeProbe; //index (not id) of last probe into the botnet
 	int				m_targetNode; //index
 	bool			bLost;
+
+	int				m_objectiveType; //-1 none, 0 rogue, 1 cap point, 2 cts
+	int				m_objective;
+
+	int				m_role;
 
 	int				strikes;
 } botdata_t;
@@ -168,7 +181,7 @@ CBasePlayer *BotPutInServer( bool bFrozen, int iTeam )
 
 	g_BotData[pPlayer->entindex()-1].m_WantedTeam = iTeam;
 	g_BotData[pPlayer->entindex()-1].m_flJoinTeamTime = gpGlobals->curtime + 0.3;
-	g_BotData[pPlayer->entindex()-1].m_lastNode = 0;
+	g_BotData[pPlayer->entindex()-1].m_lastNode = -1;
 	g_BotData[pPlayer->entindex()-1].m_targetNode = 0;
 	g_BotData[pPlayer->entindex()-1].m_lastNodeProbe = 0;
 	g_BotData[pPlayer->entindex()-1].m_lastPlayerCheck = 0;
@@ -182,19 +195,108 @@ CBasePlayer *BotPutInServer( bool bFrozen, int iTeam )
 	g_BotData[pPlayer->entindex()-1].left = false;
 	g_BotData[pPlayer->entindex()-1].turns = 0;
 	g_BotData[pPlayer->entindex()-1].strikes = 0;
+	g_BotData[pPlayer->entindex()-1].m_objective = -1;
+	g_BotData[pPlayer->entindex()-1].m_objectiveType = -1;
+	g_BotData[pPlayer->entindex()-1].m_role = -1;
 
 	return pPlayer;
 }
 
+Vector CurrentObjectiveLoc( CHL2MP_Player *pBot )
+{
+	Vector ret(0,0,0);
+	botdata_t *botdata = &g_BotData[ ENTINDEX( pBot->edict() ) - 1 ];
+	if (botdata->m_objectiveType == OBJECTIVE_TYPE_CAPPOINT)
+	{
+		if (botdata->m_objective > -1)
+		{
+			int i = 3*botdata->m_objective;
+			ret.x = HL2MPRules()->cap_point_coords.Get(i);
+			ret.y = HL2MPRules()->cap_point_coords.Get(i+1);
+			ret.z = HL2MPRules()->cap_point_coords.Get(i+2);
+		}
+	}
+	return ret;
+}
 
 void GetLost( CHL2MP_Player *pBot )
 {
 	botdata_t *botdata = &g_BotData[ ENTINDEX( pBot->edict() ) - 1 ];
 	botdata->m_targetNode = 0;
+	botdata->m_lastNode = -1;
 	botdata->bLost = true;
 	CBaseCombatWeapon *pWeapon = pBot->Weapon_OwnsThisType( "weapon_stake" );
 	if (pWeapon)
 		pBot->SwitchToNextBestWeapon(pWeapon);
+}
+
+//BB: TODO: defenders!
+void CheckObjective( CHL2MP_Player *pBot )
+{
+	botdata_t *botdata = &g_BotData[ ENTINDEX( pBot->edict() ) - 1 ];
+	if (botdata->m_role < 0)
+	{
+		if (pBot->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+		{
+			if (pBot->covenClassID == COVEN_CLASSID_FIEND)
+			{
+				botdata->m_role = ROLE_ATK;
+			}
+			else
+			{
+				botdata->m_role = ROLE_ATK;
+				//botdata->m_role = ROLE_DEF;
+			}
+		}
+		else if (pBot->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+		{
+			if (pBot->covenClassID == COVEN_CLASSID_REAVER)
+			{
+				botdata->m_role = ROLE_ATK;
+				//botdata->m_role = ROLE_DEF;
+			}
+			else
+			{
+				botdata->m_role = ROLE_ATK;
+			}
+		}
+	}
+
+	if (botdata->m_objectiveType < 0)
+	{
+		botdata->m_objectiveType = OBJECTIVE_TYPE_CAPPOINT;
+	}
+
+	if (botdata->m_objective < 0)
+	{
+		if (botdata->m_role == ROLE_ATK)
+		{
+			botdata->m_objective = random->RandomInt(0, HL2MPRules()->num_cap_points);
+		}
+		else if (botdata->m_role == ROLE_DEF)
+		{
+			botdata->m_objective = random->RandomInt(0, HL2MPRules()->num_cap_points);//BB: TODO: random for now, later do closest or more intelligent
+		}
+	}
+	else //check our objectives validity
+	{
+		if (botdata->m_role == ROLE_ATK)
+		{
+			if (HL2MPRules()->cap_point_state.Get(botdata->m_objective) == pBot->GetTeamNumber())
+			{
+				botdata->m_objective = -1;
+				botdata->m_objectiveType = -1;
+			}
+		}
+		else if (botdata->m_role == ROLE_DEF)
+		{
+			if (HL2MPRules()->cap_point_state.Get(botdata->m_objective) != pBot->GetTeamNumber() && HL2MPRules()->cap_point_state.Get(botdata->m_objective) != 0)
+			{
+				botdata->m_objective = -1;
+				botdata->m_objectiveType = -1;
+			}
+		}
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -324,13 +426,13 @@ void FindNearestNode( CHL2MP_Player *pBot )
 	cur = pRules->botnet[botdata->m_targetNode];
 
 	//skip "stop" nodes
-	if (temp->connectors.Count() > 1)
+	if (temp != NULL && temp->connectors.Count() > 1)
 	{
 		//skip nodes without +/- 50 z
 		if (abs(pBot->GetAbsOrigin().z - temp->location.z) < 50)
 		{
 			//We found a closer node
-			if ((pBot->GetAbsOrigin() - temp->location).Length() < (pBot->GetAbsOrigin() - cur->location).Length())
+			if (cur == NULL || (pBot->GetAbsOrigin() - temp->location).Length() < (pBot->GetAbsOrigin() - cur->location).Length())
 			{
 				botdata->m_targetNode = botdata->m_lastNodeProbe;
 			}
@@ -447,6 +549,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 				botdata->stuckTimer = 0.0f;
 				botdata->nextjumptime = 0.0f;
 				botdata->nextusetime = 0.0f;
+				botdata->m_role = -1;
 				GetLost(pBot);
 			}
 		}
@@ -459,6 +562,9 @@ void Bot_Think( CHL2MP_Player *pBot )
 	//Combat Check
 	PlayerCheck(pBot);
 
+	//Objective Check
+	CheckObjective(pBot);
+
 	QAngle vecViewAngles;
 	float forwardmove = 0.0;
 	float sidemove = botdata->sidemove;
@@ -469,15 +575,19 @@ void Bot_Think( CHL2MP_Player *pBot )
 
 	vecViewAngles = pBot->GetLocalAngles();
 
-	if (botdata->bLost && botdata->goWild == 0.0f)
+	if (pRules->botnet[botdata->m_targetNode] == NULL || (botdata->bLost && botdata->goWild == 0.0f))
 	{
 		//Msg("LOST!\n");
 		FindNearestNode(pBot);
 	}
 	else
 	{
-		//reached node
-		if ((pRules->botnet[botdata->m_targetNode]->location - pBot->GetLocalOrigin()).Length() < 10)
+		Vector objloc = CurrentObjectiveLoc(pBot);
+		if (botdata->m_objective > -1 && (objloc-pBot->GetLocalOrigin()).Length() < HL2MPRules()->cap_point_distance[botdata->m_objective] && !botdata->bCombat)
+		{
+			botdata->guardTimer = gpGlobals->curtime + 10.0f;
+		}//reached node
+		else if ((pRules->botnet[botdata->m_targetNode]->location - pBot->GetLocalOrigin()).Length() < 10)
 		{
 			//Msg("Reached: %d\n", pRules->botnet[botdata->m_targetNode]->ID);
 			if (pRules->botnet[botdata->m_targetNode]->connectors.Count() <= 1)
@@ -490,30 +600,53 @@ void Bot_Think( CHL2MP_Player *pBot )
 			else
 			{
 				int pushedval = botdata->m_targetNode;
-				int redflag = pRules->botnet[botdata->m_lastNode]->ID;
-				int n = pRules->botnet[botdata->m_targetNode]->connectors.Count()-2;
-				int sel = random->RandomInt(0,n);
-				int m = pRules->botnet.Count();
-				int i = 0;
-				do
+				int redflag = -1;
+				if (botdata->m_lastNode > -1)
 				{
-					if (pRules->botnet[botdata->m_targetNode]->connectors[i] == redflag)
+					redflag = pRules->botnet[botdata->m_lastNode]->ID;
+				}
+				int n = pRules->botnet[botdata->m_targetNode]->connectors.Count();
+				int sel = -1;
+
+				if (n == 2 && redflag > -1) //early cull... always go forward
+				{
+					sel = pRules->botnet[botdata->m_targetNode]->connectors[0];
+					if (sel == redflag)
+						sel = pRules->botnet[botdata->m_targetNode]->connectors[1];
+				}
+				else
+				{
+					if (botdata->m_objectiveType > OBJECTIVE_TYPE_ROGUE)
 					{
-						sel++;
+						float shortestdist = -1.0f;
+						for (int i = 0; i < n; i++)
+						{
+							if (pRules->botnet[botdata->m_targetNode]->connectors[i] == redflag || pRules->botnet[pRules->botnet[botdata->m_targetNode]->connectors[i]]->connectors.Size() == 1)
+								continue;
+							float dist = (pRules->botnet[pRules->botnet[botdata->m_targetNode]->connectors[i]]->location-objloc).Length();
+							if (shortestdist < 0.0f || dist < shortestdist)
+							{
+								shortestdist = dist;
+								sel = pRules->botnet[botdata->m_targetNode]->connectors[i];
+							}
+						}
 					}
-					i++;
-				} while (i <= sel);
-				int val = pRules->botnet[botdata->m_targetNode]->connectors[sel];
-				int update = 0;
-				for (int j = 0; j < m; j++)
-				{
-					if (pRules->botnet[j]->ID == val)
+					else //rogue or invalid
 					{
-						update = j;
-						j = m;
+						n--;
+						if (redflag > -1)
+							n--;
+						sel = random->RandomInt(0,n);
+						int t = sel;
+						for (int i = 0; i < t; i++)
+						{
+							if (pRules->botnet[botdata->m_targetNode]->connectors[i] == redflag)
+								sel++;
+						}
+						sel = pRules->botnet[botdata->m_targetNode]->connectors[sel];
 					}
 				}
-				botdata->m_targetNode = update;
+				botdata->m_targetNode = sel;
 				//Msg("Headed to: %d\n", pRules->botnet[botdata->m_targetNode]->ID);
 				botdata->m_lastNode = pushedval;
 			}
@@ -661,10 +794,12 @@ void Bot_Think( CHL2MP_Player *pBot )
 						else if (pBot->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
 						{
 							forwardmove = 600;
+							botdata->sidemove = -600.0f + 1200.0f * random->RandomFloat( 0, 2 );
+							sidemove = botdata->sidemove;
 						}
 					}
 				}
-				else if (botdata->m_targetNode >= 0)
+				else if (botdata->m_targetNode >= 0 && pRules->botnet[botdata->m_targetNode] != NULL)
 				{
 					forward = pRules->botnet[botdata->m_targetNode]->location - pBot->GetLocalOrigin();
 					//if (pBot->GetTeamNumber() == 2)

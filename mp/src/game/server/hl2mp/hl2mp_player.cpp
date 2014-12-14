@@ -258,7 +258,7 @@ void CHL2MP_Player::DoSlayerAbilityThink()
 				{
 					SetGlobalCooldown(0, gpGlobals->curtime + 20.0f);
 					DoBattleYell(lev);
-					EmitSound("HL2Player.SprintStart");
+					EmitSound("BattleYell");
 					SuitPower_Drain(mana);
 				}
 				else
@@ -299,7 +299,7 @@ void CHL2MP_Player::DoSlayerAbilityThink()
 					SetStatusTime(COVEN_BUFF_STATS, gpGlobals->curtime + 10.0f);
 					covenStatusEffects |= COVEN_FLAG_STATS;
 					DoSheerWill(lev);
-					EmitSound("HL2Player.SprintStart");
+					EmitSound("SheerWill");
 					SuitPower_Drain(mana);
 				}
 				else
@@ -356,7 +356,7 @@ void CHL2MP_Player::DoSlayerAbilityThink()
 				{
 					SetGlobalCooldown(2, gpGlobals->curtime + cool);
 					SuitPower_Drain(mana);
-					EmitSound( "Weapon_StunStick.Activate" );
+					EmitSound( "IntShout" );
 					DoIntimidatingShout(lev);
 				}
 				else
@@ -590,6 +590,7 @@ void CHL2MP_Player::RevengeCheck()
 			if ((pPlayer->GetLocalOrigin()-GetLocalOrigin()).Length() > 600.0f)
 				continue;
 
+			pPlayer->EmitSound("Revenge");
 			pPlayer->DoSheerWill(pPlayer->GetLoadout(2));
 			pPlayer->SetStatusTime(COVEN_BUFF_STATS, gpGlobals->curtime + 10.0f);
 			pPlayer->covenStatusEffects |= COVEN_FLAG_STATS;
@@ -897,6 +898,7 @@ void CHL2MP_Player::DoVampireAbilityThink()
 					SetStatusMagnitude(COVEN_BUFF_BERSERK, lev);
 					covenStatusEffects |= COVEN_FLAG_BERSERK;
 					DoBerserk(lev);
+					EmitSound("HL2Player.Sweet");
 					SuitPower_Drain(mana);
 				}
 				else
@@ -1114,6 +1116,7 @@ bool CHL2MP_Player::LevelUp( int lvls )
 		EmitSound( "NPC_CombineBall.Explosion" );
 	}
 	//ResetVitals();
+	//BB: too many levels... do not reset health anymore?
 	if (GetHealth() <= GetMaxHealth())
 	{
 		int hp = myConstitution()*COVEN_HP_PER_CON;
@@ -1360,6 +1363,13 @@ void CHL2MP_Player::Precache( void )
 	PrecacheScriptSound( "NPC_Citizen.die" );
 	PrecacheScriptSound( "Resurrect" );
 	PrecacheScriptSound( "Resurrect.Finish" );
+	PrecacheScriptSound( "Capture" );
+	PrecacheScriptSound( "Cappoint.Hum" );
+	PrecacheScriptSound( "SheerWill" );
+	PrecacheScriptSound( "IntShout" );
+	PrecacheScriptSound( "Revenge" );
+	PrecacheScriptSound( "BattleYell" );
+	PrecacheScriptSound( "Dodge" );
 
 	PrecacheScriptSound( "Leap" );
 
@@ -1905,6 +1915,8 @@ void CHL2MP_Player::VampireStealthCalc()
 		{
 			//GetViewModel()->SetRenderColorA(alpha);
 		}
+		//if (coven_timer_vstealth > 0.0f)
+		//	Msg("Player:%s coven_timer_vstealth:%.02f velocity:%.02f KO:%d cloakfactor:%.02f\n", GetPlayerName(), coven_timer_vstealth, VectorLength(GetAbsVelocity()), KO, alpha);
 	}
 }
 
@@ -3900,7 +3912,7 @@ CON_COMMAND(go_to_node, "Go to a node <id>")
 	//if (temp > HL2MPRules()->botnet.Count())
 	//	return;
 	int sel = 0;
-	for (int i = 0; i < HL2MPRules()->botnet.Count(); i++)
+	/*for (int i = 0; i < HL2MPRules()->botnet.Count(); i++)
 	{
 		if (HL2MPRules()->botnet[i]->ID == temp)
 		{
@@ -3911,12 +3923,13 @@ CON_COMMAND(go_to_node, "Go to a node <id>")
 	pPlayer->coven_debug_prevnode = pPlayer->coven_debug_nodeloc;
 	pPlayer->coven_debug_nodeloc = sel;
 	pPlayer->SetLocalOrigin(HL2MPRules()->botnet[sel]->location);
-	//Msg("At node %d.\n", HL2MPRules()->botnet[sel]->ID);
-	int c = HL2MPRules()->botnet[pPlayer->coven_debug_nodeloc]->connectors.Count();
-	Msg("At node %d. %d connectors: ", HL2MPRules()->botnet[pPlayer->coven_debug_nodeloc]->ID, c);
+	//Msg("At node %d.\n", HL2MPRules()->botnet[sel]->ID);*/
+	int c = HL2MPRules()->botnet[temp]->connectors.Count();
+	pPlayer->SetLocalOrigin(HL2MPRules()->botnet[temp]->location);
+	Msg("At node %d. %d connectors: ", HL2MPRules()->botnet[temp]->ID, c);
 	for (int j = 0; j < c; j++)
 	{
-		Msg("%d,", HL2MPRules()->botnet[pPlayer->coven_debug_nodeloc]->connectors[j]);
+		Msg("%d,", HL2MPRules()->botnet[temp]->connectors[j]);
 	}
 	Msg("\n");
 }
@@ -3973,7 +3986,7 @@ void CHL2MP_Player::VampireDodgeHandler()
 		SetRenderColorA(255);
 		if( IsAlive() )
 		{
-			EmitSound( "HL2Player.FlashlightOff" );
+			EmitSound( "Dodge" );
 		}
 	}
 }
@@ -4234,7 +4247,8 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 			covenStatusEffects |= COVEN_FLAG_HOLYWATER;
 			coven_timer_holywater = gpGlobals->curtime + 1.0f;
 			//insta heal component
-			TakeHealth(inputInfo.GetDamage()/5.0f*20.0f, DMG_GENERIC);
+			//TakeHealth(inputInfo.GetDamage()/5.0f*20.0f, DMG_GENERIC);
+			//BB: no insta heal anymore?
 		}
 		else
 		{

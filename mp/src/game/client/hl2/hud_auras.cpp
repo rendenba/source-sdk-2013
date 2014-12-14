@@ -51,6 +51,8 @@ class CHudAuras : public CHudElement, public Panel
    int m_nImportSlow;
    int m_nImportStun;
 
+   float humtime;
+
 	CPanelAnimationVar( vgui::HFont, m_hTextFont, "TextFont", "Default" );
 	CPanelAnimationVarAliasType( int, m_nCBgTextureId1, "Texture1", "vgui/hud/800corner1", "textureid" );
 	CPanelAnimationVarAliasType( int, m_nCBgTextureId2, "Texture2", "vgui/hud/800corner2", "textureid" );
@@ -67,6 +69,8 @@ CHudAuras::CHudAuras( const char *pElementName ) : CHudElement( pElementName ), 
  
    SetVisible( false );
    SetAlpha( 255 );
+
+   humtime = 0.0f;
  
    //AW Create Texture for Looking around
    m_nImportCapPoint = surface()->CreateNewTextureID();
@@ -281,7 +285,25 @@ void CHudAuras::OnThink()
 		temp->text = 0;
 		temp->timer = 0.0f;
 		active_auras.AddToTail(temp);
+
+		if (gpGlobals->curtime > humtime)
+		{
+			humtime = 0.0f;
+		}
+		if (humtime == 0.0f)
+		{
+			CLocalPlayerFilter filter;
+			C_BaseEntity::EmitSound(filter, -1, "Cappoint.Hum");
+			humtime = gpGlobals->curtime + 30.0f;
+		}
 	}
+	else
+	{
+		if (humtime > 0.0f)
+			C_BaseEntity::StopSound(-1, "Cappoint.Hum");
+		humtime = 0.0f;
+	}
+
 	if (pPlayer->covenStatusEffects & COVEN_FLAG_SPRINT)
 	{
 		aura_pic *temp;
