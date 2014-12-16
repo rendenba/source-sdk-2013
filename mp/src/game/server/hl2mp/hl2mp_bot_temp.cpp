@@ -271,11 +271,11 @@ void CheckObjective( CHL2MP_Player *pBot )
 	{
 		if (botdata->m_role == ROLE_ATK)
 		{
-			botdata->m_objective = random->RandomInt(0, HL2MPRules()->num_cap_points);
+			botdata->m_objective = random->RandomInt(0, HL2MPRules()->num_cap_points-1);
 		}
 		else if (botdata->m_role == ROLE_DEF)
 		{
-			botdata->m_objective = random->RandomInt(0, HL2MPRules()->num_cap_points);//BB: TODO: random for now, later do closest or more intelligent
+			botdata->m_objective = random->RandomInt(0, HL2MPRules()->num_cap_points-1);//BB: TODO: random for now, later do closest or more intelligent
 		}
 	}
 	else //check our objectives validity
