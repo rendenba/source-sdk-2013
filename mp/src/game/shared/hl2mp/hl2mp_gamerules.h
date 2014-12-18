@@ -115,7 +115,8 @@ public:
 	bool LoadCowFile( IBaseFileSystem *filesystem, const char *resourceName, const char *pathID );
 
 	CUtlVector<CBaseEntity *> crates;
-	CUtlVector<botnode *> botnet;
+	botnode *botnet[COVEN_MAX_BOT_NODES];
+	int bot_node_count;
 	bool cowsloaded;
 	bool cowsloadfail;
 

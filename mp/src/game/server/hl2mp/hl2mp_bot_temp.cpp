@@ -416,7 +416,7 @@ void FindNearestNode( CHL2MP_Player *pBot )
 {
 	CHL2MPRules *pRules;
 	pRules = HL2MPRules();
-	if (pRules->botnet.Count() == 0 )
+	if (pRules->bot_node_count == 0 )
 		return;
 
 	botdata_t *botdata = &g_BotData[ ENTINDEX( pBot->edict() ) - 1 ];
@@ -440,7 +440,7 @@ void FindNearestNode( CHL2MP_Player *pBot )
 	}
 
 	botdata->m_lastNodeProbe++;
-	if (botdata->m_lastNodeProbe >= pRules->botnet.Count())
+	if (botdata->m_lastNodeProbe > pRules->bot_node_count)
 	{
 		botdata->m_lastNodeProbe = 0;
 		botdata->bLost = false;
@@ -794,8 +794,18 @@ void Bot_Think( CHL2MP_Player *pBot )
 						else if (pBot->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
 						{
 							forwardmove = 600;
-							botdata->sidemove = -600.0f + 1200.0f * random->RandomFloat( 0, 2 );
-							sidemove = botdata->sidemove;
+							if (bot_difficulty.GetInt() > 1)
+							{
+								if (gpGlobals->curtime > botdata->nextstrafetime)
+								{
+									if (botdata->sidemove == 0.0f)
+										botdata->sidemove = -600.0f + 1200.0f * random->RandomInt( 0, 1 );
+									else
+										botdata->sidemove = -botdata->sidemove;
+									botdata->nextstrafetime = gpGlobals->curtime + random->RandomFloat(0.5f, 2.5f);
+								}
+								sidemove = botdata->sidemove;
+							}
 						}
 					}
 				}
@@ -850,7 +860,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 					botdata->backwards = false;
 				}*/
 			}
-			if (sidemove != 0.0f)
+			if (botdata->sidemove != 0.0f)
 			{
 				trace_t	tr;
 				Vector forward, right, up;

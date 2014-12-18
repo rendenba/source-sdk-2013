@@ -2455,6 +2455,10 @@ int CBaseCombatCharacter::OnTakeDamage( const CTakeDamageInfo &info )
 					UTIL_Remove( m_pFlame );
 					Extinguish();
 				}
+
+				if (m_floatCloakFactor > 0.0f)
+					m_floatCloakFactor = 0.0f;
+
 				timeofdeath = gpGlobals->curtime;
 				AddFlag(FL_FROZEN);
 				AddEFlags(EFL_BOT_FROZEN);

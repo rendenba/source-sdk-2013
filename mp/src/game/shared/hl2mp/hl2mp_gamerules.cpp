@@ -238,7 +238,8 @@ CHL2MPRules::CHL2MPRules()
 		g_Teams.AddToTail( pTeam );
 	}
 
-	botnet.SetCount(255);
+	Q_memset(botnet, 0, sizeof(botnet));
+	bot_node_count = 0;
 
 	thects = NULL;
 	cts_inplay = false;
@@ -328,6 +329,14 @@ CHL2MPRules::~CHL2MPRules( void )
 	// Note, don't delete each team since they are in the gEntList and will 
 	// automatically be deleted from there, instead.
 	g_Teams.Purge();
+	for (int i = 0; i < bot_node_count; i++)
+	{
+		if (botnet[i])
+		{
+			delete botnet[i];
+			botnet[i] = NULL;
+		}
+	}
 #endif
 }
 
@@ -372,10 +381,14 @@ bool CHL2MPRules::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBa
 				UTIL_StringToIntArray(&n, 1, w);
 				node->connectors.AddToTail(n);
 			}
-			//if (node->ID > (botnet.Size()-1))
-			//	botnet.SetCountNonDestructively(node->ID+1);
-			botnet[node->ID] = node;
-			//botnet.AddToTail(node);
+			if (node->ID < COVEN_MAX_BOT_NODES)
+			{
+				botnet[node->ID] = node;
+				if (bot_node_count < node->ID+1)
+				{
+					bot_node_count = node->ID+1;
+				}
+			}
 		}
 		else if (Q_strcmp(s,"ammocrate") == 0)
 		{
