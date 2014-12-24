@@ -5906,7 +5906,8 @@ void CBasePlayer::ImpulseCommands( )
 	switch (iImpulse)
 	{
 	case 100:
-        // temporary flashlight for level designers
+		//BB: impulse 100 is out... thanks JAM!
+        /*// temporary flashlight for level designers
         if ( FlashlightIsOn() )
 		{
 			FlashlightTurnOff();
@@ -5914,7 +5915,7 @@ void CBasePlayer::ImpulseCommands( )
         else 
 		{
 			FlashlightTurnOn();
-		}
+		}*/
 		break;
 
 	case 200:

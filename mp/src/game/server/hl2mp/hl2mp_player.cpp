@@ -1570,11 +1570,13 @@ void CHL2MP_Player::Spawn(void)
 	if (covenLevelCounter == 0)
 		LevelUp(1);
 
+#ifndef COVEN_DEVELOPER_MODE
 	if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES && covenClassID > COVEN_CLASSCOUNT_VAMPIRES)
 		return;
 
 	if (GetTeamNumber() == COVEN_TEAMID_SLAYERS && covenClassID > COVEN_CLASSCOUNT_SLAYERS)
 		return;
+#endif
 
 	ResetStats();
 
@@ -3860,7 +3862,7 @@ CON_COMMAND(next_node, "Move to next node")
 			i++;
 		int id = HL2MPRules()->botnet[pPlayer->coven_debug_nodeloc]->connectors[i];
 		int sel = 0;
-		for (int j = 0; j < HL2MPRules()->botnet.Count(); j++)
+		for (int j = 0; j < HL2MPRules()->bot_node_count; j++)
 		{
 			if (HL2MPRules()->botnet[j]->ID == id)
 			{
