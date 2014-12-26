@@ -33,6 +33,12 @@ CHudXP::CHudXP( const char *pElementName ) : CHudElement( pElementName ), BaseCl
 	SetParent( pParent );
 
 	SetHiddenBits( HIDEHUD_HEALTH | HIDEHUD_PLAYERDEAD | HIDEHUD_NEEDSUIT );
+
+	m_nGlassTex = surface()->CreateNewTextureID();
+	surface()->DrawSetTextureFile( m_nGlassTex, "hud/bars/glass_empty", true, true);
+
+	m_nBlipTex = surface()->CreateNewTextureID();
+	surface()->DrawSetTextureFile( m_nBlipTex, "hud/bars/glass_x", true, true);
 }
 
 //-----------------------------------------------------------------------------
@@ -111,7 +117,24 @@ void CHudXP::Paint()
 	if ( !pPlayer )
 		return;
 
-	// get bar chunks
+	int wide, tall;
+	GetSize(wide, tall);
+
+	int max = (COVEN_MAX_XP_PER_LEVEL+(pPlayer->covenLevelCounter-1)*COVEN_XP_INCREASE_PER_LEVEL);
+
+	float maxbar = wide - m_flBarInsetX;
+
+	float perc = ((float)m_XP)/((float)max)*maxbar;
+	if (perc > maxbar)
+		perc = maxbar;
+
+	surface()->DrawSetColor( m_AuxPowerColor );
+	surface()->DrawSetTexture(m_nGlassTex);
+	surface()->DrawTexturedRect(0,0, wide, tall);
+	surface()->DrawSetTexture(m_nBlipTex);
+	surface()->DrawTexturedRect(m_flBarInsetX, 0, perc, tall);
+
+	/*// get bar chunks
 	int chunkCount = m_flBarWidth / (m_flBarChunkWidth + m_flBarChunkGap);
 	int enabledChunks = (int)((float)chunkCount * (m_XP * 1.0f/(COVEN_MAX_XP_PER_LEVEL+pPlayer->covenLevelCounter*COVEN_XP_INCREASE_PER_LEVEL)) + 0.5f );
 
@@ -135,14 +158,30 @@ void CHudXP::Paint()
 	//wchar_t *tempString = L"Level";
 	V_swprintf_safe(szText, L"Level %d", pPlayer->covenLevelCounter);
 	
-
+	*/
 	// draw our name
-	surface()->DrawSetTextFont(m_hTextFont);
+	/*surface()->DrawSetTextFont(m_hTextFont);
 	surface()->DrawSetTextColor(m_AuxPowerColor);
 	surface()->DrawSetTextPos(text_xpos, text_ypos);
 
-	surface()->DrawPrintText(szText, wcslen(szText));
+	surface()->DrawPrintText(szText, wcslen(szText));*/
 	//surface()->DrawPrintText(L"Level", wcslen(L"Level"));
+
+	surface()->DrawSetTextFont(m_hTextFont);
+	//draw our value
+	wchar_t szText[ 32 ];
+	V_swprintf_safe(szText, L"%d / %d", m_XP, max);
+	int tx = wide/2-UTIL_ComputeStringWidth(m_hTextFont,szText)/2;
+	int ty = tall/2-surface()->GetFontTall(m_hTextFont)/2;
+	surface()->DrawSetTextPos(tx-2, ty+2);
+	surface()->DrawSetTextColor(m_AuxPowerColorShadow);
+	surface()->DrawPrintText(szText, wcslen(szText));
+	surface()->DrawSetTextPos(tx+2, ty-2);
+	//surface()->DrawSetTextColor(Color(150, 150, 150, 250));
+	surface()->DrawPrintText(szText, wcslen(szText));
+	surface()->DrawSetTextPos(tx, ty);
+	surface()->DrawSetTextColor(m_AuxPowerColor);
+	surface()->DrawPrintText(szText, wcslen(szText));
 }
 
 

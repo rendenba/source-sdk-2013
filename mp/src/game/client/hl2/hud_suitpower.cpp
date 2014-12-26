@@ -33,6 +33,12 @@ CHudSuitPower::CHudSuitPower( const char *pElementName ) : CHudElement( pElement
 	SetParent( pParent );
 
 	SetHiddenBits( HIDEHUD_HEALTH | HIDEHUD_PLAYERDEAD | HIDEHUD_NEEDSUIT );
+
+	m_nGlassTex = surface()->CreateNewTextureID();
+	surface()->DrawSetTextureFile( m_nGlassTex, "hud/bars/glass_empty", true, true);
+
+	m_nBlipTex = surface()->CreateNewTextureID();
+	surface()->DrawSetTextureFile( m_nBlipTex, "hud/bars/glass_e", true, true);
 }
 
 //-----------------------------------------------------------------------------
@@ -41,8 +47,10 @@ CHudSuitPower::CHudSuitPower( const char *pElementName ) : CHudElement( pElement
 void CHudSuitPower::Init( void )
 {
 	m_flSuitPower = SUITPOWER_INIT;
-	m_nSuitPowerLow = -1;
-	m_iActiveSuitDevices = 0;
+	//m_nSuitPowerLow = -1;
+	//m_iActiveSuitDevices = 0;
+
+	//SetSize(256, 32);
 }
 
 //-----------------------------------------------------------------------------
@@ -84,13 +92,13 @@ void CHudSuitPower::OnThink( void )
 
 	flCurrentPower = pPlayer->m_HL2Local.m_flSuitPower;
 
-	float max = pPlayer->myIntellect()*10.0f;
+	//float max = pPlayer->myIntellect()*10.0f;
 
 	// Only update if we've changed suit power
 	if ( flCurrentPower == m_flSuitPower )
 		return;
 
-	if ( flCurrentPower >= max && m_flSuitPower < max )
+	/*if ( flCurrentPower >= max && m_flSuitPower < max )
 	{
 		// we've reached max power
 		g_pClientMode->GetViewportAnimationController()->StartAnimationSequence("SuitAuxPowerMax");
@@ -99,14 +107,14 @@ void CHudSuitPower::OnThink( void )
 	{
 		// we've lost power
 		g_pClientMode->GetViewportAnimationController()->StartAnimationSequence("SuitAuxPowerNotMax");
-	}
+	}*/
 
-	bool flashlightActive = pPlayer->IsFlashlightActive();
+	/*bool flashlightActive = pPlayer->IsFlashlightActive();
 	bool sprintActive = pPlayer->IsSprinting();
 	bool breatherActive = pPlayer->IsBreatherActive();
-	int activeDevices = (int)flashlightActive + (int)sprintActive + (int)breatherActive;
+	int activeDevices = (int)flashlightActive + (int)sprintActive + (int)breatherActive;*/
 
-	if (activeDevices != m_iActiveSuitDevices)
+	/*if (activeDevices != m_iActiveSuitDevices)
 	{
 		m_iActiveSuitDevices = activeDevices;
 
@@ -126,9 +134,10 @@ void CHudSuitPower::OnThink( void )
 			g_pClientMode->GetViewportAnimationController()->StartAnimationSequence("SuitAuxPowerNoItemsActive");
 			break;
 		}
-	}
+	}*/
 
 	m_flSuitPower = flCurrentPower;
+	BaseClass::OnThink();
 }
 
 //-----------------------------------------------------------------------------
@@ -142,6 +151,16 @@ void CHudSuitPower::Paint()
 
 	float max = pPlayer->myIntellect()*10.0f;
 
+	int wide, tall;
+	GetSize(wide, tall);
+
+	float maxbar = wide - m_flBarInsetX;
+
+	float perc = m_flSuitPower/max*maxbar;
+	if (perc > maxbar)
+		perc = maxbar;
+
+	/*
 	// get bar chunks
 	int chunkCount = m_flBarWidth / (m_flBarChunkWidth + m_flBarChunkGap);
 	int enabledChunks = (int)((float)chunkCount * (m_flSuitPower * 1.0f/max) + 0.5f );
@@ -166,11 +185,16 @@ void CHudSuitPower::Paint()
 			}
 			m_nSuitPowerLow = lowPower;
 		}
-	}
+	}*/
 
 	// draw the suit power bar
 	surface()->DrawSetColor( m_AuxPowerColor );
-	int xpos = m_flBarInsetX, ypos = m_flBarInsetY;
+	surface()->DrawSetTexture(m_nGlassTex);
+	surface()->DrawTexturedRect(0,0, wide, tall);
+	surface()->DrawSetTexture(m_nBlipTex);
+	surface()->DrawTexturedRect(m_flBarInsetX, 0, perc, tall);
+
+	/*int xpos = m_flBarInsetX, ypos = m_flBarInsetY;
 	for (int i = 0; i < enabledChunks; i++)
 	{
 		surface()->DrawFilledRect( xpos, ypos, xpos + m_flBarChunkWidth, ypos + m_flBarHeight );
@@ -182,14 +206,12 @@ void CHudSuitPower::Paint()
 	{
 		surface()->DrawFilledRect( xpos, ypos, xpos + m_flBarChunkWidth, ypos + m_flBarHeight );
 		xpos += (m_flBarChunkWidth + m_flBarChunkGap);
-	}
+	}*/
 
 	// draw our name
 	surface()->DrawSetTextFont(m_hTextFont);
-	surface()->DrawSetTextColor(m_AuxPowerColor);
-	surface()->DrawSetTextPos(text_xpos, text_ypos);
 
-	wchar_t *tempString = g_pVGuiLocalize->Find("#Valve_Hud_AUX_POWER");
+	/*wchar_t *tempString = g_pVGuiLocalize->Find("#Valve_Hud_AUX_POWER");
 
 	if (tempString)
 	{
@@ -198,15 +220,26 @@ void CHudSuitPower::Paint()
 	else
 	{
 		surface()->DrawPrintText(L"MANA", wcslen(L"MANA"));
-	}
+	}*/
 
 	//draw our value
-	surface()->DrawSetTextPos(GetWide()-50, text_ypos);
-	wchar_t szText[ 63 ];
-	V_swprintf_safe(szText, L"%.00f", m_flSuitPower);
+	wchar_t szText[ 32 ];
+	V_swprintf_safe(szText, L"%.00f / %.00f", m_flSuitPower, max);
+	int tx = wide/2-UTIL_ComputeStringWidth(m_hTextFont,szText)/2;
+	int ty = tall/2-surface()->GetFontTall(m_hTextFont)/2;
+	surface()->DrawSetTextPos(tx-2, ty+2);
+	surface()->DrawSetTextColor(m_AuxPowerColorShadow);
 	surface()->DrawPrintText(szText, wcslen(szText));
+	surface()->DrawSetTextPos(tx+2, ty-2);
+	//surface()->DrawSetTextColor(Color(150, 150, 150, 250));
+	surface()->DrawPrintText(szText, wcslen(szText));
+	surface()->DrawSetTextPos(tx, ty);
+	surface()->DrawSetTextColor(m_AuxPowerColor);
+	surface()->DrawPrintText(szText, wcslen(szText));
+	
 
-	if ( m_iActiveSuitDevices )
+
+	/*if ( m_iActiveSuitDevices )
 	{
 		// draw the additional text
 		int ypos = text2_ypos;
@@ -261,7 +294,7 @@ void CHudSuitPower::Paint()
 			}
 			ypos += text2_gap;
 		}
-	}
+	}*/
 }
 
 

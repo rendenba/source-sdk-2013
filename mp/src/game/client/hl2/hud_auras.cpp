@@ -55,6 +55,7 @@ class CHudAuras : public CHudElement, public Panel
    int m_nImportSlow[2];
    int m_nImportStun[2];
    int m_nImportVengeSoul[2];
+   int m_nImportCTS[2];
 
    int m_nShadowTex;
 
@@ -144,6 +145,9 @@ CHudAuras::CHudAuras( const char *pElementName ) : CHudElement( pElementName ), 
 
    m_nImportVengeSoul[0] = surface()->CreateNewTextureID();
    surface()->DrawSetTextureFile( m_nImportVengeSoul[0], "hud/statuseffects/s_vengesoul", true, true);
+
+   m_nImportCTS[0] = surface()->CreateNewTextureID();
+   surface()->DrawSetTextureFile( m_nImportCTS[0], "hud/statuseffects/s_cts", true, true);
 
    SetHiddenBits( HIDEHUD_PLAYERDEAD | HIDEHUD_NEEDSUIT );
 	SetBgColor(Color(0,0,0,250));
