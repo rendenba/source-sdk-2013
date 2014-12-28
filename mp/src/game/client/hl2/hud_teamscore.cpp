@@ -48,6 +48,12 @@ CHudTeamScore::CHudTeamScore( const char *pElementName ) : CHudElement( pElement
 
 	m_nBlueDot = surface()->CreateNewTextureID();
 	surface()->DrawSetTextureFile( m_nBlueDot, "effects/bluedot", true, true);
+
+	m_nBGTex[0] = surface()->CreateNewTextureID();
+	surface()->DrawSetTextureFile( m_nBGTex[0], "hud/backgrounds/iron_med", true, true);
+
+	m_nBGTex[1] = surface()->CreateNewTextureID();
+	surface()->DrawSetTextureFile( m_nBGTex[1], "hud/backgrounds/stone_med", true, true);
 }
 
 //-----------------------------------------------------------------------------
@@ -128,6 +134,10 @@ void CHudTeamScore::OnThink( void )
 	m_TeamVScore = vscore;
 }
 
+void CHudTeamScore::PaintBackground()
+{
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: draws the power bar
 //-----------------------------------------------------------------------------
@@ -140,6 +150,13 @@ void CHudTeamScore::Paint()
 	int w,t;
 	GetSize(w,t);
 	Color c;
+
+	int team = 0;
+	if (pPlayer->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+		team = 1;
+	surface()->DrawSetTexture(m_nBGTex[team]);
+	surface()->DrawTexturedRect(0,0,w,t);
+	
 	c = GameResources()->GetTeamColor( COVEN_TEAMID_SLAYERS );
 	// get bar chunks
 	int chunkCount = m_flBarWidth / (m_flBarChunkWidth + m_flBarChunkGap) / 2;

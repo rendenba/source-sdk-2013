@@ -7,7 +7,7 @@
 
 #include "cbase.h"
 #include "hud.h"
-#include "hud_xp.h"
+#include "hud_healthbar.h"
 #include "hud_macros.h"
 #include "c_basehlplayer.h"
 #include "iclientmode.h"
@@ -20,14 +20,14 @@ using namespace vgui;
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-DECLARE_HUDELEMENT( CHudXP );
+DECLARE_HUDELEMENT( CHudHealthBar );
 
-#define XP_INIT -1
+#define HPBAR_INIT -1
 
 //-----------------------------------------------------------------------------
 // Purpose: Constructor
 //-----------------------------------------------------------------------------
-CHudXP::CHudXP( const char *pElementName ) : CHudElement( pElementName ), BaseClass( NULL, "HudXP" )
+CHudHealthBar::CHudHealthBar( const char *pElementName ) : CHudElement( pElementName ), BaseClass( NULL, "HudHPBar" )
 {
 	vgui::Panel *pParent = g_pClientMode->GetViewport();
 	SetParent( pParent );
@@ -35,25 +35,32 @@ CHudXP::CHudXP( const char *pElementName ) : CHudElement( pElementName ), BaseCl
 	SetHiddenBits( HIDEHUD_HEALTH | HIDEHUD_PLAYERDEAD | HIDEHUD_NEEDSUIT );
 
 	m_nGlassTex = surface()->CreateNewTextureID();
-	surface()->DrawSetTextureFile( m_nGlassTex, "hud/bars/glass_empty", true, true);
+	surface()->DrawSetTextureFile( m_nGlassTex, "hud/bars/glass_empty_big", true, true);
 
 	m_nBlipTex = surface()->CreateNewTextureID();
-	surface()->DrawSetTextureFile( m_nBlipTex, "hud/bars/glass_x", true, true);
+	surface()->DrawSetTextureFile( m_nBlipTex, "hud/bars/glass_h", true, true);
+
+	m_nBlipRight = surface()->CreateNewTextureID();
+	surface()->DrawSetTextureFile( m_nBlipRight, "hud/bars/glass_h_r", true, true);
+
+	m_nBlipLeft = surface()->CreateNewTextureID();
+	surface()->DrawSetTextureFile( m_nBlipLeft, "hud/bars/glass_h_l", true, true);
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CHudXP::Init( void )
+void CHudHealthBar::Init( void )
 {
-	m_XP = XP_INIT;
+	m_iHealth = HPBAR_INIT;
+	m_iMaxHealth = HPBAR_INIT;
 	SetBgColor(Color(0,0,0,250));
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CHudXP::Reset( void )
+void CHudHealthBar::Reset( void )
 {
 	Init();
 }
@@ -63,7 +70,7 @@ void CHudXP::Reset( void )
 // costly traversal.  Called per frame, return true if thinking and 
 // painting need to occur.
 //-----------------------------------------------------------------------------
-bool CHudXP::ShouldDraw()
+bool CHudHealthBar::ShouldDraw()
 {
 	bool bNeedsDraw = false;
 
@@ -72,7 +79,7 @@ bool CHudXP::ShouldDraw()
 		return false;
 
 	// needs draw if suit power changed or animation in progress
-	bNeedsDraw = ( ( pPlayer->m_HL2Local.covenXPCounter != m_XP ) || ( m_AuxPowerColor[3] > 0 ) );
+	bNeedsDraw = ( ( pPlayer->GetHealth() != m_iHealth ) || ( m_AuxPowerColor[3] > 0 ) );
 
 	return ( bNeedsDraw && CHudElement::ShouldDraw() );
 }
@@ -80,17 +87,18 @@ bool CHudXP::ShouldDraw()
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CHudXP::OnThink( void )
+void CHudHealthBar::OnThink( void )
 {
-	int currentXP = 0;
+	int newHealth = 0;
 	C_BaseHLPlayer *pPlayer = (C_BaseHLPlayer *)C_BasePlayer::GetLocalPlayer();
 	if ( !pPlayer )
 		return;
 
-	currentXP = pPlayer->m_HL2Local.covenXPCounter;
+		// Never below zero
+		newHealth = MAX( pPlayer->GetHealth(), 0 );
 
 	// Only update if we've changed suit power
-	if ( currentXP == m_XP )
+	if ( newHealth == m_iHealth )
 		return;
 
 	/*if ( currentXP >= 100.0f && m_XP < 100.0f )
@@ -105,17 +113,18 @@ void CHudXP::OnThink( void )
 	}*/
 
 
-	m_XP = currentXP;
+	m_iHealth = newHealth;
+	m_iMaxHealth = MAX(pPlayer->GetMaxHealth(), 0);
 }
 
-void CHudXP::PaintBackground()
+void CHudHealthBar::PaintBackground()
 {
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: draws the power bar
 //-----------------------------------------------------------------------------
-void CHudXP::Paint()
+void CHudHealthBar::Paint()
 {
 	C_BaseHLPlayer *pPlayer = (C_BaseHLPlayer *)C_BasePlayer::GetLocalPlayer();
 	if ( !pPlayer )
@@ -124,19 +133,38 @@ void CHudXP::Paint()
 	int wide, tall;
 	GetSize(wide, tall);
 
-	int max = (COVEN_MAX_XP_PER_LEVEL+(pPlayer->covenLevelCounter-1)*COVEN_XP_INCREASE_PER_LEVEL);
-
-	float maxbar = wide - m_flBarInsetX;
-
-	float perc = ((float)m_XP)/((float)max)*maxbar;
-	if (perc > maxbar)
-		perc = maxbar;
+	float maxbar = wide - 2.0f*m_flBarInsetX;
+	float mid = maxbar/2.0f;
+	float midadj = mid + wide*0.05f;
+	mid += m_flBarInsetX;
+	float ratio = ((float)m_iHealth)/((float)m_iMaxHealth);
+	float inset = (1.0f-ratio)*midadj;
+	float start = m_flBarInsetX+inset;
 
 	surface()->DrawSetColor( m_AuxPowerColor );
 	surface()->DrawSetTexture(m_nGlassTex);
 	surface()->DrawTexturedRect(0,0, wide, tall);
+	if (inset > 0.0f)
+	{
+		float tstart = start;
+		if (start > mid)
+			tstart = mid;
+		if (inset > 16.0f)
+			inset = 16.0f;
+		surface()->DrawSetTexture(m_nBlipLeft);
+		surface()->DrawTexturedRect(start-inset, 0, tstart, tall);
+	}
+	float end = mid+mid-start;
 	surface()->DrawSetTexture(m_nBlipTex);
-	surface()->DrawTexturedRect(m_flBarInsetX, 0, perc, tall);
+	surface()->DrawTexturedRect(start, 0, end, tall);
+	if (inset > 0.0f)
+	{
+		float tend = end;
+		if (start > mid)
+			tend = mid;
+		surface()->DrawSetTexture(m_nBlipRight);
+		surface()->DrawTexturedRect(tend, 0, end+inset, tall);
+	}
 
 	/*// get bar chunks
 	int chunkCount = m_flBarWidth / (m_flBarChunkWidth + m_flBarChunkGap);
@@ -174,7 +202,7 @@ void CHudXP::Paint()
 	surface()->DrawSetTextFont(m_hTextFont);
 	//draw our value
 	wchar_t szText[ 32 ];
-	V_swprintf_safe(szText, L"%d / %d", m_XP, max);
+	V_swprintf_safe(szText, L"%d / %d", m_iHealth, m_iMaxHealth);
 	int tx = wide/2-UTIL_ComputeStringWidth(m_hTextFont,szText)/2;
 	int ty = tall/2-surface()->GetFontTall(m_hTextFont)/2;
 	surface()->DrawSetTextPos(tx-2, ty+2);

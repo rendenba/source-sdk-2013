@@ -140,6 +140,10 @@ void CHudSuitPower::OnThink( void )
 	BaseClass::OnThink();
 }
 
+void CHudSuitPower::PaintBackground()
+{
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: draws the power bar
 //-----------------------------------------------------------------------------

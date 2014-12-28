@@ -1328,6 +1328,7 @@ public:
 	char							m_lifeState;
 
 	int								m_iHealth;
+	int								m_iMaxHealth;
 
 	// was pev->speed
 	float							m_flSpeed;

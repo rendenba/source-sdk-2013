@@ -27,6 +27,7 @@ public:
 	virtual void	Reset( void );
 	virtual void	OnThink( void );
 	bool			ShouldDraw( void );
+	virtual void	PaintBackground( void );
 
 protected:
 	virtual void	Paint();

@@ -140,6 +140,7 @@ public:
 	// Data handlers
 	virtual bool	IsPlayer( void ) const { return true; }
 	virtual int		GetHealth() const { return m_iHealth; }
+	virtual int		GetMaxHealth() const { return m_iMaxHealth; }
 
 	int		GetBonusProgress() const { return m_iBonusProgress; }
 	int		GetBonusChallenge() const { return m_iBonusChallenge; }

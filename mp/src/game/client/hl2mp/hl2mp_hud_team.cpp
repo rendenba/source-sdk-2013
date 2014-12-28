@@ -32,6 +32,10 @@ public:
 
 	virtual void PerformLayout();
 
+	//BB: FUCK THIS!
+	virtual void Paint( void ) { }
+	virtual void PaintBackground( void ) { }
+
 protected:
 	virtual void ApplySchemeSettings( vgui::IScheme *pScheme );
 	virtual void OnThink();
@@ -131,7 +135,7 @@ void CTeamPlayHud::PerformLayout()
 //-----------------------------------------------------------------------------
 void CTeamPlayHud::OnThink()
 {
-	SetVisible( false );
+	/*SetVisible( false );
 
 	C_BaseHLPlayer *pLocalPlayer = (C_BaseHLPlayer *)C_BasePlayer::GetLocalPlayer();
 
@@ -185,5 +189,5 @@ void CTeamPlayHud::OnThink()
 		SetVisible( true );
 	}
 
-	InvalidateLayout();
+	InvalidateLayout();*/
 }

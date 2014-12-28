@@ -1,5 +1,5 @@
-#if !defined( HUD_XP_H )
-#define HUD_XP_H
+#if !defined( HUD_HEALTHBAR_H )
+#define HUD_HEALTHBAR_H
 #ifdef _WIN32
 #pragma once
 #endif
@@ -11,12 +11,12 @@
 //-----------------------------------------------------------------------------
 // Purpose: Shows the sprint power bar
 //-----------------------------------------------------------------------------
-class CHudXP : public CHudElement, public vgui::Panel
+class CHudHealthBar : public CHudElement, public vgui::Panel
 {
-	DECLARE_CLASS_SIMPLE( CHudXP, vgui::Panel );
+	DECLARE_CLASS_SIMPLE( CHudHealthBar, vgui::Panel );
 
 public:
-	CHudXP( const char *pElementName );
+	CHudHealthBar( const char *pElementName );
 	virtual void	Init( void );
 	virtual void	Reset( void );
 	virtual void	OnThink( void );
@@ -45,9 +45,12 @@ private:
 	//CPanelAnimationVarAliasType( float, text2_ypos, "text2_ypos", "40", "proportional_float" );
 	//CPanelAnimationVarAliasType( float, text2_gap, "text2_gap", "10", "proportional_float" );
 
-	int m_XP;
+	int m_iHealth;
+	int m_iMaxHealth;
 	int m_nGlassTex;
 	int m_nBlipTex;
+	int m_nBlipLeft;
+	int m_nBlipRight;
 };	
 
 #endif
