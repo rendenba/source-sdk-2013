@@ -34,8 +34,11 @@ CHudHealthBar::CHudHealthBar( const char *pElementName ) : CHudElement( pElement
 
 	SetHiddenBits( HIDEHUD_HEALTH | HIDEHUD_PLAYERDEAD | HIDEHUD_NEEDSUIT );
 
-	m_nGlassTex = surface()->CreateNewTextureID();
-	surface()->DrawSetTextureFile( m_nGlassTex, "hud/bars/glass_empty_big", true, true);
+	m_nGlassTex[0] = surface()->CreateNewTextureID();
+	surface()->DrawSetTextureFile( m_nGlassTex[0], "hud/bars/s_glass_empty_big", true, true);
+
+	m_nGlassTex[1] = surface()->CreateNewTextureID();
+	surface()->DrawSetTextureFile( m_nGlassTex[1], "hud/bars/v_glass_empty_big", true, true);
 
 	m_nBlipTex = surface()->CreateNewTextureID();
 	surface()->DrawSetTextureFile( m_nBlipTex, "hud/bars/glass_h", true, true);
@@ -141,8 +144,12 @@ void CHudHealthBar::Paint()
 	float inset = (1.0f-ratio)*midadj;
 	float start = m_flBarInsetX+inset;
 
+	int team = 0;
+	if (pPlayer->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+		team = 1;
+
 	surface()->DrawSetColor( m_AuxPowerColor );
-	surface()->DrawSetTexture(m_nGlassTex);
+	surface()->DrawSetTexture(m_nGlassTex[team]);
 	surface()->DrawTexturedRect(0,0, wide, tall);
 	if (inset > 0.0f)
 	{

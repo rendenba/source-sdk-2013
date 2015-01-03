@@ -164,7 +164,7 @@ void CTargetID::Paint()
 				bShowHealth = true;
 			}
 			//BB: we dont want to see name tags for stealthed people...
-			else if (pPlayer->GetRenderColor().a > 130)
+			else if (pPlayer->m_floatCloakFactor > 0.0f)
 			{
 				printFormatString = "#Playerid_diffteam";
 			}

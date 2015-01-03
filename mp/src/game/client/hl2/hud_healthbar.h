@@ -47,7 +47,7 @@ private:
 
 	int m_iHealth;
 	int m_iMaxHealth;
-	int m_nGlassTex;
+	int m_nGlassTex[2];
 	int m_nBlipTex;
 	int m_nBlipLeft;
 	int m_nBlipRight;

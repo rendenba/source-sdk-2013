@@ -64,18 +64,18 @@ CTeamPlayHud::CTeamPlayHud( const char *pElementName ) : BaseClass(NULL, "TeamDi
 	vgui::Panel *pParent = g_pClientMode->GetViewport();
 	SetParent( pParent );
 	SetVisible( false );
-	SetAlpha( 255 );
+	/*SetAlpha( 255 );
 
 	m_pBackground = new vgui::Label( this, "Background", "" );
 
-	m_pWarmupLabel = new vgui::Label( this, "RoundState_warmup", "test label" /*g_pVGuiLocalize->Find( "#Clan_warmup_mode" )*/ );
+	m_pWarmupLabel = new vgui::Label( this, "RoundState_warmup", "test label" /*g_pVGuiLocalize->Find( "#Clan_warmup_mode" )*/ /*);
 	m_pWarmupLabel->SetPaintBackgroundEnabled( false );
 	m_pWarmupLabel->SetPaintBorderEnabled( false );
 	m_pWarmupLabel->SizeToContents();
 	m_pWarmupLabel->SetContentAlignment( vgui::Label::a_west );
 	m_pWarmupLabel->SetFgColor( GetFgColor() );
 
-	m_bSuitAuxPowerUsed = false;
+	m_bSuitAuxPowerUsed = false;*/
 }
 
 //-----------------------------------------------------------------------------
@@ -92,7 +92,7 @@ void CTeamPlayHud::ApplySchemeSettings( vgui::IScheme *pScheme )
 {
 	BaseClass::ApplySchemeSettings( pScheme );
 
-	SetFgColor( Color(0,0,0,0) );	//GetSchemeColor("RoundStateFg", pScheme) );
+	/*SetFgColor( Color(0,0,0,0) );	//GetSchemeColor("RoundStateFg", pScheme) );
 	m_hFont = pScheme->GetFont( "Default", true );
 
 	m_pBackground->SetBgColor( GetSchemeColor("BgColor", pScheme) );
@@ -100,7 +100,7 @@ void CTeamPlayHud::ApplySchemeSettings( vgui::IScheme *pScheme )
 
 	SetAlpha( 255 );
 	SetBgColor( Color( 0, 0, 0, 0 ) );
-	SetPaintBackgroundType( 0 );
+	SetPaintBackgroundType( 0 );*/
 }
 
 //-----------------------------------------------------------------------------
@@ -111,7 +111,7 @@ void CTeamPlayHud::PerformLayout()
 
 	BaseClass::PerformLayout();
 
-	int wide, tall;
+	/*int wide, tall;
 	GetSize( wide, tall );
 
 	// find the widest line
@@ -127,7 +127,7 @@ void CTeamPlayHud::PerformLayout()
 	m_pBackground->SetBounds( 0, 0, labelWide, labelTall );
 
 	int xOffset = (labelWide - m_pWarmupLabel->GetWide())/2;
-	m_pWarmupLabel->SetPos( 0 + xOffset, 0 + m_iTextY );
+	m_pWarmupLabel->SetPos( 0 + xOffset, 0 + m_iTextY );*/
 }
 
 //-----------------------------------------------------------------------------

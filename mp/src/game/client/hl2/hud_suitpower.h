@@ -55,7 +55,7 @@ private:
 	//int m_nSuitPowerLow;
 	//int m_iActiveSuitDevices;
 
-	int m_nGlassTex;
+	int m_nGlassTex[2];
 	int m_nBlipTex;
 };	
 
