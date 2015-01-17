@@ -210,6 +210,9 @@ enum CastVote
 #define bits_SUIT_DEVICE_FLASHLIGHT	0x00000002
 #define bits_SUIT_DEVICE_BREATHER	0x00000004
 
+#define bits_COVEN_DETONATE			0x00000008
+#define bits_COVEN_VENGE			0x0000000C
+
 #define MAX_SUIT_DEVICES			3
 
 
@@ -482,11 +485,12 @@ enum PLAYER_ANIM
 #define COVEN_BUFF_BERSERK 5
 #define COVEN_BUFF_MASOCHIST 6
 #define COVEN_BUFF_GCHECK 7
+#define COVEN_BUFF_DODGE 7
 #define COVEN_BUFF_HOLYWATER 8
 #define COVEN_BUFF_BLUST 9
 #define COVEN_BUFF_SLOW 10
 #define COVEN_BUFF_STUN 11
-#define COVEN_BUFF_SOULENERGY 12
+#define COVEN_BUFF_PHASE 12
 #define COVEN_BUFF_CTS 13
 
 #define COVEN_FLAG_CAPPOINT (1 << 0)
@@ -497,11 +501,12 @@ enum PLAYER_ANIM
 #define COVEN_FLAG_BERSERK (1 << 5)
 #define COVEN_FLAG_MASOCHIST (1 << 6)
 #define COVEN_FLAG_GCHECK (1 << 7)
+#define COVEN_FLAG_DODGE (1 << 7)
 #define COVEN_FLAG_HOLYWATER (1 << 8)
 #define COVEN_FLAG_BLUST (1 << 9)
 #define COVEN_FLAG_SLOW (1 << 10)
 #define COVEN_FLAG_STUN (1 << 11)
-#define COVEN_FLAG_SOULENERGY (1 << 12)
+#define COVEN_FLAG_PHASE (1 << 12)
 #define COVEN_FLAG_CTS (1 << 13)
 
 // instant damage

@@ -133,9 +133,11 @@ public:
 	void SuitPower_Initialize( void );
 	bool SuitPower_IsDeviceActive( const CSuitPowerDevice &device );
 	bool SuitPower_AddDevice( const CSuitPowerDevice &device );
+	bool SuitPower_AddDeviceBits( int bits );
 	bool SuitPower_AddDrain( float drain );
 	bool SuitPower_ResetDrain();
 	bool SuitPower_RemoveDevice( const CSuitPowerDevice &device );
+	bool SuitPower_RemoveDeviceBits( int bits );
 	bool SuitPower_ShouldRecharge( void );
 	float SuitPower_GetCurrentPercentage( void ) { return m_HL2Local.m_flSuitPower; }
 	

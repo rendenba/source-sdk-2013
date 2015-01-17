@@ -1463,7 +1463,18 @@ void CHL2_Player::ComputeSpeed( void )
 		speed *= 1.0f - GetStatusMagnitude(COVEN_BUFF_SLOW)*0.15f;
 
 	if (covenStatusEffects & COVEN_FLAG_SPRINT)
-		speed *= 1.25f;
+	{
+		speed *= (1.05f + 0.1f*GetStatusMagnitude(COVEN_BUFF_SPRINT));
+		//CBaseCombatWeapon *pActiveWeapon = GetActiveWeapon();
+		//if (GetViewModel())
+		//	GetViewModel()->SetPlaybackRate(3.0f*GetStatusMagnitude(COVEN_BUFF_SPRINT));
+	}
+	/*else
+	{
+		//CBaseCombatWeapon *pActiveWeapon = GetActiveWeapon();
+		if (GetViewModel())
+			GetViewModel()->SetPlaybackRate(1.0f);
+	}*/
 
 	if (gorephased)
 		speed *= 1.5f;
@@ -2121,6 +2132,18 @@ bool CHL2_Player::SuitPower_IsDeviceActive( const CSuitPowerDevice &device )
 	return (m_HL2Local.m_bitsActiveDevices & device.GetDeviceID()) != 0;
 }
 
+bool CHL2_Player::SuitPower_AddDeviceBits( int bits )
+{
+	m_HL2Local.m_bitsActiveDevices |= bits;
+	return true;
+}
+
+bool CHL2_Player::SuitPower_RemoveDeviceBits( int bits )
+{
+	m_HL2Local.m_bitsActiveDevices &= ~bits;
+	return true;
+}
+
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 bool CHL2_Player::SuitPower_AddDevice( const CSuitPowerDevice &device )
@@ -2190,7 +2213,7 @@ bool CHL2_Player::SuitPower_ShouldRecharge( void )
 		return false;
 
 	// Is the system fully charged?
-	if( m_HL2Local.m_flSuitPower >= 100.0f )
+	if( m_HL2Local.m_flSuitPower >= myIntellect()*10.0f )
 		return false; 
 
 	// Has the system been in a no-load state for long enough

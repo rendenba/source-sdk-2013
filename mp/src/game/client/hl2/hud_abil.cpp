@@ -111,12 +111,33 @@ CHudAbils::CHudAbils( const char *pElementName ) : CHudElement( pElementName ), 
 
 	LoadAbilityTex(0, COVEN_CLASSID_REAVER, 0, "hud/abilities/haste", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
 	LoadAbilityTex(0, COVEN_CLASSID_REAVER, 1, "hud/abilities/sheerwill", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
-	LoadAbilityTex(0, COVEN_CLASSID_REAVER, 2, "hud/abilities/intshout", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
-	LoadAbilityTex(0, COVEN_CLASSID_REAVER, 3, "hud/abilities/gutcheck", m_nBorders[3], m_nBorders[3], m_nBorders[3]);
+	LoadAbilityTex(0, COVEN_CLASSID_REAVER, 2, "hud/abilities/gutcheck", m_nBorders[3], m_nBorders[3], m_nBorders[3]);
+	LoadAbilityTex(0, COVEN_CLASSID_REAVER, 3, "hud/abilities/intshout", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
 
 	LoadAbilityTex(0, COVEN_CLASSID_HELLION, 0, "hud/abilities/holywater", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
 	LoadAbilityTex(0, COVEN_CLASSID_HELLION, 1, "hud/abilities/tripmine", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
+	LoadAbilityTex(0, COVEN_CLASSID_HELLION, 2, "hud/abilities/reflexes", m_nBorders[3], m_nBorders[3], m_nBorders[3]);
+	LoadAbilityTex(0, COVEN_CLASSID_HELLION, 3, "hud/abilities/uvlight", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
 
+	LoadAbilityTex(0, COVEN_CLASSID_AVENGER, 0, "hud/abilities/battleyell", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
+	LoadAbilityTex(0, COVEN_CLASSID_AVENGER, 1, "hud/abilities/bandage", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
+	LoadAbilityTex(0, COVEN_CLASSID_AVENGER, 2, "hud/abilities/revenge", m_nBorders[3], m_nBorders[3], m_nBorders[3]);
+	LoadAbilityTex(0, COVEN_CLASSID_AVENGER, 3, "hud/abilities/vengesoul", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
+
+	LoadAbilityTex(1, COVEN_CLASSID_FIEND, 0, "hud/abilities/leap", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
+	LoadAbilityTex(1, COVEN_CLASSID_FIEND, 1, "hud/abilities/berserk", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
+	LoadAbilityTex(1, COVEN_CLASSID_FIEND, 2, "hud/abilities/sneak", m_nBorders[3], m_nBorders[3], m_nBorders[3]);
+	LoadAbilityTex(1, COVEN_CLASSID_FIEND, 3, "hud/abilities/dodge", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
+
+	LoadAbilityTex(1, COVEN_CLASSID_GORE, 0, "hud/abilities/scream", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
+	LoadAbilityTex(1, COVEN_CLASSID_GORE, 1, "hud/abilities/charge", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
+	LoadAbilityTex(1, COVEN_CLASSID_GORE, 2, "hud/abilities/gorge", m_nBorders[3], m_nBorders[3], m_nBorders[3]);
+	LoadAbilityTex(1, COVEN_CLASSID_GORE, 3, "hud/abilities/phase", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
+
+	LoadAbilityTex(1, COVEN_CLASSID_DEGEN, 0, "hud/abilities/bloodlust", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
+	LoadAbilityTex(1, COVEN_CLASSID_DEGEN, 1, "hud/abilities/undying", m_nBorders[3], m_nBorders[3], m_nBorders[3]);
+	LoadAbilityTex(1, COVEN_CLASSID_DEGEN, 2, "hud/abilities/masochist", m_nBorders[3], m_nBorders[3], m_nBorders[3]);
+	LoadAbilityTex(1, COVEN_CLASSID_DEGEN, 3, "hud/abilities/detonate", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
 
 	SetHiddenBits( HIDEHUD_PLAYERDEAD | HIDEHUD_NEEDSUIT );
 	SetBgColor(Color(0,0,0,250));
@@ -303,7 +324,7 @@ void CHudAbils::Paint()
 	SetPaintBorderEnabled(false);
 
 	float inset = wide * 0.15f;
-	float minset = inset*1.5f;
+	float minset = inset*1.3f;
 	float y = 0.0f;
 
 	int team = 0;

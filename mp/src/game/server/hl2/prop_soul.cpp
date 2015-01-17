@@ -61,7 +61,7 @@ END_DATADESC()
 
 LINK_ENTITY_TO_CLASS( prop_soul, CPropSoul );
 
-#define	SOUL_SPEED	1000
+#define	SOUL_SPEED	2000
 
 //-----------------------------------------------------------------------------
 // Constructor
@@ -101,7 +101,7 @@ void CPropSoul::Spawn( void )
 
 	SetSolid( SOLID_BBOX );
 	SetModel("models/effects/combineball.mdl");
-	UTIL_SetSize( this, -Vector(4,4,4), Vector(4,4,4) );
+	UTIL_SetSize( this, -Vector(32,32,32), Vector(32,32,32) );//4
 
 	SetTouch( &CPropSoul::MissileTouch );
 

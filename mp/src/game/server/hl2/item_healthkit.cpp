@@ -8,6 +8,7 @@
 #include "cbase.h"
 #include "gamerules.h"
 #include "player.h"
+#include "hl2mp_player.h"
 #include "items.h"
 #include "in_buttons.h"
 #include "engine/IEngineSound.h"
@@ -90,6 +91,8 @@ bool CHealthKit::MyTouch( CBasePlayer *pPlayer )
 
 			CPASAttenuationFilter filter( pPlayer, "HealthKit.Touch" );
 			EmitSound( filter, pPlayer->entindex(), "HealthKit.Touch" );
+
+			((CHL2MP_Player *)creator)->medkits.FindAndRemove(this);
 
 			if ( g_pGameRules->ItemShouldRespawn( this ) )
 			{

@@ -49,12 +49,12 @@ class CHudAuras : public CHudElement, public Panel
    int m_nImportStats[2];
    int m_nImportBerserk[2];
    int m_nImportMasochist[2];
-   int m_nImportGCheck[2];
+   int m_nImportGCheckDodge[2];
    int m_nImportHH[2];
    int m_nImportBLust[2];
    int m_nImportSlow[2];
    int m_nImportStun[2];
-   int m_nImportVengeSoul[2];
+   int m_nImportPhase[2];
    int m_nImportCTS[2];
 
    int m_nShadowTex;
@@ -122,8 +122,11 @@ CHudAuras::CHudAuras( const char *pElementName ) : CHudElement( pElementName ), 
    m_nImportMasochist[1] = surface()->CreateNewTextureID();
    surface()->DrawSetTextureFile( m_nImportMasochist[1], "hud/statuseffects/v_masochist", true, true);
 
-   m_nImportGCheck[0] = surface()->CreateNewTextureID();
-   surface()->DrawSetTextureFile( m_nImportGCheck[0], "hud/statuseffects/s_gutcheck", true, true);
+   m_nImportGCheckDodge[0] = surface()->CreateNewTextureID();
+   surface()->DrawSetTextureFile( m_nImportGCheckDodge[0], "hud/statuseffects/s_gutcheck", true, true);
+
+   m_nImportGCheckDodge[1] = surface()->CreateNewTextureID();
+   surface()->DrawSetTextureFile( m_nImportGCheckDodge[1], "hud/statuseffects/v_dodge", true, true);
 
    m_nImportHH[0] = surface()->CreateNewTextureID();
    surface()->DrawSetTextureFile( m_nImportHH[0], "hud/statuseffects/s_holywater" , true, true);
@@ -143,8 +146,8 @@ CHudAuras::CHudAuras( const char *pElementName ) : CHudElement( pElementName ), 
    m_nImportStun[1] = surface()->CreateNewTextureID();
    surface()->DrawSetTextureFile( m_nImportStun[1], "hud/statuseffects/v_stun", true, true);
 
-   m_nImportVengeSoul[0] = surface()->CreateNewTextureID();
-   surface()->DrawSetTextureFile( m_nImportVengeSoul[0], "hud/statuseffects/s_vengesoul", true, true);
+   m_nImportPhase[1] = surface()->CreateNewTextureID();
+   surface()->DrawSetTextureFile( m_nImportPhase[1], "hud/statuseffects/v_phase", true, true);
 
    m_nImportCTS[0] = surface()->CreateNewTextureID();
    surface()->DrawSetTextureFile( m_nImportCTS[0], "hud/statuseffects/s_cts", true, true);
@@ -345,7 +348,7 @@ void CHudAuras::Paint()
 		}
 		else if (active_auras[i]->aura == COVEN_BUFF_GCHECK)
 		{
-			surface()->DrawSetTexture( m_nImportGCheck[teamnum] );
+			surface()->DrawSetTexture( m_nImportGCheckDodge[teamnum] );
 		}
 		else if (active_auras[i]->aura == COVEN_BUFF_HOLYWATER)
 		{
@@ -363,9 +366,9 @@ void CHudAuras::Paint()
 		{
 			surface()->DrawSetTexture( m_nImportStun[teamnum] );
 		}
-		else if (active_auras[i]->aura == COVEN_BUFF_SOULENERGY)
+		else if (active_auras[i]->aura == COVEN_BUFF_PHASE)
 		{
-			surface()->DrawSetTexture( m_nImportVengeSoul[teamnum] );
+			surface()->DrawSetTexture( m_nImportPhase[teamnum] );
 		}
 		else if (active_auras[i]->aura == COVEN_BUFF_CTS)
 		{
@@ -578,14 +581,16 @@ void CHudAuras::OnThink()
 		if (temp->timer > max_duration[COVEN_BUFF_STUN])
 			max_duration[COVEN_BUFF_STUN] = temp->timer;
 	}
-	if (pPlayer->covenStatusEffects & COVEN_FLAG_SOULENERGY)
+	if (pPlayer->covenStatusEffects & COVEN_FLAG_PHASE)
 	{
 		aura_pic *temp;
 		temp = new aura_pic;
-		temp->aura = COVEN_BUFF_SOULENERGY;
-		temp->text = pPlayer->m_HL2Local.covenStatusMagnitude[COVEN_BUFF_SOULENERGY];
-		temp->timer = 0;
+		temp->aura = COVEN_BUFF_PHASE;
+		temp->text = pPlayer->m_HL2Local.covenStatusMagnitude[COVEN_BUFF_PHASE];
+		temp->timer = pPlayer->m_HL2Local.covenStatusTimers[COVEN_BUFF_PHASE]-gpGlobals->curtime;
 		active_auras.AddToTail(temp);
+		if (temp->timer > max_duration[COVEN_BUFF_PHASE])
+			max_duration[COVEN_BUFF_PHASE] = temp->timer;
 	}
 	if (pPlayer->covenStatusEffects & COVEN_FLAG_CTS)
 	{

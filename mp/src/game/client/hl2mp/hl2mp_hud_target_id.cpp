@@ -172,8 +172,8 @@ void CTargetID::Paint()
 
 			if ( bShowHealth )
 			{
-				//BB: dont show the % sign in the health... we use HP not %
-				_snwprintf( wszHealthText, ARRAYSIZE(wszHealthText) - 1, L"%.0f",  ((float)pPlayer->GetHealth() / (float)pPlayer->GetMaxHealth() ) );
+				//BB: dont show the % sign in the health... we use HP not %... NOT ANY MORE!
+				_snwprintf( wszHealthText, ARRAYSIZE(wszHealthText) - 1, L"%.0f%%",  ((float)pPlayer->GetHealth() / (float)pPlayer->GetMaxHealth()*100.0f ) );
 				wszHealthText[ ARRAYSIZE(wszHealthText)-1 ] = '\0';
 			}
 		}

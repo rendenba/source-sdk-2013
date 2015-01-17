@@ -144,16 +144,18 @@ void CWeaponCrowbar::PrimaryAttack()
 		{
 			//BB: JAM Request... sneak attacks
 			pPlayer->DoGorePhase();
-			pPlayer->SetGlobalCooldown(0, gpGlobals->curtime + 3.0f);
-			pPlayer->RecalcGoreDrain();
+			pPlayer->covenStatusEffects &= pPlayer->covenStatusEffects & ~COVEN_FLAG_PHASE;
+			pPlayer->SetStatusTime(COVEN_BUFF_PHASE, 0.0f);
 		}
-		if (pPlayer->covenClassID == COVEN_CLASSID_FIEND && pPlayer->GetRenderColor().a < 255)
-			return;
+		if (pPlayer->covenClassID == COVEN_CLASSID_FIEND && pPlayer->covenStatusEffects & COVEN_FLAG_DODGE)
+		{
+			pPlayer->VampireUnDodge();
+		}
 #else
-		C_BasePlayer *local = C_BasePlayer::GetLocalPlayer();
+		/*C_BasePlayer *local = C_BasePlayer::GetLocalPlayer();
 		C_BaseHLPlayer *pPlayer2 = (C_BaseHLPlayer *)local;
 		if (pPlayer2->covenClassID == COVEN_CLASSID_FIEND && pPlayer2->GetRenderColor().a < 255)
-			return;
+			return;*/
 		//second half of sneak attacks
 		/*C_BasePlayer *local = C_BasePlayer::GetLocalPlayer();
 		C_BaseHLPlayer *pPlayer2 = (C_BaseHLPlayer *)local;

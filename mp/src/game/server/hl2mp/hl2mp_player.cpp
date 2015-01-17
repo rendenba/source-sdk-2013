@@ -237,45 +237,41 @@ void CHL2MP_Player::DoSlayerAbilityThink()
 		{
 			if (covenClassID == COVEN_CLASSID_REAVER)
 			{
-				float mana = 10.0f;//10.0f + 5.0f*lev;
-				float cool = 20.0f;// - 10.0f*lev;
-				if (SuitPower_GetCurrentPercentage() > mana)
+				//float mana = 10.0f;//10.0f + 5.0f*lev;
+				//float cool = 20.0f;// - 10.0f*lev;
+				if (covenStatusEffects & COVEN_FLAG_SPRINT)
 				{
-					SetGlobalCooldown(0, gpGlobals->curtime + cool);
-					SetStatusTime(COVEN_BUFF_SPRINT, gpGlobals->curtime + 6.0f + 2.0f*lev);
+					covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_SPRINT;
+					SetGlobalCooldown(0, 3.0f);
+					SuitPower_ResetDrain();
+					ComputeSpeed();
+				}
+				else if (SuitPower_GetCurrentPercentage() > 1.0f)
+				{
+					//SetGlobalCooldown(0, gpGlobals->curtime + cool);
+					//SetStatusTime(COVEN_BUFF_SPRINT, gpGlobals->curtime + 6.0f + 2.0f*lev);
 					covenStatusEffects |= COVEN_FLAG_SPRINT;
+					SetStatusMagnitude(COVEN_BUFF_SPRINT, lev);
 					ComputeSpeed();
 					EmitSound("HL2Player.SprintStart");
-					SuitPower_Drain(mana);
+					SuitPower_AddDrain(2.0f);
 				}
 				else
 					EmitSound("HL2Player.UseDeny");
 			}
 			else if (covenClassID == COVEN_CLASSID_AVENGER)
 			{
-				float mana = 12.0f;//+ 5.0f*lev;
-				if (SuitPower_GetCurrentPercentage() > mana)
-				{
-					SetGlobalCooldown(0, gpGlobals->curtime + 20.0f);
-					DoBattleYell(lev);
-					EmitSound("BattleYell");
-					SuitPower_Drain(mana);
-				}
-				else
-					EmitSound("HL2Player.UseDeny");
+				//float mana = 12.0f;//+ 5.0f*lev;
+				SetGlobalCooldown(0, gpGlobals->curtime + 20.0f);
+				DoBattleYell(lev);
+				EmitSound("BattleYell");
 			}
 			else if (covenClassID == COVEN_CLASSID_HELLION)
 			{
-				float mana = 12.0f;//+2.0f*lev;
+				//float mana = 12.0f;//+2.0f*lev;
 				float cool = 5.0f;//20.0f - 5.0f*lev;
-				if (SuitPower_GetCurrentPercentage() > mana)
-				{
-					SetGlobalCooldown(0, gpGlobals->curtime + cool);
-					ThrowHolywaterGrenade(lev);
-					SuitPower_Drain(mana);
-				}
-				else
-					EmitSound("HL2Player.UseDeny");
+				SetGlobalCooldown(0, gpGlobals->curtime + cool);
+				ThrowHolywaterGrenade(lev);
 			}
 		}
 	}
@@ -291,47 +287,39 @@ void CHL2MP_Player::DoSlayerAbilityThink()
 		{
 			if (covenClassID == COVEN_CLASSID_REAVER)
 			{
-				float mana = 10.0f;//5.0f + 5.0f*lev;
-				float cool = 20.0f;
-				if (SuitPower_GetCurrentPercentage() > mana)
-				{
-					SetGlobalCooldown(1, gpGlobals->curtime + cool);
-					SetStatusTime(COVEN_BUFF_STATS, gpGlobals->curtime + 10.0f);
-					covenStatusEffects |= COVEN_FLAG_STATS;
-					DoSheerWill(lev);
-					EmitSound("SheerWill");
-					SuitPower_Drain(mana);
-				}
-				else
-					EmitSound("HL2Player.UseDeny");
+				//float mana = 10.0f;//5.0f + 5.0f*lev;
+				float cool = 16.0f;
+				SetGlobalCooldown(1, gpGlobals->curtime + cool);
+				SetStatusTime(COVEN_BUFF_STATS, gpGlobals->curtime + 10.0f);
+				covenStatusEffects |= COVEN_FLAG_STATS;
+				DoSheerWill(lev);
+				EmitSound("SheerWill");
 			}
 			else if (covenClassID == COVEN_CLASSID_AVENGER)
 			{
-				float mana = 16.0f-2.0f*lev;
-				float cool = 10.0f;//40.0f - 10.0f*lev;
-				if (SuitPower_GetCurrentPercentage() > mana)
+				//float mana = 16.0f-2.0f*lev;
+				float cool = 12.0f-2.0f*lev;//40.0f - 10.0f*lev;
+				SetGlobalCooldown(1, gpGlobals->curtime + cool);
+				if (medkits.Size() < lev)
 				{
-					SetGlobalCooldown(1, gpGlobals->curtime + cool);
 					GenerateBandage();
-					SuitPower_Drain(mana);
 				}
 				else
-					EmitSound("HL2Player.UseDeny");
+				{
+					CItem *ent;
+					ent = medkits[medkits.Size()-1];
+					UTIL_Remove(ent);
+					medkits.FindAndRemove(ent);
+					GenerateBandage();
+				}
 			}
 			else if (covenClassID == COVEN_CLASSID_HELLION)
 			{
-				float mana = 8.0f;//6.0f + 2.0f*lev;
-				float cool = 4.0f;
-				if (SuitPower_GetCurrentPercentage() > mana)
+				//float mana = 8.0f;//6.0f + 2.0f*lev;
+				float cool = 2.0f;
+				if (num_trip_mines < (1+lev) && AttachTripmine())
 				{
-					if (num_trip_mines < (1+lev) && AttachTripmine())
-					{
-						SetGlobalCooldown(1, gpGlobals->curtime + cool);
-						SuitPower_Drain(mana);
-
-					}
-					else
-						EmitSound("HL2Player.UseDeny");
+					SetGlobalCooldown(1, gpGlobals->curtime + cool);
 				}
 				else
 					EmitSound("HL2Player.UseDeny");
@@ -348,27 +336,13 @@ void CHL2MP_Player::DoSlayerAbilityThink()
 		}
 		else
 		{
-			if (covenClassID == COVEN_CLASSID_REAVER)
-			{
-				float mana = 12.0f;//8.0f + 4.0f*lev;
-				float cool = 20.0f;
-				if (SuitPower_GetCurrentPercentage() > mana)
-				{
-					SetGlobalCooldown(2, gpGlobals->curtime + cool);
-					SuitPower_Drain(mana);
-					EmitSound( "IntShout" );
-					DoIntimidatingShout(lev);
-				}
-				else
-					EmitSound("HL2Player.UseDeny");
-			}
 		}
 	}
 	if (m_afButtonPressed & IN_ABIL4)
 	{
 		float cd = GetCooldown(3);
 		int lev = GetLoadout(3);
-		if (covenClassID != COVEN_CLASSID_AVENGER && (cd > 0.0f && gpGlobals->curtime < cd) || lev == 0)
+		if ((cd > 0.0f && gpGlobals->curtime < cd) || lev == 0)
 		{
 			EmitSound("HL2Player.UseDeny");
 		}
@@ -376,7 +350,8 @@ void CHL2MP_Player::DoSlayerAbilityThink()
 		{
 			if (covenClassID == COVEN_CLASSID_HELLION)
 			{
-				float mana = 4.0f;// - lev;
+				//float mana = 4.0f;// - lev;
+				float mdrain = 6.0f-1.0f*lev;
 				float cool = 3.0f;
 				if (IsAlive() && FlashlightIsOn())
 				{
@@ -389,12 +364,11 @@ void CHL2MP_Player::DoSlayerAbilityThink()
 						EmitSound( "HL2Player.FlashlightOff" );
 					}
 				}
-				else if (SuitPower_GetCurrentPercentage() > mana)
+				else if (SuitPower_GetCurrentPercentage() > mdrain)
 				{
 					if (IsAlive())
 					{
-						SuitPower_Drain(mana);
-						SuitPower_AddDrain(8.5f-1.5f*lev);
+						SuitPower_AddDrain(mdrain);
 						AddEffects( EF_DIMLIGHT );
 						EmitSound( "HL2Player.FlashlightOn" );
 					}
@@ -402,23 +376,27 @@ void CHL2MP_Player::DoSlayerAbilityThink()
 				else
 					EmitSound("HL2Player.UseDeny");
 			}
-		}
-
-		//exception
-		if (covenClassID == COVEN_CLASSID_AVENGER && lev > 0)
-		{
-			float mana = 12.0f;//8.0f + 4.0f*lev;
-			if (covenStatusEffects & COVEN_FLAG_SOULENERGY && SuitPower_GetCurrentPercentage() > mana)
+			else if (covenClassID == COVEN_CLASSID_REAVER)
 			{
-				UnleashSoul();
-				SuitPower_Drain(mana);
+				//float mana = 12.0f;//8.0f + 4.0f*lev;
+				float cool = 20.0f;
+				SetGlobalCooldown(3, gpGlobals->curtime + cool);
+				EmitSound( "IntShout" );
+				DoIntimidatingShout(lev);
 			}
-			else
-				EmitSound("HL2Player.UseDeny");
-		}
-		else if (covenClassID == COVEN_CLASSID_AVENGER)
-		{
-			EmitSound("HL2Player.UseDeny");
+			else if (covenClassID == COVEN_CLASSID_AVENGER)
+			{
+				//float mana = 12.0f;//8.0f + 4.0f*lev;
+				if (SuitPower_GetCurrentPercentage() > 2.0f)
+				{
+					coven_soul_power = 2*lev;
+					coven_timer_soul = gpGlobals->curtime + 0.5f;
+					SuitPower_Drain(2.0f);
+					SuitPower_AddDeviceBits( bits_COVEN_VENGE );
+				}
+				else
+					EmitSound("HL2Player.UseDeny");
+			}
 		}
 	}
 }
@@ -446,17 +424,7 @@ void CHL2MP_Player::UnleashSoul()
 		pMissile->SetGracePeriod( 0.3 );
 	}*/
 
-	int m = GetStatusMagnitude(COVEN_BUFF_SOULENERGY);
-	SetStatusMagnitude(COVEN_BUFF_SOULENERGY, 0);
-	covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_SOULENERGY;
-
-	if (m == 100)
-	{
-		//coven_timer_soul = ;
-		SetGlobalCooldown(3, gpGlobals->curtime + 4.0f);//10.0f - 2.0f*GetLoadout(3));
-	}
-
-	pMissile->SetDamage( m );
+	pMissile->SetDamage( coven_soul_power );
 
 	// View effects
 	color32 white = {255, 255, 255, 64};
@@ -467,27 +435,26 @@ void CHL2MP_Player::SlayerSoulThink()
 {
 	if (covenClassID == COVEN_CLASSID_AVENGER && GetLoadout(3) > 0 && IsAlive())
 	{
-		int m = GetStatusMagnitude(COVEN_BUFF_SOULENERGY);
-		if (gpGlobals->curtime > GetCooldown(3) && m < 100)
+		if (coven_timer_soul > 0.0f && gpGlobals->curtime > coven_timer_soul)
 		{
-			covenStatusEffects |= COVEN_FLAG_SOULENERGY;
-			m += 4 + GetLoadout(3);
-			if (m > 100)
-				m = 100;
-			
-			if (m < 100)
-			{
-				//coven_timer_soul = gpGlobals->curtime + 12.0f - 2.0f*GetLoadout(3);
-				SetGlobalCooldown(3, gpGlobals->curtime + 4.0f);//10.0f - 2.0f*GetLoadout(3));
-			}
-			SetStatusMagnitude(COVEN_BUFF_SOULENERGY, m);
+			coven_timer_soul = gpGlobals->curtime + 0.5f;
+			coven_soul_power += 2*GetLoadout(3);
+			SuitPower_Drain(2.0f);
+		}
+		if (coven_soul_power > 0 && (SuitPower_GetCurrentPercentage() < 2.0f || m_afButtonReleased & IN_ABIL4))
+		{
+			coven_timer_soul = -1.0f;
+			SuitPower_RemoveDeviceBits( bits_COVEN_VENGE );
+			SetGlobalCooldown(3, gpGlobals->curtime + 3.0f);
+			UnleashSoul();
+			coven_soul_power = 0;
 		}
 	}
 }
 
 void CHL2MP_Player::DoIntimidatingShout(int lev)
 {
-	GiveBuffInRadius(COVEN_TEAMID_VAMPIRES, COVEN_BUFF_STUN, lev, 0.5f+0.5f*lev, 100.0f+100.0f*lev, 0);
+	GiveBuffInRadius(COVEN_TEAMID_VAMPIRES, COVEN_BUFF_STUN, lev, 0.5f+0.5f*lev, 200.0f+100.0f*lev, 0);
 }
 
 void CHL2MP_Player::ThrowHolywaterGrenade(int lev)
@@ -548,6 +515,7 @@ void CHL2MP_Player::GenerateBandage()
 	ent->SetLocalAngles(QAngle(random->RandomInt(-180,180),random->RandomInt(-180,180),random->RandomInt(-180,180)));
 	ent->ApplyAbsVelocityImpulse(vecThrow);//SetLocalVelocity(forward*200);
 	ent->AddSpawnFlags(SF_NORESPAWN);
+	medkits.AddToHead(((CItem *)ent));
 }
 
 void CHL2MP_Player::DoSheerWill(int lev)
@@ -725,7 +693,7 @@ void CHL2MP_Player::DoGorePhase()
 
 void CHL2MP_Player::DoBattleYell(int lev)
 {
-	GiveBuffInRadius(COVEN_TEAMID_SLAYERS, COVEN_BUFF_BYELL, lev, 10.0f, 400.0f, 0);
+	GiveBuffInRadius(COVEN_TEAMID_SLAYERS, COVEN_BUFF_BYELL, lev, 10.0f, 500.0f, 0);
 }
 
 void CHL2MP_Player::DoBloodLust(int lev)
@@ -735,18 +703,33 @@ void CHL2MP_Player::DoBloodLust(int lev)
 
 void CHL2MP_Player::DoDreadScream(int lev)
 {
-	GiveBuffInRadius(COVEN_TEAMID_SLAYERS, COVEN_BUFF_SLOW, lev, 8.0f, 400.0f, 0);
+	GiveBuffInRadius(COVEN_TEAMID_SLAYERS, COVEN_BUFF_SLOW, lev, 8.0f, 500.0f, 0);
 }
 
 void CHL2MP_Player::RecalcGoreDrain()
 {
 	SuitPower_ResetDrain();
-	float mdrain_phase = 2.5f - 0.5f*GetLoadout(0);
-	float mdrain_charge = 11.0f - 1.0f*GetLoadout(1);
-	if (gorephased)
-		SuitPower_AddDrain(mdrain_phase);
+	//float mdrain_phase = 2.5f - 0.5f*GetLoadout(0);
+	float mdrain_charge = 12.0f - 2.0f*GetLoadout(1);
+	//if (gorephased)
+	//	SuitPower_AddDrain(mdrain_phase);
 	if (gorelock)
 		SuitPower_AddDrain(mdrain_charge);
+}
+
+void CHL2MP_Player::VampireUnDodge()
+{
+	if (covenStatusEffects & COVEN_FLAG_DODGE)
+	{
+		covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_DODGE;
+		SuitPower_ResetDrain();
+		SetGlobalCooldown(3, gpGlobals->curtime + 5.0f);
+		SetRenderColorA(255);
+		if( IsAlive() )
+		{
+			EmitSound( "Dodge" );
+		}
+	}
 }
 
 void CHL2MP_Player::DoVampireAbilityThink()
@@ -764,52 +747,24 @@ void CHL2MP_Player::DoVampireAbilityThink()
 			if (covenClassID == COVEN_CLASSID_FIEND)
 			{
 				//BB: JAM request. fixed lowered leap cooldown... mana costs dec
-				float mana = 15.0f-3.0f*lev;
+				//float mana = 15.0f-3.0f*lev;
 				//float cool = 10.0f - 2.0f*lev;
-				if (SuitPower_GetCurrentPercentage() > mana)
-				{
-					SetGlobalCooldown(0, gpGlobals->curtime + 3.75f - 0.25f*lev);
-					DoLeap();
-					SuitPower_Drain(mana);
-				}
-				else
-					EmitSound("HL2Player.UseDeny");
+				SetGlobalCooldown(0, gpGlobals->curtime + 3.75f - 0.25f*lev);
+				DoLeap();
 			}
 			else if (covenClassID == COVEN_CLASSID_GORE)
 			{
-				if (gorephased)
-				{
-					DoGorePhase();
-					SetGlobalCooldown(0, gpGlobals->curtime + 3.0f);
-					RecalcGoreDrain();
-				}
-				else
-				{
-					float mana = 4.0f;//7.0f - 1.0f*lev;
-					if (SuitPower_GetCurrentPercentage() > mana)
-					{
-						SetGlobalCooldown(0, gpGlobals->curtime + 3.0f);
-						SuitPower_Drain(mana);
-						DoGorePhase();
-						RecalcGoreDrain();
-					}
-					else
-						EmitSound("HL2Player.UseDeny");
-				}
+				
+				SetGlobalCooldown(0, gpGlobals->curtime + 15.0f);
+				DoDreadScream(lev);
+				EmitSound("HL2Player.Sweet");
 			}
 			else if (covenClassID == COVEN_CLASSID_DEGEN)
 			{
-				float mana = 10.0f;// + 2.0f*lev;
-				//float cool = 25.0f - 5.0f*lev;
-				if (SuitPower_GetCurrentPercentage() > mana)
-				{
-					SetGlobalCooldown(0, gpGlobals->curtime + 15.0f);
-					DoDreadScream(lev);
-					EmitSound("HL2Player.Sweet");
-					SuitPower_Drain(mana);
-				}
-				else
-					EmitSound("HL2Player.UseDeny");
+				//float mana = 10.0f;//5.0f + 5.0f*lev;
+				SetGlobalCooldown(0, gpGlobals->curtime + 18.0f);
+				DoBloodLust(lev);
+				EmitSound("HL2Player.Sweet");
 			}
 		}
 	}
@@ -823,25 +778,12 @@ void CHL2MP_Player::DoVampireAbilityThink()
 		}
 		else
 		{
-			if (covenClassID == COVEN_CLASSID_DEGEN)
+			if (covenClassID == COVEN_CLASSID_GORE)
 			{
-				float mana = 10.0f;//5.0f + 5.0f*lev;
-				if (SuitPower_GetCurrentPercentage() > mana)
+				//float mana = 4.0f;//7.0f - 1.0f*lev;
+				if (SuitPower_GetCurrentPercentage() > 2.0f)
 				{
-					SetGlobalCooldown(1, gpGlobals->curtime + 18.0f);
-					DoBloodLust(lev);
-					EmitSound("HL2Player.Sweet");
-					SuitPower_Drain(mana);
-				}
-				else
-					EmitSound("HL2Player.UseDeny");
-			}
-			else if (covenClassID == COVEN_CLASSID_GORE)
-			{
-				float mana = 4.0f;//7.0f - 1.0f*lev;
-				if (SuitPower_GetCurrentPercentage() > mana)
-				{
-					SuitPower_Drain(mana);
+					//SuitPower_Drain(mana);
 					DoGoreCharge();
 					RecalcGoreDrain();
 					EmitSound("HL2Player.Sweet");
@@ -851,29 +793,14 @@ void CHL2MP_Player::DoVampireAbilityThink()
 			}
 			else if (covenClassID == COVEN_CLASSID_FIEND)
 			{
-				float mana = 4.0f;
-				/*if (GetRenderColor().a < 255)
-				{
-					SuitPower_ResetDrain();
-					SetGlobalCooldown(1, gpGlobals->curtime + 3.0f);
-					SetRenderColorA(255);
-					if( IsAlive() )
-					{
-						EmitSound( "HL2Player.FlashlightOff" );
-					}
-				}
-				else*/
-				{
-					if (SuitPower_GetCurrentPercentage() > mana)
-					{
-						SuitPower_Drain(mana);
-						EmitSound("HL2Player.SprintStart");
-						SetRenderColorA(100);
-						SuitPower_AddDrain(4.0f);
-					}
-					else
-						EmitSound("HL2Player.UseDeny");
-				}
+				//float mana = 15.0f;//10.0f+5.0f*lev;
+				float cool = 20.0f;
+				SetGlobalCooldown(1, gpGlobals->curtime + cool);
+				SetStatusTime(COVEN_BUFF_BERSERK, gpGlobals->curtime + 10.0f);
+				SetStatusMagnitude(COVEN_BUFF_BERSERK, lev);
+				covenStatusEffects |= COVEN_FLAG_BERSERK;
+				DoBerserk(lev);
+				EmitSound("HL2Player.Sweet");
 			}
 		}
 	}
@@ -887,35 +814,56 @@ void CHL2MP_Player::DoVampireAbilityThink()
 		}
 		else
 		{
-			if (covenClassID == COVEN_CLASSID_FIEND)
+			if (covenClassID == COVEN_CLASSID_DEGEN)
 			{
-				float mana = 15.0f;//10.0f+5.0f*lev;
-				float cool = 20.0f;
-				if (SuitPower_GetCurrentPercentage() > mana)
+				//float mana = 10.0f;//6.0f+2.0f*lev;
+				//float cool = 10.0f;
+				if (SuitPower_GetCurrentPercentage() > 2.0f)
 				{
-					SetGlobalCooldown(3, gpGlobals->curtime + cool);
-					SetStatusTime(COVEN_BUFF_BERSERK, gpGlobals->curtime + 15.0f);
-					SetStatusMagnitude(COVEN_BUFF_BERSERK, lev);
-					covenStatusEffects |= COVEN_FLAG_BERSERK;
-					DoBerserk(lev);
-					EmitSound("HL2Player.Sweet");
-					SuitPower_Drain(mana);
+					coven_timer_detonate = gpGlobals->curtime + 0.5f;
+					coven_detonate_power += 2*lev;
+					SuitPower_AddDeviceBits( bits_COVEN_DETONATE );
+					SuitPower_Drain(2.0f);
+				}
+				else
+					EmitSound("HL2Player.UseDeny");
+			}
+			else if (covenClassID == COVEN_CLASSID_FIEND)
+			{
+				//float mana = 4.0f;
+				if (covenStatusEffects & COVEN_FLAG_DODGE)
+				{
+					VampireUnDodge();
+				}
+				else if (SuitPower_GetCurrentPercentage() > 1.0f)
+				{
+					covenStatusEffects |= COVEN_FLAG_DODGE;
+					EmitSound("HL2Player.SprintStart");
+					SetRenderColorA(100);
+					SuitPower_AddDrain(4.0f);
 				}
 				else
 					EmitSound("HL2Player.UseDeny");
 			}
 			else if (covenClassID == COVEN_CLASSID_GORE)
 			{
-				float mana = 10.0f;//6.0f+2.0f*lev;
-				float cool = 10.0f;
-				if (SuitPower_GetCurrentPercentage() > mana)
+				if (gorephased)
 				{
-					SetGlobalCooldown(3, gpGlobals->curtime + cool);
-					BloodExplode(lev);
-					SuitPower_Drain(mana);
+					covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_PHASE;
+					SetStatusTime(COVEN_BUFF_PHASE, 0.0f);
+					DoGorePhase();
 				}
 				else
-					EmitSound("HL2Player.UseDeny");
+				{
+					float cool = 17.0f-lev;
+					float duration = 6.0f+2.0f*lev;
+					//float mana = 4.0f;//7.0f - 1.0f*lev;
+					SetGlobalCooldown(3, gpGlobals->curtime + cool);
+					covenStatusEffects |= COVEN_FLAG_PHASE;
+					SetStatusMagnitude(COVEN_BUFF_PHASE, lev);
+					SetStatusTime(COVEN_BUFF_PHASE, gpGlobals->curtime + duration);
+					DoGorePhase();
+				}
 			}
 		}
 	}
@@ -975,7 +923,8 @@ void CHL2MP_Player::BloodExplode(int lev)
 	Vector vecReported = GetAbsOrigin();
 
 	int bits = DMG_PARALYZE;
-	float damn = 0.25f*lev*GetMaxHealth();
+	float damn = coven_detonate_power;
+	//float damn = 0.25f*lev*GetMaxHealth();
 	CBaseEntity *ignore;
 	ignore = this;
 
@@ -986,7 +935,8 @@ void CHL2MP_Player::BloodExplode(int lev)
 	UTIL_DecalTrace( &pTrace, "Scorch" );
 
 	//bits = DMG_CLUB;
-	damn = 0.15f*lev*GetMaxHealth();
+	damn = 0.5f*coven_detonate_power;
+	//damn = 0.15f*lev*GetMaxHealth();
 	info.SetDamage(damn);
 	info.SetDamageType(bits);
 	TakeDamage(info);
@@ -1527,7 +1477,6 @@ void CHL2MP_Player::Spawn(void)
 	covenRespawnTimer = -1.0f;
 
 	covenStatusEffects = 0;
-	SetStatusMagnitude(COVEN_BUFF_SOULENERGY, 0);
 
 	if (KO && myServerRagdoll)
 		UTIL_Remove(myServerRagdoll);
@@ -1633,13 +1582,18 @@ void CHL2MP_Player::Spawn(void)
 	SetHealth(myConstitution()*COVEN_HP_PER_CON);
 	lastCheckedCapPoint = 0;
 	lastCapPointTime = 0.0f;
+
+	coven_detonate_power = 0;
+	coven_soul_power = 0;
+
+	coven_timer_detonate = -1.0f;
 	coven_timer_feed = -1.0f;
 	coven_timer_damage = -1.0f;
 	coven_timer_leapdetectcooldown = -1.0f;
 	coven_timer_regen = 0.0f;
 	coven_timer_vstealth = 0.0f;
 	//coven_timer_gcheck = 0.0f;
-	//coven_timer_soul = 0.0f;
+	coven_timer_soul = -1.0f;
 	coven_timer_light = 0.0f;
 	coven_timer_holywater = -1.0f;
 }
@@ -1954,8 +1908,8 @@ float CHL2MP_Player::Feed()
 			temp = newmax - GetHealth();
 			if (temp > 0)
 			{
-				if (temp > 3)
-					temp = 3;
+				if (temp > 3+GetLoadout(2))
+					temp = 3+GetLoadout(2);
 				SetHealth(GetHealth()+temp);
 			}
 		}
@@ -1970,6 +1924,27 @@ float CHL2MP_Player::Feed()
 	}
 
 	return 0.0f;
+}
+
+void CHL2MP_Player::VampireEnergyHandler()
+{
+	if (covenClassID == COVEN_CLASSID_DEGEN)
+	{
+		if (coven_timer_detonate > 0.0f && gpGlobals->curtime > coven_timer_detonate)
+		{
+			coven_timer_detonate = gpGlobals->curtime + 0.5f;
+			coven_detonate_power += 2*GetLoadout(3);
+			SuitPower_Drain(2.0f);
+		}
+		if (coven_detonate_power > 0 && (SuitPower_GetCurrentPercentage() < 2.0f || m_afButtonReleased & IN_ABIL4))
+		{
+			coven_timer_detonate = -1.0f;
+			SuitPower_RemoveDeviceBits( bits_COVEN_DETONATE );
+			SetGlobalCooldown(3, gpGlobals->curtime + 6.0f);
+			BloodExplode(GetLoadout(3));
+			coven_detonate_power = 0;
+		}
+	}
 }
 
 void CHL2MP_Player::VampireReSolidify()
@@ -2064,7 +2039,7 @@ void CHL2MP_Player::DoLeap()
 	//VectorAdd(GetLocalVelocity(), force, force);
 	//force.z += 1.5*sqrt(2 * 800.0f * 21.0f);
 	//SetLocalVelocity(force);
-	ApplyAbsVelocityImpulse( 520*force );//780??
+	ApplyAbsVelocityImpulse( (480+20*GetLoadout(0))*force );//780?? 520
 }
 
 float CHL2MP_Player::DamageForce( const Vector &size, float damage )
@@ -2252,6 +2227,7 @@ void CHL2MP_Player::DoVampirePreThink()
 	VampireManageRagdoll();
 	VampireStealthCalc();
 	VampireDodgeHandler();
+	VampireEnergyHandler();
 }
 
 void CHL2MP_Player::VampireCheckGore()
@@ -2281,14 +2257,14 @@ void CHL2MP_Player::VampireCheckGore()
 			gorelock = false;
 			RecalcGoreDrain();
 			ComputeSpeed();
-			SetGlobalCooldown(1, gpGlobals->curtime + 1.0f);
+			SetGlobalCooldown(1, gpGlobals->curtime + 4.0f-GetLoadout(1));
 		}
 		if (gorelock && SuitPower_GetCurrentPercentage() <= 0.0f)
 		{
 			gorelock = false;
 			RecalcGoreDrain();
 			ComputeSpeed();
-			SetGlobalCooldown(1, gpGlobals->curtime + 1.0f);
+			SetGlobalCooldown(1, gpGlobals->curtime + 4.0f-GetLoadout(1));
 		}
 	}
 }
@@ -2327,6 +2303,7 @@ void CHL2MP_Player::DoSlayerPreThink()
 	SlayerGutcheckThink();
 	SlayerSoulThink();
 	SlayerLightHandler();
+	SlayerEnergyHandler();
 	SlayerHolywaterThink();
 }
 
@@ -2421,8 +2398,8 @@ void CHL2MP_Player::VampireCheckResurrect()
 	float y = 5.0f;
 	if (covenClassID == COVEN_CLASSID_DEGEN)
 	{
-		x -= 0.66f*GetLoadout(3);
-		y -= 0.66f*GetLoadout(3);
+		x -= 0.66f*GetLoadout(1);
+		y -= 0.66f*GetLoadout(1);
 	}
 	//BB: vampire ressurect... start the sound early...
 	if (timeofdeath > 0 && /*gpGlobals->curtime < timeofdeath + 4.9f &&*/ gpGlobals->curtime > timeofdeath + x && !rezsound)
@@ -3047,9 +3024,9 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 
 void CHL2MP_Player::SlayerGutcheckThink()
 {
-	if (covenClassID == COVEN_CLASSID_REAVER && GetLoadout(3) > 0 && IsAlive())
+	if (covenClassID == COVEN_CLASSID_REAVER && GetLoadout(2) > 0 && IsAlive())
 	{
-		if (gpGlobals->curtime > GetCooldown(3))
+		if (gpGlobals->curtime > GetCooldown(2))
 		{
 			covenStatusEffects |= COVEN_FLAG_GCHECK;
 		}
@@ -3070,15 +3047,6 @@ void CHL2MP_Player::DoStatusThink()
 	}
 
 	//SPRINT (actual sprintspeed handled in ComputeSpeed in HL2Player)
-	if (covenStatusEffects & COVEN_FLAG_SPRINT)
-	{
-		if (gpGlobals->curtime > GetStatusTime(COVEN_BUFF_SPRINT))
-		{
-			covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_SPRINT;
-			SetStatusTime(COVEN_BUFF_SPRINT, 0.0f);
-			ComputeSpeed();
-		}
-	}
 
 	//STUN (handle it here)
 	if (covenStatusEffects & COVEN_FLAG_STUN)
@@ -3127,6 +3095,18 @@ void CHL2MP_Player::DoStatusThink()
 			SetStatusTime(COVEN_BUFF_MASOCHIST, 0.0f);
 			SetStatusMagnitude(COVEN_BUFF_MASOCHIST, 0);
 			ComputeSpeed();
+		}
+	}
+
+	//NEW PHASE
+	if (covenStatusEffects & COVEN_FLAG_PHASE)
+	{
+		if (gpGlobals->curtime > GetStatusTime(COVEN_BUFF_PHASE))
+		{
+			covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_PHASE;
+			SetStatusTime(COVEN_BUFF_PHASE, 0.0f);
+			SetStatusMagnitude(COVEN_BUFF_PHASE, 0);
+			DoGorePhase();
 		}
 	}
 
@@ -3696,7 +3676,23 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 		covenRespawnTimer = gpGlobals->curtime;
 
 	if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+	{
+		if (covenClassID == COVEN_CLASSID_AVENGER)
+		{
+			coven_timer_soul = -1.0f;
+			coven_soul_power = 0;
+		}
 		RevengeCheck();
+	}
+
+	if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+	{
+		if (covenClassID == COVEN_CLASSID_DEGEN)
+		{
+			coven_timer_detonate = -1.0f;
+			coven_detonate_power = 0;
+		}
+	}
 
 	if (covenStatusEffects & COVEN_FLAG_CTS && HL2MPRules()->cts_inplay)
 	{
@@ -3981,15 +3977,9 @@ CON_COMMAND(distance, "distance from store_loc")
 
 void CHL2MP_Player::VampireDodgeHandler()
 {
-	if (covenClassID == COVEN_CLASSID_FIEND && GetRenderColor().a < 255 && (SuitPower_GetCurrentPercentage() <= 0.0f || m_afButtonReleased & IN_ABIL2))
+	if (covenClassID == COVEN_CLASSID_FIEND && covenStatusEffects & COVEN_FLAG_DODGE && (SuitPower_GetCurrentPercentage() <= 0.0f))
 	{
-		SuitPower_ResetDrain();
-		SetGlobalCooldown(1, gpGlobals->curtime + 5.0f);
-		SetRenderColorA(255);
-		if( IsAlive() )
-		{
-			EmitSound( "Dodge" );
-		}
+		VampireUnDodge();
 	}
 }
 
@@ -4068,7 +4058,10 @@ void CHL2MP_Player::SlayerLightHandler()
 			}
 		}
 	}
+}
 
+void CHL2MP_Player::SlayerEnergyHandler()
+{
 	if (FlashlightIsOn() && IsAlive() && SuitPower_GetCurrentPercentage() <= 0.0f)
 	{
 		RemoveEffects( EF_DIMLIGHT );
@@ -4079,6 +4072,14 @@ void CHL2MP_Player::SlayerLightHandler()
 		{
 			EmitSound( "HL2Player.FlashlightOff" );
 		}
+	}
+
+	if (covenClassID == COVEN_CLASSID_REAVER && SuitPower_GetCurrentPercentage() <= 0.0f)
+	{
+		covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_SPRINT;
+		ComputeSpeed();
+		SetGlobalCooldown(0, gpGlobals->curtime + 3.0f);
+		SuitPower_ResetDrain();
 	}
 }
 
@@ -4137,7 +4138,7 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 	CTakeDamageInfo inputInfoAdjust = inputInfo;
 
 	//DODGE
-	if (covenClassID == COVEN_CLASSID_FIEND && GetRenderColor().a < 255)
+	if (covenClassID == COVEN_CLASSID_FIEND && covenStatusEffects & COVEN_FLAG_DODGE)
 	{
 		inputInfoAdjust.SetDamage(inputInfoAdjust.GetDamage() * (0.9f - 0.2f*GetLoadout(1)));
 		int r = random->RandomInt(0,5);
@@ -4205,7 +4206,7 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 		{
 			covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_GCHECK;
 			//coven_timer_gcheck = gpGlobals->curtime + 20.0f - 5.0f*GetLoadout(3);
-			SetGlobalCooldown(3,gpGlobals->curtime + 20.0f - 5.0f*GetLoadout(3));
+			SetGlobalCooldown(2,gpGlobals->curtime + 20.0f - 5.0f*GetLoadout(2));
 			EmitSound("Weapon_Crowbar.Melee_HitWorld");
 			inputInfoAdjust.SetDamage(0.0f);
 		}
@@ -4229,7 +4230,7 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 			if (stat > 100)
 				stat = 100;
 			SetStatusMagnitude(COVEN_BUFF_MASOCHIST, stat);
-			SetStatusTime(COVEN_BUFF_MASOCHIST, gpGlobals->curtime + 6.0f);
+			SetStatusTime(COVEN_BUFF_MASOCHIST, gpGlobals->curtime + 5.0f + 1.0f*GetLoadout(2));
 			ComputeSpeed();
 		}
 	}
@@ -4242,7 +4243,7 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 		if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
 		{
 			//startup the healing aura...
-			int mag = GetStatusMagnitude(COVEN_BUFF_HOLYWATER)+inputInfo.GetDamage()/5.0f*50.0f;
+			int mag = GetStatusMagnitude(COVEN_BUFF_HOLYWATER)+inputInfo.GetDamage()/5.0f*40.0f;//50.0f
 			if (mag > 150)
 				mag = 150;
 			SetStatusMagnitude(COVEN_BUFF_HOLYWATER, mag);
@@ -4261,7 +4262,7 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 				if (m_pFlame)
 				{
 					m_pFlame->creator = (CBasePlayer *)inputInfo.GetInflictor();
-					m_pFlame->SetLifetime( max(inputInfo.GetDamage()/5.0f*15.0f,1.0f) );
+					m_pFlame->SetLifetime( max(inputInfo.GetDamage()/5.0f*10.0f,1.0f) );//15.0f
 					AddFlag( FL_ONFIRE );
 
 					SetEffectEntity( m_pFlame );

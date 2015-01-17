@@ -77,29 +77,29 @@ public:
 				{
 					char temp[64];
 					GetText(temp, sizeof(temp));
-					if ( !Q_stricmp( "Sprint - Rank 1", temp) || !Q_stricmp( "Sprint - Rank 2", temp) || !Q_stricmp( "Sprint - Rank 3", temp) )
+					if ( !Q_stricmp( "Haste - Rank 1", temp) || !Q_stricmp( "Haste - Rank 2", temp) || !Q_stricmp( "Haste - Rank 3", temp) )
 					{
-						m_pPanel->SetText("Sprint:\n\nEnergy: 10\nCooldown: 20 seconds\n\nBoosts speed for 8/10/12 seconds.");
+						m_pPanel->SetText("Sprint:\n\nEnergy: 2.0/sec\n\nBoosts speed by 15/30/45%.");
 					}
 					else if ( !Q_stricmp( "Battle Yell - Rank 1", temp) || !Q_stricmp( "Battle Yell - Rank 2", temp) || !Q_stricmp( "Battle Yell - Rank 3", temp) )
 					{
-						m_pPanel->SetText("Battle Yell:\n\nEnergy: 12\nCooldown: 20 seconds\n\nBoosts damage by 10/20/30% for all team mates within 400 units for 10 seconds.");
+						m_pPanel->SetText("Battle Yell:\n\nCooldown: 20 seconds\n\nBoosts damage by 10/20/30% for all team mates within 500 units for 10 seconds.");
 					}
 					else if ( !Q_stricmp( "Holy Water - Rank 1", temp) || !Q_stricmp( "Holy Water - Rank 2", temp) || !Q_stricmp( "Holy Water - Rank 3", temp) )
 					{
-						m_pPanel->SetText("Holy Water:\n\nEnergy: 12\nCooldown: 5 seconds\n\nThrows a holy water grenade healing allies and setting vampires on fire. Effect increases with rank.");
+						m_pPanel->SetText("Holy Water:\n\nCooldown: 5 seconds\n\nThrows a holy water grenade healing allies and setting vampires on fire. Effect increases with rank.");
 					}
 					else if ( !Q_stricmp( "Leap - Rank 1", temp) || !Q_stricmp( "Leap - Rank 2", temp) || !Q_stricmp( "Leap - Rank 3", temp) )
 					{
-						m_pPanel->SetText("Leap:\n\nEnergy: 12/9/6\nCooldown: 3.5/3.25/3.0 seconds\n\nCauses you to accelerate quickly through the air.");
+						m_pPanel->SetText("Leap:\n\nCooldown: 3.5/3.25/3.0 seconds\n\nCauses you to accelerate quickly through the air. Effect increases with rank.");
 					}
-					else if ( !Q_stricmp( "Phase - Rank 1", temp) || !Q_stricmp( "Phase - Rank 2", temp) || !Q_stricmp( "Phase - Rank 3", temp) )
+					else if ( !Q_stricmp( "Bloodlust - Rank 1", temp) || !Q_stricmp( "Bloodlust - Rank 2", temp) || !Q_stricmp( "Bloodlust - Rank 3", temp) )
 					{
-						m_pPanel->SetText("Phase:\n\nEnergy: 4 plus 2.0/1.5/1.0 per second\nCooldown: 3 seconds\n\nDisappears from sight and greatly boosts movement speed. Attacking phases back into sight.");
+						m_pPanel->SetText("Bloodlust:\n\nCooldown: 18 seconds\n\nCauses all teammates within 500 units to regain 10/20/30% of all damage dealt to enemies for 10 seconds.");
 					}
 					else if ( !Q_stricmp( "Dread Scream - Rank 1", temp) || !Q_stricmp( "Dread Scream - Rank 2", temp) || !Q_stricmp( "Dread Scream - Rank 3", temp) )
 					{
-						m_pPanel->SetText("Dread Scream:\n\nEnergy: 10\nCooldown: 15 seconds\n\nScream instilling fear in Slayers within 400 units. Players afflicted are slowed by 15/30/45% for 8 seconds.");
+						m_pPanel->SetText("Dread Scream:\n\nCooldown: 15 seconds\n\nScream instilling fear in Slayers within 500 units. Players afflicted are slowed by 15/30/45% for 8 seconds.");
 					}
 					else
 					{
@@ -112,27 +112,27 @@ public:
 					GetText(temp, sizeof(temp));
 					if ( !Q_stricmp( "Bandage - Rank 1", temp) || !Q_stricmp( "Bandage - Rank 2", temp) || !Q_stricmp( "Bandage - Rank 3", temp) )
 					{
-						m_pPanel->SetText("Bandage:\n\nEnergy: 14/12/10\nCooldown: 10 seconds\n\nThrows a med kit for team mates to pick up.");
+						m_pPanel->SetText("Bandage:\n\nCooldown: 10/8/6 seconds\n\nThrows a med kit for team mates to pick up. Maximum 1/2/3 med kits active at once.");
 					}
 					else if ( !Q_stricmp( "Sheer Will - Rank 1", temp) || !Q_stricmp( "Sheer Will - Rank 2", temp) || !Q_stricmp( "Sheer Will - Rank 3", temp) )
 					{
-						m_pPanel->SetText("Sheer Will:\n\nEnergy: 10\nCooldown: 20 seconds\n\nBoosts all stats by 10/20/30% for 10 seconds.");
+						m_pPanel->SetText("Sheer Will:\n\nCooldown: 16 seconds\n\nBoosts all stats by 10/20/30% for 10 seconds.");
 					}
 					else if ( !Q_stricmp( "Trip Mine - Rank 1", temp) || !Q_stricmp( "Trip Mine - Rank 2", temp) || !Q_stricmp( "Trip Mine - Rank 3", temp) )
 					{
-						m_pPanel->SetText("Trip Mine:\n\nEnergy: 8\nCooldown: 4 seconds\n\nPlants a laser activated trip mine on a wall in front of you. Can have 2/3/4 total trip mines active at once.");
-					}
-					else if ( !Q_stricmp( "Bloodlust - Rank 1", temp) || !Q_stricmp( "Bloodlust - Rank 2", temp) || !Q_stricmp( "Bloodlust - Rank 3", temp) )
-					{
-						m_pPanel->SetText("Bloodlust:\n\nEnergy: 10\nCooldown: 18 seconds\n\nCauses all teammates within 500 units to regain 10/20/30% of all damage dealt to enemies for 10 seconds.");
+						m_pPanel->SetText("Trip Mine:\n\nCooldown: 2 seconds\n\nPlants a laser activated trip mine on a wall in front of you. Can have 2/3/4 total trip mines active at once.");
 					}
 					else if ( !Q_stricmp( "Charge - Rank 1", temp) || !Q_stricmp( "Charge - Rank 2", temp) || !Q_stricmp( "Charge - Rank 3", temp) )
 					{
-						m_pPanel->SetText("Charge:\n\nEnergy: 4 plus 10/9/8 per second\nCooldown: 3 seconds\n\nCharges straight ahead at immense speed. Usable while phased. Hold the effect to continue charging.");
+						m_pPanel->SetText("Charge:\n\nEnergy: 10/8/6 per second\nCooldown: 3 seconds\n\nCharges straight ahead at immense speed. Usable while phased. Hold the effect to continue charging.");
 					}
-					else if ( !Q_stricmp( "Dodge - Rank 1", temp) || !Q_stricmp( "Dodge - Rank 2", temp) || !Q_stricmp( "Dodge - Rank 3", temp) )
+					else if ( !Q_stricmp( "Berserk - Rank 1", temp) || !Q_stricmp( "Berserk - Rank 2", temp) || !Q_stricmp( "Berserk - Rank 3", temp) )
 					{
-						m_pPanel->SetText("Dodge:\n\nEnergy: 4 plus 4 per second\nCooldown: 5 seconds\n\nPress and hold to dodge. Damage taken while dodging is reduced by 30/50/70%. 1/2/3 in 6 chance to take no damage.");
+						m_pPanel->SetText("Berserk:\n\nCooldown: 20 seconds\n\nIncreases health and max health by 40/60/80% for 10 seconds.");
+					}
+					else if ( !Q_stricmp( "Undying - Rank 1", temp) || !Q_stricmp( "Undying - Rank 2", temp) || !Q_stricmp( "Undying - Rank 3", temp) )
+					{
+						m_pPanel->SetText("Undying:\n\nPassive Bonus\nResurrect 0.66/1.33/2.0 seconds faster and with 10/20/30% more health.");
 					}
 					else
 					{
@@ -157,15 +157,15 @@ public:
 					}
 					else if ( !Q_stricmp( "Masochist - Rank 1", temp) || !Q_stricmp( "Masochist - Rank 2", temp) || !Q_stricmp( "Masochist - Rank 3", temp) )
 					{
-						m_pPanel->SetText("Masochist:\n\nPassive Bonus\n\nGrants a speed bonus for 5/10/15% of all damage taken (up 100% bonus speed) for 6 seconds. Effect is cumulative until no damage is received for 6 seconds.");
+						m_pPanel->SetText("Masochist:\n\nPassive Bonus\n\nGrants a speed bonus for 5/10/15% of all damage taken (up 100% bonus speed) for 6/7/8 seconds. Effect is cumulative until no damage is received for 6/7/8 seconds.");
 					}
 					else if ( !Q_stricmp( "Gorge - Rank 1", temp) || !Q_stricmp( "Gorge - Rank 2", temp) || !Q_stricmp( "Gorge - Rank 3", temp) )
 					{
-						m_pPanel->SetText("Gorge:\n\nPassive Bonus\n\nAllows feeding to grant health 10/20/30% past normal maximum health.");
+						m_pPanel->SetText("Gorge:\n\nPassive Bonus\n\nAllows feeding to grant health 10/20/30% past normal maximum health. Feeding speed is increased.");
 					}
-					else if ( !Q_stricmp( "Intimidating Shout - Rank 1", temp) || !Q_stricmp( "Intimidating Shout - Rank 2", temp) || !Q_stricmp( "Intimidating Shout - Rank 3", temp) )
+					else if ( !Q_stricmp( "Gut Check - Rank 1", temp) || !Q_stricmp( "Gut Check - Rank 2", temp) || !Q_stricmp( "Gut Check - Rank 3", temp) )
 					{
-						m_pPanel->SetText("Intimidating Shout:\n\nEnergy: 12/16/20\nCooldown: 20 seconds\n\nStuns all enemies within 200/300/400 units for 1.5 seconds.");
+						m_pPanel->SetText("Gut Check:\n\nPassive Bonus\nCooldown: 15/10/5 seconds\n\nGrants immunity from one damaging effect while active. Resets 15/10/5 seconds after being used.");
 					}
 					else
 					{
@@ -176,29 +176,29 @@ public:
 				{
 					char temp[64];
 					GetText(temp, sizeof(temp));
-					if ( !Q_stricmp( "Berserk - Rank 1", temp) || !Q_stricmp( "Berserk - Rank 2", temp) || !Q_stricmp( "Berserk - Rank 3", temp) )
+					if ( !Q_stricmp( "Dodge - Rank 1", temp) || !Q_stricmp( "Dodge - Rank 2", temp) || !Q_stricmp( "Dodge - Rank 3", temp) )
 					{
-						m_pPanel->SetText("Berserk:\n\nEnergy: 15\nCooldown: 20 seconds\n\nIncreases health and max health by 40/60/80% for 15 seconds.");
+						m_pPanel->SetText("Dodge:\n\nEnergy: 4 per second\nCooldown: 5 seconds\n\nToggles dodging. Damage taken while dodging is reduced by 30/50/70%. 1/2/3 in 6 chance to take no damage. Attacking forces you to stop dodging.");
 					}
-					else if ( !Q_stricmp( "Gut Check - Rank 1", temp) || !Q_stricmp( "Gut Check - Rank 2", temp) || !Q_stricmp( "Gut Check - Rank 3", temp) )
+					else if ( !Q_stricmp( "Phase - Rank 1", temp) || !Q_stricmp( "Phase - Rank 2", temp) || !Q_stricmp( "Phase - Rank 3", temp) )
 					{
-						m_pPanel->SetText("Gut Check:\n\nPassive Bonus\nCooldown: 15/10/5 seconds\n\nGrants immunity from one damaging effect while active. Resets 15/10/5 seconds after being used.");
+						m_pPanel->SetText("Phase:\n\nCooldown: 16/15/14 seconds\n\nDisappears from sight and greatly boosts movement speed for 8/10/12 seconds. Attacking phases back into sight.");
 					}
-					else if ( !Q_stricmp( "Undying - Rank 1", temp) || !Q_stricmp( "Undying - Rank 2", temp) || !Q_stricmp( "Undying - Rank 3", temp) )
+					else if ( !Q_stricmp( "Intimidating Shout - Rank 1", temp) || !Q_stricmp( "Intimidating Shout - Rank 2", temp) || !Q_stricmp( "Intimidating Shout - Rank 3", temp) )
 					{
-						m_pPanel->SetText("Undying:\n\nPassive Bonus\nResurrect 0.66/1.33/2.0 seconds faster and with 10/20/30% more health.");
+						m_pPanel->SetText("Intimidating Shout:\n\nCooldown: 20 seconds\n\nStuns all enemies within 300/400/500 units for 1.0/1.5/2.0 seconds.");
 					}
 					else if ( !Q_stricmp( "Detonate Blood - Rank 1", temp) || !Q_stricmp( "Detonate Blood - Rank 2", temp) || !Q_stricmp( "Detonate Blood - Rank 3", temp) )
 					{
-						m_pPanel->SetText("Detonate Blood:\n\nEnergy: 10\nCooldown: 10 seconds\n\nExplode inflicting 15/30/45% max health damage to self and 25/50/75% max health to enemies. Causes 1.5 second stun.");
+						m_pPanel->SetText("Detonate Blood:\n\nEnergy: 4 per second\nCooldown: 6 seconds\n\nHold to charge 4/8/12 blood energy per seconds. Unleash to explode inflicting 50% of energy spent damage to self and 100% per energy spent damage to enemies. Causes 1.5 second stun to anyone damaged.");
 					}
 					else if ( !Q_stricmp( "Vengeful Soul - Rank 1", temp) || !Q_stricmp( "Vengeful Soul - Rank 2", temp) || !Q_stricmp( "Vengeful Soul - Rank 3", temp) )
 					{
-						m_pPanel->SetText("Vengeful Soul:\n\nEnergy: 12\nCooldown: N/A\n\nUnleash the vengeance of your soul to smite vampires. Soul energy regenerates at 5/6/7 per 4 seconds. Damage caused is proportional to soul energy spent. Soul energy totally obliterates vampires and their corpses.");
+						m_pPanel->SetText("Vengeful Soul:\n\nEnergy: 4 per second\nCooldown: 3 seconds\n\nHold to charge 4/8/12 soul energy per second. Unleash the vengeance of your soul to smite vampires. Damage caused is proportional to soul energy spent. Soul energy totally obliterates vampires and their corpses.");
 					}
 					else if ( !Q_stricmp( "UV Light - Rank 1", temp) || !Q_stricmp( "UV Light - Rank 2", temp) || !Q_stricmp( "UV Light - Rank 3", temp) )
 					{
-						m_pPanel->SetText("UV Light:\n\nEnergy: 4 plus 7.0/5.5/4.0 per second\nCooldown: 3 seconds\n\nToggle a flashlight emitting high powered UV light. Damages and pushes back vampires. Vampires under the effects of holy water take additional damage.");
+						m_pPanel->SetText("UV Light:\n\nEnergy: 5/4/3 per second\nCooldown: 3 seconds\n\nToggle a flashlight emitting high powered UV light. Damages and pushes back vampires. Vampires under the effects of holy water take additional damage.");
 					}
 					else
 					{

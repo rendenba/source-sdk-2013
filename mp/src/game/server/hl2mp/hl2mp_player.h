@@ -164,10 +164,13 @@ public:
 	void VampireReSolidify();
 	void VampireStealthCalc();
 	void VampireDodgeHandler();
+	void VampireEnergyHandler();
+	void VampireUnDodge();
 
 	//BB: slayer helper functions
 	void UnleashSoul();
 	void SlayerLightHandler();
+	void SlayerEnergyHandler();
 	void DoBattleYell(int lev);
 	void DoSheerWill(int lev);
 	void DoIntimidatingShout(int lev);
@@ -208,8 +211,13 @@ public:
 	float solidcooldown;
 
 	int num_trip_mines;
+	CUtlVector<CItem *> medkits;
 
 	Vector lock_ts;
+
+	//BB: coven energies
+	int coven_detonate_power;
+	int coven_soul_power;
 
 	//BB: coven timers
 	float coven_timer_damage;
@@ -218,8 +226,9 @@ public:
 	float coven_timer_leapdetectcooldown;
 	float coven_timer_vstealth;
 	float coven_timer_light;
+	float coven_timer_detonate;
 	//float coven_timer_gcheck;
-	//float coven_timer_soul;
+	float coven_timer_soul;
 	float coven_timer_holywater;
 
 	int coven_debug_nodeloc;
