@@ -169,7 +169,7 @@ typedef struct
 	int swipe_dir_y;
 } circular_progress_segment_coven;
 
-circular_progress_segment_coven Segments[8] = 
+circular_progress_segment_coven auraSegments[8] = 
 {
 	{ 0.0,			0.5, 0.0, 1.0, 0.0, 1, 0 },
 	{ M_PI * 0.25,	1.0, 0.0, 1.0, 0.5, 0, 1 },
@@ -201,7 +201,7 @@ void CHudAuras::DrawCircleSegment( int x, int y, int wide, int tall, float flEnd
 	int cur_wedge = 0;
 	for ( int i=0;i<8;i++ )
 	{
-		if ( flEndProgressRadians > Segments[cur_wedge].minProgressRadians)
+		if ( flEndProgressRadians > auraSegments[cur_wedge].minProgressRadians)
 		{
 			vgui::Vertex_t v[3];
 
@@ -209,7 +209,7 @@ void CHudAuras::DrawCircleSegment( int x, int y, int wide, int tall, float flEnd
 			v[0].m_Position.Init( c_x, c_y );
 			v[0].m_TexCoord.Init( 0.5f, 0.5f );
 
-			float flInternalProgress = flEndProgressRadians - Segments[cur_wedge].minProgressRadians;
+			float flInternalProgress = flEndProgressRadians - auraSegments[cur_wedge].minProgressRadians;
 
 			if ( flInternalProgress < ( M_PI / 4 ) )
 			{
@@ -226,28 +226,28 @@ void CHudAuras::DrawCircleSegment( int x, int y, int wide, int tall, float flEnd
 
 				if ( i % 2 == 1 )
 				{
-					flDeltaX = ( flHalfWide - flHalfTall * flTan ) * Segments[i].swipe_dir_x;
-					flDeltaY = ( flHalfTall - flHalfWide * flTan ) * Segments[i].swipe_dir_y;
+					flDeltaX = ( flHalfWide - flHalfTall * flTan ) * auraSegments[i].swipe_dir_x;
+					flDeltaY = ( flHalfTall - flHalfWide * flTan ) * auraSegments[i].swipe_dir_y;
 				}
 				else
 				{
-					flDeltaX = flHalfTall * flTan * Segments[i].swipe_dir_x;
-					flDeltaY = flHalfWide * flTan * Segments[i].swipe_dir_y;
+					flDeltaX = flHalfTall * flTan * auraSegments[i].swipe_dir_x;
+					flDeltaY = flHalfWide * flTan * auraSegments[i].swipe_dir_y;
 				}
 
-				v[2].m_Position.Init( x + Segments[i].vert1x * flWide + flDeltaX, y + Segments[i].vert1y * flTall + flDeltaY );
-				v[2].m_TexCoord.Init( Segments[i].vert1x + ( flDeltaX / flHalfWide ) * 0.5, Segments[i].vert1y + ( flDeltaY / flHalfTall ) * 0.5 );
+				v[2].m_Position.Init( x + auraSegments[i].vert1x * flWide + flDeltaX, y + auraSegments[i].vert1y * flTall + flDeltaY );
+				v[2].m_TexCoord.Init( auraSegments[i].vert1x + ( flDeltaX / flHalfWide ) * 0.5, auraSegments[i].vert1y + ( flDeltaY / flHalfTall ) * 0.5 );
 			}
 			else
 			{
 				// full segment, easy calculation
-				v[2].m_Position.Init( c_x + flWide * ( Segments[i].vert2x - 0.5 ), c_y + flTall * ( Segments[i].vert2y - 0.5 ) );
-				v[2].m_TexCoord.Init( Segments[i].vert2x, Segments[i].vert2y );
+				v[2].m_Position.Init( c_x + flWide * ( auraSegments[i].vert2x - 0.5 ), c_y + flTall * ( auraSegments[i].vert2y - 0.5 ) );
+				v[2].m_TexCoord.Init( auraSegments[i].vert2x, auraSegments[i].vert2y );
 			}
 
-			// vert 2 is ( Segments[i].vert1x, Segments[i].vert1y )
-			v[1].m_Position.Init( c_x + flWide * ( Segments[i].vert1x - 0.5 ), c_y + flTall * ( Segments[i].vert1y - 0.5 ) );
-			v[1].m_TexCoord.Init( Segments[i].vert1x, Segments[i].vert1y );
+			// vert 2 is ( auraSegments[i].vert1x, auraSegments[i].vert1y )
+			v[1].m_Position.Init( c_x + flWide * ( auraSegments[i].vert1x - 0.5 ), c_y + flTall * ( auraSegments[i].vert1y - 0.5 ) );
+			v[1].m_TexCoord.Init( auraSegments[i].vert1x, auraSegments[i].vert1y );
 
 			surface()->DrawTexturedPolygon( 3, v );
 		}

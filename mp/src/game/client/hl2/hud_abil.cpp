@@ -156,7 +156,7 @@ typedef struct
 	int swipe_dir_y;
 } circular_progress_segment_ability;
 
-circular_progress_segment_ability Segments[8] = 
+circular_progress_segment_ability abilSegments[8] = 
 {
 	{ M_PI * 1.75,	1.0, 0.0, 0.5, 0.0, -1, 0 },
 	{ M_PI * 1.5,	1.0, 0.5, 1.0, 0.0, 0, -1 },
@@ -209,7 +209,7 @@ void CHudAbils::DrawCircleSegment( int x, int y, int wide, int tall, float flEnd
 	int cur_wedge = 0;
 	for ( int i=0;i<8;i++ )
 	{
-		if ( flEndProgressRadians > Segments[cur_wedge].minProgressRadians)
+		if ( flEndProgressRadians > abilSegments[cur_wedge].minProgressRadians)
 		{
 			vgui::Vertex_t v[3];
 
@@ -217,7 +217,7 @@ void CHudAbils::DrawCircleSegment( int x, int y, int wide, int tall, float flEnd
 			v[0].m_Position.Init( c_x, c_y );
 			v[0].m_TexCoord.Init( 0.5f, 0.5f );
 
-			float flInternalProgress = flEndProgressRadians - Segments[cur_wedge].minProgressRadians;
+			float flInternalProgress = flEndProgressRadians - abilSegments[cur_wedge].minProgressRadians;
 
 			if ( flInternalProgress < ( M_PI / 4 ) )
 			{
@@ -234,28 +234,28 @@ void CHudAbils::DrawCircleSegment( int x, int y, int wide, int tall, float flEnd
 
 				if ( i % 2 == 1 )
 				{
-					flDeltaX = ( flHalfWide - flHalfTall * flTan ) * Segments[i].swipe_dir_x;
-					flDeltaY = ( flHalfTall - flHalfWide * flTan ) * Segments[i].swipe_dir_y;
+					flDeltaX = ( flHalfWide - flHalfTall * flTan ) * abilSegments[i].swipe_dir_x;
+					flDeltaY = ( flHalfTall - flHalfWide * flTan ) * abilSegments[i].swipe_dir_y;
 				}
 				else
 				{
-					flDeltaX = flHalfTall * flTan * Segments[i].swipe_dir_x;
-					flDeltaY = flHalfWide * flTan * Segments[i].swipe_dir_y;
+					flDeltaX = flHalfTall * flTan * abilSegments[i].swipe_dir_x;
+					flDeltaY = flHalfWide * flTan * abilSegments[i].swipe_dir_y;
 				}
 
-				v[1].m_Position.Init( x + Segments[i].vert1x * flWide + flDeltaX, y + Segments[i].vert1y * flTall + flDeltaY );
-				v[1].m_TexCoord.Init( Segments[i].vert1x + ( flDeltaX / flHalfWide ) * 0.5, Segments[i].vert1y + ( flDeltaY / flHalfTall ) * 0.5 );
+				v[1].m_Position.Init( x + abilSegments[i].vert1x * flWide + flDeltaX, y + abilSegments[i].vert1y * flTall + flDeltaY );
+				v[1].m_TexCoord.Init( abilSegments[i].vert1x + ( flDeltaX / flHalfWide ) * 0.5, abilSegments[i].vert1y + ( flDeltaY / flHalfTall ) * 0.5 );
 			}
 			else
 			{
 				// full segment, easy calculation
-				v[1].m_Position.Init( c_x + flWide * ( Segments[i].vert2x - 0.5 ), c_y + flTall * ( Segments[i].vert2y - 0.5 ) );
-				v[1].m_TexCoord.Init( Segments[i].vert2x, Segments[i].vert2y );
+				v[1].m_Position.Init( c_x + flWide * ( abilSegments[i].vert2x - 0.5 ), c_y + flTall * ( abilSegments[i].vert2y - 0.5 ) );
+				v[1].m_TexCoord.Init( abilSegments[i].vert2x, abilSegments[i].vert2y );
 			}
 
-			// vert 2 is ( Segments[i].vert1x, Segments[i].vert1y )
-			v[2].m_Position.Init( c_x + flWide * ( Segments[i].vert1x - 0.5 ), c_y + flTall * ( Segments[i].vert1y - 0.5 ) );
-			v[2].m_TexCoord.Init( Segments[i].vert1x, Segments[i].vert1y );
+			// vert 2 is ( abilSegments[i].vert1x, abilSegments[i].vert1y )
+			v[2].m_Position.Init( c_x + flWide * ( abilSegments[i].vert1x - 0.5 ), c_y + flTall * ( abilSegments[i].vert1y - 0.5 ) );
+			v[2].m_TexCoord.Init( abilSegments[i].vert1x, abilSegments[i].vert1y );
 
 			surface()->DrawTexturedPolygon( 3, v );
 		}

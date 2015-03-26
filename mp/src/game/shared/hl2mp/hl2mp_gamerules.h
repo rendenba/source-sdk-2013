@@ -119,6 +119,8 @@ public:
 	int bot_node_count;
 	bool cowsloaded;
 	bool cowsloadfail;
+	int s_caps;
+	int v_caps;
 
 	virtual void Precache( void );
 	virtual bool ShouldCollide( int collisionGroup0, int collisionGroup1 );

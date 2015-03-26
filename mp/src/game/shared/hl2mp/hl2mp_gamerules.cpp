@@ -839,8 +839,8 @@ void CHL2MPRules::Think( void )
 
 	}
 
-	int s_caps = 0;
-	int v_caps = 0;
+	s_caps = 0;
+	v_caps = 0;
 	//BB: coven cap point things!
 	for (int i = 0; i < COVEN_MAX_CAP_POINTS; i++)
 	{

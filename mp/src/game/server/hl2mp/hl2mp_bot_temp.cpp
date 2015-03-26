@@ -272,6 +272,19 @@ void CheckObjective( CHL2MP_Player *pBot )
 		if (botdata->m_role == ROLE_ATK)
 		{
 			botdata->m_objective = random->RandomInt(0, HL2MPRules()->num_cap_points-1);
+			/*float shortestdist = -1.0f;
+			botdata->m_objective = 0;
+			int count = HL2MPRules()->num_cap_points;
+			for (int i = 0; i < count; i++)
+			{
+				int index = 3*i;
+				float dist = (pBot->GetLocalOrigin()-Vector(HL2MPRules()->cap_point_coords.Get(index),HL2MPRules()->cap_point_coords.Get(index+1),HL2MPRules()->cap_point_coords.Get(index+2))).Length();
+				if ((shortestdist < 0.0f || dist < shortestdist) && HL2MPRules()->cap_point_state.Get(i) != pBot->GetTeamNumber())
+				{
+					shortestdist = dist;
+					botdata->m_objective = i;
+				}
+			}*/
 		}
 		else if (botdata->m_role == ROLE_DEF)
 		{
@@ -282,10 +295,13 @@ void CheckObjective( CHL2MP_Player *pBot )
 	{
 		if (botdata->m_role == ROLE_ATK)
 		{
+		    //BOTPATCH if there are no valid options, go ahead with a random and skip this check
 			if (HL2MPRules()->cap_point_state.Get(botdata->m_objective) == pBot->GetTeamNumber())
 			{
 				botdata->m_objective = -1;
 				botdata->m_objectiveType = -1;
+				//BOTPATCH getlost
+				//BOTPATCH clear guardtimer
 			}
 		}
 		else if (botdata->m_role == ROLE_DEF)
@@ -365,7 +381,10 @@ void PlayerCheck( CHL2MP_Player *pBot )
 
 		if (botdata->bForceCombat || (playerVec).Length() < 400)
 		{
-			if (isVampDoll || ((pPlayer->m_floatCloakFactor < 0.1f && !(pPlayer->GetFlags() & EF_NODRAW))))
+			float check = 0.1f;
+			if (botdata->bForceCombat)
+				check = 2.0f;
+			if (isVampDoll || ((pPlayer->m_floatCloakFactor < check && !(pPlayer->GetFlags() & EF_NODRAW))))
 			{
 				QAngle angle = pBot->GetLocalAngles();
 				Vector forward;
@@ -519,6 +538,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 
 	botdata_t *botdata = &g_BotData[ ENTINDEX( pBot->edict() ) - 1 ];
 
+    //BOTPATCH remove this code into BotAbilityThink() and add more intelligent leveling for passives
 	if ((pBot->covenLevelCounter < 3 && pBot->GetLoadout(2) > 0) || (pBot->covenLevelCounter < 5 && pBot->GetLoadout(2) > 1))
 	{
 	}
@@ -585,6 +605,9 @@ void Bot_Think( CHL2MP_Player *pBot )
 		Vector objloc = CurrentObjectiveLoc(pBot);
 		if (botdata->m_objective > -1 && (objloc-pBot->GetLocalOrigin()).Length() < HL2MPRules()->cap_point_distance[botdata->m_objective] && !botdata->bCombat)
 		{
+		    //BOTPATCH add vis check if vis check is appropriate
+		    //BOTPATCH if no valid objectives, dont set guardtimer, but clear the objective to -1 and getlost
+		    //BOTPATCH just going to keep resetting guardtimer... is this a problem???
 			botdata->guardTimer = gpGlobals->curtime + 10.0f;
 		}//reached node
 		else if ((pRules->botnet[botdata->m_targetNode]->location - pBot->GetLocalOrigin()).Length() < 10)
@@ -595,6 +618,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 				//dead end get lost for now
 				//GetLost(pBot);
 				//get bored after 10 seconds
+				//BOTPATCH just remove condition... do a getlost
 				botdata->guardTimer = gpGlobals->curtime + 10.0f;
 			}
 			else
@@ -811,7 +835,8 @@ void Bot_Think( CHL2MP_Player *pBot )
 				}
 				else if (botdata->m_targetNode >= 0 && pRules->botnet[botdata->m_targetNode] != NULL)
 				{
-					forward = pRules->botnet[botdata->m_targetNode]->location - pBot->GetLocalOrigin();
+					if (!botdata->bLost)
+						forward = pRules->botnet[botdata->m_targetNode]->location - pBot->GetLocalOrigin();
 					//if (pBot->GetTeamNumber() == 2)
 					//	Msg("%f %f %f\n", forward.x, forward.y, forward.z);
 					VectorAngles(forward, angle);
@@ -837,6 +862,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 				botdata->lastAngles = angle;
 			}
 
+            //BOTPATCH dont do sidemove/strafetime if guardtimer...
 			if ( gpGlobals->curtime >= botdata->nextstrafetime )
 			{
 				botdata->nextstrafetime = gpGlobals->curtime + 1.0f;
