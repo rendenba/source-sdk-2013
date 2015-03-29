@@ -295,13 +295,18 @@ void CheckObjective( CHL2MP_Player *pBot )
 	{
 		if (botdata->m_role == ROLE_ATK)
 		{
-		    //BOTPATCH if there are no valid options, go ahead with a random and skip this check
-			if (HL2MPRules()->cap_point_state.Get(botdata->m_objective) == pBot->GetTeamNumber())
+			//X BOTPATCH if there are no valid options, go ahead with a random and skip this check
+			if ((pBot->GetTeamNumber() == COVEN_TEAMID_SLAYERS && HL2MPRules()->v_caps > 0) || (pBot->GetTeamNumber() == COVEN_TEAMID_VAMPIRES && HL2MPRules()->s_caps > 0))
 			{
-				botdata->m_objective = -1;
-				botdata->m_objectiveType = -1;
-				//BOTPATCH getlost
-				//BOTPATCH clear guardtimer
+				if (HL2MPRules()->cap_point_state.Get(botdata->m_objective) == pBot->GetTeamNumber())
+				{
+					botdata->m_objective = -1;
+					botdata->m_objectiveType = -1;
+					//X BOTPATCH getlost
+					GetLost(pBot);
+					//X BOTPATCH clear guardtimer
+					botdata->guardTimer = 0.0f;
+				}
 			}
 		}
 		else if (botdata->m_role == ROLE_DEF)
@@ -538,7 +543,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 
 	botdata_t *botdata = &g_BotData[ ENTINDEX( pBot->edict() ) - 1 ];
 
-    //BOTPATCH remove this code into BotAbilityThink() and add more intelligent leveling for passives
+	//BOTPATCH remove this code into BotAbilityThink() and add more intelligent leveling for passives
 	if ((pBot->covenLevelCounter < 3 && pBot->GetLoadout(2) > 0) || (pBot->covenLevelCounter < 5 && pBot->GetLoadout(2) > 1))
 	{
 	}
@@ -605,10 +610,18 @@ void Bot_Think( CHL2MP_Player *pBot )
 		Vector objloc = CurrentObjectiveLoc(pBot);
 		if (botdata->m_objective > -1 && (objloc-pBot->GetLocalOrigin()).Length() < HL2MPRules()->cap_point_distance[botdata->m_objective] && !botdata->bCombat)
 		{
-		    //BOTPATCH add vis check if vis check is appropriate
-		    //BOTPATCH if no valid objectives, dont set guardtimer, but clear the objective to -1 and getlost
-		    //BOTPATCH just going to keep resetting guardtimer... is this a problem???
-			botdata->guardTimer = gpGlobals->curtime + 10.0f;
+			//BOTPATCH add vis check if vis check is appropriate
+			//X BOTPATCH if no valid objectives, dont set guardtimer, but clear the objective to -1 and getlost
+		    	if ((pBot->GetTeamNumber() == COVEN_TEAMID_SLAYERS && HL2MPRules()->s_caps == HL2MPRules()->num_cap_points) || (pBot->GetTeamNumber() == COVEN_TEAMID_VAMPIRES && HL2MPRules()->v_caps == HL2MPRules()->num_cap_points))
+		    	{
+		    		botdata->m_objective = -1;
+				botdata->m_objectiveType = -1;
+				GetLost(pBot);
+				botdata->guardTimer = 0.0f;
+		    	}
+		   	//X BOTPATCH just going to keep resetting guardtimer... is this a problem???
+			else if (botdata->guardTimer == 0.0f)
+				botdata->guardTimer = gpGlobals->curtime + 10.0f;
 		}//reached node
 		else if ((pRules->botnet[botdata->m_targetNode]->location - pBot->GetLocalOrigin()).Length() < 10)
 		{
@@ -618,8 +631,9 @@ void Bot_Think( CHL2MP_Player *pBot )
 				//dead end get lost for now
 				//GetLost(pBot);
 				//get bored after 10 seconds
-				//BOTPATCH just remove condition... do a getlost
-				botdata->guardTimer = gpGlobals->curtime + 10.0f;
+				//X BOTPATCH just remove condition... do a getlost
+				GetLost(pBot);
+				//botdata->guardTimer = gpGlobals->curtime + 10.0f;
 			}
 			else
 			{
@@ -852,7 +866,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 			else
 			{
 				//guardtimer is set, slowly rotate and crouch
-				angle.y += 2.0f;
+				angle.y += 16.0f;
 				if ( angle.y > 180 )
 					angle.y -= 360;
 				else if ( angle.y < -180 )
@@ -862,7 +876,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 				botdata->lastAngles = angle;
 			}
 
-            //BOTPATCH dont do sidemove/strafetime if guardtimer...
+            		//X BOTPATCH dont do sidemove/strafetime if guardtimer... no it's fine for now
 			if ( gpGlobals->curtime >= botdata->nextstrafetime )
 			{
 				botdata->nextstrafetime = gpGlobals->curtime + 1.0f;
