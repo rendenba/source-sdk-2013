@@ -297,8 +297,8 @@ float CHL2MPRules::AverageLevel(int team, int &n)
 float CHL2MPRules::GetSlayerRespawnTime()
 {
 	float ret = 0.0f;
-	int n = 0;
 #ifndef CLIENT_DLL
+	int n = 0;
 	if (gpGlobals->curtime > covenSlayerRespawnTime)
 		covenSlayerRespawnTime = 0.0f;
 

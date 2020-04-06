@@ -93,9 +93,9 @@ void CHudBattery::VidInit( void )
 bool CHudBattery::ShouldDraw( void )
 {
 	return false;
-	bool bNeedsDraw = ( m_iBat != m_iNewBat ) || ( GetAlpha() > 0 );
+	/*bool bNeedsDraw = ( m_iBat != m_iNewBat ) || ( GetAlpha() > 0 );
 
-	//return ( bNeedsDraw && CHudElement::ShouldDraw() );
+	return ( bNeedsDraw && CHudElement::ShouldDraw() );*/
 	//BB: never draw... we dont do armor. will we?
 }
 

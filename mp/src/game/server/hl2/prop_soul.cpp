@@ -402,7 +402,7 @@ void CPropSoul::SeekThink( void )
 
 	Vector	targetPos;
 
-	float flHomingSpeed; 
+	float flHomingSpeed = 0.0f; 
 	Vector vecLaserDotPosition;
 
 	if ( IsSimulatingOnAlternateTicks() )

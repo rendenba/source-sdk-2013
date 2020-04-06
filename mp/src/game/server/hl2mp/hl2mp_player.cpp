@@ -3743,7 +3743,7 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 
 	if ( pAttacker )
 	{
-		CTeam *team = GetGlobalTeam( pAttacker->GetTeamNumber() );
+		//CTeam *team = GetGlobalTeam( pAttacker->GetTeamNumber() );
 		int iScoreToAdd = 1;
 
 		if ( pAttacker == this )
