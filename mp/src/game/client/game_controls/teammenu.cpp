@@ -216,6 +216,7 @@ void CTeamMenu::Update()
 	char mapRES[ MAX_PATH ];
 
 	char uilanguage[ 64 ];
+	uilanguage[0] = 0;
 	engine->GetUILanguage( uilanguage, sizeof( uilanguage ) );
 
 	Q_snprintf( mapRES, sizeof( mapRES ), "resource/maphtml/%s_%s.html", mapName, uilanguage );
