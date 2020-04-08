@@ -1,5 +1,6 @@
 # Files to ignore when considering what GIT should commit.
 *.pdb
+*.lib
 
 # Visual Studio 
 *.suo
