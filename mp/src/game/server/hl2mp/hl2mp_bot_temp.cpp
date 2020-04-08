@@ -94,6 +94,7 @@ typedef struct
 	int				m_lastNodeProbe; //index (not id) of last probe into the botnet
 	int				m_targetNode; //index
 	bool			bLost;
+	float			m_flBaseSpeed;
 
 	int				m_objectiveType; //-1 none, 0 rogue, 1 cap point, 2 cts
 	int				m_objective;
@@ -137,6 +138,39 @@ bool Bot_Right_Team( CHL2MP_Player *pBot )
 		return true;
 	
 	return g_BotData[pBot->entindex()-1].m_WantedTeam == pBot->GetTeamNumber();
+}
+
+void Set_Bot_Base_Velocity(CHL2MP_Player *pBot)
+{
+	botdata_t *botdata = &g_BotData[ENTINDEX(pBot->edict()) - 1];
+	if (pBot->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+	{
+		if (pBot->covenClassID == COVEN_CLASSID_AVENGER)
+			botdata->m_flBaseSpeed = (float)COVEN_BASESPEED_AVENGER;
+		else if (pBot->covenClassID == COVEN_CLASSID_HELLION)
+			botdata->m_flBaseSpeed = (float)COVEN_BASESPEED_HELLION;
+		else if (pBot->covenClassID == COVEN_CLASSID_REAVER)
+			botdata->m_flBaseSpeed = (float)COVEN_BASESPEED_REAVER;
+		else if (pBot->covenClassID == COVEN_CLASSID_PRIEST)
+			botdata->m_flBaseSpeed = (float)COVEN_BASESPEED_PRIEST;
+		else if (pBot->covenClassID == COVEN_CLASSID_DEADEYE)
+			botdata->m_flBaseSpeed = (float)COVEN_BASESPEED_DEADEYE;
+	}
+	else if (pBot->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+	{
+		if (pBot->covenClassID == COVEN_CLASSID_FIEND)
+			botdata->m_flBaseSpeed = (float)COVEN_BASESPEED_FIEND;
+		else if (pBot->covenClassID == COVEN_CLASSID_GORE)
+			botdata->m_flBaseSpeed = (float)COVEN_BASESPEED_GORE;
+		else if (pBot->covenClassID == COVEN_CLASSID_DEGEN)
+			botdata->m_flBaseSpeed = (float)COVEN_BASESPEED_DEGEN;
+		else if (pBot->covenClassID == COVEN_CLASSID_SOULEAT)
+			botdata->m_flBaseSpeed = (float)COVEN_BASESPEED_SOULEAT;
+		//else if (pBot->covenClassID == COVEN_CLASSID_BLOOD)
+		//	botdata->m_flBaseSpeed = (float)COVEN_BASESPEED_BLOOD;
+	}
+	else
+		botdata->m_flBaseSpeed = 600.0f;
 }
 
 //-----------------------------------------------------------------------------
@@ -198,6 +232,7 @@ CBasePlayer *BotPutInServer( bool bFrozen, int iTeam )
 	g_BotData[pPlayer->entindex()-1].m_objective = -1;
 	g_BotData[pPlayer->entindex()-1].m_objectiveType = -1;
 	g_BotData[pPlayer->entindex()-1].m_role = -1;
+	g_BotData[pPlayer->entindex() - 1].m_flBaseSpeed = 600.0f;
 
 	return pPlayer;
 }
@@ -591,9 +626,9 @@ void Bot_Think( CHL2MP_Player *pBot )
 	CheckObjective(pBot);
 
 	QAngle vecViewAngles;
-	float forwardmove = 0.0;
+	float forwardmove = 0.0f;
 	float sidemove = botdata->sidemove;
-	float upmove = 0.0;
+	float upmove = 0.0f;
 
 	byte  impulse = 0;
 	float frametime = gpGlobals->frametime;
@@ -697,10 +732,10 @@ void Bot_Think( CHL2MP_Player *pBot )
 
 		if ( !pBot->IsEFlagSet(EFL_BOT_FROZEN) && botdata->guardTimer == 0.0f)
 		{
-			forwardmove = 600 * ( botdata->backwards ? -1 : 1 );
+			forwardmove = botdata->m_flBaseSpeed * (botdata->backwards ? -1 : 1);
 			if ( botdata->sidemove != 0.0f )
 			{
-				forwardmove *= random->RandomFloat( 0.1, 1.0f );
+				forwardmove *= random->RandomFloat( 0.1f, 1.0f );
 			}
 		}
 
@@ -814,7 +849,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 						}
 						else if (pBot->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
 						{
-							forwardmove = 600;
+							forwardmove = botdata->m_flBaseSpeed;
 							buttons |= IN_DUCK;
 							CBaseCombatWeapon *pWeapon = pBot->Weapon_OwnsThisType( "weapon_stake" );
 							if ( pWeapon )
@@ -831,13 +866,13 @@ void Bot_Think( CHL2MP_Player *pBot )
 						}
 						else if (pBot->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
 						{
-							forwardmove = 600;
+							forwardmove = botdata->m_flBaseSpeed;
 							if (bot_difficulty.GetInt() > 1)
 							{
 								if (gpGlobals->curtime > botdata->nextstrafetime)
 								{
 									if (botdata->sidemove == 0.0f)
-										botdata->sidemove = -600.0f + 1200.0f * random->RandomInt( 0, 1 );
+										botdata->sidemove = botdata->m_flBaseSpeed * (random->RandomInt(0, 2) - 1);
 									else
 										botdata->sidemove = -botdata->sidemove;
 									botdata->nextstrafetime = gpGlobals->curtime + random->RandomFloat(0.5f, 2.5f);
@@ -883,7 +918,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 
 				if ( random->RandomInt( 0, 5 ) == 0)
 				{
-					botdata->sidemove = -600.0f + 1200.0f * random->RandomFloat( 0, 2 );
+					botdata->sidemove = botdata->m_flBaseSpeed * (random->RandomInt(0, 2) - 1);
 				}
 				else
 				{
@@ -1047,6 +1082,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 		return;
 	}
 
+	//Msg("%d %.02f %.02f\n", pBot->covenClassID, botdata->m_flBaseSpeed, forwardmove);
 	RunPlayerMove( pBot, pBot->GetLocalAngles(), forwardmove, sidemove, upmove, buttons, impulse, frametime );
 }
 

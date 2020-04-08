@@ -16,6 +16,7 @@
 CBasePlayer *BotPutInServer( bool bFrozen, int iTeam );
 void BotRemove( CHL2MP_Player *pBot );
 void Bot_Think( CHL2MP_Player *pBot );
+void Set_Bot_Base_Velocity( CHL2MP_Player *pBot );
 bool Bot_Right_Team( CHL2MP_Player *pBot );
 void FindNearestNode( CHL2MP_Player *pBot );
 void PlayerCheck( CHL2MP_Player *pBot );

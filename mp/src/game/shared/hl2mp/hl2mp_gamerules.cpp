@@ -989,6 +989,7 @@ void CHL2MPRules::Think( void )
 		if (pBot)
 		{
 			pBot->covenClassID = random->RandomInt(1,COVEN_CLASSCOUNT_SLAYERS);
+			Set_Bot_Base_Velocity(pBot);
 			Bot_Think(pBot);
 		}
 	}
@@ -1014,6 +1015,7 @@ void CHL2MPRules::Think( void )
 		if (pBot)
 		{
 			pBot->covenClassID = random->RandomInt(1,COVEN_CLASSCOUNT_VAMPIRES);
+			Set_Bot_Base_Velocity(pBot);
 			Bot_Think(pBot);
 		}
 	}
