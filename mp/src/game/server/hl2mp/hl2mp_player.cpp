@@ -225,6 +225,10 @@ CHL2MP_Player::~CHL2MP_Player( void )
 
 void CHL2MP_Player::DoSlayerAbilityThink()
 {
+	//BB: abilities are usuable while dead spectating
+	if (!IsAlive())
+		return;
+
 	if (m_afButtonPressed & IN_ABIL1)
 	{
 		float cd = GetCooldown(0);
@@ -528,24 +532,17 @@ void CHL2MP_Player::DoSheerWill(int lev)
 	int intel = myIntellect();
 	int con = myConstitution();
 
-	//reaver
-	int stradd = 2;
-	int inteladd = 1;
-	int conadd = 3;
-
-	if (covenClassID == COVEN_CLASSID_AVENGER)
-	{
-		stradd = 1;
-		inteladd = 1;
-		conadd = 2;
-	}
+	int stradd = ceil(str * 0.1f);
+	int inteladd = ceil(intel * 0.1f);
+	int conadd = ceil(con * 0.1f);
 
 	SetConstitution(con+conadd*tlev);
 	SetStrength(str+stradd*tlev);
 	SetIntellect(intel+inteladd*tlev);
 	ResetVitals();
 	SetStatusMagnitude(COVEN_BUFF_STATS, lev);
-	SetHealth(GetHealth()+conadd*tlev*COVEN_HP_PER_CON);
+	SetHealth(GetHealth() + conadd * tlev * COVEN_HP_PER_CON);
+	SuitPower_SetCharge(SuitPower_GetCurrentPercentage() + inteladd * tlev * COVEN_MANA_PER_INT);
 }
 
 void CHL2MP_Player::RevengeCheck()
@@ -600,6 +597,13 @@ void CHL2MP_Player::DoGoreCharge()
 
 void CHL2MP_Player::DoGorePhase()
 {
+	if (gorephased)
+	{
+		covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_PHASE;
+		SetStatusTime(COVEN_BUFF_PHASE, 0.0f);
+		SetStatusMagnitude(COVEN_BUFF_PHASE, 0);
+	}
+
 	if (GetRenderMode() != kRenderTransTexture)
 				SetRenderMode( kRenderTransTexture );
 
@@ -686,6 +690,7 @@ void CHL2MP_Player::DoGorePhase()
 	UTIL_DecalTrace( &pTrace, "Scorch" );
 
 	ComputeSpeed();
+	RecalcGoreDrain();
 
 	EmitSound( "Weapon_Mortar.Impact" );
 #endif
@@ -709,12 +714,16 @@ void CHL2MP_Player::DoDreadScream(int lev)
 void CHL2MP_Player::RecalcGoreDrain()
 {
 	SuitPower_ResetDrain();
-	//float mdrain_phase = 2.5f - 0.5f*GetLoadout(0);
-	float mdrain_charge = 12.0f - 2.0f*GetLoadout(1);
-	//if (gorephased)
-	//	SuitPower_AddDrain(mdrain_phase);
+	if (gorephased)
+	{
+		float mdrain_phase = 2.5f - 0.5f*GetLoadout(3);
+		SuitPower_AddDrain(mdrain_phase);
+	}
 	if (gorelock)
+	{
+		float mdrain_charge = 12.0f - 2.0f*GetLoadout(1);
 		SuitPower_AddDrain(mdrain_charge);
+	}
 }
 
 void CHL2MP_Player::VampireUnDodge()
@@ -734,6 +743,10 @@ void CHL2MP_Player::VampireUnDodge()
 
 void CHL2MP_Player::DoVampireAbilityThink()
 {
+	// BB: abilities are usuable while dead spectating
+	if (!IsAlive())
+		return;
+
 	if (m_afButtonPressed & IN_ABIL1)
 	{
 		float cd = GetCooldown(0);
@@ -754,7 +767,6 @@ void CHL2MP_Player::DoVampireAbilityThink()
 			}
 			else if (covenClassID == COVEN_CLASSID_GORE)
 			{
-				
 				SetGlobalCooldown(0, gpGlobals->curtime + 15.0f);
 				DoDreadScream(lev);
 				EmitSound("HL2Player.Sweet");
@@ -791,6 +803,15 @@ void CHL2MP_Player::DoVampireAbilityThink()
 				else
 					EmitSound("HL2Player.UseDeny");
 			}
+			else if (covenClassID == COVEN_CLASSID_DEGEN)
+			{
+				float cool = 16.0f;
+				SetGlobalCooldown(1, gpGlobals->curtime + cool);
+				SetStatusTime(COVEN_BUFF_STATS, gpGlobals->curtime + 10.0f);
+				covenStatusEffects |= COVEN_FLAG_STATS;
+				DoSheerWill(lev);
+				EmitSound("SheerWill");
+			}
 			else if (covenClassID == COVEN_CLASSID_FIEND)
 			{
 				//float mana = 15.0f;//10.0f+5.0f*lev;
@@ -814,19 +835,20 @@ void CHL2MP_Player::DoVampireAbilityThink()
 		}
 		else
 		{
+			//BB: DETONATE BLOOD implementation
 			if (covenClassID == COVEN_CLASSID_DEGEN)
 			{
 				//float mana = 10.0f;//6.0f+2.0f*lev;
 				//float cool = 10.0f;
-				if (SuitPower_GetCurrentPercentage() > 2.0f)
-				{
-					coven_timer_detonate = gpGlobals->curtime + 0.5f;
-					coven_detonate_power += 2*lev;
-					SuitPower_AddDeviceBits( bits_COVEN_DETONATE );
-					SuitPower_Drain(2.0f);
-				}
-				else
-					EmitSound("HL2Player.UseDeny");
+				float magnitude = 5.0f * lev;
+				if (SuitPower_GetCurrentPercentage() < magnitude)
+					magnitude = SuitPower_GetCurrentPercentage();
+				//coven_timer_detonate = gpGlobals->curtime + 0.5f;
+				//coven_detonate_power += 2*lev;
+				//SuitPower_AddDeviceBits( bits_COVEN_DETONATE );
+				SetGlobalCooldown(3, gpGlobals->curtime + 7.0f - lev);
+				BloodExplode(GetLoadout(3), magnitude);
+				SuitPower_Drain(magnitude);
 			}
 			else if (covenClassID == COVEN_CLASSID_FIEND)
 			{
@@ -869,7 +891,7 @@ void CHL2MP_Player::DoVampireAbilityThink()
 	}
 }
 
-void CHL2MP_Player::BloodExplode(int lev)
+void CHL2MP_Player::BloodExplode(int lev, float magnitude)
 {
 	float m_DmgRadius = 51.2f;
 	trace_t		pTrace;
@@ -922,8 +944,8 @@ void CHL2MP_Player::BloodExplode(int lev)
 	// Use the thrower's position as the reported position
 	Vector vecReported = GetAbsOrigin();
 
-	int bits = DMG_PARALYZE;
-	float damn = coven_detonate_power;
+	int bits = DMG_BLAST;// DMG_PARALYZE;
+	float damn = 3.0f * magnitude; //3x5xlev
 	//float damn = 0.25f*lev*GetMaxHealth();
 	CBaseEntity *ignore;
 	ignore = this;
@@ -934,8 +956,8 @@ void CHL2MP_Player::BloodExplode(int lev)
 
 	UTIL_DecalTrace( &pTrace, "Scorch" );
 
-	//bits = DMG_CLUB;
-	damn = 0.5f*coven_detonate_power;
+	bits = DMG_GENERIC;
+	damn = magnitude; //1x5xlev
 	//damn = 0.15f*lev*GetMaxHealth();
 	info.SetDamage(damn);
 	info.SetDamageType(bits);
@@ -1164,17 +1186,17 @@ void CHL2MP_Player::ResetStats()
 		switch(covenClassID)
 		{
 		case COVEN_CLASSID_AVENGER:
-			SetConstitution(25);
+			SetConstitution(COVEN_BASECON_AVENGER);
 			SetStrength(COVEN_BASESTR_AVENGER);
 			SetIntellect(COVEN_BASEINT_AVENGER);
 			break;
 		case COVEN_CLASSID_HELLION:
-			SetConstitution(25);
+			SetConstitution(COVEN_BASECON_HELLION);
 			SetStrength(COVEN_BASESTR_HELLION);
 			SetIntellect(COVEN_BASEINT_HELLION);
 			break;
 		case COVEN_CLASSID_REAVER:
-			SetConstitution(30);
+			SetConstitution(COVEN_BASECON_REAVER);
 			SetStrength(COVEN_BASESTR_REAVER);
 			SetIntellect(COVEN_BASEINT_REAVER);
 			break;
@@ -1186,17 +1208,17 @@ void CHL2MP_Player::ResetStats()
 		switch(covenClassID)
 		{
 		case COVEN_CLASSID_FIEND:
-			SetConstitution(18);
+			SetConstitution(COVEN_BASECON_FIEND);
 			SetStrength(COVEN_BASESTR_FIEND);
 			SetIntellect(COVEN_BASEINT_FIEND);
 			break;
 		case COVEN_CLASSID_GORE:
-			SetConstitution(30);
+			SetConstitution(COVEN_BASECON_GORE);
 			SetStrength(COVEN_BASESTR_GORE);
 			SetIntellect(COVEN_BASEINT_GORE);
 			break;
 		case COVEN_CLASSID_DEGEN:
-			SetConstitution(28);
+			SetConstitution(COVEN_BASECON_DEGEN);
 			SetStrength(COVEN_BASESTR_DEGEN);
 			SetIntellect(COVEN_BASEINT_DEGEN);
 			break;
@@ -1828,11 +1850,11 @@ void CHL2MP_Player::VampireStealthCalc()
 	if (covenClassID == COVEN_CLASSID_FIEND && GetLoadout(2) > 0)
 	{
 		if (GetRenderMode() != kRenderTransTexture)
-				SetRenderMode( kRenderTransTexture );
+			SetRenderMode(kRenderTransTexture);
 		if (GetActiveWeapon() != NULL && GetActiveWeapon()->GetRenderMode() != kRenderTransTexture)
-				GetActiveWeapon()->SetRenderMode( kRenderTransTexture );
+			GetActiveWeapon()->SetRenderMode(kRenderTransTexture);
 
-		int max_velocity = 10;
+		int max_velocity = COVEN_MAX_STEALTH_VELOCITY;
 		float alpha = 1.0f;
 
 		if (/*m_Local.m_bDucked && */coven_timer_vstealth == 0.0f && VectorLength(GetAbsVelocity()) <= max_velocity && !KO)
@@ -1841,7 +1863,9 @@ void CHL2MP_Player::VampireStealthCalc()
 		}
 		else if (/*m_Local.m_bDucked && */coven_timer_vstealth > 0.0f && VectorLength(GetAbsVelocity()) <= max_velocity && !KO)
 		{
-				alpha = 1.0f - 0.2f * GetLoadout(2) * (gpGlobals->curtime - coven_timer_vstealth);//180
+			alpha = 1.0f - 0.2f * GetLoadout(2) * (gpGlobals->curtime - coven_timer_vstealth);//180
+			//BB: TODO: this will technically get called twice per think. Optimize this.
+			VampireCheckRegen(0.50f + 0.1667f * GetLoadout(2));
 		}
 		else if (/*!m_Local.m_bDucked || */VectorLength(GetAbsVelocity()) >= 0 || KO)
 		{
@@ -1862,7 +1886,7 @@ void CHL2MP_Player::VampireStealthCalc()
 		{
 			alpha = min;
 		}
-		m_floatCloakFactor = 1.0f-alpha;
+		m_floatCloakFactor = 1.0f - alpha;
 		if (GetActiveWeapon() != NULL)
 		{
 			//GetActiveWeapon()->SetRenderColorA(alpha);
@@ -1899,7 +1923,11 @@ float CHL2MP_Player::Feed()
 		//BB: new method...
 		if (covenClassID == COVEN_CLASSID_BLOOD)
 		{
-				temp = 6;
+			temp = 6;
+		}
+		if (covenStatusEffects & COVEN_FLAG_STATS)
+		{
+			temp += GetStatusMagnitude(COVEN_BUFF_STATS);
 		}
 		//BB: Coven GORGE implementation
 		if (covenClassID == COVEN_CLASSID_GORE && GetLoadout(2) > 0)
@@ -1928,7 +1956,8 @@ float CHL2MP_Player::Feed()
 
 void CHL2MP_Player::VampireEnergyHandler()
 {
-	if (covenClassID == COVEN_CLASSID_DEGEN)
+	//BB: DETONATE BLOOD implementation (OLD METHOD)
+	/*if (covenClassID == COVEN_CLASSID_DEGEN)
 	{
 		if (coven_timer_detonate > 0.0f && gpGlobals->curtime > coven_timer_detonate)
 		{
@@ -1944,7 +1973,7 @@ void CHL2MP_Player::VampireEnergyHandler()
 			BloodExplode(GetLoadout(3));
 			coven_detonate_power = 0;
 		}
-	}
+	}*/
 }
 
 void CHL2MP_Player::VampireReSolidify()
@@ -2223,7 +2252,7 @@ void CHL2MP_Player::DoVampirePreThink()
 	DoVampireAbilityThink();
 	VampireCheckGore();
 	VampireReSolidify();
-	VampireCheckRegen();
+	VampireCheckRegen(0.5f);
 	VampireManageRagdoll();
 	VampireStealthCalc();
 	VampireDodgeHandler();
@@ -2237,8 +2266,6 @@ void CHL2MP_Player::VampireCheckGore()
 		if (SuitPower_GetCurrentPercentage() <= 0.0f && gorephased)
 		{
 			DoGorePhase();
-			RecalcGoreDrain();
-
 		}
 		else if (gorephased)
 		{
@@ -2257,14 +2284,14 @@ void CHL2MP_Player::VampireCheckGore()
 			gorelock = false;
 			RecalcGoreDrain();
 			ComputeSpeed();
-			SetGlobalCooldown(1, gpGlobals->curtime + 4.0f-GetLoadout(1));
+			SetGlobalCooldown(1, gpGlobals->curtime + 6.0f-GetLoadout(1));
 		}
 		if (gorelock && SuitPower_GetCurrentPercentage() <= 0.0f)
 		{
 			gorelock = false;
 			RecalcGoreDrain();
 			ComputeSpeed();
-			SetGlobalCooldown(1, gpGlobals->curtime + 4.0f-GetLoadout(1));
+			SetGlobalCooldown(1, gpGlobals->curtime + 6.0f-GetLoadout(1));
 		}
 	}
 }
@@ -2396,18 +2423,25 @@ void CHL2MP_Player::VampireCheckResurrect()
 {
 	float x = 4.268f;
 	float y = 5.0f;
-	if (covenClassID == COVEN_CLASSID_DEGEN)
+	//BB: UNDYING implementation
+	/*if (covenClassID == COVEN_CLASSID_DEGEN)
 	{
 		x -= 0.66f*GetLoadout(1);
 		y -= 0.66f*GetLoadout(1);
-	}
+	}*/
+
 	//BB: vampire ressurect... start the sound early...
 	if (timeofdeath > 0 && /*gpGlobals->curtime < timeofdeath + 4.9f &&*/ gpGlobals->curtime > timeofdeath + x && !rezsound)
 	{
 		EmitSound( "Resurrect" );
 		rezsound = true;
-		if (covenClassID == COVEN_CLASSID_DEGEN)
-			SetHealth(GetMaxHealth()*(0.25f+0.1f*GetLoadout(3)));
+		//BB: UNDYING implementation
+		/*if (covenClassID == COVEN_CLASSID_DEGEN)
+		{
+			float newhealth = GetMaxHealth()*(0.25f+0.1f*GetLoadout(1));
+			if (GetHealth() < newhealth)
+				SetHealth(newhealth);
+		}*/
 	}
 	else
 	//BB: release the vampire player if enough time has passed (and not freezetime)
@@ -2572,7 +2606,7 @@ void CHL2MP_Player::VampireCheckResurrect()
 	}
 }
 
-void CHL2MP_Player::VampireCheckRegen()
+void CHL2MP_Player::VampireCheckRegen(float maxpercent)
 {
 	if (coven_timer_damage > 0.0f || KO)
 	{
@@ -2582,12 +2616,12 @@ void CHL2MP_Player::VampireCheckRegen()
 		}
 		return;
 	}
-	int midhealth = GetMaxHealth()*0.5f;
+	int midhealth = GetMaxHealth()*maxpercent;
 	if (IsAlive() && GetHealth() < midhealth && gpGlobals->curtime > coven_timer_regen)
 	{
 		coven_timer_regen = gpGlobals->curtime + 1.5f;
 		int hp = 3;
-		TakeHealth( hp, DMG_GENERIC );
+		TakeHealth(hp, DMG_GENERIC);
 		EmitSound("Vampire.Regen");
 		if (GetHealth() > midhealth)
 			SetHealth(midhealth);
@@ -3071,8 +3105,8 @@ void CHL2MP_Player::DoStatusThink()
 			covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_SLOW;
 			SetStatusMagnitude(COVEN_BUFF_SLOW, 0);
 			SetStatusTime(COVEN_BUFF_SLOW, 0.0f);
-			ComputeSpeed();
 		}
+		ComputeSpeed();
 	}
 
 	//BLOODLUST
@@ -3103,10 +3137,13 @@ void CHL2MP_Player::DoStatusThink()
 	{
 		if (gpGlobals->curtime > GetStatusTime(COVEN_BUFF_PHASE))
 		{
-			covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_PHASE;
-			SetStatusTime(COVEN_BUFF_PHASE, 0.0f);
-			SetStatusMagnitude(COVEN_BUFF_PHASE, 0);
 			DoGorePhase();
+		}
+		else
+		{
+			//Regen hp
+			//BB: TODO: this will technically get called twice per think. Optimize this.
+			VampireCheckRegen(0.50f + 0.1667f * GetLoadout(3));
 		}
 	}
 
@@ -3129,14 +3166,12 @@ void CHL2MP_Player::DoStatusThink()
 			covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_STATS;
 			SetStatusTime(COVEN_BUFF_STATS, 0.0f);
 			ResetStats();
-			//dont kill us!!!
-			//reaver
-			int conmult = 3;
-			if (covenClassID == COVEN_CLASSID_AVENGER)
-				conmult = 2;
-			int hp = max(GetHealth()-conmult*GetStatusMagnitude(COVEN_BUFF_STATS)*COVEN_HP_PER_CON,1);
+			int hp = myConstitution() * COVEN_HP_PER_CON;
 			SetHealth(hp);
 			ResetVitals();
+			float maxcharge = myIntellect() * COVEN_MANA_PER_INT;
+			if (SuitPower_GetCurrentPercentage() > maxcharge)
+				SuitPower_SetCharge(maxcharge);
 			SetStatusMagnitude(COVEN_BUFF_STATS, 0);
 		}
 	}
@@ -3687,11 +3722,12 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 
 	if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
 	{
-		if (covenClassID == COVEN_CLASSID_DEGEN)
+		//BB: BLOOD DETONATE (old method)
+		/*if (covenClassID == COVEN_CLASSID_DEGEN)
 		{
 			coven_timer_detonate = -1.0f;
 			coven_detonate_power = 0;
-		}
+		}*/
 	}
 
 	if (covenStatusEffects & COVEN_FLAG_CTS && HL2MPRules()->cts_inplay)
@@ -3797,6 +3833,7 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 	}
 
 	FlashlightTurnOff();
+	m_floatCloakFactor = 0.0f;
 
 	//BB: fade to black
 	color32 black = {0, 0, 0, 255};
@@ -4097,6 +4134,7 @@ int CHL2MP_Player::OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo )
 		SetStatusMagnitude(COVEN_BUFF_BERSERK, 0);
 	}
 
+	//UN-DODGE
 	if (m_iHealth <= 0 && GetTeamNumber() == COVEN_TEAMID_VAMPIRES && covenClassID == COVEN_CLASSID_FIEND && GetRenderColor().a < 255)
 	{
 		SetRenderColorA(255);
@@ -4146,14 +4184,14 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 			inputInfoAdjust.SetDamage(0.0f);
 	}
 
-	//BLOOD EXPLODE
-	if (inputInfoAdjust.GetDamageType() & DMG_PARALYZE)
+	//BLOOD EXPLODE (OLD)
+	/*if (inputInfoAdjust.GetDamageType() & DMG_PARALYZE)
 	{
 		int bits = inputInfoAdjust.GetDamageType() & ~DMG_PARALYZE;
 		covenStatusEffects |= COVEN_FLAG_STUN;
 		SetStatusTime(COVEN_BUFF_STUN, gpGlobals->curtime + 1.5f);
 		inputInfoAdjust.SetDamageType(bits);
-	}
+	}*/
 
 	if (GetTeamNumber() == COVEN_TEAMID_SLAYERS && covenStatusEffects & COVEN_FLAG_HOLYWATER)
 	{
@@ -4224,13 +4262,21 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 
 		if (covenClassID == COVEN_CLASSID_DEGEN && GetLoadout(2) > 0 && !(inputInfoAdjust.GetDamageType() & DMG_NO))
 		{
+			//BB: MASOCHIST implementation
 			covenStatusEffects |= COVEN_FLAG_MASOCHIST;
 			int stat = GetStatusMagnitude(COVEN_BUFF_MASOCHIST);
-			stat += (0.5f*GetLoadout(2))*inputInfoAdjust.GetDamage();
-			if (stat > 100)
-				stat = 100;
+			float add = (0.5f * GetLoadout(2)) * inputInfoAdjust.GetDamage();
+			//BLOOD EXPLODE
+			if (inputInfo.GetAttacker() && inputInfo.GetAttacker()->IsPlayer() && (CHL2MP_Player *)inputInfo.GetAttacker() == this)
+			{
+				add *= 2.0f;
+			}
+			stat += add;
+			int max = 50 * GetLoadout(2);
+			if (stat > max)
+				stat = max;
 			SetStatusMagnitude(COVEN_BUFF_MASOCHIST, stat);
-			SetStatusTime(COVEN_BUFF_MASOCHIST, gpGlobals->curtime + 5.0f + 1.0f*GetLoadout(2));
+			SetStatusTime(COVEN_BUFF_MASOCHIST, gpGlobals->curtime + 5.0f + 1.0f * GetLoadout(2));
 			ComputeSpeed();
 		}
 	}

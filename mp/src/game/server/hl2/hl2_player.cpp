@@ -2118,10 +2118,10 @@ void CHL2_Player::SuitPower_Charge( float flPower )
 {
 	m_HL2Local.m_flSuitPower += flPower;
 
-	if( m_HL2Local.m_flSuitPower > myIntellect()*10.0 )
+	if( m_HL2Local.m_flSuitPower > myIntellect() * COVEN_MANA_PER_INT )
 	{
 		// Full charge, clamp.
-		m_HL2Local.m_flSuitPower = myIntellect()*10.0;
+		m_HL2Local.m_flSuitPower = myIntellect() * COVEN_MANA_PER_INT;
 	}
 }
 
@@ -2213,7 +2213,7 @@ bool CHL2_Player::SuitPower_ShouldRecharge( void )
 		return false;
 
 	// Is the system fully charged?
-	if( m_HL2Local.m_flSuitPower >= myIntellect()*10.0f )
+	if (m_HL2Local.m_flSuitPower >= myIntellect() * COVEN_MANA_PER_INT)
 		return false; 
 
 	// Has the system been in a no-load state for long enough

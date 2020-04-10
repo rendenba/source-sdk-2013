@@ -144,8 +144,6 @@ void CWeaponCrowbar::PrimaryAttack()
 		{
 			//BB: JAM Request... sneak attacks
 			pPlayer->DoGorePhase();
-			pPlayer->covenStatusEffects &= pPlayer->covenStatusEffects & ~COVEN_FLAG_PHASE;
-			pPlayer->SetStatusTime(COVEN_BUFF_PHASE, 0.0f);
 		}
 		if (pPlayer->covenClassID == COVEN_CLASSID_FIEND && pPlayer->covenStatusEffects & COVEN_FLAG_DODGE)
 		{

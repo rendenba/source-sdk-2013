@@ -151,14 +151,14 @@ public:
 	void DoLeap();
 	void DoGorePhase();
 	void DoGoreCharge();
-	void BloodExplode(int lev);
+	void BloodExplode(int lev, float magnitude);
 	void RecalcGoreDrain();
 	void DoBloodLust(int lev);
 	void DoDreadScream(int lev);
 	void DoBerserk(int lev);
 	void DoVampireAbilityThink();
 	void VampireCheckGore();
-	void VampireCheckRegen();
+	void VampireCheckRegen(float maxpercent);
 	void VampireCheckResurrect();
 	void VampireManageRagdoll();
 	void VampireReSolidify();

@@ -118,13 +118,17 @@ public:
 					{
 						m_pPanel->SetText("Sheer Will:\n\nCooldown: 16 seconds\n\nBoosts all stats by 10/20/30% for 10 seconds.");
 					}
+					else if (!Q_stricmp("Dark Will - Rank 1", temp) || !Q_stricmp("Dark Will - Rank 2", temp) || !Q_stricmp("Dark Will - Rank 3", temp))
+					{
+						m_pPanel->SetText("Dark Will:\n\nCooldown: 16 seconds\n\nBoosts all stats by 10/20/30% for 10 seconds. Improved feeding while in use.");
+					}
 					else if ( !Q_stricmp( "Trip Mine - Rank 1", temp) || !Q_stricmp( "Trip Mine - Rank 2", temp) || !Q_stricmp( "Trip Mine - Rank 3", temp) )
 					{
 						m_pPanel->SetText("Trip Mine:\n\nCooldown: 2 seconds\n\nPlants a laser activated trip mine on a wall in front of you. Can have 2/3/4 total trip mines active at once.");
 					}
 					else if ( !Q_stricmp( "Charge - Rank 1", temp) || !Q_stricmp( "Charge - Rank 2", temp) || !Q_stricmp( "Charge - Rank 3", temp) )
 					{
-						m_pPanel->SetText("Charge:\n\nEnergy: 10/8/6 per second\nCooldown: 3 seconds\n\nCharges straight ahead at immense speed. Usable while phased. Hold the effect to continue charging.");
+						m_pPanel->SetText("Charge:\n\nEnergy: 10/8/6 per second\nCooldown: 5/4/3 seconds\n\nCharges straight ahead at immense speed. Usable while phased. Hold the effect to continue charging.");
 					}
 					else if ( !Q_stricmp( "Berserk - Rank 1", temp) || !Q_stricmp( "Berserk - Rank 2", temp) || !Q_stricmp( "Berserk - Rank 3", temp) )
 					{
@@ -133,6 +137,10 @@ public:
 					else if ( !Q_stricmp( "Undying - Rank 1", temp) || !Q_stricmp( "Undying - Rank 2", temp) || !Q_stricmp( "Undying - Rank 3", temp) )
 					{
 						m_pPanel->SetText("Undying:\n\nPassive Bonus\nResurrect 0.66/1.33/2.0 seconds faster and with 10/20/30% more health.");
+					}
+					else if (!Q_stricmp("Gorge - Rank 1", temp) || !Q_stricmp("Gorge - Rank 2", temp) || !Q_stricmp("Gorge - Rank 3", temp))
+					{
+						m_pPanel->SetText("Gorge:\n\nPassive Bonus\n\nAllows feeding to grant health 10/20/30% past normal maximum health. Feeding speed is increased.");
 					}
 					else
 					{
@@ -153,15 +161,11 @@ public:
 					}
 					else if ( !Q_stricmp( "Sneak - Rank 1", temp) || !Q_stricmp( "Sneak - Rank 2", temp) || !Q_stricmp( "Sneak - Rank 3", temp) )
 					{
-						m_pPanel->SetText("Sneak:\n\nPassive Bonus\n\nFade invisible over 6/3/2 seconds. Magnitude of invisibility increases with rank. Movement or receiving damage cancels the effect.");
+						m_pPanel->SetText("Sneak:\n\nPassive Bonus\n\nFade invisible over 5/2.5/1.67 seconds. Magnitude of invisibility increases with rank. Regernates health up to 66.67/83.33/100%. Running or receiving damage cancels the effect.");
 					}
 					else if ( !Q_stricmp( "Masochist - Rank 1", temp) || !Q_stricmp( "Masochist - Rank 2", temp) || !Q_stricmp( "Masochist - Rank 3", temp) )
 					{
-						m_pPanel->SetText("Masochist:\n\nPassive Bonus\n\nGrants a speed bonus for 5/10/15% of all damage taken (up 100% bonus speed) for 6/7/8 seconds. Effect is cumulative until no damage is received for 6/7/8 seconds.");
-					}
-					else if ( !Q_stricmp( "Gorge - Rank 1", temp) || !Q_stricmp( "Gorge - Rank 2", temp) || !Q_stricmp( "Gorge - Rank 3", temp) )
-					{
-						m_pPanel->SetText("Gorge:\n\nPassive Bonus\n\nAllows feeding to grant health 10/20/30% past normal maximum health. Feeding speed is increased.");
+						m_pPanel->SetText("Masochist:\n\nPassive Bonus\n\nGrants a speed bonus for 50/100/150% of all damage taken (up to 50/100/150% bonus speed) for 6/7/8 seconds. Effect is cumulative until no damage is received for 6/7/8 seconds.");
 					}
 					else if ( !Q_stricmp( "Gut Check - Rank 1", temp) || !Q_stricmp( "Gut Check - Rank 2", temp) || !Q_stricmp( "Gut Check - Rank 3", temp) )
 					{
@@ -182,7 +186,7 @@ public:
 					}
 					else if ( !Q_stricmp( "Phase - Rank 1", temp) || !Q_stricmp( "Phase - Rank 2", temp) || !Q_stricmp( "Phase - Rank 3", temp) )
 					{
-						m_pPanel->SetText("Phase:\n\nCooldown: 16/15/14 seconds\n\nDisappears from sight and greatly boosts movement speed for 8/10/12 seconds. Attacking phases back into sight.");
+						m_pPanel->SetText("Phase:\n\nEnergy: 2/1.5/1 per second\nCooldown: 16/15/14 seconds\n\nDisappears from sight and greatly boosts movement speed for 8/10/12 seconds. Regenerates health up to 66.67/83.33/100%. Attacking phases back into sight.");
 					}
 					else if ( !Q_stricmp( "Intimidating Shout - Rank 1", temp) || !Q_stricmp( "Intimidating Shout - Rank 2", temp) || !Q_stricmp( "Intimidating Shout - Rank 3", temp) )
 					{
@@ -190,7 +194,7 @@ public:
 					}
 					else if ( !Q_stricmp( "Detonate Blood - Rank 1", temp) || !Q_stricmp( "Detonate Blood - Rank 2", temp) || !Q_stricmp( "Detonate Blood - Rank 3", temp) )
 					{
-						m_pPanel->SetText("Detonate Blood:\n\nEnergy: 4 per second\nCooldown: 6 seconds\n\nHold to charge 4/8/12 blood energy per seconds. Unleash to explode inflicting 50% of energy spent damage to self and 100% per energy spent damage to enemies. Causes 1.5 second stun to anyone damaged.");
+						m_pPanel->SetText("Detonate Blood:\n\nEnergy: 5/10/15\nCooldown: 6/5/4 seconds\n\nUnleash to explode inflicting 100% of energy spent damage to self and 300% per energy spent damage to enemies. Counts double for Masochist.");
 					}
 					else if ( !Q_stricmp( "Vengeful Soul - Rank 1", temp) || !Q_stricmp( "Vengeful Soul - Rank 2", temp) || !Q_stricmp( "Vengeful Soul - Rank 3", temp) )
 					{
