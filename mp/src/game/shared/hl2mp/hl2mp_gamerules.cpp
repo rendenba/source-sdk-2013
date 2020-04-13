@@ -748,6 +748,24 @@ void CHL2MPRules::RestartRound()
 #endif
 }
 
+void CHL2MPRules::PlayerCount(int &slayers, int &vampires)
+{
+#ifndef CLIENT_DLL
+	for (int i = 1; i <= gpGlobals->maxClients; i++)
+	{
+		CBasePlayer *pPlayer = UTIL_PlayerByIndex(i);
+
+		if (pPlayer)
+		{
+			if (pPlayer->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+				slayers++;
+			else if (pPlayer->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+				vampires++;
+		}
+	}
+#endif
+}
+
 void CHL2MPRules::Think( void )
 {
 

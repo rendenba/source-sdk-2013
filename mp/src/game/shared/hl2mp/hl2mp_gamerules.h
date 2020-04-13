@@ -113,6 +113,7 @@ public:
 	bool LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBaseFileSystem *pFileSystem, const char *pPathID );
 	bool LoadFromBuffer( char const *resourceName, const char *pBuffer, IBaseFileSystem* pFileSystem, const char *pPathID = NULL );
 	bool LoadCowFile( IBaseFileSystem *filesystem, const char *resourceName, const char *pathID );
+	void PlayerCount(int &slayers, int &vampires);
 
 	CUtlVector<CBaseEntity *> crates;
 	botnode *botnet[COVEN_MAX_BOT_NODES];

@@ -1112,16 +1112,77 @@ void CHL2MP_Player::SetGlobalCooldown(int n, float time)
 	}
 }
 
-void CHL2MP_Player::SpendPoint(int on)
+bool CHL2MP_Player::SpendPoint(int on)
 {
-	int t = GetTeamNumber();
-	if (t > 1)
+	if (PointsToSpend() > 0)
 	{
-		t -= 2;
-		covenLevelsSpent[t][covenClassID-1]++;
-		covenLoadouts[t][covenClassID-1][on]++;
-		RefreshLoadout();
+		if (on < 0 || on > 3)
+			return false;
+		int ldout = GetLoadout(on);
+		Msg("%d %d %d\n", covenLevelCounter, on, ldout);
+		if (on == 3)
+		{
+			if (covenLevelCounter < 6)
+				return false;
+			if (covenLevelCounter < 8 && ldout > 0)
+				return false;
+			if (covenLevelCounter < 10 && ldout > 1)
+				return false;
+		}
+		if ((covenLevelCounter < 3 && ldout > 0) || (covenLevelCounter < 5 && ldout > 1))
+			return false;
+		if (PointsToSpend() > 0 && ldout < 3)
+		{
+			int t = GetTeamNumber();
+			if (t > 1)
+			{
+				t -= 2;
+				covenLevelsSpent[t][covenClassID - 1]++;
+				covenLoadouts[t][covenClassID - 1][on]++;
+				RefreshLoadout();
+			}
+			SetGlobalCooldown(on, gpGlobals->curtime);
+		}
 	}
+	else
+		return false;
+	return true;
+}
+
+//BB: this will mirror a players functionality, but will indicate if the Bot should keep trying to place the point elsewhere (returns false only for critical errors).
+bool CHL2MP_Player::SpendPointBOT(int on)
+{
+	if (PointsToSpend() > 0)
+	{
+		if (on < 0 || on > 3)
+			return false;
+		int ldout = GetLoadout(on);
+		if (on == 3)
+		{
+			if (covenLevelCounter < 6)
+				return true;
+			if (covenLevelCounter < 8 && ldout > 0)
+				return true;
+			if (covenLevelCounter < 10 && ldout > 1)
+				return true;
+		}
+		if ((covenLevelCounter < 3 && ldout > 0) || (covenLevelCounter < 5 && ldout > 1))
+			return true;
+		if (PointsToSpend() > 0 && ldout < 3)
+		{
+			int t = GetTeamNumber();
+			if (t > 1)
+			{
+				t -= 2;
+				covenLevelsSpent[t][covenClassID - 1]++;
+				covenLoadouts[t][covenClassID - 1][on]++;
+				RefreshLoadout();
+			}
+			SetGlobalCooldown(on, gpGlobals->curtime);
+		}
+	}
+
+	return false;
 }
 
 void CHL2MP_Player::RefreshLoadout()
@@ -3273,7 +3334,29 @@ bool CHL2MP_Player::HandleCommand_SelectClass( int select )
 
 bool CHL2MP_Player::HandleCommand_JoinTeam( int team )
 {
-	if ( !GetGlobalTeam( team ) || team == 0 )
+	if (team == 0)
+	{
+		int numslayers = 0;
+		int numvampires = 0;
+		HL2MPRules()->PlayerCount(numslayers, numvampires);
+		if (numslayers > numvampires)
+			team = COVEN_TEAMID_VAMPIRES;
+		else if (numvampires > numslayers)
+			team = COVEN_TEAMID_SLAYERS;
+		else
+		{
+			int vampscore = GetGlobalTeam(COVEN_TEAMID_VAMPIRES)->GetScore();
+			int slayscore = GetGlobalTeam(COVEN_TEAMID_SLAYERS)->GetScore();
+			if (slayscore > vampscore)
+				team = COVEN_TEAMID_VAMPIRES;
+			else if (vampscore > slayscore)
+				team = COVEN_TEAMID_SLAYERS;
+			else
+				team = random->RandomInt(COVEN_TEAMID_SLAYERS, COVEN_TEAMID_VAMPIRES); //I GIVE UP!
+		}
+	}
+
+	if ( !GetGlobalTeam( team ) )
 	{
 		Warning( "HandleCommand_JoinTeam( %d ) - invalid team index.\n", team );
 		return false;
@@ -3346,9 +3429,7 @@ bool CHL2MP_Player::ClientCommand( const CCommand &args )
 			if ( ShouldRunRateLimitedCommand( args ) )
 			{
 				int iSkill = atoi( args[1] )-1;
-				if (iSkill < 0 || iSkill > 3)
-					return true;
-				if (iSkill == 3)
+				/*if (iSkill == 3)
 				{
 					if (covenLevelCounter < 6)
 						return true;
@@ -3363,7 +3444,8 @@ bool CHL2MP_Player::ClientCommand( const CCommand &args )
 				{
 					SpendPoint(iSkill);
 					SetGlobalCooldown(iSkill, gpGlobals->curtime);
-				}
+				}*/
+				SpendPoint(iSkill);
 			}
 			return true;
 		}

@@ -238,7 +238,8 @@ public:
 	int GetLoadout(int n);
 	float GetCooldown(int n);
 	int GetLevelsSpent();
-	void SpendPoint(int on);
+	bool SpendPoint(int on);
+	bool SpendPointBOT(int on);
 	int PointsToSpend();
 	void RefreshLoadout();
 	void RefreshCooldowns();
