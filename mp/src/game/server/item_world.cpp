@@ -116,6 +116,7 @@ END_DATADESC()
 CItem::CItem()
 {
 	m_bActivateWhenAtRest = false;
+	creator = NULL;
 }
 
 bool CItem::CreateItemVPhysicsObject( void )

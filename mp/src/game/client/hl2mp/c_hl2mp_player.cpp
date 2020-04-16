@@ -365,19 +365,22 @@ void C_HL2MP_Player::PreThink( void )
 	BaseClass::PreThink();
 
 	//BB: this ensures that the viewmodel always matches the models alpha
-	if (GetTeamNumber() == TEAM_REBELS && C_BasePlayer::GetLocalPlayer()==this)
+	//BB: holy hell... this never worked. Fixed.
+	if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
 	{
-		CBaseViewModel *pVM = GetViewModel(0);
-		if (pVM != NULL && pVM->GetRenderMode() != kRenderTransTexture)
-				pVM->SetRenderMode( kRenderTransTexture );
-		if (pVM != NULL)
+		if (!IsObserver())
 		{
-			pVM->SetRenderColorA(m_clrRender.GetA());
+			CBaseViewModel *pVM = GetViewModel(0);
+			if (pVM)
+			{
+				pVM->SetRenderMode(GetRenderMode());
+				pVM->SetRenderColorA(m_clrRender.GetA());
+			}
+			if (pVM && GetEffects() & EF_NODRAW)
+				pVM->AddEffects(EF_NODRAW);
+			else if (pVM)
+				pVM->RemoveEffects(EF_NODRAW);
 		}
-		if (pVM && GetEffects() & EF_NODRAW)
-			pVM->AddEffects(EF_NODRAW);
-		else if (pVM)
-			pVM->RemoveEffects(EF_NODRAW);
 	}
 
 	HandleSpeedChanges();

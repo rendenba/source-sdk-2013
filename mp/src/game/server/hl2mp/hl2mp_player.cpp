@@ -302,19 +302,20 @@ void CHL2MP_Player::DoSlayerAbilityThink()
 			else if (covenClassID == COVEN_CLASSID_AVENGER)
 			{
 				//float mana = 16.0f-2.0f*lev;
-				float cool = 12.0f-2.0f*lev;//40.0f - 10.0f*lev;
+				float cool = 6.0f;//12.0f - 2.0f*lev;//40.0f - 10.0f*lev;
 				SetGlobalCooldown(1, gpGlobals->curtime + cool);
 				if (medkits.Size() < lev)
 				{
-					GenerateBandage();
+					GenerateBandage(lev);
 				}
 				else
 				{
 					CItem *ent;
 					ent = medkits[medkits.Size()-1];
-					UTIL_Remove(ent);
+					if (ent)
+						UTIL_Remove(ent);
 					medkits.FindAndRemove(ent);
-					GenerateBandage();
+					GenerateBandage(lev);
 				}
 			}
 			else if (covenClassID == COVEN_CLASSID_HELLION)
@@ -498,9 +499,14 @@ void CHL2MP_Player::CheckThrowPosition(const Vector &vecEye, Vector &vecSrc)
 	}
 }
 
-void CHL2MP_Player::GenerateBandage()
+void CHL2MP_Player::GenerateBandage(int lev)
 {
-	CBaseEntity *ent = CreateEntityByName( "item_healthkit" );
+	CBaseEntity *ent;
+	if (lev > 2)
+		ent = CreateEntityByName("item_healthkit");
+	else
+		ent = CreateEntityByName("item_healthvial");
+
 	Vector	vecEye = EyePosition();
 	Vector	vForward, vRight;
 
@@ -622,7 +628,7 @@ void CHL2MP_Player::DoGorePhase()
 		//RemoveEffects(EF_NODRAW);
 	}
 
-	this->m_floatCloakFactor = cloak;
+	m_floatCloakFactor = cloak;
 	//SetRenderColorA(alpha);
 	//if (GetViewModel())
 	//	GetViewModel()->SetRenderColorA(alpha);
@@ -744,7 +750,7 @@ void CHL2MP_Player::VampireUnDodge()
 void CHL2MP_Player::DoVampireAbilityThink()
 {
 	// BB: abilities are usuable while dead spectating
-	if (!IsAlive())
+	if (KO)
 		return;
 
 	if (m_afButtonPressed & IN_ABIL1)
@@ -1119,7 +1125,7 @@ bool CHL2MP_Player::SpendPoint(int on)
 		if (on < 0 || on > 3)
 			return false;
 		int ldout = GetLoadout(on);
-		Msg("%d %d %d\n", covenLevelCounter, on, ldout);
+		//Msg("%d %d %d\n", covenLevelCounter, on, ldout);
 		if (on == 3)
 		{
 			if (covenLevelCounter < 6)
@@ -1549,6 +1555,20 @@ void CHL2MP_Player::PickDefaultSpawnTeam( void )
 	}
 }
 
+void CHL2MP_Player::ResetCooldowns()
+{
+	int t = GetTeamNumber();
+	if (t > 1)
+	{
+		t -= 2;
+		covenCooldowns[t][covenClassID - 1][0] = 0.0f;
+		covenCooldowns[t][covenClassID - 1][1] = 0.0f;
+		covenCooldowns[t][covenClassID - 1][2] = 0.0f;
+		covenCooldowns[t][covenClassID - 1][3] = 0.0f;
+		RefreshCooldowns();
+	}
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: Sets HL2 specific defaults.
 //-----------------------------------------------------------------------------
@@ -1560,6 +1580,12 @@ void CHL2MP_Player::Spawn(void)
 	covenRespawnTimer = -1.0f;
 
 	covenStatusEffects = 0;
+
+	ResetCooldowns();
+
+	//BB: Reset bot pathing on spawn
+	if (GetFlags() & FL_FAKECLIENT)
+		GetLost(this);
 
 	if (KO && myServerRagdoll)
 		UTIL_Remove(myServerRagdoll);
@@ -1915,47 +1941,44 @@ void CHL2MP_Player::VampireStealthCalc()
 		if (GetActiveWeapon() != NULL && GetActiveWeapon()->GetRenderMode() != kRenderTransTexture)
 			GetActiveWeapon()->SetRenderMode(kRenderTransTexture);
 
-		int max_velocity = COVEN_MAX_STEALTH_VELOCITY;
 		float alpha = 1.0f;
 
-		if (/*m_Local.m_bDucked && */coven_timer_vstealth == 0.0f && VectorLength(GetAbsVelocity()) <= max_velocity && !KO)
+		if (IsAlive())
 		{
-			coven_timer_vstealth = gpGlobals->curtime;
-		}
-		else if (/*m_Local.m_bDucked && */coven_timer_vstealth > 0.0f && VectorLength(GetAbsVelocity()) <= max_velocity && !KO)
-		{
-			alpha = 1.0f - 0.2f * GetLoadout(2) * (gpGlobals->curtime - coven_timer_vstealth);//180
-			//BB: TODO: this will technically get called twice per think. Optimize this.
-			VampireCheckRegen(0.50f + 0.1667f * GetLoadout(2));
-		}
-		else if (/*!m_Local.m_bDucked || */VectorLength(GetAbsVelocity()) >= 0 || KO)
-		{
-			coven_timer_vstealth = 0.0f;
-			alpha = 1.0f;
-		}
-		if (GetFlags() & FL_ONFIRE)
-		{
-			alpha = 1.0f;
+			int max_velocity = COVEN_MAX_STEALTH_VELOCITY;
+
+			if (/*m_Local.m_bDucked && */coven_timer_vstealth == 0.0f && VectorLength(GetAbsVelocity()) <= max_velocity && !KO)
+			{
+				coven_timer_vstealth = gpGlobals->curtime;
+			}
+			else if (/*m_Local.m_bDucked && */coven_timer_vstealth > 0.0f && VectorLength(GetAbsVelocity()) <= max_velocity && !KO)
+			{
+				alpha = 1.0f - 0.2f * GetLoadout(2) * (gpGlobals->curtime - coven_timer_vstealth);//180
+				//BB: TODO: this will technically get called twice per think. Optimize this.
+				VampireCheckRegen(0.50f + 0.1667f * GetLoadout(2));
+			}
+			else if (/*!m_Local.m_bDucked || */VectorLength(GetAbsVelocity()) >= 0 || KO)
+			{
+				coven_timer_vstealth = 0.0f;
+				alpha = 1.0f;
+			}
+			if (GetFlags() & FL_ONFIRE)
+			{
+				alpha = 1.0f;
+			}
+
+			if (alpha > 1.0f)
+			{
+				alpha = 1.0f;
+			}
+			float min = 0.09f - 0.03f*GetLoadout(2);
+			if (alpha < min)
+			{
+				alpha = min;
+			}
 		}
 
-		if (alpha > 1.0f)
-		{
-			alpha = 1.0f;
-		}
-		float min = 0.09f - 0.03f*GetLoadout(2);
-		if (alpha < min)
-		{
-			alpha = min;
-		}
 		m_floatCloakFactor = 1.0f - alpha;
-		if (GetActiveWeapon() != NULL)
-		{
-			//GetActiveWeapon()->SetRenderColorA(alpha);
-		}
-		if (GetViewModel())
-		{
-			//GetViewModel()->SetRenderColorA(alpha);
-		}
 		//if (coven_timer_vstealth > 0.0f)
 		//	Msg("Player:%s coven_timer_vstealth:%.02f velocity:%.02f KO:%d cloakfactor:%.02f\n", GetPlayerName(), coven_timer_vstealth, VectorLength(GetAbsVelocity()), KO, alpha);
 	}
@@ -2297,14 +2320,17 @@ void CHL2MP_Player::PreThink( void )
 		if (pRules && lastCheckedCapPoint >= pRules->num_cap_points)
 			lastCheckedCapPoint = 0;
 	}
-
-	if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+	
+	if (IsAlive())
 	{
-		DoVampirePreThink();
-	}
-	else if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
-	{
-		DoSlayerPreThink();
+		if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+		{
+			DoVampirePreThink();
+		}
+		else if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+		{
+			DoSlayerPreThink();
+		}
 	}
 }
 
@@ -2640,12 +2666,6 @@ void CHL2MP_Player::VampireCheckResurrect()
 			SetCollisionGroup(COLLISION_GROUP_DEBRIS);
 			solidcooldown = gpGlobals->curtime;
 
-			//solidcooldown = gpGlobals->curtime;
-			if (GetActiveWeapon() != NULL)
-			{
-				//GetActiveWeapon()->RemoveEffects(EF_NODRAW);
-				//GetActiveWeapon()->RemoveSolidFlags( FSOLID_NOT_SOLID );
-			}
 			if (GetViewModel() != NULL)
 			{
 				GetViewModel()->RemoveEffects(EF_NODRAW);
@@ -3227,9 +3247,9 @@ void CHL2MP_Player::DoStatusThink()
 			covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_STATS;
 			SetStatusTime(COVEN_BUFF_STATS, 0.0f);
 			ResetStats();
-			int hp = myConstitution() * COVEN_HP_PER_CON;
-			SetHealth(hp);
 			ResetVitals();
+			int hp = min(GetHealth(), GetMaxHealth());
+			SetHealth(hp);
 			float maxcharge = myIntellect() * COVEN_MANA_PER_INT;
 			if (SuitPower_GetCurrentPercentage() > maxcharge)
 				SuitPower_SetCharge(maxcharge);
@@ -4322,11 +4342,10 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 
 	if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
 	{
-		if (covenClassID == COVEN_CLASSID_REAVER && covenStatusEffects & COVEN_FLAG_GCHECK && !(inputInfoAdjust.GetDamageType() & DMG_NO) && !(inputInfoAdjust.GetDamageType() & DMG_HOLY))
+		if (covenClassID == COVEN_CLASSID_REAVER && covenStatusEffects & COVEN_FLAG_GCHECK && inputInfoAdjust.GetDamageType() & DMG_CLUB && inputInfo.GetAttacker() && inputInfo.GetAttacker()->IsPlayer())
 		{
 			covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_GCHECK;
-			//coven_timer_gcheck = gpGlobals->curtime + 20.0f - 5.0f*GetLoadout(3);
-			SetGlobalCooldown(2,gpGlobals->curtime + 20.0f - 5.0f*GetLoadout(2));
+			SetGlobalCooldown(2,gpGlobals->curtime + 18.0f - 4.0f*GetLoadout(2));
 			EmitSound("Weapon_Crowbar.Melee_HitWorld");
 			inputInfoAdjust.SetDamage(0.0f);
 		}

@@ -737,6 +737,7 @@ void CHL2MPRules::RestartRound()
 		if ( !pPlayer )
 			continue;
 
+		pPlayer->ResetScores();
 		pPlayer->RemoveAllItems(true);
 		pPlayer->covenLevelCounter = 0;
 		pPlayer->SetXP(0.0f);
@@ -962,22 +963,8 @@ void CHL2MPRules::Think( void )
 			if (gpGlobals->curtime > scoreTimer)
 				((CHL2MP_Player *)pPlayer)->GiveXP(xp_tick);
 
-			//BB: seriously? this is really dumb.
 			if ( pPlayer->IsBot() )
 			{
-				/*if (!Bot_Right_Team((CHL2MP_Player *)pPlayer))
-				{
-					if (pPlayer->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
-					{
-						numSlayers++;
-						numVampires--;
-					}
-					if (pPlayer->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
-					{
-						numVampires++;
-						numSlayers--;
-					}
-				}*/
 				Bot_Think((CHL2MP_Player*)pPlayer);
 			}
 		}

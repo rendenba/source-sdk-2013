@@ -60,6 +60,7 @@ public:
 	//void SecondaryAttack( void );
 	void DryFire( void );
 	virtual float GetFireRate( void ) { return 0.7; };
+	virtual bool CanFire() { return m_iClip1 == 2; };
 
 #ifndef CLIENT_DLL
 	DECLARE_ACTTABLE();

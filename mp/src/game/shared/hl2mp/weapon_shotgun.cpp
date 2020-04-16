@@ -593,8 +593,9 @@ void CWeaponShotgun::ItemHolsterFrame( void )
 	if ( GetOwner()->GetActiveWeapon() == this )
 		return;
 
+	//BB: boo!
 	// If it's been longer than three seconds, reload
-	if ( ( gpGlobals->curtime - m_flHolsterTime ) > sk_auto_reload_time.GetFloat() )
+	/*if ( ( gpGlobals->curtime - m_flHolsterTime ) > sk_auto_reload_time.GetFloat() )
 	{
 		// Reset the timer
 		m_flHolsterTime = gpGlobals->curtime;
@@ -605,7 +606,7 @@ void CWeaponShotgun::ItemHolsterFrame( void )
 		if ( m_iClip1 == GetMaxClip1() )
 			return;
 
-	}
+	}*/
 }
 
 //==================================================

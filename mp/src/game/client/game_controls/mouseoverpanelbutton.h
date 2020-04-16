@@ -112,7 +112,7 @@ public:
 					GetText(temp, sizeof(temp));
 					if ( !Q_stricmp( "Bandage - Rank 1", temp) || !Q_stricmp( "Bandage - Rank 2", temp) || !Q_stricmp( "Bandage - Rank 3", temp) )
 					{
-						m_pPanel->SetText("Bandage:\n\nCooldown: 10/8/6 seconds\n\nThrows a med kit for team mates to pick up. Maximum 1/2/3 med kits active at once.");
+						m_pPanel->SetText("Bandage:\n\nCooldown: 6 seconds\n\nThrows a med kit for team mates to pick up. Maximum 1/2/3 med kits active at once.");
 					}
 					else if ( !Q_stricmp( "Sheer Will - Rank 1", temp) || !Q_stricmp( "Sheer Will - Rank 2", temp) || !Q_stricmp( "Sheer Will - Rank 3", temp) )
 					{
@@ -169,7 +169,7 @@ public:
 					}
 					else if ( !Q_stricmp( "Gut Check - Rank 1", temp) || !Q_stricmp( "Gut Check - Rank 2", temp) || !Q_stricmp( "Gut Check - Rank 3", temp) )
 					{
-						m_pPanel->SetText("Gut Check:\n\nPassive Bonus\nCooldown: 15/10/5 seconds\n\nGrants immunity from one damaging effect while active. Resets 15/10/5 seconds after being used.");
+						m_pPanel->SetText("Gut Check:\n\nPassive Bonus\nCooldown: 14/10/6 seconds\n\nGrants immunity from one vampire melee attack while active. Resets 14/10/6 seconds after being used.");
 					}
 					else
 					{

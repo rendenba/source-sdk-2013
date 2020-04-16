@@ -28,6 +28,8 @@ class CHealthKit : public CItem
 public:
 	DECLARE_CLASS( CHealthKit, CItem );
 
+	int level;
+	float delayTimer;
 	void Spawn( void );
 	void Precache( void );
 	bool MyTouch( CBasePlayer *pPlayer );
@@ -43,6 +45,10 @@ PRECACHE_REGISTER(item_healthkit);
 //-----------------------------------------------------------------------------
 void CHealthKit::Spawn( void )
 {
+	level = 1;
+	if (creator)
+		level = ((CHL2MP_Player *)creator)->GetLoadout(1);
+	delayTimer = gpGlobals->curtime + 0.2f;
 	Precache();
 	SetModel( "models/items/healthkit.mdl" );
 
@@ -73,14 +79,15 @@ bool CHealthKit::MyTouch( CBasePlayer *pPlayer )
 	{
 		if (pPlayer == creator)
 		{
-			IPhysicsObject *pPhysics = VPhysicsGetObject();
-			if ( pPhysics && !pPhysics->IsAsleep())
+			//IPhysicsObject *pPhysics = VPhysicsGetObject();
+			//if ( pPhysics && !pPhysics->IsAsleep())
 			//if (!(GetFlags() & FL_ONGROUND))
+			if (gpGlobals->curtime < delayTimer)
 			{
 				return false;
 			}
 		}
-		if ( pPlayer->TakeHealth( sk_healthkit.GetFloat(), DMG_GENERIC ) )
+		if ( pPlayer->TakeHealth( sk_healthvial.GetFloat() * level, DMG_GENERIC ) )
 		{
 			CSingleUserRecipientFilter user( pPlayer );
 			user.MakeReliable();
@@ -119,8 +126,15 @@ class CHealthVial : public CItem
 public:
 	DECLARE_CLASS( CHealthVial, CItem );
 
+	int level;
+	float delayTimer;
+
 	void Spawn( void )
 	{
+		level = 1;
+		if (creator)
+			level = ((CHL2MP_Player *)creator)->GetLoadout(1);
+		delayTimer = gpGlobals->curtime + 0.2f;
 		Precache();
 		SetModel( "models/healthvial.mdl" );
 
@@ -136,28 +150,44 @@ public:
 
 	bool MyTouch( CBasePlayer *pPlayer )
 	{
-		if ( pPlayer->TakeHealth( sk_healthvial.GetFloat(), DMG_GENERIC ) )
+		//BB: only slayers can pickup health kits now...
+		if (pPlayer && pPlayer->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
 		{
-			CSingleUserRecipientFilter user( pPlayer );
-			user.MakeReliable();
-
-			UserMessageBegin( user, "ItemPickup" );
-				WRITE_STRING( GetClassname() );
-			MessageEnd();
-
-			CPASAttenuationFilter filter( pPlayer, "HealthVial.Touch" );
-			EmitSound( filter, pPlayer->entindex(), "HealthVial.Touch" );
-
-			if ( g_pGameRules->ItemShouldRespawn( this ) )
+			if (pPlayer == creator)
 			{
-				Respawn();
+				//IPhysicsObject *pPhysics = VPhysicsGetObject();
+				//if (pPhysics && !pPhysics->IsAsleep())
+					//if (!(GetFlags() & FL_ONGROUND))
+				if (gpGlobals->curtime < delayTimer)
+				{
+					return false;
+				}
 			}
-			else
+			if (pPlayer->TakeHealth(sk_healthvial.GetFloat() * level, DMG_GENERIC))
 			{
-				UTIL_Remove(this);	
-			}
+				CSingleUserRecipientFilter user(pPlayer);
+				user.MakeReliable();
 
-			return true;
+				UserMessageBegin(user, "ItemPickup");
+				WRITE_STRING(GetClassname());
+				MessageEnd();
+
+				CPASAttenuationFilter filter(pPlayer, "HealthVial.Touch");
+				EmitSound(filter, pPlayer->entindex(), "HealthVial.Touch");
+
+				((CHL2MP_Player *)creator)->medkits.FindAndRemove(this);
+
+				if (g_pGameRules->ItemShouldRespawn(this))
+				{
+					Respawn();
+				}
+				else
+				{
+					UTIL_Remove(this);
+				}
+
+				return true;
+			}
 		}
 
 		return false;

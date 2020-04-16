@@ -138,6 +138,17 @@ void CBaseCombatWeapon::Activate( void )
 #endif
 
 }
+
+bool CBaseCombatWeapon::NeedsReload1()
+{
+	return m_iClip1 < GetMaxClip1();
+}
+
+bool CBaseCombatWeapon::CanFire()
+{
+	return m_iClip1 > 0;
+}
+
 void CBaseCombatWeapon::GiveDefaultAmmo( void )
 {
 	// If I use clips, set my clips to the default

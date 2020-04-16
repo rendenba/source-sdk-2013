@@ -175,7 +175,7 @@ public:
 	void DoSheerWill(int lev);
 	void DoIntimidatingShout(int lev);
 	void RevengeCheck();
-	void GenerateBandage();
+	void GenerateBandage(int lev);
 	void ThrowHolywaterGrenade(int lev);
 	bool AttachTripmine();
 	void CheckThrowPosition(const Vector &vecEye, Vector &vecSrc);
@@ -243,6 +243,7 @@ public:
 	int PointsToSpend();
 	void RefreshLoadout();
 	void RefreshCooldowns();
+	void ResetCooldowns();
 	void SetGlobalCooldown(int n, float time);
 	int covenLoadouts[2][COVEN_MAX_CLASSCOUNT][4];
 	int covenLevelsSpent[2][COVEN_MAX_CLASSCOUNT];

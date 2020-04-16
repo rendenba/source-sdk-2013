@@ -107,7 +107,8 @@ typedef struct
 	float			m_flBaseSpeed;
 
 	int				m_objectiveType; //-1 none, 0 rogue, 1 cap point, 2 cts
-	int				m_objective;
+	int				m_objective; //index
+	int				m_lastCheckedObjective;
 
 	int				m_role;
 
@@ -126,7 +127,7 @@ void Bot_Combat_Check( CHL2MP_Player *pBot, CBaseEntity *pAtk )
 	if (g_BotData[pBot->entindex()-1].bCombat || !pAtk->IsPlayer() || pAtk->GetTeamNumber() == pBot->GetTeamNumber())
 		return;
 	
-	if (bot_difficulty.GetInt() < 2)
+	if (bot_difficulty.GetInt() < 1)
 		return;
 
 	g_BotData[pBot->entindex()-1].m_lastPlayerCheck = ((CHL2MP_Player *)pAtk)->entindex();
@@ -253,6 +254,7 @@ CBasePlayer *BotPutInServer( bool bFrozen, int iTeam )
 	g_BotData[pPlayer->entindex() - 1].m_flLastCombat = 0.0f;
 	g_BotData[pPlayer->entindex() - 1].wildReverse = 0.0f;
 	g_BotData[pPlayer->entindex() - 1].bGuarding = false;
+	g_BotData[pPlayer->entindex() - 1].m_lastCheckedObjective = 0;
 
 	return pPlayer;
 }
@@ -274,15 +276,30 @@ Vector CurrentObjectiveLoc( CHL2MP_Player *pBot )
 	return ret;
 }
 
+Vector GetObjectiveLoc(int locationIndex)
+{
+	Vector ret(0, 0, 0);
+	if (locationIndex)
+	{
+		int i = 3 * locationIndex;
+		ret.x = HL2MPRules()->cap_point_coords.Get(i);
+		ret.y = HL2MPRules()->cap_point_coords.Get(i + 1);
+		ret.z = HL2MPRules()->cap_point_coords.Get(i + 2);
+	}
+	return ret;
+}
+
 void GetLost( CHL2MP_Player *pBot )
 {
 	botdata_t *botdata = &g_BotData[ ENTINDEX( pBot->edict() ) - 1 ];
 	botdata->m_targetNode = 0;
 	botdata->m_lastNode = -1;
 	botdata->bLost = true;
-	CBaseCombatWeapon *pWeapon = pBot->Weapon_OwnsThisType( "weapon_stake" );
-	if (pWeapon)
-		pBot->SwitchToNextBestWeapon(pWeapon);
+	//Comendeering this function for resetall
+	botdata->bCombat = botdata->bForceCombat = false;
+	botdata->backwards = false;
+	botdata->guardTimer = 0.0f;
+	botdata->goWild = 0.0f;
 }
 
 //BB: TODO: defenders!
@@ -299,20 +316,18 @@ bool CheckObjective( CHL2MP_Player *pBot, bool doValidityCheck ) //returns true 
 			}
 			else
 			{
-				botdata->m_role = ROLE_ATK;
-				//botdata->m_role = ROLE_DEF;
+				botdata->m_role = ROLE_DEF;
 			}
 		}
 		else if (pBot->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
 		{
-			if (pBot->covenClassID == COVEN_CLASSID_REAVER)
+			if (pBot->covenClassID == COVEN_CLASSID_HELLION)
 			{
 				botdata->m_role = ROLE_ATK;
-				//botdata->m_role = ROLE_DEF;
 			}
 			else
 			{
-				botdata->m_role = ROLE_ATK;
+				botdata->m_role = ROLE_DEF;
 			}
 		}
 	}
@@ -353,7 +368,7 @@ bool CheckObjective( CHL2MP_Player *pBot, bool doValidityCheck ) //returns true 
 		if (botdata->m_role == ROLE_ATK)
 		{
 			//X BOTPATCH if there are no valid options, go ahead with a random and skip this check
-			if ((pBot->GetTeamNumber() == COVEN_TEAMID_SLAYERS && HL2MPRules()->v_caps > 0) || (pBot->GetTeamNumber() == COVEN_TEAMID_VAMPIRES && HL2MPRules()->s_caps > 0))
+			if ((pBot->GetTeamNumber() == COVEN_TEAMID_SLAYERS && HL2MPRules()->s_caps < HL2MPRules()->num_cap_points) || (pBot->GetTeamNumber() == COVEN_TEAMID_VAMPIRES && HL2MPRules()->v_caps < HL2MPRules()->num_cap_points))
 			{
 				if (HL2MPRules()->cap_point_state.Get(botdata->m_objective) == pBot->GetTeamNumber())
 				{
@@ -370,10 +385,53 @@ bool CheckObjective( CHL2MP_Player *pBot, bool doValidityCheck ) //returns true 
 		}
 		else if (botdata->m_role == ROLE_DEF)
 		{
-			if (HL2MPRules()->cap_point_state.Get(botdata->m_objective) != pBot->GetTeamNumber() && HL2MPRules()->cap_point_state.Get(botdata->m_objective) != 0)
+			if ((pBot->GetTeamNumber() == COVEN_TEAMID_SLAYERS && HL2MPRules()->s_caps < HL2MPRules()->num_cap_points) || (pBot->GetTeamNumber() == COVEN_TEAMID_VAMPIRES && HL2MPRules()->v_caps < HL2MPRules()->num_cap_points))
 			{
-				botdata->m_objective = -1;
-				botdata->m_objectiveType = -1;
+				if (HL2MPRules()->cap_point_state.Get(botdata->m_objective) == pBot->GetTeamNumber())
+				{
+					botdata->m_objective = -1;
+					botdata->m_objectiveType = -1;
+					GetLost(pBot);
+					botdata->guardTimer = 0.0f;
+					botdata->bGuarding = false;
+					return false;
+				}
+			}
+		}
+	}
+	else
+	{
+		//BB: this is kludgy, but this only needs to happen PRIOR to guard set
+		//BB: this type always checks to see if it is crossing into a zone then attempts to cap it
+		if (botdata->m_role == ROLE_DEF)
+		{
+			if (botdata->guardTimer == 0.0f)
+			{
+				botdata->m_lastCheckedObjective++;
+				if (botdata->m_lastCheckedObjective >= HL2MPRules()->num_cap_points)
+					botdata->m_lastCheckedObjective = 0;
+				Vector objloc = GetObjectiveLoc(botdata->m_lastCheckedObjective);
+				Vector goalloc = GetObjectiveLoc(botdata->m_objective);
+				if (HL2MPRules()->cap_point_state.Get(botdata->m_lastCheckedObjective) != pBot->GetTeamNumber() && (objloc - pBot->GetLocalOrigin()).Length() < (goalloc - pBot->GetLocalOrigin()).Length())
+				{
+					botdata->m_objectiveType = OBJECTIVE_TYPE_CAPPOINT;
+					botdata->m_objective = botdata->m_lastCheckedObjective;
+				}
+			}
+		}
+		else
+		{
+			if (botdata->guardTimer == 0.0f)
+			{
+				botdata->m_lastCheckedObjective++;
+				if (botdata->m_lastCheckedObjective >= HL2MPRules()->num_cap_points)
+					botdata->m_lastCheckedObjective = 0;
+				Vector objloc = GetObjectiveLoc(botdata->m_lastCheckedObjective);
+				if (HL2MPRules()->cap_point_state.Get(botdata->m_lastCheckedObjective) != pBot->GetTeamNumber() && (objloc - pBot->GetLocalOrigin()).Length() < HL2MPRules()->cap_point_distance[botdata->m_lastCheckedObjective]) //BB: TODO: do I need LOS on this?
+				{
+					botdata->m_objectiveType = OBJECTIVE_TYPE_CAPPOINT;
+					botdata->m_objective = botdata->m_lastCheckedObjective;
+				}
 			}
 		}
 	}
@@ -419,6 +477,89 @@ bool RunMimicCommand( CUserCmd& cmd )
 	return true;
 }
 
+unsigned int AmmoCheck(CHL2MP_Player *pBot)
+{
+	if (pBot->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+	{
+		botdata_t *botdata = &g_BotData[ENTINDEX(pBot->edict()) - 1];
+		if (botdata->bCombat)
+		{
+			CHL2MP_Player *pPlayer = ToHL2MPPlayer(UTIL_PlayerByIndex(botdata->m_lastPlayerCheck));
+			if (pPlayer)
+			{
+				bool isVampDoll = pPlayer->KO && pPlayer->myServerRagdoll != NULL;
+				CBaseCombatWeapon *pWeapon = pBot->Weapon_OwnsThisType("weapon_stake");
+				CBaseCombatWeapon *pActiveWeapon = pBot->GetActiveWeapon();
+				if (pWeapon)
+				{
+					if (isVampDoll)
+					{
+						// Switch to it if we don't have it out
+						// Switch?
+						if (pActiveWeapon != pWeapon)
+						{
+							pBot->Weapon_Switch(pWeapon);
+						}
+					}
+					else
+					{
+						if (pActiveWeapon == pWeapon)
+						{
+							CBaseCombatWeapon *nextBest = g_pGameRules->GetNextBestWeapon(pBot, pActiveWeapon);
+							if (nextBest && nextBest->HasAmmo())
+								pBot->SwitchToNextBestWeapon(pWeapon);
+						}
+						else
+						{
+							if (pActiveWeapon->NeedsReload1())
+							{
+								return IN_RELOAD;
+							}
+						}
+					}
+				}
+			}
+		}
+		else
+		{
+			CBaseCombatWeapon *pWeapon = pBot->Weapon_OwnsThisType("weapon_stake");
+			if (pWeapon)
+			{
+				CBaseCombatWeapon *pActiveWeapon = pBot->GetActiveWeapon();
+				if (pActiveWeapon == pWeapon)
+				{
+					CBaseCombatWeapon *nextBest = g_pGameRules->GetNextBestWeapon(pBot, pActiveWeapon);
+					if (nextBest && nextBest->HasAmmo())
+						pBot->SwitchToNextBestWeapon(pWeapon);
+				}
+				else if (pActiveWeapon != pWeapon && pActiveWeapon->HasAmmo())
+				{
+					if (pActiveWeapon->NeedsReload1())
+					{
+						return IN_RELOAD;
+					}
+				}
+				else
+					pBot->Weapon_Switch(pWeapon);
+			}
+		}
+		
+	}
+	return 0;
+}
+
+void HealthCheck(CHL2MP_Player *pBot)
+{
+	if (pBot->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+	{
+		
+	}
+	else //Slayers
+	{
+
+	}
+}
+
 void PlayerCheck( CHL2MP_Player *pBot )
 {
 	botdata_t *botdata = &g_BotData[ ENTINDEX( pBot->edict() ) - 1 ];
@@ -445,7 +586,7 @@ void PlayerCheck( CHL2MP_Player *pBot )
 
 		Vector playerVec = vecEnd-vecSrc;
 
-		if (botdata->bForceCombat || (playerVec).Length() < 500) //400
+		if (botdata->bForceCombat || (playerVec).Length() < 600) //400
 		{
 			float check = 0.1f;
 			if (botdata->bForceCombat)
@@ -478,20 +619,23 @@ void PlayerCheck( CHL2MP_Player *pBot )
 						botdata->bGuarding = false;
 						return;
 					}
-					else if (botdata->bCombat)
-					{
-						if (botdata->m_flLastCombat == 0.0f)
-						{
-							botdata->m_flLastCombat = gpGlobals->curtime + 5.0f;
-							return;
-						}
-						else if (gpGlobals->curtime > botdata->m_flLastCombat)
-						{
-							botdata->m_flLastCombat = 0.0f;
-						}
-					}
 				}
 			}
+		}
+
+		if (botdata->bCombat)
+		{
+			if (botdata->m_flLastCombat == 0.0f)
+			{
+				botdata->m_flLastCombat = gpGlobals->curtime + 5.0f;
+				return;
+			}
+			else if (gpGlobals->curtime > botdata->m_flLastCombat)
+			{
+				botdata->m_flLastCombat = 0.0f;
+			}
+			else
+				return;
 		}
 	}
 
@@ -607,17 +751,17 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot)
 {
 	botdata_t *botdata = &g_BotData[ENTINDEX(pBot->edict()) - 1];
 	unsigned int buttons = 0;
-	//BB: for now, always prefer passives... TODO: randomize selection within reason
 	if (pBot->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
 	{
 		if (pBot->covenClassID == COVEN_CLASSID_REAVER)
 		{
 			if (pBot->PointsToSpend() > 0)
 			{
-				if (pBot->SpendPointBOT(2))
-					if (pBot->SpendPointBOT(3))
-						if (pBot->SpendPointBOT(0))
-							pBot->SpendPointBOT(1);
+				if (pBot->SpendPointBOT(3))
+				{
+					int rn = random->RandomInt(0, 2);
+					pBot->SpendPointBOT(rn);
+				}
 			}
 			if (botdata->bCombat)
 			{
@@ -632,6 +776,7 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot)
 				{
 					buttons |= IN_ABIL2;
 				}
+				//BB: TODO: INT SHOUT
 			}
 			else
 			{
@@ -653,10 +798,11 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot)
 		{
 			if (pBot->PointsToSpend() > 0)
 			{
-				if (pBot->SpendPointBOT(2))
-					if (pBot->SpendPointBOT(3))
-						if (pBot->SpendPointBOT(0))
-							pBot->SpendPointBOT(1);
+				if (pBot->SpendPointBOT(3))
+				{
+					int rn = random->RandomInt(0, 2);
+					pBot->SpendPointBOT(rn);
+				}
 			}
 			if (botdata->bCombat)
 			{
@@ -666,6 +812,15 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot)
 					buttons |= IN_ABIL1;
 				}
 			}
+			else
+			{
+				float cd = pBot->GetCooldown(1);
+				int ld = pBot->GetLoadout(1);
+				if (ld > 0 && pBot->GetHealth() < 100.0f && (gpGlobals->curtime >= cd || cd == 0.0f) && pBot->medkits.Size() < ld)
+				{
+					buttons |= IN_ABIL2;
+				}
+			}
 		}
 		else if (pBot->covenClassID == COVEN_CLASSID_HELLION)
 		{
@@ -673,8 +828,10 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot)
 			{
 				if (pBot->SpendPointBOT(0))
 					if (pBot->SpendPointBOT(3))
-						if (pBot->SpendPointBOT(1))
-							pBot->SpendPointBOT(2);
+					{
+						int rn = random->RandomInt(1, 2);
+						pBot->SpendPointBOT(rn);
+					}
 			}
 			if (botdata->bCombat)
 			{
@@ -692,7 +849,7 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot)
 			}
 			else
 			{
-				//Randomize this timing a little?
+				//BB: TODO: Randomize this timing a little?
 				float cd = pBot->GetCooldown(0);
 				if (pBot->GetLoadout(0) > 0 && pBot->GetHealth() < 100.0f && (gpGlobals->curtime >= cd || cd == 0.0f))
 				{
@@ -704,7 +861,7 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot)
 			}
 		}
 	}
-	else if (pBot->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+	else //Vampires
 	{
 		if (pBot->covenClassID == COVEN_CLASSID_FIEND)
 		{
@@ -712,13 +869,15 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot)
 			{
 				if (pBot->SpendPointBOT(0))
 					if (pBot->SpendPointBOT(3))
-						if (pBot->SpendPointBOT(1))
-							pBot->SpendPointBOT(2);
+					{
+						int rn = random->RandomInt(1, 2);
+						pBot->SpendPointBOT(rn);
+					}
 			}
 			if (botdata->bCombat)
 			{
 				float cd = pBot->GetCooldown(0);
-				float distance = 200.0f;
+				float distance = 0.0f;
 				CHL2MP_Player *pPlayer = ToHL2MPPlayer(UTIL_PlayerByIndex(botdata->m_lastPlayerCheck));
 				if (pPlayer)
 				{
@@ -742,6 +901,7 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot)
 				{
 					buttons |= IN_ABIL2;
 				}
+				//BB: TODO: dodge
 			}
 			else
 			{
@@ -749,11 +909,11 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot)
 				pRules = HL2MPRules();
 				float cd = pBot->GetCooldown(0);
 				float distance = 0.0f;
-				if (pRules->botnet[botdata->m_targetNode] != NULL)
+				if (botdata->m_targetNode > -1 && pRules->botnet[botdata->m_targetNode] != NULL)
 				{
 					distance = (pRules->botnet[botdata->m_targetNode]->location - pBot->GetLocalOrigin()).Length();
 				}
-				if (pBot->GetLoadout(0) > 0 && botdata->goWild == 0.0f && !botdata->bLost && botdata->stuckTimer == 0.0f && botdata->guardTimer == 0.0f && (gpGlobals->curtime >= cd || cd == 0.0f) && distance > 425.0f) //&& roofcheck
+				if (pBot->GetLoadout(0) > 0 && botdata->goWild == 0.0f && !botdata->bLost && botdata->stuckTimer == 0.0f && botdata->guardTimer == 0.0f && (gpGlobals->curtime >= cd || cd == 0.0f) && distance > 425.0f) //BB: TODO: && roofcheck
 				{
 					if (botdata->m_flAbility1Timer == 0.0f)
 					{
@@ -769,6 +929,7 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot)
 						buttons |= IN_ABIL1;
 					}
 				}
+				//BB: TODO: random sneak walk
 			}
 		}
 		else if (pBot->covenClassID == COVEN_CLASSID_GORE)
@@ -777,8 +938,10 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot)
 			{
 				if (pBot->SpendPointBOT(1))
 					if (pBot->SpendPointBOT(3))
-						if (pBot->SpendPointBOT(2))
-							pBot->SpendPointBOT(0);
+					{
+						int rn = random->RandomInt(0, 2);
+						pBot->SpendPointBOT(rn);
+					}
 			}
 			if (botdata->bCombat)
 			{
@@ -787,6 +950,70 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot)
 				{
 					buttons |= IN_ABIL1;
 				}
+				cd = pBot->GetCooldown(1);
+				float distance = 0.0f;
+				CHL2MP_Player *pPlayer = ToHL2MPPlayer(UTIL_PlayerByIndex(botdata->m_lastPlayerCheck));
+				if (pPlayer)
+				{
+					Vector vStart = pPlayer->GetLocalOrigin();
+					vStart.z = 0.0f;
+					Vector vEnd = pBot->GetLocalOrigin();
+					vEnd.z = 0.0f;
+					distance = (vStart - vEnd).Length(); //ignore z for distance check (flung players should not trigger a charge)
+
+					if (pBot->GetLoadout(1) > 0 && pBot->SuitPower_GetCurrentPercentage() > 10.0f && (gpGlobals->curtime >= cd || cd == 0.0f))
+					{
+						if (distance > 100.0f)
+						{
+							botdata->m_flAbility2Timer = distance;
+							//BB: I don't think I need to do this... angles should be "correct" from other functions
+							//Vector forward = pPlayer->GetLocalOrigin() - pBot->GetLocalOrigin();
+							//VectorAngles(forward, botdata->lastAngles);
+							buttons |= IN_ABIL2;
+						}
+						else if (pBot->gorelock && distance > 24.0f && distance < botdata->m_flAbility2Timer)
+						{
+							botdata->m_flAbility2Timer = distance;
+							buttons |= IN_ABIL2;
+						}
+						else if (pBot->gorelock)
+							botdata->m_flAbility2Timer = 0.0f;
+					}
+				}
+				//BB: TODO: phasing
+			}
+			else
+			{
+				CHL2MPRules *pRules;
+				pRules = HL2MPRules();
+				float cd = pBot->GetCooldown(1);
+				float distance = 0.0f;
+				float deltaZ = 0.0f;
+				if (botdata->m_targetNode > -1 && pRules->botnet[botdata->m_targetNode] != NULL)
+				{
+					distance = (pRules->botnet[botdata->m_targetNode]->location - pBot->GetLocalOrigin()).Length();
+					deltaZ = abs(pRules->botnet[botdata->m_targetNode]->location.z - pBot->GetLocalOrigin().z);
+
+					if (pBot->GetLoadout(1) > 0 && botdata->goWild == 0.0f && !botdata->bLost && botdata->stuckTimer == 0.0f && botdata->guardTimer == 0.0f && pBot->SuitPower_GetCurrentPercentage() > 10.0f && (gpGlobals->curtime >= cd || cd == 0.0f))
+					{
+						if (distance > 450.0f && deltaZ < 24.0f)
+						{
+							botdata->m_flAbility2Timer = distance;
+							//BB: I don't think I need to do this... angles should be "correct" from other functions
+							//Vector forward = pRules->botnet[botdata->m_targetNode]->location - pBot->GetLocalOrigin();
+							//VectorAngles(forward, botdata->lastAngles);
+							buttons |= IN_ABIL2;
+						}
+						else if (pBot->gorelock && distance > 30.0f && distance < botdata->m_flAbility2Timer)
+						{
+							botdata->m_flAbility2Timer = distance;
+							buttons |= IN_ABIL2;
+						}
+						else if (pBot->gorelock)
+							botdata->m_flAbility2Timer = 0.0f;
+					}
+				}
+				//BB: TODO: phasing
 			}
 		}
 		else if (pBot->covenClassID == COVEN_CLASSID_DEGEN)
@@ -795,8 +1022,10 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot)
 			{
 				if (pBot->SpendPointBOT(2))
 					if (pBot->SpendPointBOT(3))
-						if (pBot->SpendPointBOT(1))
-							pBot->SpendPointBOT(0);
+					{
+						int rn = random->RandomInt(0, 1);
+						pBot->SpendPointBOT(rn);
+					}
 			}
 			if (botdata->bCombat)
 			{
@@ -810,6 +1039,11 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot)
 				{
 					buttons |= IN_ABIL2;
 				}
+				//BB: TODO: blood explode on cd and distance
+			}
+			else
+			{
+				//BB: TODO: blood explode?
 			}
 		}
 	}
@@ -863,13 +1097,19 @@ void Bot_Think( CHL2MP_Player *pBot )
 		}
 	}
 
+	unsigned int buttons = 0;
+
 	//Combat Check
 	PlayerCheck(pBot);
 
 	//Objective Check
 	CheckObjective(pBot, false);
 
-	unsigned int buttons = 0;
+	//Ammo Check
+	buttons |= AmmoCheck(pBot);
+
+	//Health Check
+	HealthCheck(pBot);
 
 	float forwardmove = 0.0f;
 	float sidemove = botdata->sidemove;
@@ -1003,8 +1243,9 @@ void Bot_Think( CHL2MP_Player *pBot )
 
 		if ( !pBot->IsEFlagSet(EFL_BOT_FROZEN) && botdata->guardTimer == 0.0f)
 		{
+			//Forward move calc
 			forwardmove = botdata->m_flBaseSpeed * (botdata->backwards ? -1 : 1);
-			if ( botdata->sidemove != 0.0f )
+			if ( botdata->sidemove != 0.0f)
 			{
 				forwardmove *= random->RandomFloat( 0.1f, 1.0f );
 			}
@@ -1031,11 +1272,6 @@ void Bot_Think( CHL2MP_Player *pBot )
 				}
 				else if (gpGlobals->curtime > botdata->wildReverse) //always greater the first time
 				{
-					/*angle.y -= 180.0f;
-					if (angle.y > 180.0f)
-						angle.y -= 360.0f;
-					else if (angle.y < -180.0f)
-						angle.y += 360.0f;*/
 					Vector vecEnd;
 
 					float angledelta = 15.0;
@@ -1075,8 +1311,6 @@ void Bot_Think( CHL2MP_Player *pBot )
 								angle.y -= 360;
 							else if (angle.y < -180)
 								angle.y += 360;
-							//if (angle.y > 360)
-							//	angle.y = 0;
 
 							botdata->forwardAngle = angle;
 							botdata->lastAngles = angle;
@@ -1114,12 +1348,12 @@ void Bot_Think( CHL2MP_Player *pBot )
 						}
 						else
 						{
-							int accuracy = 16;
-							if (bot_difficulty.GetInt() < 1)
-								accuracy = 24;
-							else if (bot_difficulty.GetInt() > 1)
-								accuracy = 8;
-							forward = (pPlayer->GetLocalOrigin() + Vector(random->RandomInt(-accuracy,accuracy), random->RandomInt(-accuracy,accuracy), random->RandomInt(-accuracy,accuracy))) - pBot->GetLocalOrigin();
+							int accuracy = 24 - bot_difficulty.GetInt() * 8;
+
+							if (pBot->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+								forward = (pPlayer->GetLocalOrigin() + Vector(random->RandomInt(-accuracy, accuracy), random->RandomInt(-accuracy, accuracy), random->RandomInt(-accuracy, accuracy))) - pBot->GetLocalOrigin();
+							else //vampires have perfect accuracy... doesn't really matter?
+								forward = pPlayer->GetLocalOrigin() - pBot->GetLocalOrigin();
 						}
 						VectorAngles(forward, angle);
 						botdata->forwardAngle = angle;
@@ -1130,7 +1364,11 @@ void Bot_Think( CHL2MP_Player *pBot )
 						{
 							UTIL_TraceLine(pBot->GetAbsOrigin() + Vector(0, 0, 72), pPlayer->GetAbsOrigin() + Vector(0, 0, 72), MASK_SHOT, pBot, COLLISION_GROUP_PLAYER, &trace);
 							if (trace.DidHitNonWorldEntity() || trace.fraction == 1.0f)
-								buttons |= IN_ATTACK;
+							{
+								CBaseCombatWeapon *pActiveWeapon = pBot->GetActiveWeapon();
+								if (pActiveWeapon && pActiveWeapon->CanFire())
+									buttons |= IN_ATTACK;
+							}
 						}
 						if (pBot->GetTeamNumber() == COVEN_TEAMID_SLAYERS && !isVampDoll)
 						{
@@ -1141,22 +1379,11 @@ void Bot_Think( CHL2MP_Player *pBot )
 							forwardmove = botdata->m_flBaseSpeed;
 							if (bot_difficulty.GetInt() < 2)
 								buttons |= IN_DUCK;
-							else if ((pPlayer->myServerRagdoll->GetAbsOrigin() - pBot->GetAbsOrigin()).Length() < 175) //150
+							else if ((pPlayer->myServerRagdoll->GetAbsOrigin() - pBot->GetAbsOrigin()).Length() < 150)
 								buttons |= IN_DUCK;
-							CBaseCombatWeapon *pWeapon = pBot->Weapon_OwnsThisType( "weapon_stake" );
-							if ( pWeapon )
-							{
-								// Switch to it if we don't have it out
-								CBaseCombatWeapon *pActiveWeapon = pBot->GetActiveWeapon();
-
-								// Switch?
-								if ( pActiveWeapon != pWeapon )
-								{
-									pBot->Weapon_Switch( pWeapon );
-								}
-							}
 						}
-						else if (pBot->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+						//Vampires attempt to juke on hard mode, except charging gores.
+						else if (pBot->GetTeamNumber() == COVEN_TEAMID_VAMPIRES && !(pBot->covenClassID == COVEN_CLASSID_GORE && pBot->gorelock) && forward.Length() > 150.0f)
 						{
 							forwardmove = botdata->m_flBaseSpeed;
 							if (bot_difficulty.GetInt() > 1)
@@ -1193,42 +1420,46 @@ void Bot_Think( CHL2MP_Player *pBot )
 			}
 			else
 			{
-				//guardtimer is set, slowly rotate and crouch
-				if (botdata->bGuarding)
+				//Don't try to cap and already capped point
+				if (CheckObjective(pBot, true))
 				{
-					angle.y += 4.0f;
-					if (angle.y > 180.0f)
-						angle.y -= 360.0f;
-					else if (angle.y < -180.0f)
-						angle.y += 360.0f;
-				}
-				else
-				{
-					Vector objloc = CurrentObjectiveLoc(pBot);
-					objloc.z = pBot->GetAbsOrigin().z;
-					forward = objloc - pBot->GetLocalOrigin();
-					//Msg("%d %.02f\n", botdata->m_objective, forward.Length());
-					if (botdata->m_objective > -1 && forward.Length() > 72 && !botdata->bCombat)
+					//guardtimer is set, slowly rotate and crouch
+					if (botdata->bGuarding)
 					{
-						VectorAngles(forward, angle);
+						angle.y += 4.0f;
+						if (angle.y > 180.0f)
+							angle.y -= 360.0f;
+						else if (angle.y < -180.0f)
+							angle.y += 360.0f;
 					}
 					else
 					{
-						botdata->bGuarding = true;
+						Vector objloc = CurrentObjectiveLoc(pBot);
+						objloc.z = pBot->GetAbsOrigin().z;
+						forward = objloc - pBot->GetLocalOrigin();
+						//Msg("%d %.02f\n", botdata->m_objective, forward.Length());
+						if (botdata->m_objective > -1 && forward.Length() > 72 && !botdata->bCombat)
+						{
+							VectorAngles(forward, angle);
+						}
+						else
+						{
+							botdata->bGuarding = true;
+						}
 					}
+					buttons |= IN_DUCK;
+					botdata->forwardAngle = angle;
+					botdata->lastAngles = angle;
+					forwardmove = botdata->m_flBaseSpeed;
 				}
-				buttons |= IN_DUCK;
-				botdata->forwardAngle = angle;
-				botdata->lastAngles = angle;
-				forwardmove = botdata->m_flBaseSpeed;
 			}
 
             //X BOTPATCH dont do sidemove/strafetime if guardtimer... no it's fine for now
-			if ( gpGlobals->curtime >= botdata->nextstrafetime )
+			if (gpGlobals->curtime >= botdata->nextstrafetime)
 			{
 				botdata->nextstrafetime = gpGlobals->curtime + 1.0f;
 
-				if ( random->RandomInt( 0, 5 ) == 0)
+				if (botdata->bCombat && random->RandomInt(0, 5) == 0)
 				{
 					botdata->sidemove = botdata->m_flBaseSpeed * (random->RandomInt(0, 2) - 1);
 				}
@@ -1240,21 +1471,21 @@ void Bot_Think( CHL2MP_Player *pBot )
 
 				/*if ( random->RandomInt( 0, 20 ) == 0 )
 				{
-					botdata->backwards = true;
+				botdata->backwards = true;
 				}
 				else
 				{
-					botdata->backwards = false;
+				botdata->backwards = false;
 				}*/
 			}
 			if (botdata->sidemove != 0.0f)
 			{
 				trace_t	tr;
 				Vector forward, right, up;
-				AngleVectors( angle, &forward, &right, &up );
+				AngleVectors(angle, &forward, &right, &up);
 				if (sidemove < 0)
 					right = -right;
-				UTIL_TraceLine(pBot->GetAbsOrigin()+right*16, pBot->GetAbsOrigin()-up*25, MASK_SHOT_HULL, pBot, COLLISION_GROUP_WEAPON, &tr);
+				UTIL_TraceLine(pBot->GetAbsOrigin() + right * 16, pBot->GetAbsOrigin() - up * 25, MASK_SHOT_HULL, pBot, COLLISION_GROUP_WEAPON, &tr);
 				if (tr.fraction == 1.0)
 					sidemove = botdata->sidemove = 0;
 			}
@@ -1264,7 +1495,8 @@ void Bot_Think( CHL2MP_Player *pBot )
 	}
 
 	//BB: I just don't even have any words...
-	pBot->SetLocalAngles(botdata->lastAngles);
+	if (!botdata->bLost)
+		pBot->SetLocalAngles(botdata->lastAngles);
 
 	//Stuck calcs
 	if (!(pBot->GetFlags() & FL_FROZEN) && !(pBot->GetEFlags() & EFL_BOT_FROZEN))
@@ -1286,13 +1518,19 @@ void Bot_Think( CHL2MP_Player *pBot )
 				{
 					//try a jump
 					buttons |= IN_JUMP;
-					botdata->nextjumptime = gpGlobals->curtime + 3.0f;
+					botdata->nextjumptime = gpGlobals->curtime + 3.5f;
 				}
-				if (gpGlobals->curtime - botdata->stuckTimer >= 2.0f && botdata->goWild == 0.0f) //STUCK!
+				if (gpGlobals->curtime - botdata->stuckTimer >= 1.0f)
+				{
+					//try a sidestep
+					botdata->nextstrafetime = gpGlobals->curtime + 1.0f;
+					botdata->sidemove = botdata->m_flBaseSpeed;
+				}
+				if (gpGlobals->curtime - botdata->stuckTimer >= 1.3f && botdata->goWild == 0.0f) //STUCK!
 				{
 					botdata->goWild = gpGlobals->curtime + 2.0f;
 					botdata->turns = 0.0f;
-				
+
 					botdata->stuckTimer = 0.0f;
 					botdata->strikes++;
 				}
