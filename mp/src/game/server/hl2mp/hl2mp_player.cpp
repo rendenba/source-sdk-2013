@@ -273,7 +273,7 @@ void CHL2MP_Player::DoSlayerAbilityThink()
 			else if (covenClassID == COVEN_CLASSID_HELLION)
 			{
 				//float mana = 12.0f;//+2.0f*lev;
-				float cool = 5.0f;//20.0f - 5.0f*lev;
+				float cool = 6.0f;//20.0f - 5.0f*lev;
 				SetGlobalCooldown(0, gpGlobals->curtime + cool);
 				ThrowHolywaterGrenade(lev);
 			}
@@ -480,7 +480,7 @@ void CHL2MP_Player::ThrowHolywaterGrenade(int lev)
 	pGrenade->SetLocalAngularVelocity( RandomAngle( -200, 200 ) );
 	pGrenade->SetMoveType( MOVETYPE_FLYGRAVITY, MOVECOLLIDE_FLY_BOUNCE );
 	pGrenade->SetThrower( this );
-	pGrenade->SetDamage( 2.0f + lev*1.0f );
+	pGrenade->SetDamage( 2.0f + lev * 1.0f );
 	pGrenade->SetDamageRadius( 150.0f );
 }
 
@@ -750,7 +750,7 @@ void CHL2MP_Player::VampireUnDodge()
 void CHL2MP_Player::DoVampireAbilityThink()
 {
 	// BB: abilities are usuable while dead spectating
-	if (KO)
+	if (!IsAlive() || KO)
 		return;
 
 	if (m_afButtonPressed & IN_ABIL1)
@@ -1584,8 +1584,8 @@ void CHL2MP_Player::Spawn(void)
 	ResetCooldowns();
 
 	//BB: Reset bot pathing on spawn
-	if (GetFlags() & FL_FAKECLIENT)
-		GetLost(this);
+	if (IsBot())
+		GetLost(this, true, false);
 
 	if (KO && myServerRagdoll)
 		UTIL_Remove(myServerRagdoll);
@@ -1943,7 +1943,7 @@ void CHL2MP_Player::VampireStealthCalc()
 
 		float alpha = 1.0f;
 
-		if (IsAlive())
+		if (IsAlive() && !KO)
 		{
 			int max_velocity = COVEN_MAX_STEALTH_VELOCITY;
 
@@ -2321,16 +2321,13 @@ void CHL2MP_Player::PreThink( void )
 			lastCheckedCapPoint = 0;
 	}
 	
-	if (IsAlive())
+	if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
 	{
-		if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
-		{
-			DoVampirePreThink();
-		}
-		else if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
-		{
-			DoSlayerPreThink();
-		}
+		DoVampirePreThink();
+	}
+	else if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+	{
+		DoSlayerPreThink();
 	}
 }
 
@@ -4048,7 +4045,7 @@ CON_COMMAND(go_to_node, "Go to a node <id>")
 	int temp = atoi(args[ 1 ]);
 	//if (temp > HL2MPRules()->botnet.Count())
 	//	return;
-	int sel = 0;
+	//int sel = 0;
 	/*for (int i = 0; i < HL2MPRules()->botnet.Count(); i++)
 	{
 		if (HL2MPRules()->botnet[i]->ID == temp)
@@ -4109,7 +4106,7 @@ CON_COMMAND(distance, "distance from store_loc")
 		return;
 	char szReturnString[512];
 	Vector temp = pPlayer->GetLocalOrigin();
-	Q_snprintf( szReturnString, sizeof( szReturnString ), "Distance from: \"%f %f %f\" %f\n", temp.x, temp.y, temp.z, (temp-pPlayer->store_loc).Length());
+	Q_snprintf(szReturnString, sizeof(szReturnString), "Distance from: \"%f %f %f\"\n%f %f %f\n%f\n", temp.x, temp.y, temp.z, abs(temp.x - pPlayer->store_loc.x), abs(temp.y - pPlayer->store_loc.y), abs(temp.z - pPlayer->store_loc.z), (temp - pPlayer->store_loc).Length());
 	ClientPrint( pPlayer, HUD_PRINTCONSOLE, szReturnString );
 }
 #endif
@@ -4390,7 +4387,7 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 		if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
 		{
 			//startup the healing aura...
-			int mag = GetStatusMagnitude(COVEN_BUFF_HOLYWATER)+inputInfo.GetDamage()/5.0f*40.0f;//50.0f
+			int mag = GetStatusMagnitude(COVEN_BUFF_HOLYWATER)+inputInfo.GetDamage()/5.0f*30.0f;//50.0f 40
 			if (mag > 150)
 				mag = 150;
 			SetStatusMagnitude(COVEN_BUFF_HOLYWATER, mag);
@@ -4409,7 +4406,7 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 				if (m_pFlame)
 				{
 					m_pFlame->creator = (CBasePlayer *)inputInfo.GetInflictor();
-					m_pFlame->SetLifetime( max(inputInfo.GetDamage()/5.0f*10.0f,1.0f) );//15.0f
+					m_pFlame->SetLifetime( max(inputInfo.GetDamage()/5.0f*8.0f,1.0f) );//15.0f 10
 					AddFlag( FL_ONFIRE );
 
 					SetEffectEntity( m_pFlame );

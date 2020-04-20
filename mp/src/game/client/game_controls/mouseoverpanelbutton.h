@@ -87,7 +87,7 @@ public:
 					}
 					else if ( !Q_stricmp( "Holy Water - Rank 1", temp) || !Q_stricmp( "Holy Water - Rank 2", temp) || !Q_stricmp( "Holy Water - Rank 3", temp) )
 					{
-						m_pPanel->SetText("Holy Water:\n\nCooldown: 5 seconds\n\nThrows a holy water grenade healing allies and setting vampires on fire. Effect increases with rank.");
+						m_pPanel->SetText("Holy Water:\n\nCooldown: 6 seconds\n\nThrows a holy water grenade healing allies and setting vampires on fire. Effect increases with rank.");
 					}
 					else if ( !Q_stricmp( "Leap - Rank 1", temp) || !Q_stricmp( "Leap - Rank 2", temp) || !Q_stricmp( "Leap - Rank 3", temp) )
 					{

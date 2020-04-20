@@ -59,6 +59,16 @@ static char *botnames[2][10] =
 #define OBJECTIVE_TYPE_CAPPOINT 1
 #define OBJECTIVE_TYPE_CTS 2
 
+//#define BOT_SPEED_LIMIT	0.2f //78.46 degrees
+#define BOT_SPEED_LIMIT_DEG	1620.0f //1620 degrees / second
+#define BOT_SPEED_LIMIT_DEG_COMBAT	180.0f //900 degrees / second
+#define BOT_REFLEX_DOT	0.85f //31.79 degrees
+#define BOT_COMBAT_DOT	0.3f //72.5 degrees
+#define BOT_ATTACK_DOT_LOOSE	0.85f //31.79 degrees
+#define BOT_ATTACK_DOT_STRICT	0.95f //18.19 degrees
+#define BOT_REACTION_TIME 0.3f //per difficulty
+#define BOT_MAX_REACTION_TIME 0.9f //3 * REACTION_TIME
+
 #define ROLE_ATK 1
 #define ROLE_DEF 2
 
@@ -74,6 +84,7 @@ typedef struct
 	float			sidemove;
 
 	float			stuckTimer;
+	bool			stuckPCheck;
 	float			goWild;
 	float			wildReverse;
 	float			spawnTimer;
@@ -81,7 +92,8 @@ typedef struct
 	bool			bGuarding;
 
 	QAngle			forwardAngle;
-	QAngle			lastAngles;
+	QAngle			objectiveAngle;
+	QAngle			combatAngle;
 	Vector			lastPos;
 	
 	float			m_flJoinTeamTime;
@@ -92,6 +104,10 @@ typedef struct
 	bool			bCombat;
 	bool			bForceCombat;
 	float			m_flLastCombat;
+	float			m_lastPlayerDot;
+	float			m_flReactionTime;
+	bool			alreadyReacted;
+	float			lastThinkTime;
 
 	QAngle			overrideAngle;
 	float			m_flOverrideDur;
@@ -104,6 +120,8 @@ typedef struct
 	int				m_lastNodeProbe; //index (not id) of last probe into the botnet
 	int				m_targetNode; //index
 	bool			bLost;
+	bool			bIgnoreZ;
+	bool			bVisCheck;
 	float			m_flBaseSpeed;
 
 	int				m_objectiveType; //-1 none, 0 rogue, 1 cap point, 2 cts
@@ -127,6 +145,7 @@ void Bot_Combat_Check( CHL2MP_Player *pBot, CBaseEntity *pAtk )
 	if (g_BotData[pBot->entindex()-1].bCombat || !pAtk->IsPlayer() || pAtk->GetTeamNumber() == pBot->GetTeamNumber())
 		return;
 	
+	//BB: easy bots don't fight back
 	if (bot_difficulty.GetInt() < 1)
 		return;
 
@@ -236,7 +255,8 @@ CBasePlayer *BotPutInServer( bool bFrozen, int iTeam )
 	g_BotData[pPlayer->entindex()-1].stuckTimer = 0.0f;
 	g_BotData[pPlayer->entindex()-1].spawnTimer = 0.0f;
 	g_BotData[pPlayer->entindex()-1].guardTimer = 0.0f;
-	g_BotData[pPlayer->entindex()-1].bLost = true;
+	g_BotData[pPlayer->entindex() - 1].bLost = true;
+	g_BotData[pPlayer->entindex() - 1].bIgnoreZ = false;
 	g_BotData[pPlayer->entindex()-1].bCombat = false;
 	g_BotData[pPlayer->entindex()-1].bForceCombat = false;
 	g_BotData[pPlayer->entindex()-1].left = false;
@@ -255,6 +275,12 @@ CBasePlayer *BotPutInServer( bool bFrozen, int iTeam )
 	g_BotData[pPlayer->entindex() - 1].wildReverse = 0.0f;
 	g_BotData[pPlayer->entindex() - 1].bGuarding = false;
 	g_BotData[pPlayer->entindex() - 1].m_lastCheckedObjective = 0;
+	g_BotData[pPlayer->entindex() - 1].m_lastPlayerDot = 1.0f;
+	g_BotData[pPlayer->entindex() - 1].m_flReactionTime = -1.0f;
+	g_BotData[pPlayer->entindex() - 1].alreadyReacted = false;
+	g_BotData[pPlayer->entindex() - 1].stuckPCheck = true;
+	g_BotData[pPlayer->entindex() - 1].bVisCheck = false;
+	g_BotData[pPlayer->entindex() - 1].lastThinkTime = gpGlobals->curtime;
 
 	return pPlayer;
 }
@@ -289,17 +315,31 @@ Vector GetObjectiveLoc(int locationIndex)
 	return ret;
 }
 
-void GetLost( CHL2MP_Player *pBot )
+void CorrectAngle(float &v)
+{
+	if (v > 180.0f)
+		v -= 360.0f;
+	else if (v < -180.0f)
+		v += 360.0f;
+}
+
+void GetLost( CHL2MP_Player *pBot, bool iZ = false, bool visCheck = false )
 {
 	botdata_t *botdata = &g_BotData[ ENTINDEX( pBot->edict() ) - 1 ];
 	botdata->m_targetNode = 0;
 	botdata->m_lastNode = -1;
 	botdata->bLost = true;
+	botdata->bIgnoreZ = iZ;
+	botdata->bVisCheck = visCheck;
 	//Comendeering this function for resetall
 	botdata->bCombat = botdata->bForceCombat = false;
 	botdata->backwards = false;
 	botdata->guardTimer = 0.0f;
 	botdata->goWild = 0.0f;
+	botdata->m_flReactionTime = -1.0f;
+	botdata->alreadyReacted = false;
+
+	botdata->m_lastNodeProbe = 0;
 }
 
 //BB: TODO: defenders!
@@ -477,7 +517,7 @@ bool RunMimicCommand( CUserCmd& cmd )
 	return true;
 }
 
-unsigned int AmmoCheck(CHL2MP_Player *pBot)
+unsigned int WeaponCheck(CHL2MP_Player *pBot)
 {
 	if (pBot->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
 	{
@@ -498,7 +538,12 @@ unsigned int AmmoCheck(CHL2MP_Player *pBot)
 						// Switch?
 						if (pActiveWeapon != pWeapon)
 						{
-							pBot->Weapon_Switch(pWeapon);
+							if (pActiveWeapon->NeedsReload1())
+							{
+								return IN_RELOAD;
+							}
+							else
+								pBot->Weapon_Switch(pWeapon);
 						}
 					}
 					else
@@ -511,7 +556,7 @@ unsigned int AmmoCheck(CHL2MP_Player *pBot)
 						}
 						else
 						{
-							if (pActiveWeapon->NeedsReload1())
+							if (!pActiveWeapon->CanFire())
 							{
 								return IN_RELOAD;
 							}
@@ -573,16 +618,16 @@ void PlayerCheck( CHL2MP_Player *pBot )
 		bool isVampDoll = pPlayer->KO && pPlayer->myServerRagdoll != NULL;
 
 		if (isVampDoll)
-			vecSrc = pBot->GetAbsOrigin() + Vector( 0, 0, 36 );
+			vecSrc = pBot->GetAbsOrigin() + Vector(0, 0, 36);
 		else
-			vecSrc = pBot->EyePosition();//pBot->GetLocalOrigin() + Vector( 0, 0, 36 );
+			vecSrc = pBot->GetLocalOrigin() + Vector(0, 0, 36);
 
 		if (isVampDoll)
 		{
 			vecEnd = pPlayer->myServerRagdoll->GetAbsOrigin();
 		}
 		else
-			vecEnd = pPlayer->GetLocalOrigin() + Vector( 0, 0, 36 );
+			vecEnd = pPlayer->GetLocalOrigin() + Vector(0, 0, 36);
 
 		Vector playerVec = vecEnd-vecSrc;
 
@@ -594,13 +639,13 @@ void PlayerCheck( CHL2MP_Player *pBot )
 			if (isVampDoll || ((pPlayer->m_floatCloakFactor < check && !(pPlayer->GetFlags() & EF_NODRAW))))
 			{
 				Vector forward;
-				AngleVectors(botdata->lastAngles, &forward);
+				AngleVectors(botdata->forwardAngle, &forward);
 				VectorNormalize(playerVec);
-				float botDot = DotProduct(playerVec,forward);
-				float test = 0.3f;
+				botdata->m_lastPlayerDot = DotProduct(playerVec,forward);
+				float test = BOT_COMBAT_DOT;
 				if (isVampDoll)
 					test = 0.0f;
-				if (botdata->bForceCombat || botDot > test)
+				if (botdata->bForceCombat || botdata->m_lastPlayerDot > test)
 				{
 					trace_t trace;
 
@@ -642,7 +687,7 @@ void PlayerCheck( CHL2MP_Player *pBot )
 	if (botdata->bCombat)
 	{
 		botdata->backwards = false;
-		GetLost(pBot);
+		GetLost(pBot, true, true);
 	}
 
 	botdata->bCombat = false;
@@ -669,13 +714,25 @@ void FindNearestNode( CHL2MP_Player *pBot )
 	//skip "stop" nodes
 	if (temp != NULL && temp->connectors.Count() > 1)
 	{
+		if (cur == NULL)
+		{
+			botdata->m_targetNode = botdata->m_lastNodeProbe;
+		}
 		//skip nodes without +/- 50 z
-		if (abs(pBot->GetAbsOrigin().z - temp->location.z) < 50)
+		else if (botdata->bIgnoreZ || abs(pBot->GetAbsOrigin().z - temp->location.z) < 50)
 		{
 			//We found a closer node
-			if (cur == NULL || (pBot->GetAbsOrigin() - temp->location).Length() < (pBot->GetAbsOrigin() - cur->location).Length())
+			if ((pBot->GetAbsOrigin() - temp->location).Length() < (pBot->GetAbsOrigin() - cur->location).Length())
 			{
-				botdata->m_targetNode = botdata->m_lastNodeProbe;
+				if (botdata->bVisCheck)
+				{
+					trace_t trace;
+					UTIL_TraceLine(pBot->EyePosition(), temp->location + Vector(0, 0, 16), MASK_SOLID, pBot, COLLISION_GROUP_PLAYER, &trace);
+					if (trace.fraction == 1.0f)
+						botdata->m_targetNode = botdata->m_lastNodeProbe;
+				}
+				else
+					botdata->m_targetNode = botdata->m_lastNodeProbe;
 			}
 		}
 	}
@@ -842,7 +899,7 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot)
 				{
 					isVampDoll = pPlayer->KO && pPlayer->myServerRagdoll != NULL;
 				}
-				if (!isVampDoll && pBot->GetLoadout(0) > 0 && (gpGlobals->curtime >= cd || cd == 0.0f)) //don't waste water on ragdolls
+				if (!isVampDoll && pBot->GetLoadout(0) > 0 && (gpGlobals->curtime >= cd || cd == 0.0f) && botdata->m_lastPlayerDot > BOT_ATTACK_DOT_LOOSE) //don't waste water on ragdolls
 				{
 					buttons |= IN_ABIL1;
 				}
@@ -853,8 +910,8 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot)
 				float cd = pBot->GetCooldown(0);
 				if (pBot->GetLoadout(0) > 0 && pBot->GetHealth() < 100.0f && (gpGlobals->curtime >= cd || cd == 0.0f))
 				{
-					botdata->lastAngles.x = 60;
-					botdata->overrideAngle = botdata->lastAngles;
+					botdata->forwardAngle.x = 60;
+					botdata->overrideAngle = botdata->forwardAngle;
 					botdata->m_flOverrideDur = gpGlobals->curtime + 0.1f;
 					buttons |= IN_ABIL1;
 				}
@@ -909,24 +966,33 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot)
 				pRules = HL2MPRules();
 				float cd = pBot->GetCooldown(0);
 				float distance = 0.0f;
-				if (botdata->m_targetNode > -1 && pRules->botnet[botdata->m_targetNode] != NULL)
+				if (!botdata->bLost)
 				{
-					distance = (pRules->botnet[botdata->m_targetNode]->location - pBot->GetLocalOrigin()).Length();
-				}
-				if (pBot->GetLoadout(0) > 0 && botdata->goWild == 0.0f && !botdata->bLost && botdata->stuckTimer == 0.0f && botdata->guardTimer == 0.0f && (gpGlobals->curtime >= cd || cd == 0.0f) && distance > 425.0f) //BB: TODO: && roofcheck
-				{
-					if (botdata->m_flAbility1Timer == 0.0f)
+					if (botdata->m_targetNode > -1 && pRules->botnet[botdata->m_targetNode] != NULL)
 					{
-						buttons |= IN_JUMP;
-						botdata->m_flAbility1Timer = gpGlobals->curtime + 0.2f;
+						distance = (pRules->botnet[botdata->m_targetNode]->location - pBot->GetLocalOrigin()).Length();
 					}
-					else
+					if (pBot->GetLoadout(0) > 0 && botdata->goWild == 0.0f && !botdata->bLost && botdata->stuckTimer == 0.0f && botdata->guardTimer == 0.0f && (gpGlobals->curtime >= cd || cd == 0.0f) && distance > 425.0f)
 					{
-						botdata->lastAngles.x = -30;
-						botdata->overrideAngle = botdata->lastAngles;
-						botdata->m_flOverrideDur = gpGlobals->curtime + 0.2f;
-						botdata->m_flAbility1Timer = 0.0f;
-						buttons |= IN_ABIL1;
+						//BB: roof check
+						trace_t trace;
+						UTIL_TraceLine(pBot->GetLocalOrigin(), pBot->EyePosition() + Vector(0, 0, 128), MASK_PLAYERSOLID, pBot, COLLISION_GROUP_PLAYER, &trace);
+						if (trace.fraction == 1.0f)
+						{
+							if (botdata->m_flAbility1Timer == 0.0f)
+							{
+								buttons |= IN_JUMP;
+								botdata->m_flAbility1Timer = gpGlobals->curtime + 0.2f;
+							}
+							else
+							{
+								botdata->forwardAngle.x = -30;
+								botdata->overrideAngle = botdata->forwardAngle;
+								botdata->m_flOverrideDur = gpGlobals->curtime + 0.2f;
+								botdata->m_flAbility1Timer = 0.0f;
+								buttons |= IN_ABIL1;
+							}
+						}
 					}
 				}
 				//BB: TODO: random sneak walk
@@ -968,7 +1034,7 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot)
 							botdata->m_flAbility2Timer = distance;
 							//BB: I don't think I need to do this... angles should be "correct" from other functions
 							//Vector forward = pPlayer->GetLocalOrigin() - pBot->GetLocalOrigin();
-							//VectorAngles(forward, botdata->lastAngles);
+							//VectorAngles(forward, botdata->forwardAngle);
 							buttons |= IN_ABIL2;
 						}
 						else if (pBot->gorelock && distance > 24.0f && distance < botdata->m_flAbility2Timer)
@@ -1001,7 +1067,7 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot)
 							botdata->m_flAbility2Timer = distance;
 							//BB: I don't think I need to do this... angles should be "correct" from other functions
 							//Vector forward = pRules->botnet[botdata->m_targetNode]->location - pBot->GetLocalOrigin();
-							//VectorAngles(forward, botdata->lastAngles);
+							//VectorAngles(forward, botdata->forwardAngle);
 							buttons |= IN_ABIL2;
 						}
 						else if (pBot->gorelock && distance > 30.0f && distance < botdata->m_flAbility2Timer)
@@ -1062,9 +1128,6 @@ void Bot_Think( CHL2MP_Player *pBot )
 
 	botdata_t *botdata = &g_BotData[ ENTINDEX( pBot->edict() ) - 1 ];
 
-	QAngle angle = pBot->GetLocalAngles();//botdata->lastAngles;
-
-
 	//BB: not sure why the fuck I have to do it this way...
 	/*if (pBot->GetTeamNumber() != botdata->m_WantedTeam)
 	{
@@ -1085,10 +1148,11 @@ void Bot_Think( CHL2MP_Player *pBot )
 				botdata->spawnTimer = 0.0f;
 				pBot->Spawn();
 				botdata->stuckTimer = 0.0f;
+				botdata->stuckPCheck = true;
 				botdata->nextjumptime = 0.0f;
 				botdata->nextusetime = 0.0f;
 				botdata->m_role = -1;
-				GetLost(pBot);
+				GetLost(pBot, true);
 			}
 		}
 		else
@@ -1105,8 +1169,8 @@ void Bot_Think( CHL2MP_Player *pBot )
 	//Objective Check
 	CheckObjective(pBot, false);
 
-	//Ammo Check
-	buttons |= AmmoCheck(pBot);
+	//Weapon Swap Check
+	buttons |= WeaponCheck(pBot);
 
 	//Health Check
 	HealthCheck(pBot);
@@ -1114,6 +1178,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 	float forwardmove = 0.0f;
 	float sidemove = botdata->sidemove;
 	float upmove = 0.0f;
+	trace_t trace; //throwaway trace
 
 	byte  impulse = 0;
 	float frametime = gpGlobals->frametime;
@@ -1134,9 +1199,8 @@ void Bot_Think( CHL2MP_Player *pBot )
 			bool lineOfSight = true;
 			if (pRules->cap_point_sightcheck[botdata->m_objective])
 			{
-				trace_t tr;
-				UTIL_TraceLine(pBot->EyePosition(), objloc, MASK_SOLID, pBot, COLLISION_GROUP_DEBRIS, &tr);
-				if (tr.fraction != 1.0)
+				UTIL_TraceLine(pBot->EyePosition(), objloc, MASK_SOLID, pBot, COLLISION_GROUP_DEBRIS, &trace);
+				if (trace.fraction != 1.0)
 					lineOfSight = false;
 			}
 			if (lineOfSight)
@@ -1177,7 +1241,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 				//GetLost(pBot);
 				//get bored after 10 seconds
 				//X BOTPATCH just remove condition... do a getlost
-				GetLost(pBot);
+				GetLost(pBot, false, true);
 				//botdata->guardTimer = gpGlobals->curtime + 10.0f;
 			}
 			else
@@ -1237,64 +1301,164 @@ void Bot_Think( CHL2MP_Player *pBot )
 	}
 
 	//Actual movement calcs
-	if ( pBot->IsAlive() && (pBot->GetSolid() == SOLID_BBOX) )
+	if (pBot->IsAlive() && (pBot->GetSolid() == SOLID_BBOX) && !pBot->IsEFlagSet(EFL_BOT_FROZEN))
 	{
-		trace_t trace;
+		Vector forward; //throwaway vector forward
 
-		if ( !pBot->IsEFlagSet(EFL_BOT_FROZEN) && botdata->guardTimer == 0.0f)
+		if (pBot->GetMoveType() == MOVETYPE_LADDER)
 		{
-			//Forward move calc
-			forwardmove = botdata->m_flBaseSpeed * (botdata->backwards ? -1 : 1);
-			if ( botdata->sidemove != 0.0f)
+			buttons |= IN_JUMP;
+		}
+		
+		//Combat Angle
+		if (botdata->bForceCombat || botdata->bCombat)
+		{
+			CHL2MP_Player *pPlayer = ToHL2MPPlayer(UTIL_PlayerByIndex(botdata->m_lastPlayerCheck));
+			if (pPlayer)
 			{
-				forwardmove *= random->RandomFloat( 0.1f, 1.0f );
+				bool isVampDoll = pPlayer->KO && pPlayer->myServerRagdoll != NULL;
+				if (isVampDoll)
+				{
+					forward = (pPlayer->myServerRagdoll->GetAbsOrigin()) - (pBot->GetAbsOrigin() + Vector(0, 0, 72));
+				}
+				else
+				{
+					if (pBot->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+					{
+						int accuracy = 24 - bot_difficulty.GetInt() * 8;
+						forward = (pPlayer->GetLocalOrigin() + Vector(random->RandomInt(-accuracy, accuracy), random->RandomInt(-accuracy, accuracy), random->RandomInt(-accuracy, accuracy))) - pBot->GetLocalOrigin();
+					}
+					else //BB: vampires have perfect accuracy... doesn't really matter?
+						forward = pPlayer->GetLocalOrigin() - pBot->GetLocalOrigin();
+				}
+				VectorAngles(forward, botdata->combatAngle);
+				if (!isVampDoll)
+				{
+					UTIL_TraceLine(pBot->EyePosition(), pPlayer->GetLocalOrigin() + Vector(0, 0, 36), MASK_SHOT, pBot, COLLISION_GROUP_PLAYER, &trace);
+					if ((trace.DidHitNonWorldEntity() || trace.fraction == 1.0f) && botdata->m_lastPlayerDot > BOT_ATTACK_DOT_STRICT)
+					{
+						CBaseCombatWeapon *pActiveWeapon = pBot->GetActiveWeapon();
+						if (pActiveWeapon && pActiveWeapon->CanFire())
+							buttons |= IN_ATTACK;
+					}
+				}
+				if (pBot->GetTeamNumber() == COVEN_TEAMID_SLAYERS && !isVampDoll)
+				{
+					botdata->backwards = true;
+					if (bot_difficulty.GetInt() > 0) //Slayers Attempt to juke
+					{
+						if (gpGlobals->curtime > botdata->nextstrafetime)
+						{
+							if (botdata->sidemove == 0.0f)
+								botdata->sidemove = botdata->m_flBaseSpeed * (random->RandomInt(0, 2) - 1);// *0.5f;
+							else
+								botdata->sidemove = -botdata->sidemove;
+							botdata->nextstrafetime = gpGlobals->curtime + random->RandomFloat(0.5f, 2.5f);
+						}
+						sidemove = botdata->sidemove;
+					}
+				}
+				else if (pBot->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+				{
+					botdata->backwards = false;
+					sidemove = botdata->sidemove = 0;
+					if ((pPlayer->myServerRagdoll->GetAbsOrigin() - pBot->GetAbsOrigin()).Length() < 175 - 25 * bot_difficulty.GetInt())
+					{
+						CBaseCombatWeapon *pWeapon = pBot->Weapon_OwnsThisType("weapon_stake");
+						CBaseCombatWeapon *pActiveWeapon = pBot->GetActiveWeapon();
+						if (pWeapon)
+						{
+							// Switch to it if we don't have it out
+							// Switch?
+							if (pActiveWeapon != pWeapon)
+							{
+								pBot->Weapon_Switch(pWeapon);
+							}
+						}
+						buttons |= IN_ATTACK;
+						buttons |= IN_DUCK;
+					}
+				}
+				//Vampires attempt to juke, except charging gores.
+				else if (pBot->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+				{
+					if (bot_difficulty.GetInt() > 0)
+					{
+						if (!(pBot->covenClassID == COVEN_CLASSID_GORE && pBot->gorelock) && forward.Length() > 150.0f)
+						{
+							if (gpGlobals->curtime > botdata->nextstrafetime)
+							{
+								if (botdata->sidemove == 0.0f)
+									botdata->sidemove = floor(botdata->m_flBaseSpeed * (random->RandomInt(0, 2) - 1));//*0.5f
+								else
+									botdata->sidemove = -botdata->sidemove;
+								botdata->nextstrafetime = gpGlobals->curtime + random->RandomFloat(0.5f, 2.5f);
+							}
+							sidemove = botdata->sidemove;
+						}
+						else
+						{
+							botdata->nextstrafetime = gpGlobals->curtime + 1.0f;
+							sidemove = botdata->sidemove = 0;
+						}
+					}
+				}
+			}
+		}
+		else
+		{
+			//Clear sidestep every so often
+			if (gpGlobals->curtime >= botdata->nextstrafetime)
+			{
+				botdata->nextstrafetime = gpGlobals->curtime + 1.0f;
+				sidemove = botdata->sidemove = 0;
 			}
 		}
 
-		if ( !pBot->IsEFlagSet(EFL_BOT_FROZEN))
+		//Objective Angle
+		if (!botdata->bLost)
 		{
-			Vector forward;
-			if (pBot->GetMoveType() == MOVETYPE_LADDER)
-			{
-				//forwardmove = 0;
-				buttons |= IN_JUMP;
-			}
-			
+			botdata->objectiveAngle = botdata->forwardAngle;
 			//GoWild -> attempt to fix a stuck condition
-			if (botdata->goWild > 0.0f && !botdata->bCombat)
+			if (botdata->goWild > 0.0f)
 			{
 				if (gpGlobals->curtime > botdata->goWild)
 				{
 					botdata->goWild = 0.0f;
 					botdata->turns = 0.0f;
 					botdata->wildReverse = 0.0f;
-					GetLost(pBot);
+					GetLost(pBot, true, true);
 				}
 				else if (gpGlobals->curtime > botdata->wildReverse) //always greater the first time
 				{
-					Vector vecEnd;
 
-					float angledelta = 15.0;
-
+					/*botdata->forwardAngle.y -= 180.0f;
+					CorrectAngle(botdata->forwardAngle.y);
+					botdata->overrideAngle = botdata->forwardAngle;
+					botdata->m_flOverrideDur = gpGlobals->curtime + 2.0f;
+					botdata->wildReverse = gpGlobals->curtime + 1.0f;*/
+					
+					
+					Vector vecEnd, vecSrc;
+					float angledelta = 15.0f;
 					int maxtries = (int)360.0 / angledelta;
-
-					Vector vecSrc;
 
 					int dir = -1;
 					if (botdata->left)
 						dir = 1;
 
+					botdata->objectiveAngle.x = 0;
+					AngleVectors(botdata->objectiveAngle, &forward);
+					//BB: center of mass is causing hell. Use a toecalc.
+					vecSrc = pBot->GetLocalOrigin() + Vector(0, 0, 36) + 16.0f * forward; //player width is 32
+
 					while (--maxtries >= 0)
 					{
-						AngleVectors(angle, &forward);
-						angle.x = 0;
+						AngleVectors(botdata->objectiveAngle, &forward);
+						vecEnd = vecSrc + forward * 16.0f; //10
 
-						vecSrc = pBot->GetLocalOrigin();// +Vector(0, 0, 36);
-
-						vecEnd = vecSrc + forward * 10; //10
-
-						//UTIL_TraceLine(vecSrc, vecEnd, MASK_PLAYERSOLID, pBot, COLLISION_GROUP_PLAYER, &trace);
-						UTIL_TraceHull(vecSrc, vecEnd, VEC_HULL_MIN_SCALED(pBot), VEC_HULL_MAX_SCALED(pBot), MASK_PLAYERSOLID, pBot, COLLISION_GROUP_PLAYER, &trace);
+						UTIL_TraceLine(vecSrc, vecEnd, MASK_PLAYERSOLID, pBot, COLLISION_GROUP_PLAYER, &trace);
+						//UTIL_TraceHull(vecSrc, vecEnd, VEC_HULL_MIN_SCALED(pBot), VEC_HULL_MAX_SCALED(pBot), MASK_PLAYERSOLID, pBot, COLLISION_GROUP_PLAYER, &trace);
 
 						if (trace.fraction == 1.0)
 						{
@@ -1303,113 +1467,36 @@ void Bot_Think( CHL2MP_Player *pBot )
 						}
 						else
 						{
-							angle.y += dir*angledelta;
+							botdata->objectiveAngle.y += dir*angledelta;
 							botdata->turns += angledelta;
 
-
-							if (angle.y > 180)
-								angle.y -= 360;
-							else if (angle.y < -180)
-								angle.y += 360;
-
-							botdata->forwardAngle = angle;
-							botdata->lastAngles = angle;
+							CorrectAngle(botdata->objectiveAngle.y);
 						}
 					}
-					//Msg("%d %.02f\n", maxtries, angle.y);
+					//Msg("%d %.02f\n", maxtries, botdata->objectiveAngle.y);
 					if (maxtries == -1)
 					{
-						angle.y -= 180.0f;
-						if (angle.y > 180)
-							angle.y -= 360;
-						else if (angle.y < -180)
-							angle.y += 360;
+						botdata->objectiveAngle.y -= 180.0f;
 					}
 					if (botdata->turns >= 360.0f)
 					{
 						botdata->left = !botdata->left;
 						botdata->turns = 0.0f;
 					}
-					botdata->lastAngles = angle;
+					CorrectAngle(botdata->objectiveAngle.y);
+					botdata->overrideAngle = botdata->objectiveAngle;
+					botdata->m_flOverrideDur = gpGlobals->curtime + 2.0f;
 					botdata->wildReverse = gpGlobals->curtime + 1.0f;
 				}
 			}
 			else if (botdata->guardTimer == 0.0f)
 			{
-				if (botdata->bCombat)
+				if (botdata->m_targetNode >= 0 && pRules->botnet[botdata->m_targetNode] != NULL)
 				{
-					CHL2MP_Player *pPlayer = ToHL2MPPlayer( UTIL_PlayerByIndex( botdata->m_lastPlayerCheck ) );
-					if (pPlayer)
-					{
-						bool isVampDoll = pPlayer->KO && pPlayer->myServerRagdoll != NULL;
-						if (isVampDoll)
-						{
-							forward = (pPlayer->myServerRagdoll->GetAbsOrigin()) - (pBot->GetAbsOrigin()+Vector(0,0,72));
-						}
-						else
-						{
-							int accuracy = 24 - bot_difficulty.GetInt() * 8;
-
-							if (pBot->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
-								forward = (pPlayer->GetLocalOrigin() + Vector(random->RandomInt(-accuracy, accuracy), random->RandomInt(-accuracy, accuracy), random->RandomInt(-accuracy, accuracy))) - pBot->GetLocalOrigin();
-							else //vampires have perfect accuracy... doesn't really matter?
-								forward = pPlayer->GetLocalOrigin() - pBot->GetLocalOrigin();
-						}
-						VectorAngles(forward, angle);
-						botdata->forwardAngle = angle;
-						botdata->lastAngles = angle;
-						if (isVampDoll)
-							buttons |= IN_ATTACK;
-						else
-						{
-							UTIL_TraceLine(pBot->GetAbsOrigin() + Vector(0, 0, 72), pPlayer->GetAbsOrigin() + Vector(0, 0, 72), MASK_SHOT, pBot, COLLISION_GROUP_PLAYER, &trace);
-							if (trace.DidHitNonWorldEntity() || trace.fraction == 1.0f)
-							{
-								CBaseCombatWeapon *pActiveWeapon = pBot->GetActiveWeapon();
-								if (pActiveWeapon && pActiveWeapon->CanFire())
-									buttons |= IN_ATTACK;
-							}
-						}
-						if (pBot->GetTeamNumber() == COVEN_TEAMID_SLAYERS && !isVampDoll)
-						{
-							botdata->backwards = true;
-						}
-						else if (pBot->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
-						{
-							forwardmove = botdata->m_flBaseSpeed;
-							if (bot_difficulty.GetInt() < 2)
-								buttons |= IN_DUCK;
-							else if ((pPlayer->myServerRagdoll->GetAbsOrigin() - pBot->GetAbsOrigin()).Length() < 150)
-								buttons |= IN_DUCK;
-						}
-						//Vampires attempt to juke on hard mode, except charging gores.
-						else if (pBot->GetTeamNumber() == COVEN_TEAMID_VAMPIRES && !(pBot->covenClassID == COVEN_CLASSID_GORE && pBot->gorelock) && forward.Length() > 150.0f)
-						{
-							forwardmove = botdata->m_flBaseSpeed;
-							if (bot_difficulty.GetInt() > 1)
-							{
-								if (gpGlobals->curtime > botdata->nextstrafetime)
-								{
-									if (botdata->sidemove == 0.0f)
-										botdata->sidemove = botdata->m_flBaseSpeed * (random->RandomInt(0, 2) - 1);
-									else
-										botdata->sidemove = -botdata->sidemove;
-									botdata->nextstrafetime = gpGlobals->curtime + random->RandomFloat(0.5f, 2.5f);
-								}
-								sidemove = botdata->sidemove;
-							}
-						}
-					}
-				}
-				else if (botdata->m_targetNode >= 0 && pRules->botnet[botdata->m_targetNode] != NULL)
-				{
-					if (!botdata->bLost)
-						forward = pRules->botnet[botdata->m_targetNode]->location - pBot->GetLocalOrigin();
+					forward = pRules->botnet[botdata->m_targetNode]->location - pBot->GetLocalOrigin();
 					//if (pBot->GetTeamNumber() == 2)
 					//	Msg("%f %f %f\n", forward.x, forward.y, forward.z);
-					VectorAngles(forward, angle);
-					botdata->forwardAngle = angle;
-					botdata->lastAngles = angle;
+					VectorAngles(forward, botdata->objectiveAngle);
 				}
 			}
 			else if (gpGlobals->curtime > botdata->guardTimer)
@@ -1418,19 +1505,14 @@ void Bot_Think( CHL2MP_Player *pBot )
 				botdata->bGuarding = false;
 				GetLost(pBot);
 			}
-			else
+			else //guardtimer is set, slowly rotate and crouch
 			{
 				//Don't try to cap and already capped point
 				if (CheckObjective(pBot, true))
 				{
-					//guardtimer is set, slowly rotate and crouch
 					if (botdata->bGuarding)
 					{
-						angle.y += 4.0f;
-						if (angle.y > 180.0f)
-							angle.y -= 360.0f;
-						else if (angle.y < -180.0f)
-							angle.y += 360.0f;
+						botdata->objectiveAngle.y += 1.0f;
 					}
 					else
 					{
@@ -1440,7 +1522,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 						//Msg("%d %.02f\n", botdata->m_objective, forward.Length());
 						if (botdata->m_objective > -1 && forward.Length() > 72 && !botdata->bCombat)
 						{
-							VectorAngles(forward, angle);
+							VectorAngles(forward, botdata->objectiveAngle);
 						}
 						else
 						{
@@ -1448,55 +1530,120 @@ void Bot_Think( CHL2MP_Player *pBot )
 						}
 					}
 					buttons |= IN_DUCK;
-					botdata->forwardAngle = angle;
-					botdata->lastAngles = angle;
-					forwardmove = botdata->m_flBaseSpeed;
 				}
-			}
-
-            //X BOTPATCH dont do sidemove/strafetime if guardtimer... no it's fine for now
-			if (gpGlobals->curtime >= botdata->nextstrafetime)
-			{
-				botdata->nextstrafetime = gpGlobals->curtime + 1.0f;
-
-				if (botdata->bCombat && random->RandomInt(0, 5) == 0)
-				{
-					botdata->sidemove = botdata->m_flBaseSpeed * (random->RandomInt(0, 2) - 1);
-				}
-				else
-				{
-					botdata->sidemove = 0;
-				}
-				sidemove = botdata->sidemove;
-
-				/*if ( random->RandomInt( 0, 20 ) == 0 )
-				{
-				botdata->backwards = true;
-				}
-				else
-				{
-				botdata->backwards = false;
-				}*/
-			}
-			if (botdata->sidemove != 0.0f)
-			{
-				trace_t	tr;
-				Vector forward, right, up;
-				AngleVectors(angle, &forward, &right, &up);
-				if (sidemove < 0)
-					right = -right;
-				UTIL_TraceLine(pBot->GetAbsOrigin() + right * 16, pBot->GetAbsOrigin() - up * 25, MASK_SHOT_HULL, pBot, COLLISION_GROUP_WEAPON, &tr);
-				if (tr.fraction == 1.0)
-					sidemove = botdata->sidemove = 0;
 			}
 		}
-		else
-			GetLost(pBot);
+
+		//Forward momentum calc
+		forwardmove = botdata->m_flBaseSpeed * (botdata->backwards ? -1 : 1);
+		//Sidemove correction if we can't
+		/*if (botdata->sidemove != 0.0f)
+		{
+			Vector right, up;
+			AngleVectors(angle, &forward, &right, &up); //need to check both angles!
+			if (sidemove < 0)
+				right = -right;
+			UTIL_TraceLine(pBot->GetAbsOrigin() + right * 16, pBot->EyePosition(), MASK_SHOT_HULL, pBot, COLLISION_GROUP_WEAPON, &trace);
+			if (trace.fraction != 1.0)
+				sidemove = botdata->sidemove = 0;
+			*******************************************
+			DO I NEED TO DO THIS??? WILL I EXCEED MAX VELOCITY?
+			//forwardmove *= random->RandomFloat(0.5f, 1.0f); //juke
+		}*/
 	}
 
-	//BB: I just don't even have any words...
+	CorrectAngle(botdata->objectiveAngle.y);
+	CorrectAngle(botdata->combatAngle.y);
+	//BB: I just don't even have any words... I have to set angles every think?
+	QAngle *desiredAngle = &botdata->objectiveAngle;
 	if (!botdata->bLost)
-		pBot->SetLocalAngles(botdata->lastAngles);
+	{
+		if (botdata->bCombat || botdata->bForceCombat)
+		{
+			Vector forward, desForward;
+			AngleVectors(botdata->forwardAngle, &forward);
+			AngleVectors(botdata->combatAngle, &desForward);
+			float dotprod = DotProduct(forward, desForward);
+			if (botdata->alreadyReacted)
+			{
+				desiredAngle = &botdata->combatAngle;
+			}
+			else
+			{
+				if (dotprod < BOT_REFLEX_DOT)
+				{
+					if (botdata->m_flReactionTime < 0.0f)
+					{
+						float reactionTime = BOT_MAX_REACTION_TIME - BOT_REACTION_TIME * bot_difficulty.GetInt();
+						botdata->m_flReactionTime = gpGlobals->curtime + reactionTime;
+						//Keep desiredangle = objectiveangle
+					}
+					else if (botdata->m_flReactionTime == 0.0f)
+					{
+						float reactionTime = BOT_MAX_REACTION_TIME - BOT_REACTION_TIME * bot_difficulty.GetInt();
+						botdata->m_flReactionTime = gpGlobals->curtime + reactionTime;
+						desiredAngle = NULL;
+					}
+				}
+			}
+
+			if (gpGlobals->curtime > botdata->m_flReactionTime)
+			{
+				botdata->m_flReactionTime = 0.0f;
+				botdata->alreadyReacted = true;
+			}
+
+
+			if (dotprod >= BOT_REFLEX_DOT)
+			{
+				botdata->alreadyReacted = false;
+				botdata->m_flReactionTime = 0.0f;
+				desiredAngle = &botdata->combatAngle;
+			}
+		}
+		
+		//BB: speedlimit bots
+		//BB: this is purposely not else... we can do this in the same think.
+		if (desiredAngle)
+		{
+			if (botdata->m_flReactionTime <= 0.0f)
+			{
+				float thinkTime = gpGlobals->curtime - botdata->lastThinkTime;
+				float speedLimit = BOT_SPEED_LIMIT_DEG * thinkTime;
+				if (botdata->bCombat)
+					speedLimit = (BOT_SPEED_LIMIT_DEG_COMBAT + 360 * bot_difficulty.GetInt()) * thinkTime;
+				float yaw = botdata->forwardAngle.y - desiredAngle->y;
+				CorrectAngle(yaw);
+				//Msg("%.2f %.2f %.2f %.2f %.2f\n", botdata->forwardAngle.y, desiredAngle->y, yaw, thinkTime, speedLimit);
+				if (abs(yaw) > speedLimit)
+				{
+					if (yaw > 0)
+						desiredAngle->y = botdata->forwardAngle.y - speedLimit;
+					else
+						desiredAngle->y = botdata->forwardAngle.y + speedLimit;
+
+					CorrectAngle(desiredAngle->y);
+					//Msg("%.2f %.2f\n\n", botdata->forwardAngle.y, desiredAngle->y);
+				}
+
+				//Pitch
+				float pitch = botdata->forwardAngle.x - desiredAngle->x;
+				CorrectAngle(pitch);
+				if (abs(pitch) > speedLimit)
+				{
+					if (pitch > 0)
+						desiredAngle->x = botdata->forwardAngle.x - speedLimit;
+					else
+						desiredAngle->x = botdata->forwardAngle.x + speedLimit;
+
+					CorrectAngle(desiredAngle->x);
+				}
+			}
+			botdata->forwardAngle = *desiredAngle;
+		}
+	}
+	pBot->SetLocalAngles(botdata->forwardAngle);
+	botdata->lastThinkTime = gpGlobals->curtime;
 
 	//Stuck calcs
 	if (!(pBot->GetFlags() & FL_FROZEN) && !(pBot->GetEFlags() & EFL_BOT_FROZEN))
@@ -1505,6 +1652,21 @@ void Bot_Think( CHL2MP_Player *pBot )
 		{
 			if (botdata->stuckTimer > 0.0f)
 			{
+				if (botdata->stuckPCheck)
+				{
+					//try a sidestep
+					trace_t trace;
+					Vector forward, vecSrc;
+					AngleVectors(botdata->forwardAngle, &forward);
+					vecSrc = pBot->GetLocalOrigin() + Vector(0, 0, 36);
+					UTIL_TraceLine(vecSrc, vecSrc + forward * 24, MASK_SHOT, pBot, COLLISION_GROUP_PLAYER, &trace);
+					if (trace.DidHitNonWorldEntity() && trace.m_pEnt && trace.m_pEnt->IsPlayer() && ((CHL2MP_Player *)trace.m_pEnt)->GetTeamNumber() == pBot->GetTeamNumber())
+					{
+						botdata->nextstrafetime = gpGlobals->curtime + 1.0f;
+						botdata->sidemove = botdata->m_flBaseSpeed;
+					}
+					botdata->stuckPCheck = false;
+				}
 				if (gpGlobals->curtime - botdata->stuckTimer >= 0.2f && gpGlobals->curtime >= botdata->nextusetime)
 				{
 					//door? ladder?
@@ -1520,25 +1682,19 @@ void Bot_Think( CHL2MP_Player *pBot )
 					buttons |= IN_JUMP;
 					botdata->nextjumptime = gpGlobals->curtime + 3.5f;
 				}
-				if (gpGlobals->curtime - botdata->stuckTimer >= 1.0f)
-				{
-					//try a sidestep
-					botdata->nextstrafetime = gpGlobals->curtime + 1.0f;
-					botdata->sidemove = botdata->m_flBaseSpeed;
-				}
 				if (gpGlobals->curtime - botdata->stuckTimer >= 1.3f && botdata->goWild == 0.0f) //STUCK!
 				{
 					botdata->goWild = gpGlobals->curtime + 2.0f;
 					botdata->turns = 0.0f;
 
 					botdata->stuckTimer = 0.0f;
+					botdata->stuckPCheck = true;
 					botdata->strikes++;
 				}
 			}
 			else
 			{
 				botdata->stuckTimer = gpGlobals->curtime;
-			
 			}
 		}
 		else
@@ -1568,8 +1724,8 @@ void Bot_Think( CHL2MP_Player *pBot )
 			botdata->m_flOverrideDur = 0.0f;
 	}
 
-	//Msg("%d %.02f %.02f\n", pBot->covenClassID, botdata->m_flBaseSpeed, forwardmove);
-	RunPlayerMove( pBot, pBot->GetLocalAngles(), forwardmove, sidemove, upmove, buttons, impulse, frametime );
+	//Msg("%d %.02f %.02f %.02f %.02f\n", pBot->covenClassID, botdata->m_flBaseSpeed, forwardmove, sidemove, botdata->nextstrafetime);
+	RunPlayerMove(pBot, botdata->forwardAngle, forwardmove, sidemove, upmove, buttons, impulse, frametime);
 }
 
 
