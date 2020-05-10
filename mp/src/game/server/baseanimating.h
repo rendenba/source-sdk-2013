@@ -65,6 +65,8 @@ public:
 	void SetCycle( float flCycle );
 	float GetCycle() const;
 
+	CNetworkVar(float, m_floatCloakFactor);
+
 	float	GetAnimTimeInterval( void ) const;
 
 	// Call this in your constructor to tell it that you will not use animtime. Then the

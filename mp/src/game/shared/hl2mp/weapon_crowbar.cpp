@@ -143,11 +143,11 @@ void CWeaponCrowbar::PrimaryAttack()
 		if (pPlayer->gorephased)
 		{
 			//BB: JAM Request... sneak attacks
-			pPlayer->DoGorePhase();
+			pPlayer->DoGorePhase(0);
 		}
-		if (pPlayer->covenClassID == COVEN_CLASSID_FIEND && pPlayer->covenStatusEffects & COVEN_FLAG_DODGE)
+		if (pPlayer->covenStatusEffects & COVEN_FLAG_DODGE)
 		{
-			pPlayer->VampireUnDodge();
+			pPlayer->UnDodge();
 		}
 #else
 		/*C_BasePlayer *local = C_BasePlayer::GetLocalPlayer();

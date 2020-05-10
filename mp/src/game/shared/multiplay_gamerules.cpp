@@ -636,12 +636,14 @@ ConVarRef suitcharger( "sk_suitcharger" );
 		}*/
 		float safe_fall_speed = PLAYER_MAX_SAFE_FALL_SPEED;
 		float fatal_fall_speed = PLAYER_FATAL_FALL_SPEED;
+
 		//BB: cat-like implementation
-		if (pPlayer->IsPlayer() && ((CHL2MP_Player *)pPlayer)->covenClassID == COVEN_CLASSID_HELLION)
+		/*if (pPlayer->IsPlayer() && ((CHL2MP_Player *)pPlayer)->covenClassID == COVEN_CLASSID_HELLION)
 		{
 			safe_fall_speed *= (1.0f+0.15f*((CHL2MP_Player *)pPlayer)->GetLoadout(2));
 			fatal_fall_speed *= (1.0f+0.15f*((CHL2MP_Player *)pPlayer)->GetLoadout(2));
-		}
+		}*/
+
 		pPlayer->m_Local.m_flFallVelocity -= safe_fall_speed;//PLAYER_MAX_SAFE_FALL_SPEED;
 		//BB: not fixed, but fixed percentage fall damage
 		return pPlayer->m_Local.m_flFallVelocity * pPlayer->GetMaxHealth() / ( fatal_fall_speed - safe_fall_speed );//DAMAGE_FOR_FALL_SPEED;

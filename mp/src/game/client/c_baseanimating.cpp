@@ -196,6 +196,7 @@ IMPLEMENT_CLIENTCLASS_DT(C_BaseAnimating, DT_BaseAnimating, CBaseAnimating)
 	RecvPropInt( RECVINFO( m_nNewSequenceParity )),
 	RecvPropInt( RECVINFO( m_nResetEventsParity )),
 	RecvPropInt( RECVINFO( m_nMuzzleFlashParity ) ),
+	RecvPropFloat(RECVINFO(m_floatCloakFactor)),
 
 	RecvPropEHandle(RECVINFO(m_hLightingOrigin)),
 	RecvPropEHandle(RECVINFO(m_hLightingOriginRelative)),
@@ -230,6 +231,7 @@ BEGIN_PREDICTION_DATA( C_BaseAnimating )
 	// DEFINE_PRED_FIELD( m_nPrevResetEventsParity, FIELD_INTEGER, 0 ),
 
 	DEFINE_PRED_FIELD( m_nMuzzleFlashParity, FIELD_CHARACTER, FTYPEDESC_INSENDTABLE ),
+	DEFINE_PRED_FIELD(m_floatCloakFactor, FIELD_FLOAT, FTYPEDESC_INSENDTABLE),
 	//DEFINE_FIELD( m_nOldMuzzleFlashParity, FIELD_CHARACTER ),
 
 	//DEFINE_FIELD( m_nPrevNewSequenceParity, FIELD_INTEGER ),

@@ -137,6 +137,7 @@ public:
 	virtual	bool		FVisible ( CBaseEntity *pEntity, int traceMask = MASK_BLOCKLOS, CBaseEntity **ppBlocker = NULL ); // true iff the parameter can be seen by me.
 	virtual bool		FVisible( const Vector &vecTarget, int traceMask = MASK_BLOCKLOS, CBaseEntity **ppBlocker = NULL )	{ return BaseClass::FVisible( vecTarget, traceMask, ppBlocker ); }
 	static void			ResetVisibilityCache( CBaseCombatCharacter *pBCC = NULL );
+	virtual void		SlayerLightHandler(float angle, float influenceDistance, float damageDistance, float maxForce);
 
 #ifdef PORTAL
 	virtual	bool		FVisibleThroughPortal( const CProp_Portal *pPortal, CBaseEntity *pEntity, int traceMask = MASK_BLOCKLOS, CBaseEntity **ppBlocker = NULL );
@@ -167,6 +168,10 @@ public:
 	virtual Vector		HeadDirection3D( void )	{ return BodyDirection2D( ); }; // No head motion so just return body dir
 	virtual Vector		EyeDirection2D( void ) 	{ return HeadDirection2D( );  }; // No eye motion so just return head dir
 	virtual Vector		EyeDirection3D( void ) 	{ return HeadDirection3D( );  }; // No eye motion so just return head dir
+	const Vector		GetPlayerMidPoint() const;
+	virtual bool		IsABuilding(void);
+	virtual bool		IsBuilderClass(void);
+
 
 	virtual void SetTransmit( CCheckTransmitInfo *pInfo, bool bAlways );
 
@@ -394,8 +399,6 @@ public:
 
 	float				GetNextAttack() const { return m_flNextAttack; }
 	void				SetNextAttack( float flWait ) { m_flNextAttack = flWait; }
-
-	CNetworkVar( float, m_floatCloakFactor );
 
 	bool				m_bForceServerRagdoll;
 

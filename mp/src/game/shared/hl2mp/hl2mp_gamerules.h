@@ -21,6 +21,7 @@
 
 #ifndef CLIENT_DLL
 #include "hl2mp_player.h"
+#include "hl2mp_bot_temp.h"
 #include "physics_prop_ragdoll.h"
 #include "filesystem.h"
 #include "utlbuffer.h"
@@ -53,6 +54,9 @@ struct botnode
 	int ID;
 	CUtlVector<int> connectors;
 	Vector location;
+#ifdef DEBUG_BOTS_VISUAL
+	bool bSelected;
+#endif
 };
 
 class HL2MPViewVectors : public CViewVectors

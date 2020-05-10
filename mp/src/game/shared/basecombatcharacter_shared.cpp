@@ -30,6 +30,33 @@ bool CBaseCombatCharacter::SwitchToNextBestWeapon(CBaseCombatWeapon *pCurrent)
 	return false;
 }
 
+bool CBaseCombatCharacter::IsABuilding(void)
+{
+	return false;
+}
+
+bool CBaseCombatCharacter::IsBuilderClass(void)
+{
+	return false;
+}
+
+const Vector CBaseCombatCharacter::GetPlayerMidPoint() const
+{
+	//BB: hack hack. This is duplicate code since GetPlayerMaxs() is defined higher up.
+	Vector playerMaxs;
+	if (GetFlags() & FL_DUCKING)
+	{
+		playerMaxs = VEC_DUCK_HULL_MAX_SCALED(this);
+	}
+	else
+	{
+		playerMaxs = VEC_HULL_MAX_SCALED(this);
+	}
+	Vector midPoint = GetLocalOrigin();
+	midPoint.z += playerMaxs.z / 2.0f;
+	return midPoint;
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: Switches to the given weapon (providing it has ammo)
 // Input  :

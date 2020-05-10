@@ -67,6 +67,13 @@ public:
 	virtual bool	IsBaseCombatCharacter( void ) { return true; };
 	virtual C_BaseCombatCharacter *MyCombatCharacterPointer( void ) { return this; }
 	virtual int		GetCovenStatusEffects( void ) { return 0; }
+	const Vector	GetPlayerMidPoint() const;
+	virtual bool	IsABuilding(void);
+	virtual bool	IsBuilderClass(void);
+
+	//BB: control lights at this class level.
+	virtual void	AddEntity(void);
+	virtual void	CreateLightEffects(void) {}
 
 	// -----------------------
 	// Vision
@@ -83,8 +90,6 @@ public:
 
 	void				CreateObjectiveCircle();
 	CFXCharSprite		*m_objectiveCircle;
-
-	float            m_floatCloakFactor;
 
 	enum LineOfSightCheckType
 	{

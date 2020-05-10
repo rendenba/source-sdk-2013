@@ -178,6 +178,8 @@ BEGIN_DATADESC( CBaseAnimating )
 //	DEFINE_FIELD( m_pStudioHdr, CStudioHdr ),
 //	DEFINE_FIELD( m_StudioHdrInitLock, CThreadFastMutex ),
 //	DEFINE_FIELD( m_BoneSetupMutex, CThreadFastMutex ),
+	DEFINE_FIELD(m_floatCloakFactor, FIELD_FLOAT),
+
 	DEFINE_CUSTOM_FIELD( m_pIk, &s_IKSaveRestoreOp ),
 	DEFINE_FIELD( m_iIKCounter, FIELD_INTEGER ),
 	DEFINE_FIELD( m_bClientSideAnimation, FIELD_BOOLEAN ),
@@ -250,6 +252,7 @@ IMPLEMENT_SERVERCLASS_ST(CBaseAnimating, DT_BaseAnimating)
 	SendPropInt( SENDINFO( m_nNewSequenceParity ), EF_PARITY_BITS, SPROP_UNSIGNED ),
 	SendPropInt( SENDINFO( m_nResetEventsParity ), EF_PARITY_BITS, SPROP_UNSIGNED ),
 	SendPropInt( SENDINFO( m_nMuzzleFlashParity ), EF_MUZZLEFLASH_BITS, SPROP_UNSIGNED ),
+	SendPropFloat(SENDINFO(m_floatCloakFactor)),
 
 	SendPropEHandle( SENDINFO( m_hLightingOrigin ) ),
 	SendPropEHandle( SENDINFO( m_hLightingOriginRelative ) ),
@@ -288,6 +291,8 @@ CBaseAnimating::CBaseAnimating()
 	m_fadeMaxDist = 0;
 	m_flFadeScale = 0.0f;
 	m_fBoneCacheFlags = 0;
+	m_floatCloakFactor.Set(0.0f);
+
 }
 
 CBaseAnimating::~CBaseAnimating()

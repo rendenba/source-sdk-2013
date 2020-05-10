@@ -10,14 +10,14 @@
 #include <vgui/ISurface.h>
 #include <vgui/ILocalize.h>
 #include "c_basehlplayer.h"
- 
+
 #include "tier0/memdbgon.h" 
  
 using namespace vgui;
 
-//static wchar_t *abilities[2][COVEN_MAX_CLASSCOUNT][4] =
-//{{{L"Battle Yell",L"Bandage",L"Revenge",L"Vengeful Soul"},{L"Sprint",L"Sheer Will",L"Intimidating Shout",L"Gut Check"},{L"Holy Water",L"Trip Mine",L"Reflexes",L"UV Light"}},
-//{{L"Leap",L"Dodge",L"Sneak",L"Berserk"},{L"Phase",L"Charge",L"Gorge",L"Detonate Blood"},{L"Dread Scream",L"Bloodlust",L"Masochist",L"Undying"}}};
+static wchar_t *abilities[2][COVEN_MAX_CLASSCOUNT][4] =
+{{{L"Battle Yell",L"NULL",L"NULL",L"Revenge"},{L"Sprint",L"Sheer Will",L"Intimidating Shout",L"Gut Check"},{L"Tripmine",L"Build Dispenser",L"Build Turret",L"NULL"}},
+{{L"Leap",L"Berserk",L"Become Ethereal",L"Sneak"},{L"Dread Scream",L"Charge",L"Phase",L"Gorge"},{L"Bloodlust",L"Dark Will",L"Detonate Blood",L"Masochist"}}};
 
 struct ability_pic
 {
@@ -49,15 +49,20 @@ class CHudAbils : public CHudElement, public Panel
    int m_nBorders[4];
 
    float max_duration[4];
+   bool cooledDown[4];
 
    void LoadAbilityTex(int team, int classid, int num, const char *filename, int grayborder, int activeborder, int cooldownborder);
 
    void DrawCircleSegment( int x, int y, int wide, int tall, float flEndDegrees, bool clockwise /* = true */ );
    void DrawTextValue(int wide, int tall, int x, int y, float val);
+   void DrawTextTitle(int x, int y, int wide, int tall, wchar_t *title, bool bCooldown);
 
 	CPanelAnimationVar( vgui::HFont, m_hTextFont, "TextFont", "CovenHUDBoldXL" );
-	CPanelAnimationVar( Color, m_AuxPowerColor, "AuxPowerColor", "255 255 255 255" );
-	CPanelAnimationVar( Color, m_AuxPowerColorShadow, "AuxPowerColorShadow", "0 0 0 150" );
+	CPanelAnimationVar(vgui::HFont, m_hTextFontTitle, "TextFont", "CovenHUD");
+
+	CPanelAnimationVar(Color, m_AuxPowerColor, "AuxPowerColor", "255 255 255 255");
+	CPanelAnimationVar(Color, m_AuxPowerColorGray, "AuxPowerColor", "125 125 125 255");
+	CPanelAnimationVar(Color, m_AuxPowerColorShadow, "AuxPowerColorShadow", "0 0 0 200");//150
 	//CPanelAnimationVarAliasType( int, m_nCBgTextureId1, "Texture1", "vgui/hud/800corner1", "textureid" );
 	//CPanelAnimationVarAliasType( int, m_nCBgTextureId2, "Texture2", "vgui/hud/800corner2", "textureid" );
 	//CPanelAnimationVarAliasType( int, m_nCBgTextureId3, "Texture3", "vgui/hud/800corner3", "textureid" );
@@ -88,6 +93,7 @@ CHudAbils::CHudAbils( const char *pElementName ) : CHudElement( pElementName ), 
 	SetAlpha( 255 );
 
 	Q_memset(max_duration, 0, sizeof(max_duration));
+	Q_memset(cooledDown, 1, sizeof(cooledDown));
 
 	m_nShadowTex = surface()->CreateNewTextureID();
 	surface()->DrawSetTextureFile( m_nShadowTex, "hud/abilities/cooldown", true, true);
@@ -111,33 +117,33 @@ CHudAbils::CHudAbils( const char *pElementName ) : CHudElement( pElementName ), 
 
 	LoadAbilityTex(0, COVEN_CLASSID_REAVER, 0, "hud/abilities/haste", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
 	LoadAbilityTex(0, COVEN_CLASSID_REAVER, 1, "hud/abilities/sheerwill", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
-	LoadAbilityTex(0, COVEN_CLASSID_REAVER, 2, "hud/abilities/gutcheck", m_nBorders[3], m_nBorders[3], m_nBorders[3]);
-	LoadAbilityTex(0, COVEN_CLASSID_REAVER, 3, "hud/abilities/intshout", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
+	LoadAbilityTex(0, COVEN_CLASSID_REAVER, 2, "hud/abilities/intshout", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
+	LoadAbilityTex(0, COVEN_CLASSID_REAVER, 3, "hud/abilities/gutcheck", m_nBorders[3], m_nBorders[3], m_nBorders[3]);
 
-	LoadAbilityTex(0, COVEN_CLASSID_HELLION, 0, "hud/abilities/holywater", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
-	LoadAbilityTex(0, COVEN_CLASSID_HELLION, 1, "hud/abilities/tripmine", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
-	LoadAbilityTex(0, COVEN_CLASSID_HELLION, 2, "hud/abilities/reflexes", m_nBorders[3], m_nBorders[3], m_nBorders[3]);
+	LoadAbilityTex(0, COVEN_CLASSID_HELLION, 0, "hud/abilities/tripmine", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
+	LoadAbilityTex(0, COVEN_CLASSID_HELLION, 1, "hud/abilities/crate", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
+	LoadAbilityTex(0, COVEN_CLASSID_HELLION, 2, "hud/abilities/turret", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
 	LoadAbilityTex(0, COVEN_CLASSID_HELLION, 3, "hud/abilities/uvlight", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
 
 	LoadAbilityTex(0, COVEN_CLASSID_AVENGER, 0, "hud/abilities/battleyell", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
 	LoadAbilityTex(0, COVEN_CLASSID_AVENGER, 1, "hud/abilities/bandage", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
-	LoadAbilityTex(0, COVEN_CLASSID_AVENGER, 2, "hud/abilities/revenge", m_nBorders[3], m_nBorders[3], m_nBorders[3]);
-	LoadAbilityTex(0, COVEN_CLASSID_AVENGER, 3, "hud/abilities/vengesoul", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
+	LoadAbilityTex(0, COVEN_CLASSID_AVENGER, 2, "hud/abilities/vengesoul", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
+	LoadAbilityTex(0, COVEN_CLASSID_AVENGER, 3, "hud/abilities/revenge", m_nBorders[3], m_nBorders[3], m_nBorders[3]);
 
 	LoadAbilityTex(1, COVEN_CLASSID_FIEND, 0, "hud/abilities/leap", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
 	LoadAbilityTex(1, COVEN_CLASSID_FIEND, 1, "hud/abilities/berserk", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
-	LoadAbilityTex(1, COVEN_CLASSID_FIEND, 2, "hud/abilities/sneak", m_nBorders[3], m_nBorders[3], m_nBorders[3]);
-	LoadAbilityTex(1, COVEN_CLASSID_FIEND, 3, "hud/abilities/dodge", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
+	LoadAbilityTex(1, COVEN_CLASSID_FIEND, 2, "hud/abilities/ethereal", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
+	LoadAbilityTex(1, COVEN_CLASSID_FIEND, 3, "hud/abilities/sneak", m_nBorders[3], m_nBorders[3], m_nBorders[3]);
 
-	LoadAbilityTex(1, COVEN_CLASSID_GORE, 0, "hud/abilities/scream", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
+	LoadAbilityTex(1, COVEN_CLASSID_GORE, 0, "hud/abilities/dreadscream", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
 	LoadAbilityTex(1, COVEN_CLASSID_GORE, 1, "hud/abilities/charge", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
-	LoadAbilityTex(1, COVEN_CLASSID_GORE, 2, "hud/abilities/gorge", m_nBorders[3], m_nBorders[3], m_nBorders[3]);
-	LoadAbilityTex(1, COVEN_CLASSID_GORE, 3, "hud/abilities/phase", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
+	LoadAbilityTex(1, COVEN_CLASSID_GORE, 2, "hud/abilities/phase", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
+	LoadAbilityTex(1, COVEN_CLASSID_GORE, 3, "hud/abilities/gorge", m_nBorders[3], m_nBorders[3], m_nBorders[3]);
 
 	LoadAbilityTex(1, COVEN_CLASSID_DEGEN, 0, "hud/abilities/bloodlust", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
-	LoadAbilityTex(1, COVEN_CLASSID_DEGEN, 1, "hud/abilities/undying", m_nBorders[3], m_nBorders[3], m_nBorders[3]);
-	LoadAbilityTex(1, COVEN_CLASSID_DEGEN, 2, "hud/abilities/masochist", m_nBorders[3], m_nBorders[3], m_nBorders[3]);
-	LoadAbilityTex(1, COVEN_CLASSID_DEGEN, 3, "hud/abilities/detonate", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
+	LoadAbilityTex(1, COVEN_CLASSID_DEGEN, 1, "hud/abilities/darkwill", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
+	LoadAbilityTex(1, COVEN_CLASSID_DEGEN, 2, "hud/abilities/bloodexp", m_nBorders[0], m_nBorders[1], m_nBorders[2]);
+	LoadAbilityTex(1, COVEN_CLASSID_DEGEN, 3, "hud/abilities/masochist", m_nBorders[3], m_nBorders[3], m_nBorders[3]);
 
 	SetHiddenBits( HIDEHUD_PLAYERDEAD | HIDEHUD_NEEDSUIT );
 	SetBgColor(Color(0,0,0,250));
@@ -187,6 +193,32 @@ void CHudAbils::DrawTextValue(int wide, int tall, int x, int y, float val)
 	surface()->DrawSetTextPos(tx, ty);
 	surface()->DrawSetTextColor(m_AuxPowerColor);
 	surface()->DrawPrintText(szText, wcslen(szText));
+}
+
+void CHudAbils::DrawTextTitle(int x, int y, int wide, int tall, wchar_t *title, bool bCooldown)
+{
+	surface()->DrawSetTextFont(m_hTextFontTitle);
+	int tx = x + wide / 2 - UTIL_ComputeStringWidth(m_hTextFontTitle, title) / 2;
+	int ty = y + tall/* + surface()->GetFontTall(m_hTextFontTitle) / 2*/;
+	
+	if (bCooldown)
+		surface()->DrawSetTextColor(m_AuxPowerColorShadow);
+	else
+		surface()->DrawSetTextColor(m_AuxPowerColorShadow);
+
+	surface()->DrawSetTextPos(tx - 1, ty + 1);
+	surface()->DrawUnicodeString(title);
+	surface()->DrawSetTextPos(tx + 1, ty - 1);
+	surface()->DrawUnicodeString(title);
+	
+	if (bCooldown)
+		surface()->DrawSetTextColor(m_AuxPowerColorGray);
+	else
+		surface()->DrawSetTextColor(m_AuxPowerColor);
+
+	surface()->DrawSetTextPos(tx, ty);
+	surface()->DrawUnicodeString(title);
+
 }
 
 void CHudAbils::DrawCircleSegment( int x, int y, int wide, int tall, float flEndProgress, bool bClockwise )
@@ -331,6 +363,7 @@ void CHudAbils::Paint()
 	if (pPlayer->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
 		team = 1;
 
+	/***************************************************************************************************************************/
 	int lev = 0;
 	if (pPlayer->m_HL2Local.covenCurrentLoadout1 > 0)
 		lev = 1;
@@ -350,8 +383,9 @@ void CHudAbils::Paint()
 	}
 	surface()->DrawSetTexture(m_nAbilBorders[team][pPlayer->covenClassID-1][0][lev]);
 	surface()->DrawTexturedRect(inset,y+inset,wide-inset,y+wide-inset);
+	DrawTextTitle(0, y, wide, wide - inset, abilities[team][pPlayer->covenClassID - 1][0], teatime > 0.0f);
 	y += wide-minset;
-
+	/***************************************************************************************************************************/
 	lev = 0;
 	if (pPlayer->m_HL2Local.covenCurrentLoadout2 > 0)
 		lev = 1;
@@ -371,8 +405,9 @@ void CHudAbils::Paint()
 	}
 	surface()->DrawSetTexture(m_nAbilBorders[team][pPlayer->covenClassID-1][1][lev]);
 	surface()->DrawTexturedRect(inset,y+inset,wide-inset,y+wide-inset);
-	y += wide-minset;
-
+	DrawTextTitle(0, y, wide, wide - inset, abilities[team][pPlayer->covenClassID - 1][1], teatime > 0.0f);
+	y += wide - minset;
+	/***************************************************************************************************************************/
 	lev = 0;
 	if (pPlayer->m_HL2Local.covenCurrentLoadout3 > 0)
 		lev = 1;
@@ -392,8 +427,9 @@ void CHudAbils::Paint()
 	}
 	surface()->DrawSetTexture(m_nAbilBorders[team][pPlayer->covenClassID-1][2][lev]);
 	surface()->DrawTexturedRect(inset,y+inset,wide-inset,y+wide-inset);
-	y += wide-minset;
-
+	DrawTextTitle(0, y, wide, wide - inset, abilities[team][pPlayer->covenClassID - 1][2], teatime > 0.0f);
+	y += wide - minset;
+	/***************************************************************************************************************************/
 	lev = 0;
 	if (pPlayer->m_HL2Local.covenCurrentLoadout4 > 0)
 		lev = 1;
@@ -413,7 +449,8 @@ void CHudAbils::Paint()
 	}
 	surface()->DrawSetTexture(m_nAbilBorders[team][pPlayer->covenClassID-1][3][lev]);
 	surface()->DrawTexturedRect(inset,y+inset,wide-inset,y+wide-inset);
-	y += wide-minset;
+	DrawTextTitle(0, y, wide, wide - inset, abilities[team][pPlayer->covenClassID - 1][3], teatime > 0.0f);
+	y += wide - minset;
 	/*for (int i = 0; i < active_abils.Count(); i++)
 	{
 		//surface()->DrawSetTexture( m_nImportAbil );
@@ -466,19 +503,83 @@ void CHudAbils::OnThink()
 
 	float timer = pPlayer->m_HL2Local.covenCooldownTimers[0] - gpGlobals->curtime;
 	if (timer > max_duration[0])
-			max_duration[0] = timer;
+	{
+		cooledDown[0] = false;
+		max_duration[0] = timer;
+	}
+	else if (timer <= 0.0f && !cooledDown[0])
+	{
+		max_duration[0] = 0.0f;
+		cooledDown[0] = true;
+		if (pPlayer->IsAlive())
+		{
+			CLocalPlayerFilter filter;
+			EmitSound_t params;
+			params.m_pSoundName = "CooldownBlip";
+			params.m_bIgnoreDSP = true;
+			C_BaseEntity::EmitSound(filter, -1, params);
+		}
+	}
 
 	timer = pPlayer->m_HL2Local.covenCooldownTimers[1] - gpGlobals->curtime;
 	if (timer > max_duration[1])
-			max_duration[1] = timer;
+	{
+		cooledDown[1] = false;
+		max_duration[1] = timer;
+	}
+	else if (timer <= 0.0f && !cooledDown[1])
+	{
+		max_duration[1] = 0.0f;
+		cooledDown[1] = true;
+		if (pPlayer->IsAlive())
+		{
+			CLocalPlayerFilter filter;
+			EmitSound_t params;
+			params.m_pSoundName = "CooldownBlip";
+			params.m_bIgnoreDSP = true;
+			C_BaseEntity::EmitSound(filter, -1, params);
+		}
+	}
 
 	timer = pPlayer->m_HL2Local.covenCooldownTimers[2] - gpGlobals->curtime;
 	if (timer > max_duration[2])
-			max_duration[2] = timer;
+	{
+		cooledDown[2] = false;
+		max_duration[2] = timer;
+	}
+	else if (timer <= 0.0f && !cooledDown[2])
+	{
+		max_duration[2] = 0.0f;
+		cooledDown[2] = true;
+		if (pPlayer->IsAlive())
+		{
+			CLocalPlayerFilter filter;
+			EmitSound_t params;
+			params.m_pSoundName = "CooldownBlip";
+			params.m_bIgnoreDSP = true;
+			C_BaseEntity::EmitSound(filter, -1, params);
+		}
+	}
 
 	timer = pPlayer->m_HL2Local.covenCooldownTimers[3] - gpGlobals->curtime;
 	if (timer > max_duration[3])
-			max_duration[3] = timer;
+	{
+		cooledDown[3] = false;
+		max_duration[3] = timer;
+	}
+	else if (timer <= 0.0f && !cooledDown[3])
+	{
+		max_duration[3] = 0.0f;
+		cooledDown[3] = true;
+		if (pPlayer->IsAlive())
+		{
+			CLocalPlayerFilter filter;
+			EmitSound_t params;
+			params.m_pSoundName = "CooldownBlip";
+			params.m_bIgnoreDSP = true;
+			C_BaseEntity::EmitSound(filter, -1, params);
+		}
+	}
 
 	/*if (active_abils.Count() == 0)
 	{

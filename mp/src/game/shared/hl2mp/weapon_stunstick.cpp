@@ -73,6 +73,8 @@ public:
 
 	virtual void Precache();
 
+	virtual int GetDamageType(void)		{ return DMG_SHOCK; }
+
 	void		Spawn();
 
 	float		GetRange( void )		{ return STUNSTICK_RANGE; }

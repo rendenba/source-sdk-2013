@@ -556,7 +556,10 @@ bool CHL2MPClientScoreBoardDialog::GetPlayerScoreInfo(int playerIndex, KeyValues
 	if (g_PR->GetTeam( playerIndex ) == 1)
 		kv->SetString("class", "");
 
-	kv->SetInt("level", g_PR->GetLevel( playerIndex ));
+	if (g_PR->GetTeam(playerIndex) == COVEN_TEAMID_VAMPIRES)
+		kv->SetInt("level", g_PR->GetLevel(playerIndex));
+	else
+		kv->SetString("level", "");
 
 	if (!g_PR->IsAlive(playerIndex) && g_PR->GetTeam( playerIndex ) != TEAM_SPECTATOR)
 		kv->SetString("status", "*DEAD*");

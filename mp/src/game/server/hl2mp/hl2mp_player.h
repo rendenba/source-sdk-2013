@@ -35,6 +35,14 @@ public:
 	void (CHL2MP_Player::*pfnPreThink)();	// Do a PreThink() in this state.
 };
 
+//BB: fuuuuuuuuuu....
+enum GoreChargeState
+{
+	GORELOCK_NONE = 0,
+	GORELOCK_CHARGING,
+	GORELOCK_CHARGING_IN_UVLIGHT
+};
+
 class CHL2MP_Player : public CHL2_Player
 {
 public:
@@ -52,9 +60,11 @@ public:
 	DECLARE_SERVERCLASS();
 	DECLARE_DATADESC();
 
-	virtual bool LevelUp( int lvls );
+	virtual bool LevelUp(int lvls, bool bBoostStats, bool bSound, bool bAutoLevel, bool bResetHP, bool bEffect);
 	int XPForKill(CHL2MP_Player *pAttacker);
 	void ResetVitals( void );
+
+	void ClearAllBuildings();
 
 	virtual void Precache( void );
 	virtual void Spawn( void );
@@ -82,6 +92,7 @@ public:
 	virtual void DeathSound( const CTakeDamageInfo &info );
 	float Feed();
 	virtual CBaseEntity* EntSelectSpawnPoint( void );
+	virtual bool IsBuilderClass(void);
 		
 	int FlashlightIsOn( void );
 	void FlashlightTurnOn( void );
@@ -137,11 +148,14 @@ public:
 	void GiveTeamXPCentered(int team, int xp, CBasePlayer *ignore);
 	void GiveBuffInRadius(int team, int buff, int mag, float duration, float distance, int classid);
 	void ResetStats();
+	void ResetAbilities();
+	int GetAbilityNumber(int keyNum);
 
 	void Extinguish();
 
 	//BB: thinking functions consolidated for convienience
 	void DoStatusThink();
+	void DoAbilityThink(int keyNum);
 	void DoVampirePreThink();
 	void DoVampirePostThink();
 	void DoSlayerPreThink();
@@ -149,40 +163,40 @@ public:
 
 	//BB: vampire helper functions
 	void DoLeap();
-	void DoGorePhase();
+	void CheckGore();
+	bool DoGorePhase(int lev);
 	void DoGoreCharge();
 	void BloodExplode(int lev, float magnitude);
 	void RecalcGoreDrain();
 	void DoBloodLust(int lev);
 	void DoDreadScream(int lev);
-	void DoBerserk(int lev);
-	void DoVampireAbilityThink();
-	void VampireCheckGore();
+	void DoBerserk(int lev, float duration);
 	void VampireCheckRegen(float maxpercent);
 	void VampireCheckResurrect();
 	void VampireManageRagdoll();
 	void VampireReSolidify();
-	void VampireStealthCalc();
-	void VampireDodgeHandler();
+	void StealthCalc();
+	void DodgeHandler();
 	void VampireEnergyHandler();
-	void VampireUnDodge();
+	void UnDodge();
 
 	//BB: slayer helper functions
 	void UnleashSoul();
-	void SlayerLightHandler();
-	void SlayerEnergyHandler();
+	//void SlayerLightHandler(); This is handled higher up now.
+	void EnergyHandler();
 	void DoBattleYell(int lev);
-	void DoSheerWill(int lev);
+	void BoostStats(int lev, float duration);
 	void DoIntimidatingShout(int lev);
 	void RevengeCheck();
 	void GenerateBandage(int lev);
+	bool BuildTurret(int lev);
+	bool BuildDispenser(int lev);
 	void ThrowHolywaterGrenade(int lev);
 	bool AttachTripmine();
 	void CheckThrowPosition(const Vector &vecEye, Vector &vecSrc);
 	void SlayerHolywaterThink();
-	void SlayerGutcheckThink();
+	void GutcheckThink();
 	void SlayerSoulThink();
-	void DoSlayerAbilityThink();
 	void SlayerVampLeapDetect();
 	void Taunt();
 
@@ -205,13 +219,15 @@ public:
 	int s_nExplosionTexture;
 
 	Vector store_loc;
-	bool gorelock;
+	GoreChargeState gorelock;
 
 	bool rezsound;
 	float solidcooldown;
 
 	int num_trip_mines;
 	CUtlVector<CItem *> medkits;
+	CUtlVector<CBaseCombatCharacter *> turrets;
+	CUtlVector<CBaseCombatCharacter *> dispensers;
 
 	Vector lock_ts;
 
@@ -231,11 +247,14 @@ public:
 	float coven_timer_soul;
 	float coven_timer_holywater;
 
+#ifdef COVEN_DEVELOPER_MODE
 	int coven_debug_nodeloc;
 	int coven_debug_prevnode;
+#endif
 
 	//BB: coven loadout/abil stuff
 	int GetLoadout(int n);
+	int SetLoadout(int n, int val);
 	float GetCooldown(int n);
 	int GetLevelsSpent();
 	bool SpendPoint(int on);
@@ -245,6 +264,7 @@ public:
 	void RefreshCooldowns();
 	void ResetCooldowns();
 	void SetGlobalCooldown(int n, float time);
+	int covenAbilities[COVEN_ABILITY_COUNT];
 	int covenLoadouts[2][COVEN_MAX_CLASSCOUNT][4];
 	int covenLevelsSpent[2][COVEN_MAX_CLASSCOUNT];
 	float covenCooldowns[2][COVEN_MAX_CLASSCOUNT][4];

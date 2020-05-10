@@ -146,7 +146,7 @@ void CBaseHL2MPBludgeonWeapon::Hit( trace_t &traceHit, Activity nHitActivity )
 		VectorNormalize( hitDirection );
 
 #ifndef CLIENT_DLL
-		CTakeDamageInfo info( GetOwner(), GetOwner(), GetDamageForActivity( nHitActivity ), DMG_CLUB );
+		CTakeDamageInfo info( GetOwner(), GetOwner(), GetDamageForActivity( nHitActivity ), GetDamageType() );
 
 		if( pPlayer && pHitEntity->IsNPC() )
 		{
@@ -310,6 +310,10 @@ void CBaseHL2MPBludgeonWeapon::ImpactEffect( trace_t &traceHit )
 //------------------------------------------------------------------------------
 void CBaseHL2MPBludgeonWeapon::Swing( int bIsSecondary )
 {
+	//BB: this is a major hack. This will need to get put into ANY weapon that is used by a builder class since baseweapon primary attack isn't called.
+	if (BuilderClassWeapon())
+		return;
+
 	trace_t traceHit;
 
 	// Try a ray

@@ -95,6 +95,7 @@ EmitSound_t::EmitSound_t( const CSoundParameters &src )
 	m_bWarnOnMissingCloseCaption = false;
 	m_bWarnOnDirectWaveReference = false;
 	m_nSpeakerEntity = -1;
+	m_bIgnoreDSP = false;
 }
 
 void Hack_FixEscapeChars( char *str )
@@ -209,8 +210,10 @@ public:
 		m_PrecachedScriptSounds.RemoveAll();
 	}
 #else
-	CSoundEmitterSystem( char const *name )
+	int				m_nRoomType;
+	CSoundEmitterSystem(char const *name)
 	{
+		m_nRoomType = -1;
 	}
 
 #endif
@@ -525,7 +528,23 @@ public:
 		{
 			st = gpGlobals->curtime + (float)params.delay_msec / 1000.f;
 		}
-
+		//BB: this is hacky AF! This *might* work for non-1 DSP rooms, but need to verify!
+#ifdef CLIENT_DLL
+		if (ep.m_bIgnoreDSP)
+		{
+			if (m_nRoomType < 0)
+			{
+				ConVarRef roomtype("room_type");
+				m_nRoomType = roomtype.GetInt();
+			}
+			enginesound->SetRoomType(filter, 0);
+		}
+		else if (m_nRoomType > -1)
+		{
+			enginesound->SetRoomType(filter, m_nRoomType);
+			m_nRoomType = -1;
+		}
+#endif
 		enginesound->EmitSound( 
 			filter, 
 			entindex, 
@@ -603,6 +622,23 @@ public:
 			if ( !enginesound->IsSoundPrecached( ep.m_pSoundName ) )
 			{
 				Msg( "Sound %s was not precached\n", ep.m_pSoundName );
+			}
+#endif
+			//BB: this is hacky AF! This *might* work for non-1 DSP rooms, but need to verify!
+#ifdef CLIENT_DLL
+			if (ep.m_bIgnoreDSP)
+			{
+				if (m_nRoomType < 0)
+				{
+					ConVarRef roomtype("room_type");
+					m_nRoomType = roomtype.GetInt();
+				}
+				enginesound->SetRoomType(filter, 0);
+			}
+			else if (m_nRoomType > -1)
+			{
+				enginesound->SetRoomType(filter, m_nRoomType);
+				m_nRoomType = -1;
 			}
 #endif
 			enginesound->EmitSound( 

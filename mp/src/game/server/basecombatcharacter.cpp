@@ -38,6 +38,7 @@
 #include "rumble_shared.h"
 #include "saverestoretypes.h"
 #include "nav_mesh.h"
+#include "team.h"
 
 #ifdef NEXT_BOT
 #include "NextBot/NextBotManager.h"
@@ -90,7 +91,6 @@ BEGIN_DATADESC( CBaseCombatCharacter )
 	DEFINE_FIELD( m_eHull, FIELD_INTEGER ),
 	DEFINE_FIELD( m_bloodColor, FIELD_INTEGER ),
 	DEFINE_FIELD( m_iDamageCount, FIELD_INTEGER ),
-	DEFINE_FIELD( m_floatCloakFactor, FIELD_FLOAT ),
 	
 	DEFINE_FIELD( m_flFieldOfView, FIELD_FLOAT ),
 	DEFINE_FIELD( m_HackedGunPos, FIELD_VECTOR ),
@@ -201,7 +201,6 @@ IMPLEMENT_SERVERCLASS_ST(CBaseCombatCharacter, DT_BaseCombatCharacter)
 
 	SendPropEHandle( SENDINFO( m_hActiveWeapon ) ),
 	SendPropArray3( SENDINFO_ARRAY3(m_hMyWeapons), SendPropEHandle( SENDINFO_ARRAY(m_hMyWeapons) ) ),
-	SendPropFloat( SENDINFO ( m_floatCloakFactor ) ),
 
 #ifdef INVASION_DLL
 	SendPropInt( SENDINFO(m_iPowerups), MAX_POWERUPS, SPROP_UNSIGNED ), 
@@ -417,6 +416,81 @@ bool CBaseCombatCharacter::FVisible( CBaseEntity *pEntity, int traceMask, CBaseE
 	g_VisibilityCache[iCache].time = gpGlobals->curtime;
 
 	return bResult;
+}
+
+void CBaseCombatCharacter::SlayerLightHandler(float angle, float influenceDistance, float damageDistance, float maxForce)
+{
+	if (IsEffectActive(EF_DIMLIGHT) && IsAlive())
+	{
+		CTeam *pRebels = GetGlobalTeam(COVEN_TEAMID_VAMPIRES);
+		for (int i = 0; i < pRebels->GetNumPlayers(); i++)
+		{
+			if (pRebels->GetPlayer(i))
+			{
+				CHL2MP_Player *temp = ((CHL2MP_Player *)pRebels->GetPlayer(i));
+				Vector direction = temp->GetPlayerMidPoint() - EyePosition();
+				float distance = VectorNormalize(direction);
+				if (distance <= 750.0f)
+				{
+					//close enough to be in range of flashlight, continue...
+					Vector forward;
+					AngleVectors(EyeAngles(), &forward);
+					VectorNormalize(forward);
+					float dot = DotProduct(direction, forward);
+					if (dot >= angle) //.9703f good number... version 2.5
+					{
+						//within correct FOV, check to see line of sight...
+						if (distance < 128.0f)
+						{
+							//too close... problems happen
+							distance = 128.0f;
+						}
+
+						trace_t tr;
+						Vector dt = EyePosition();
+						UTIL_TraceLine(dt, dt + direction*750.0f, MASK_SOLID, this, COLLISION_GROUP_PLAYER, &tr);
+						if (tr.DidHitNonWorldEntity() && tr.m_pEnt->IsPlayer() && temp == tr.m_pEnt)
+						{
+							//WE GOT ONE!!!!!
+							/*float adjustedmaxalpha = (750.0f - distance)/450.0f;
+							if (adjustedmaxalpha > 1.0f)
+							adjustedmaxalpha = 1.0f;
+							if (adjustedmaxalpha < 0.0f)
+							adjustedmaxalpha = 0.0f;
+							//do alpha stuff*/
+							temp->m_floatCloakFactor = 0.0f;
+							temp->coven_timer_vstealth = 0.0f;
+
+							//do pushback stuff
+							if (distance < influenceDistance)
+							{
+								if (temp->gorelock > GORELOCK_NONE)
+									temp->gorelock = GORELOCK_CHARGING_IN_UVLIGHT;
+								//BB: this isnt "entirely" right.
+								float prop = clamp(maxForce / distance * 100.0f, 0.0f, maxForce);
+								Vector vel = temp->GetAbsVelocity();
+								VectorAdd(vel, prop*direction, vel);
+								temp->SetAbsVelocity(vel);
+							}
+							//do damage stuff
+							if (distance < damageDistance && (gpGlobals->curtime - temp->coven_timer_light) >= 0.2f)//0.1f
+							{
+								//BB: boost UV light damage
+								float dmg = 3.0f;
+								//more damage from light to vamps on fire
+								if (temp->GetFlags() & FL_ONFIRE)
+									dmg = 5.5f;
+
+								CTakeDamageInfo burn(this, this, dmg, DMG_BURN | DMG_DIRECT);
+								temp->OnTakeDamage(burn);
+								temp->coven_timer_light = gpGlobals->curtime;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
 }
 
 void CBaseCombatCharacter::ResetVisibilityCache( CBaseCombatCharacter *pBCC )
@@ -718,8 +792,6 @@ CBaseCombatCharacter::CBaseCombatCharacter( void )
 
 	// Zero the damage accumulator.
 	m_flDamageAccumulator = 0.0f;
-
-	m_floatCloakFactor.Set( 0.0f );
 
 	// Init weapon and Ammo data
 	m_hActiveWeapon			= NULL;
@@ -2440,77 +2512,79 @@ int CBaseCombatCharacter::OnTakeDamage( const CTakeDamageInfo &info )
 		}
 		if ( m_iHealth <= 0 )
 		{
-			//BB: DO NOT KILL VAMPIRES
-			if (!KO && GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+			if (IsPlayer())
 			{
-				if (!(info.GetDamageType() & DMG_DISSOLVE))
+				//BB: DO NOT KILL VAMPIRES
+				if (!KO && GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
 				{
-					//BB: make them rez a little weaker?
-					m_iHealth = GetMaxHealth()*0.25f;
-					mykiller = info.GetAttacker();
-				}
-				KO = true;
-				if (m_pFlame)
-				{
-					UTIL_Remove( m_pFlame );
-					Extinguish();
-				}
+					if (!(info.GetDamageType() & DMG_DISSOLVE))
+					{
+						//BB: make them rez a little weaker?
+						m_iHealth = GetMaxHealth()*0.25f;
+						mykiller = info.GetAttacker();
+					}
+					KO = true;
+					if (m_pFlame)
+					{
+						UTIL_Remove(m_pFlame);
+						Extinguish();
+					}
 
-				if (m_floatCloakFactor > 0.0f)
 					m_floatCloakFactor = 0.0f;
 
-				timeofdeath = gpGlobals->curtime;
-				AddFlag(FL_FROZEN);
-				AddEFlags(EFL_BOT_FROZEN);
-				//BB: WTF WHY DOESNT THIS WORK?!?!
-				color32 red = {75, 0, 0, 200};
-				UTIL_ScreenFade( this, red, 3.0, 60.0, FFADE_OUT | FFADE_STAYOUT );
+					timeofdeath = gpGlobals->curtime;
+					AddFlag(FL_FROZEN);
+					AddEFlags(EFL_BOT_FROZEN);
+					//BB: WTF WHY DOESNT THIS WORK?!?!
+					color32 red = { 75, 0, 0, 200 };
+					UTIL_ScreenFade(this, red, 3.0, 60.0, FFADE_OUT | FFADE_STAYOUT);
 
-				CBasePlayer *pPlayer = (CBasePlayer *)(this);
-				pPlayer->DeathSound( info );
-				//BB: make this greater than player collision group, but override the collide function so players dont bump server dolls
-				myServerRagdoll = CreateServerRagdoll( this, m_nForceBone, info, COLLISION_GROUP_WEAPON );
-				if (myServerRagdoll)
-				{
-					((CRagdollProp *)myServerRagdoll)->myBody = this;
-					((CRagdollProp *)myServerRagdoll)->block = true;
-					((CRagdollProp *)myServerRagdoll)->team = COVEN_TEAMID_VAMPIRES;
-					((CHL2MP_Player *)this)->m_hRagdoll = myServerRagdoll;
+					CBasePlayer *pPlayer = (CBasePlayer *)(this);
+					pPlayer->DeathSound(info);
+					//BB: make this greater than player collision group, but override the collide function so players dont bump server dolls
+					myServerRagdoll = CreateServerRagdoll(this, m_nForceBone, info, COLLISION_GROUP_WEAPON);
+					if (myServerRagdoll)
+					{
+						((CRagdollProp *)myServerRagdoll)->myBody = this;
+						((CRagdollProp *)myServerRagdoll)->block = true;
+						((CRagdollProp *)myServerRagdoll)->team = COVEN_TEAMID_VAMPIRES;
+						((CHL2MP_Player *)this)->m_hRagdoll = myServerRagdoll;
+					}
+					AddEffects(EF_NODRAW);
+					AddSolidFlags(FSOLID_NOT_SOLID);
+					if (GetActiveWeapon() != NULL)
+					{
+						GetActiveWeapon()->AddEffects(EF_NODRAW);
+						GetActiveWeapon()->AddSolidFlags(FSOLID_NOT_SOLID);
+					}
+					if (pPlayer->GetViewModel() != NULL)
+					{
+						pPlayer->GetViewModel()->AddEffects(EF_NODRAW);
+					}
+					if (!(info.GetDamageType() & DMG_DISSOLVE))
+					{
+						return retVal;
+					}
 				}
-				AddEffects(EF_NODRAW);
-				AddSolidFlags(FSOLID_NOT_SOLID);
-				if (GetActiveWeapon() != NULL)
+				else if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
 				{
-					GetActiveWeapon()->AddEffects(EF_NODRAW);
-					GetActiveWeapon()->AddSolidFlags(FSOLID_NOT_SOLID);
+					myServerRagdoll = CreateServerRagdoll(this, m_nForceBone, info, COLLISION_GROUP_WEAPON);
+					if (myServerRagdoll)
+					{
+						((CHL2MP_Player *)this)->m_hRagdoll = myServerRagdoll;
+						((CRagdollProp *)myServerRagdoll)->flClearTime = gpGlobals->curtime + 60.0f;
+						((CRagdollProp *)myServerRagdoll)->block = false;
+						((CRagdollProp *)myServerRagdoll)->team = COVEN_TEAMID_SLAYERS;
+						HL2MPRules()->AddDoll(myServerRagdoll);
+					}
 				}
-				if (pPlayer->GetViewModel() != NULL)
-				{
-					pPlayer->GetViewModel()->AddEffects(EF_NODRAW);
-				}
-				if (!(info.GetDamageType() & DMG_DISSOLVE))
-				{
-					return retVal;
-				}
-			}
-			else if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
-			{
-				myServerRagdoll = CreateServerRagdoll( this, m_nForceBone, info, COLLISION_GROUP_WEAPON );
-				if (myServerRagdoll)
-				{
-					((CHL2MP_Player *)this)->m_hRagdoll = myServerRagdoll;
-					((CRagdollProp *)myServerRagdoll)->flClearTime = gpGlobals->curtime + 60.0f;
-					((CRagdollProp *)myServerRagdoll)->block = false;
-					((CRagdollProp *)myServerRagdoll)->team = COVEN_TEAMID_SLAYERS;
-					HL2MPRules()->AddDoll(myServerRagdoll);
-				}
-			}
 
 
-			IPhysicsObject *pPhysics = VPhysicsGetObject();
-			if ( pPhysics )
-			{
-				pPhysics->EnableCollisions( false );
+				IPhysicsObject *pPhysics = VPhysicsGetObject();
+				if (pPhysics)
+				{
+					pPhysics->EnableCollisions(false);
+				}
 			}
 			
 			bool bGibbed = false;

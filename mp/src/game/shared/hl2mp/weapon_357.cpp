@@ -90,6 +90,10 @@ CWeapon357::CWeapon357( void )
 //-----------------------------------------------------------------------------
 void CWeapon357::PrimaryAttack( void )
 {
+	//BB: this is a major hack. This will need to get put into ANY weapon that is used by a builder class since baseweapon primary attack isn't called.
+	if (BuilderClassWeapon())
+		return;
+
 	// Only the player fires this way so we can cast
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
 

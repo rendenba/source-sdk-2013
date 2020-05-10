@@ -156,7 +156,11 @@ void CHudSuitPower::Paint()
 	if ( !pPlayer )
 		return;
 
-	float max = pPlayer->myIntellect()*10.0f;
+	float max = pPlayer->myIntellect() * COVEN_MANA_PER_INT;
+
+	//BB: HACK builder needs a lot
+	if (pPlayer->GetTeamNumber() == COVEN_TEAMID_SLAYERS && pPlayer->covenClassID == COVEN_CLASSID_HELLION)
+		max = 200.0f;
 
 	int wide, tall;
 	GetSize(wide, tall);

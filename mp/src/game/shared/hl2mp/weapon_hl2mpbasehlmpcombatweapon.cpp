@@ -67,13 +67,14 @@ void CBaseHL2MPCombatWeapon::ItemHolsterFrame( void )
 	if ( GetOwner()->GetActiveWeapon() == this )
 		return;
 
+	//BB: BOOOOOOOOO (x2)!
 	// If it's been longer than three seconds, reload
-	if ( ( gpGlobals->curtime - m_flHolsterTime ) > sk_auto_reload_time.GetFloat() )
+	/*if ( ( gpGlobals->curtime - m_flHolsterTime ) > sk_auto_reload_time.GetFloat() )
 	{
 		// Just load the clip with no animations
 		FinishReload();
 		m_flHolsterTime = gpGlobals->curtime;
-	}
+	}*/
 }
 
 //-----------------------------------------------------------------------------
@@ -135,7 +136,42 @@ bool CBaseHL2MPCombatWeapon::Deploy( void )
 	}
 
 	m_bLowered = false;
-	return BaseClass::Deploy();
+
+	bool bResult = BaseClass::Deploy();
+
+	if (bResult)
+		m_flHolsterTime = 0.0f;
+
+	return bResult;
+}
+
+bool CBaseHL2MPCombatWeapon::BuilderClassWeapon(void)
+{
+#ifdef CLIENT_DLL
+	CBaseCombatCharacter *pOwner = GetOwner();
+	if (pOwner && pOwner->GetTeamNumber() == COVEN_TEAMID_SLAYERS && IsEffectActive(EF_NODRAW))
+		return true;
+#else
+	if (IsHolstered())
+	{
+		float flSequenceDuration = SequenceDuration(ACT_VM_DEPLOY);
+		CBaseCombatCharacter *pOwner = GetOwner();
+		if (pOwner)
+		{
+			pOwner->SetNextAttack(gpGlobals->curtime + flSequenceDuration);
+			if (!Deploy())
+			{
+				// We tried to restore the player's weapon, but we couldn't.
+				// This usually happens when they're holding an empty weapon that doesn't
+				// autoswitch away when out of ammo. Switch to next best weapon.
+				pOwner->SwitchToNextBestWeapon(NULL);
+			}
+			return true;
+		}
+	}
+#endif
+
+	return false;
 }
 
 //-----------------------------------------------------------------------------

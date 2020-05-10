@@ -30,6 +30,7 @@ enum
 	SPEED_CROPPED_RESET = 0,
 	SPEED_CROPPED_DUCK = 1,
 	SPEED_CROPPED_WEAPON = 2,
+	SPEED_CROPPED_WALK = 4,
 };
 
 struct surfacedata_t;
@@ -82,6 +83,7 @@ protected:
 	// were contacted during the move.
 	virtual void	PlayerMove(	void );
 
+	virtual void	Walk(void);
 	// Set ground data, etc.
 	void			FinishMove( void );
 
@@ -211,7 +213,7 @@ protected:
 	int GetPointContentsCached( const Vector &point, int slot );
 
 	// Ducking
-	virtual void	Duck( void );
+	virtual void	Duck(void);
 	virtual void	HandleDuckingSpeedCrop();
 	virtual void	FinishUnDuck( void );
 	virtual void	FinishDuck( void );

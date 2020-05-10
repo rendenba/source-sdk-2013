@@ -51,6 +51,9 @@ CTripmineGrenade::CTripmineGrenade()
 	m_vecEnd.Init();
 	m_posOwner.Init();
 	m_angleOwner.Init();
+	m_bReCycle = false;
+	m_vecRecyclePosition.Init();
+	m_hHitEntity = NULL;
 }
 
 void CTripmineGrenade::Spawn( void )
@@ -144,7 +147,7 @@ void CTripmineGrenade::MakeBeam( void )
 {
 	trace_t tr;
 
-	UTIL_TraceLine( GetAbsOrigin(), m_vecEnd, MASK_SHOT, this, COLLISION_GROUP_NONE, &tr );
+	UTIL_TraceLine(GetAbsOrigin(), m_vecEnd, MASK_SHOT, this, COLLISION_GROUP_NONE, &tr);
 
 	m_flBeamLength = tr.fraction;
 
@@ -152,19 +155,19 @@ void CTripmineGrenade::MakeBeam( void )
 
 	// If I hit a living thing, send the beam through me so it turns on briefly
 	// and then blows the living thing up
-	CBaseEntity *pEntity = tr.m_pEnt;
-	CBaseCombatCharacter *pBCC  = ToBaseCombatCharacter( pEntity );
+	//CBaseEntity *pEntity = tr.m_pEnt;
+	//CBaseCombatCharacter *pBCC  = ToBaseCombatCharacter( pEntity );
 
 	// Draw length is not the beam length if entity is in the way
 	float drawLength = tr.fraction;
-	if (pBCC)
+	/*if (pBCC)
 	{
 		SetOwnerEntity( pBCC );
 		UTIL_TraceLine( GetAbsOrigin(), m_vecEnd, MASK_SHOT, this, COLLISION_GROUP_NONE, &tr );
 		m_flBeamLength = tr.fraction;
 		SetOwnerEntity( NULL );
 		
-	}
+	}*/
 
 	// set to follow laser spot
 	SetThink( &CTripmineGrenade::BeamBreakThink );
@@ -204,8 +207,15 @@ void CTripmineGrenade::BeamBreakThink( void  )
 
 	trace_t tr;
 
+	CBaseEntity *ignore = this;
+	Vector start = GetAbsOrigin();
+	if (m_bReCycle)
+	{
+		start = m_vecRecyclePosition;
+		ignore = m_hHitEntity;
+	}
 	// NOT MASK_SHOT because we want only simple hit boxes
-	UTIL_TraceLine( GetAbsOrigin(), m_vecEnd, MASK_SOLID, this, COLLISION_GROUP_NONE, &tr );
+	UTIL_TraceLine( start, m_vecEnd, MASK_SOLID, ignore, COLLISION_GROUP_NONE, &tr );
 
 	// ALERT( at_console, "%f : %f\n", tr.flFraction, m_flBeamLength );
 
@@ -226,9 +236,20 @@ void CTripmineGrenade::BeamBreakThink( void  )
 	{
 		m_iHealth = 0;
 		Event_Killed( CTakeDamageInfo( (CBaseEntity*)m_hOwner, this, 100, GIB_NORMAL ) );
-		
-
 		return;
+	}
+	else if (pBCC && pBCC->GetTeamNumber() == m_nTeam)
+	{
+		m_bReCycle = true;
+		m_vecRecyclePosition = tr.endpos;
+		m_hHitEntity = tr.m_pEnt;
+	}
+	//BB: TODO: this can still get troll'd by a physics entity.
+	else if (pBCC == NULL && tr.m_pEnt && tr.m_pEnt != this)
+	{
+		m_bReCycle = false;
+		m_pBeam->SetAbsStartPos(tr.endpos);
+		m_pBeam->RelinkBeam();
 	}
 
 	SetNextThink( gpGlobals->curtime + 0.05f );

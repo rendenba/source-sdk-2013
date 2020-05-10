@@ -37,6 +37,7 @@
 #define IN_GRENADE1		(1 << 23)	// grenade 1
 #define IN_GRENADE2		(1 << 24)	// grenade 2
 #define	IN_ATTACK3		(1 << 25)
+//BB: abilities must be kept in bitwise/numeric order!
 #define IN_ABIL1		(1 << 26)
 #define IN_ABIL2		(1 << 27)
 #define IN_ABIL3		(1 << 28)

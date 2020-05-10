@@ -25,8 +25,8 @@
 #include "engine/IEngineSound.h"
 #include "team.h"
 #include "viewport_panel_names.h"
-
 #include "tier0/vprof.h"
+#include "hl2mp_bot_temp.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -65,6 +65,7 @@ void FinishClientPutInServer( CHL2MP_Player *pPlayer )
 		ClientPrint( pPlayer, HUD_PRINTTALK, "You are on team %s1\n", pPlayer->GetTeam()->GetName() );
 	}
 
+#if !(defined(DEBUG_BOTS) || defined(DEBUG_BOTS_VISUAL))
 	const ConVar *hostname = cvar->FindVar( "hostname" );
 	const char *title = (hostname) ? hostname->GetString() : "MESSAGE OF THE DAY";
 
@@ -79,6 +80,7 @@ void FinishClientPutInServer( CHL2MP_Player *pPlayer )
 	pPlayer->ShowViewPortPanel( PANEL_INFO, true, data );
 
 	data->deleteThis();
+#endif
 }
 
 /*
@@ -189,8 +191,9 @@ void GameStartFrame( void )
 	gpGlobals->teamplay = (teamplay.GetInt() != 0);
 
 #ifdef DEBUG
-	extern void Bot_RunAll();
-	Bot_RunAll();
+	//BB: FML
+	//extern void Bot_RunAll();
+	//Bot_RunAll();
 #endif
 }
 

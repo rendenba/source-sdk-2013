@@ -435,7 +435,7 @@ void CHL2_Player::SetStatusMagnitude(int s, int m)
 //
 // SUIT POWER DEVICES
 //
-#define SUITPOWER_CHARGE_RATE	myIntellect()/8.0											// 12.5 = 100 units in 8 seconds
+#define SUITPOWER_CHARGE_RATE	myIntellect()/5.0											// 12.5 = 100 units in 8 seconds
 
 #ifdef HL2MP
 	CSuitPowerDevice SuitDeviceSprint( bits_SUIT_DEVICE_SPRINT, 25.0f );				// 100 units in 4 seconds
@@ -454,9 +454,9 @@ CSuitPowerDevice SuitDeviceBreather( bits_SUIT_DEVICE_BREATHER, 6.7f );		// 100 
 IMPLEMENT_SERVERCLASS_ST(CHL2_Player, DT_HL2_Player)
 	SendPropDataTable(SENDINFO_DT(m_HL2Local), &REFERENCE_SEND_TABLE(DT_HL2Local), SendProxy_SendLocalDataTable),
 	SendPropBool( SENDINFO(m_fIsSprinting) ),
-	SendPropInt( SENDINFO(covenClassID) ),
-	SendPropInt( SENDINFO(covenLevelCounter) ),
-	SendPropInt( SENDINFO(covenStatusEffects) ),
+	SendPropInt( SENDINFO(covenClassID), 4, SPROP_UNSIGNED ),
+	SendPropInt( SENDINFO(covenLevelCounter), 5, SPROP_UNSIGNED ),
+	SendPropInt( SENDINFO(covenStatusEffects), 16, SPROP_UNSIGNED ),
 END_SEND_TABLE()
 
 void CHL2_Player::SetCurrentLoadout(int i, int load)
@@ -505,6 +505,7 @@ void CHL2_Player::Precache( void )
 	PrecacheScriptSound( "HL2Player.TrainUse" );
 	PrecacheScriptSound( "HL2Player.Use" );
 	PrecacheScriptSound( "HL2Player.BurnPain" );
+	PrecacheScriptSound("ItemBattery.Touch");
 }
 
 void CHL2_Player::SetXP(float XP)
@@ -527,11 +528,17 @@ bool CHL2_Player::GiveXP(float XP)
 	iXP *= coven_xp_scale.GetInt();
 	m_HL2Local.covenXPCounter += iXP;
 	totalXP += iXP;
-	int xpcap = COVEN_MAX_XP_PER_LEVEL + COVEN_XP_INCREASE_PER_LEVEL*(covenLevelCounter-1);
+	int xpcap = GetXPCap();
 	if (m_HL2Local.covenXPCounter >= xpcap)
 	{
-		m_HL2Local.covenXPCounter -= xpcap;
-		return LevelUp(1);
+		if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+		{
+			m_HL2Local.covenXPCounter -= xpcap;
+			//BB: only vampires get stats right now.
+			return LevelUp(1, GetTeamNumber() == COVEN_TEAMID_VAMPIRES, true);
+		}
+		else
+			m_HL2Local.covenXPCounter = xpcap;
 	}
 	return true;
 }
@@ -541,7 +548,7 @@ int CHL2_Player::GetXP()
 	return m_HL2Local.covenXPCounter;
 }
 
-bool CHL2_Player::LevelUp(int lvls)
+bool CHL2_Player::LevelUp(int lvls, bool bBoostStats, bool bSound, bool bAutoLevel, bool bResetHP, bool bEffect)
 {
 	covenLevelCounter += lvls;
 	return true;
@@ -1281,8 +1288,11 @@ void CHL2_Player::Spawn(void)
 	if ( !IsSuitEquipped() )
 		 StartWalking();
 
-	//BB: start with 10% mana
-	SuitPower_SetCharge( myIntellect() );
+	//BB: start with X% mana
+	if (IsBuilderClass())
+		SuitPower_SetCharge(200.0f);
+	else
+		SuitPower_SetCharge(myIntellect());
 
 	m_Local.m_iHideHUD |= HIDEHUD_CHAT;
 
@@ -1349,6 +1359,7 @@ void CHL2_Player::StartAutoSprint()
 //-----------------------------------------------------------------------------
 void CHL2_Player::StartSprinting( void )
 {
+	m_fIsSprinting = true;
 	//BB: ignore this for now... we don't do sprinting
 	return;
 	if( m_HL2Local.m_flSuitPower < 10 )
@@ -1464,7 +1475,7 @@ void CHL2_Player::ComputeSpeed( void )
 
 	if (covenStatusEffects & COVEN_FLAG_SPRINT)
 	{
-		speed *= (1.05f + 0.1f*GetStatusMagnitude(COVEN_BUFF_SPRINT));
+		speed *= (1.05f + 0.25f*GetStatusMagnitude(COVEN_BUFF_SPRINT));
 		//CBaseCombatWeapon *pActiveWeapon = GetActiveWeapon();
 		//if (GetViewModel())
 		//	GetViewModel()->SetPlaybackRate(3.0f*GetStatusMagnitude(COVEN_BUFF_SPRINT));
@@ -1489,18 +1500,18 @@ void CHL2_Player::ComputeSpeed( void )
 //-----------------------------------------------------------------------------
 void CHL2_Player::StartWalking( void )
 {
+	m_fIsWalking = true;
 	ComputeSpeed();
 	//SetMaxSpeed( HL2_WALK_SPEED );
-	m_fIsWalking = true;
 }
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 void CHL2_Player::StopWalking( void )
 {
+	m_fIsWalking = false;
 	ComputeSpeed();
 	//SetMaxSpeed( HL2_NORM_SPEED );
-	m_fIsWalking = false;
 }
 
 //-----------------------------------------------------------------------------
@@ -1978,6 +1989,11 @@ void CHL2_Player::CheatImpulseCommands( int iImpulse )
 	}
 }
 
+int CHL2_Player::GetXPCap()
+{
+	return COVEN_MAX_XP_PER_LEVEL + COVEN_XP_INCREASE_PER_LEVEL * (covenLevelCounter - 1);
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
@@ -2114,14 +2130,23 @@ bool CHL2_Player::SuitPower_Drain( float flPower )
 // Purpose: Interface to add power to the suit's power supply
 // Input:	Amount of charge to add
 //-----------------------------------------------------------------------------
-void CHL2_Player::SuitPower_Charge( float flPower )
+void CHL2_Player::SuitPower_Charge( float flPower, bool bSound )
 {
+	if (bSound)
+		EmitSound("ItemBattery.Touch");
+
 	m_HL2Local.m_flSuitPower += flPower;
 
-	if( m_HL2Local.m_flSuitPower > myIntellect() * COVEN_MANA_PER_INT )
+	float max = myIntellect() * COVEN_MANA_PER_INT;
+
+	//BB: HACK builder needs a lot
+	if (IsBuilderClass())
+		max = 200.0f;
+
+	if( m_HL2Local.m_flSuitPower > max )
 	{
 		// Full charge, clamp.
-		m_HL2Local.m_flSuitPower = myIntellect() * COVEN_MANA_PER_INT;
+		m_HL2Local.m_flSuitPower = max;
 	}
 }
 
@@ -2212,8 +2237,13 @@ bool CHL2_Player::SuitPower_ShouldRecharge( void )
 	if( m_HL2Local.m_bitsActiveDevices != 0x00000000 )
 		return false;
 
+	float max = myIntellect() * COVEN_MANA_PER_INT;
+	//BB: HACK builder needs a lot
+	if (IsBuilderClass())
+		max = 200.0f;
+
 	// Is the system fully charged?
-	if (m_HL2Local.m_flSuitPower >= myIntellect() * COVEN_MANA_PER_INT)
+	if (m_HL2Local.m_flSuitPower >= max)
 		return false; 
 
 	// Has the system been in a no-load state for long enough

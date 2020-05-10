@@ -128,7 +128,7 @@ public:
 	// Suit Power Interface
 	void SuitPower_Update( void );
 	bool SuitPower_Drain( float flPower ); // consume some of the suit's power.
-	void SuitPower_Charge( float flPower ); // add suit power.
+	void SuitPower_Charge( float flPower, bool bSound = false ); // add suit power.
 	void SuitPower_SetCharge( float flPower ) { m_HL2Local.m_flSuitPower = flPower; }
 	void SuitPower_Initialize( void );
 	bool SuitPower_IsDeviceActive( const CSuitPowerDevice &device );
@@ -169,7 +169,7 @@ public:
 	int GetTotalXP();
 	int GetXP();
 	float xp_part;
-	virtual bool LevelUp(int lvls);
+	virtual bool LevelUp(int lvls, bool bBoostStats = false, bool bSound = false, bool bAutoLevel = false, bool bResetHP = false, bool bEffect = false);
 	void GiveStrength(int s);
 	void SetStrength(int s);
 	int myStrength();
@@ -179,6 +179,7 @@ public:
 	void GiveIntellect(int i);
 	void SetIntellect(int i);
 	int myIntellect();
+	int GetXPCap();
 
 	int totalXP;
 

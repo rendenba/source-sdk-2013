@@ -10,6 +10,7 @@
 #include "gameeventdefs.h"
 #include <KeyValues.h>
 #include "ammodef.h"
+#include "shareddefs.h"
 
 #ifdef CLIENT_DLL
 	#include "c_hl2mp_player.h"
@@ -32,6 +33,7 @@
 	#include "voice_gamemgr.h"
 	#include "hl2mp_gameinterface.h"
 	#include "hl2mp_cvars.h"
+	#include "coven_ammocrate.h"
 
 //BB: BOTS!
 //#ifdef DEBUG	
@@ -61,13 +63,13 @@ ConVar sv_coven_usects("sv_coven_usects", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_coven_warmuptime("sv_coven_warmuptime", "20", FCVAR_GAMEDLL | FCVAR_NOTIFY );//10
 #endif
 
-ConVar sv_coven_xp_basekill("sv_coven_xp_basekill", "40", FCVAR_GAMEDLL | FCVAR_NOTIFY );
-ConVar sv_coven_xp_inckill("sv_coven_xp_inckill", "4", FCVAR_GAMEDLL | FCVAR_NOTIFY );
-ConVar sv_coven_xp_diffkill("sv_coven_xp_diffkill", "12", FCVAR_GAMEDLL | FCVAR_NOTIFY );
+ConVar sv_coven_xp_basekill("sv_coven_xp_basekill", "20", FCVAR_GAMEDLL | FCVAR_NOTIFY );
+ConVar sv_coven_xp_inckill("sv_coven_xp_inckill", "2", FCVAR_GAMEDLL | FCVAR_NOTIFY );
+ConVar sv_coven_xp_diffkill("sv_coven_xp_diffkill", "2", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_coven_xp_cappersec("sv_coven_xp_cappersec", "1.0", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_coven_pts_cappersec("sv_coven_pts_cappersec", "0.75", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_coven_pts_cts("sv_coven_pts_cts", "125", FCVAR_GAMEDLL | FCVAR_NOTIFY );
-ConVar sv_coven_pts_item("sv_coven_pts_item", "5", FCVAR_GAMEDLL | FCVAR_NOTIFY );
+ConVar sv_coven_pts_item("sv_coven_pts_item", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_coven_cts_returntime("sv_coven_cts_returntime", "16", FCVAR_GAMEDLL | FCVAR_NOTIFY);
 
 extern ConVar mp_chattime;
@@ -171,8 +173,8 @@ static const char *s_PreserveEnts[] =
 	"point_devshot_camera",
 	"item_xp_slayers",
 	"item_xp_vampires",
-	"item_ammo_crate",
 	"item_cts",
+	"coven_ammocrate_infinite",
 	"", // END Marker
 };
 //BB: TODO: item_ammo_crate might need to come off this list once they are actually baked into maps...
@@ -368,6 +370,9 @@ bool CHL2MPRules::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBa
 			UTIL_StringToVector(locs, u);
 			botnode *node;
 			node = new botnode;
+#ifdef DEBUG_BOTS_VISUAL
+			node->bSelected = false;
+#endif
 			node->ID = id;
 			node->location = Vector(locs[0], locs[1], locs[2]);
 			buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
@@ -389,6 +394,9 @@ bool CHL2MPRules::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBa
 					bot_node_count = node->ID+1;
 				}
 			}
+#ifdef COVEN_DEVELOPER_MODE
+			Msg("%d\n", id);
+#endif
 		}
 		else if (Q_strcmp(s,"ammocrate") == 0)
 		{
@@ -396,12 +404,14 @@ bool CHL2MPRules::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBa
 			const char *t = temparray;
 			float locs[3];
 			UTIL_StringToVector(locs, t);
-			CBaseEntity *ent = CreateEntityByName( "item_ammo_crate" );
+			CBaseEntity *ent = CreateEntityByName( "coven_ammocrate_infinite" );
 			ent->SetLocalOrigin(Vector(locs[0], locs[1], locs[2]+15.0f));
 			buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
 			const char *u = temparray;
 			UTIL_StringToVector(locs, u);
 			ent->SetLocalAngles(QAngle(locs[0], locs[1], locs[2]));
+			ent->AddSpawnFlags(SF_COVEN_CRATE_INFINITE);
+			ent->AddSpawnFlags(SF_COVENBUILDING_INERT);
 			crates.AddToTail(ent);
 			ent->Spawn();
 		}
@@ -517,18 +527,18 @@ void CHL2MPRules::AddScore(int team, int score)
 void CHL2MPRules::GiveItemXP(int team, float overridexp)
 {
 #ifndef CLIENT_DLL
-	int n = 0;
-	float avg = AverageLevel(team, n);
+	//int n = 0;
+	//float avg = AverageLevel(team, n);
 	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
 		CHL2MP_Player *pPlayer = (CHL2MP_Player *)UTIL_PlayerByIndex( i );
 		if (pPlayer && pPlayer->GetTeamNumber() == team)
 		{
-			//float basexp = ((avg-1.0f)*COVEN_XP_INCREASE_PER_LEVEL+COVEN_MAX_XP_PER_LEVEL) / ((float)n) / COVEN_XP_ITEM_SCALE;
-			float basexp = ((avg-1.0f)*COVEN_XP_INCREASE_PER_LEVEL+COVEN_MAX_XP_PER_LEVEL)/20.0f;
-			//float calcxp = basexp*(1.0f+avg-pPlayer->covenLevelCounter);
+			//BB: old method
+			/*float basexp = ((avg-1.0f)*COVEN_XP_INCREASE_PER_LEVEL+COVEN_MAX_XP_PER_LEVEL)/20.0f;
 			float calcxp = basexp*(1.0f+avg-pPlayer->covenLevelCounter);
-			float xp = max(calcxp,basexp);
+			float xp = max(calcxp,basexp);*/
+			float xp = COVEN_XP_PER_ITEM;
 			if (overridexp > 0.0f)
 				xp = overridexp;
 			pPlayer->GiveXP(xp);
@@ -741,8 +751,13 @@ void CHL2MPRules::RestartRound()
 		pPlayer->RemoveAllItems(true);
 		pPlayer->covenLevelCounter = 0;
 		pPlayer->SetXP(0.0f);
-		Q_memset(pPlayer->covenLoadouts,0,sizeof(pPlayer->covenLoadouts));
-		Q_memset(pPlayer->covenLevelsSpent,0,sizeof(pPlayer->covenLevelsSpent));
+		pPlayer->covenRespawnTimer = -1.0f;
+		pPlayer->KO = false;
+		pPlayer->turrets.RemoveAll();
+		pPlayer->dispensers.RemoveAll();
+		Q_memset(pPlayer->covenAbilities, 0, sizeof(pPlayer->covenAbilities));
+		Q_memset(pPlayer->covenLoadouts, 0, sizeof(pPlayer->covenLoadouts));
+		Q_memset(pPlayer->covenLevelsSpent, 0, sizeof(pPlayer->covenLevelsSpent));
 		pPlayer->m_lifeState = LIFE_RESPAWNABLE;
 		pPlayer->Spawn();
 	}
@@ -960,7 +975,7 @@ void CHL2MPRules::Think( void )
 				numVampires++;
 			}
 
-			if (gpGlobals->curtime > scoreTimer)
+			if (gpGlobals->curtime > scoreTimer && pPlayer->IsAlive())
 				((CHL2MP_Player *)pPlayer)->GiveXP(xp_tick);
 
 			if ( pPlayer->IsBot() )
@@ -995,6 +1010,7 @@ void CHL2MPRules::Think( void )
 		{
 			pBot->covenClassID = random->RandomInt(1,COVEN_CLASSCOUNT_SLAYERS);
 			Set_Bot_Base_Velocity(pBot);
+			pBot->State_Transition(STATE_ACTIVE);
 			Bot_Think(pBot);
 		}
 	}
@@ -1021,6 +1037,7 @@ void CHL2MPRules::Think( void )
 		{
 			pBot->covenClassID = random->RandomInt(1,COVEN_CLASSCOUNT_VAMPIRES);
 			Set_Bot_Base_Velocity(pBot);
+			pBot->State_Transition(STATE_ACTIVE);
 			Bot_Think(pBot);
 		}
 	}
@@ -1039,6 +1056,29 @@ void CHL2MPRules::Think( void )
 			}
 		}
 	}
+#ifdef DEBUG_BOTS_VISUAL
+	if (cowsloaded)
+	{
+		for (int i = 0; i < bot_node_count; i++)
+		{
+			if (botnet[i] != NULL)
+			{
+				char sTemp[8];
+				Q_snprintf(sTemp, sizeof(sTemp), "%d", botnet[i]->ID);
+				NDebugOverlay::Text(botnet[i]->location + Vector(0, 0, 8), sTemp, true, 0.05f);
+				if (botnet[i]->bSelected)
+				{
+					NDebugOverlay::Cross3D(botnet[i]->location, -Vector(12, 12, 12), Vector(12, 12, 12), 255, 0, 255, false, 0.05f);
+					NDebugOverlay::SweptBox(botnet[i]->location, botnet[i]->location + Vector(0, 0, 72), Vector(0, -16, -16), Vector(0, 16, 16), QAngle(90, 0, 0), 0, 255, 255, 50, 0.05f);
+					for (int j = 0; j < botnet[i]->connectors.Count(); j++)
+						NDebugOverlay::Line(botnet[i]->location, botnet[botnet[i]->connectors[j]]->location, 0, 255, 255, true, 0.05f);
+				}
+				else
+					NDebugOverlay::Cross3D(botnet[i]->location, -Vector(2, 2, 2), Vector(2, 2, 2), 255, 0, 255, false, 0.05f);
+			}
+		}
+	}
+#endif
 
 	//BB: game over stuff... TODO: combine with player stuff above for efficiencies?
 	if ( g_fGameOver )   // someone else quit the game already
@@ -1396,6 +1436,7 @@ void CHL2MPRules::ClientDisconnected( edict_t *pClient )
 			UTIL_Remove(play->myServerRagdoll);
 			play->myServerRagdoll = NULL;
 		}
+		play->ClearAllBuildings();
 		// Remove the player from his team
 		if ( pPlayer->GetTeam() )
 		{
@@ -1687,8 +1728,8 @@ CAmmoDef *GetAmmoDef()
 
 		def.AddAmmoType("AR2",				DMG_BULLET,					TRACER_LINE_AND_WHIZ,	0,			0,			60,			BULLET_IMPULSE(200, 1225),	0 );
 		def.AddAmmoType("AR2AltFire",		DMG_DISSOLVE,				TRACER_NONE,			0,			0,			3,			0,							0 );
-		def.AddAmmoType("Pistol",			DMG_BULLET,					TRACER_LINE_AND_WHIZ,	0,			0,			60,		BULLET_IMPULSE(200, 1225),	0 );
-		def.AddAmmoType("SMG1",				DMG_BULLET,					TRACER_LINE_AND_WHIZ,	0,			0,			90,		BULLET_IMPULSE(200, 1225),	0 );
+		def.AddAmmoType("Pistol",			DMG_BULLET,					TRACER_LINE_AND_WHIZ,	0,			0,			60,			BULLET_IMPULSE(200, 1225),	0 );
+		def.AddAmmoType("SMG1",				DMG_BULLET,					TRACER_LINE_AND_WHIZ,	0,			0,			90,			BULLET_IMPULSE(200, 1225),	0 );
 		def.AddAmmoType("357",				DMG_BULLET,					TRACER_LINE_AND_WHIZ,	0,			0,			18,			BULLET_IMPULSE(800, 5000),	0 );
 		def.AddAmmoType("XBowBolt",			DMG_BULLET,					TRACER_LINE,			0,			0,			12,			BULLET_IMPULSE(800, 8000),	0 );
 		def.AddAmmoType("Buckshot",			DMG_BULLET | DMG_BUCKSHOT,	TRACER_LINE,			0,			0,			16,			BULLET_IMPULSE(400, 1200),	0 );

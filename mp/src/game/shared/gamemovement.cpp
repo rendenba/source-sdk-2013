@@ -2434,7 +2434,7 @@ bool CGameMovement::CheckJumpButton( void )
 	if ( g_bMovementOptimizations )
 	{
 #if defined(HL2_DLL) || defined(HL2_CLIENT_DLL)
-		Assert( GetCurrentGravity() == 600.0f );
+		//Assert( GetCurrentGravity() == 600.0f );
 		flMul = 160.0f;	// approx. 21 units.
 #else
 		Assert( GetCurrentGravity() == 800.0f );
@@ -4341,6 +4341,26 @@ bool CGameMovement::CanUnDuckJump( trace_t &trace )
 	return false;
 }
 
+void CGameMovement::Walk(void)
+{
+	if (mv->m_nButtons & IN_SPEED)
+	{
+		mv->m_nOldButtons |= IN_SPEED;
+		if (!(m_iSpeedCropped & SPEED_CROPPED_WALK) && (player->GetGroundEntity() != NULL))
+		{
+			float frac = 0.6f;
+			mv->m_flForwardMove *= frac;
+			mv->m_flSideMove *= frac;
+			mv->m_flUpMove *= frac;
+			m_iSpeedCropped |= SPEED_CROPPED_WALK;
+		}
+	}
+	else
+	{
+		mv->m_nOldButtons &= ~IN_SPEED;
+	}
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: See if duck button is pressed and do the appropriate things
 //-----------------------------------------------------------------------------
@@ -4621,6 +4641,7 @@ void CGameMovement::PlayerMove( void )
 	player->UpdateStepSound( player->m_pSurfaceData, mv->GetAbsOrigin(), mv->m_vecVelocity );
 
 	UpdateDuckJumpEyeOffset();
+	Walk();
 	Duck();
 
 	// Don't run ladder code if dead on on a train

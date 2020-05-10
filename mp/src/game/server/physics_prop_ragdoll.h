@@ -30,7 +30,7 @@ public:
 	//BB: holds the player which this body belongs to
 	CBaseCombatCharacter *myBody;
 	//BB: holds the hp left in this body
-	float feedhp;
+	float feedhp[MAX_PLAYERS];
 	//BB: holds the caps state for the use function
 	int		m_iCaps;
 	//BB: holds a block override so that this body cannot be fed from

@@ -673,16 +673,18 @@ IMotionEvent::simresult_e CGrabController::Simulate( IPhysicsMotionController *p
 		m_contactAmount = Approach( 1.0f, m_contactAmount, deltaTime*2.0f );
 	}
 	shadowParams.maxAngular = m_shadow.maxAngular * m_contactAmount * m_contactAmount * m_contactAmount;
+
 #ifndef CLIENT_DLL
 	m_timeToArrive = pObject->ComputeShadowControl( shadowParams, m_timeToArrive, deltaTime );
 #else
-	m_timeToArrive = pObject->ComputeShadowControl( shadowParams, (TICK_INTERVAL*2), deltaTime );
+	m_timeToArrive = pObject->ComputeShadowControl(shadowParams, (TICK_INTERVAL * 2), deltaTime);
 #endif
 	
 	// Slide along the current contact points to fix bouncing problems
 	Vector velocity;
 	AngularImpulse angVel;
 	pObject->GetVelocity( &velocity, &angVel );
+
 	PhysComputeSlideDirection( pObject, velocity, angVel, &velocity, &angVel, GetLoadWeight() );
 	pObject->SetVelocityInstantaneous( &velocity, NULL );
 
@@ -2349,7 +2351,7 @@ bool CGrabController::UpdateObject( CBasePlayer *pPlayer, float flError )
 	AngleMatrix( angles, attachedToWorld );
 	VectorRotate( m_attachedPositionObjectSpace, attachedToWorld, offset );
 
-	SetTargetPosition( end - offset, angles );
+	SetTargetPosition(end - offset, angles);
 
 	return true;
 }

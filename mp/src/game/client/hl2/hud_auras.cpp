@@ -41,6 +41,7 @@ class CHudAuras : public CHudElement, public Panel
    //void PaintMiniBackground(int x, int y, int wide, int tall);
 
    int m_nImportBlips[3];
+   int m_nImportBlanks[2];
 
    int m_nImportCapPoint[2];
    int m_nImportLevel[2];
@@ -49,7 +50,8 @@ class CHudAuras : public CHudElement, public Panel
    int m_nImportStats[2];
    int m_nImportBerserk[2];
    int m_nImportMasochist[2];
-   int m_nImportGCheckDodge[2];
+   int m_nImportGCheck[2];
+   int m_nImportDodge[2];
    int m_nImportHH[2];
    int m_nImportBLust[2];
    int m_nImportSlow[2];
@@ -93,13 +95,19 @@ CHudAuras::CHudAuras( const char *pElementName ) : CHudElement( pElementName ), 
    m_nShadowTex = surface()->CreateNewTextureID();
    surface()->DrawSetTextureFile( m_nShadowTex, "hud/statuseffects/cooldown", true, true);
 
+   m_nImportBlanks[0] = surface()->CreateNewTextureID();
+   surface()->DrawSetTextureFile(m_nImportBlanks[0], "hud/statuseffects/s_blank", true, true);
+
+   m_nImportBlanks[1] = surface()->CreateNewTextureID();
+   surface()->DrawSetTextureFile(m_nImportBlanks[1], "hud/statuseffects/v_blank", true, true);
+
 
 
    m_nImportCapPoint[0] = surface()->CreateNewTextureID();
-   surface()->DrawSetTextureFile( m_nImportCapPoint[0], "hud/statuseffects/s_cap", true, true);
+   surface()->DrawSetTextureFile( m_nImportCapPoint[0], "hud/statuseffects/star", true, true);
 
    m_nImportCapPoint[1] = surface()->CreateNewTextureID();
-   surface()->DrawSetTextureFile( m_nImportCapPoint[1], "hud/statuseffects/v_cap", true, true);
+   surface()->DrawSetTextureFile( m_nImportCapPoint[1], "hud/statuseffects/star", true, true);
 
    m_nImportLevel[0] = surface()->CreateNewTextureID();
    surface()->DrawSetTextureFile( m_nImportLevel[0], "hud/statuseffects/s_level", true, true);
@@ -108,25 +116,28 @@ CHudAuras::CHudAuras( const char *pElementName ) : CHudElement( pElementName ), 
    surface()->DrawSetTextureFile( m_nImportLevel[1], "hud/statuseffects/v_level", true, true);
 
    m_nImportSprint[0] = surface()->CreateNewTextureID();
-   surface()->DrawSetTextureFile( m_nImportSprint[0], "hud/statuseffects/s_sprint", true, true);
+   surface()->DrawSetTextureFile( m_nImportSprint[0], "hud/statuseffects/haste", true, true);
 
    m_nImportFury[0] = surface()->CreateNewTextureID();
-   surface()->DrawSetTextureFile( m_nImportFury[0], "hud/statuseffects/s_dmgup", true, true);
+   surface()->DrawSetTextureFile( m_nImportFury[0], "hud/statuseffects/battleyell", true, true);
 
    m_nImportStats[0] = surface()->CreateNewTextureID();
-   surface()->DrawSetTextureFile( m_nImportStats[0], "hud/statuseffects/s_stats", true, true);
+   surface()->DrawSetTextureFile( m_nImportStats[0], "hud/statuseffects/stats", true, true);
+
+   m_nImportStats[1] = surface()->CreateNewTextureID();
+   surface()->DrawSetTextureFile(m_nImportStats[1], "hud/statuseffects/stats", true, true);
 
    m_nImportBerserk[1] = surface()->CreateNewTextureID();
-   surface()->DrawSetTextureFile( m_nImportBerserk[1], "hud/statuseffects/v_berserk", true, true);
+   surface()->DrawSetTextureFile( m_nImportBerserk[1], "hud/statuseffects/berserk", true, true);
 
    m_nImportMasochist[1] = surface()->CreateNewTextureID();
-   surface()->DrawSetTextureFile( m_nImportMasochist[1], "hud/statuseffects/v_masochist", true, true);
+   surface()->DrawSetTextureFile( m_nImportMasochist[1], "hud/statuseffects/masochist", true, true);
 
-   m_nImportGCheckDodge[0] = surface()->CreateNewTextureID();
-   surface()->DrawSetTextureFile( m_nImportGCheckDodge[0], "hud/statuseffects/s_gutcheck", true, true);
+   m_nImportGCheck[0] = surface()->CreateNewTextureID();
+   surface()->DrawSetTextureFile( m_nImportGCheck[0], "hud/statuseffects/gutcheck", true, true);
 
-   m_nImportGCheckDodge[1] = surface()->CreateNewTextureID();
-   surface()->DrawSetTextureFile( m_nImportGCheckDodge[1], "hud/statuseffects/v_dodge", true, true);
+   m_nImportDodge[1] = surface()->CreateNewTextureID();
+   surface()->DrawSetTextureFile( m_nImportDodge[1], "hud/statuseffects/ethereal", true, true);
 
    m_nImportHH[0] = surface()->CreateNewTextureID();
    surface()->DrawSetTextureFile( m_nImportHH[0], "hud/statuseffects/s_holywater" , true, true);
@@ -135,19 +146,22 @@ CHudAuras::CHudAuras( const char *pElementName ) : CHudElement( pElementName ), 
    surface()->DrawSetTextureFile( m_nImportHH[1], "hud/statuseffects/v_holywater" , true, true);
 
    m_nImportBLust[1] = surface()->CreateNewTextureID();
-   surface()->DrawSetTextureFile( m_nImportBLust[1], "hud/statuseffects/v_bloodlust" , true, true);
+   surface()->DrawSetTextureFile( m_nImportBLust[1], "hud/statuseffects/bloodlust" , true, true);
 
    m_nImportSlow[0] = surface()->CreateNewTextureID();
-   surface()->DrawSetTextureFile( m_nImportSlow[0], "hud/statuseffects/s_slow", true, true);
+   surface()->DrawSetTextureFile( m_nImportSlow[0], "hud/statuseffects/slow", true, true);
+
+   m_nImportSlow[1] = surface()->CreateNewTextureID();
+   surface()->DrawSetTextureFile(m_nImportSlow[1], "hud/statuseffects/slow", true, true);
 
    m_nImportStun[0] = surface()->CreateNewTextureID();
-   surface()->DrawSetTextureFile( m_nImportStun[0], "hud/statuseffects/s_stun", true, true);
+   surface()->DrawSetTextureFile( m_nImportStun[0], "hud/statuseffects/stun", true, true);
 
    m_nImportStun[1] = surface()->CreateNewTextureID();
-   surface()->DrawSetTextureFile( m_nImportStun[1], "hud/statuseffects/v_stun", true, true);
+   surface()->DrawSetTextureFile( m_nImportStun[1], "hud/statuseffects/stun", true, true);
 
    m_nImportPhase[1] = surface()->CreateNewTextureID();
-   surface()->DrawSetTextureFile( m_nImportPhase[1], "hud/statuseffects/v_phase", true, true);
+   surface()->DrawSetTextureFile( m_nImportPhase[1], "hud/statuseffects/phase", true, true);
 
    m_nImportCTS[0] = surface()->CreateNewTextureID();
    surface()->DrawSetTextureFile( m_nImportCTS[0], "hud/statuseffects/s_cts", true, true);
@@ -344,11 +358,15 @@ void CHudAuras::Paint()
 		}
 		else if (active_auras[i]->aura == COVEN_BUFF_MASOCHIST)
 		{
-			surface()->DrawSetTexture( m_nImportBLust[teamnum] );
+			surface()->DrawSetTexture(m_nImportMasochist[teamnum]);
 		}
 		else if (active_auras[i]->aura == COVEN_BUFF_GCHECK)
 		{
-			surface()->DrawSetTexture( m_nImportGCheckDodge[teamnum] );
+			surface()->DrawSetTexture( m_nImportGCheck[teamnum] );
+		}
+		else if (active_auras[i]->aura == COVEN_BUFF_DODGE)
+		{
+			surface()->DrawSetTexture(m_nImportDodge[teamnum]);
 		}
 		else if (active_auras[i]->aura == COVEN_BUFF_HOLYWATER)
 		{
@@ -356,7 +374,7 @@ void CHudAuras::Paint()
 		}
 		else if (active_auras[i]->aura == COVEN_BUFF_BLUST)
 		{
-			surface()->DrawSetTexture( m_nImportMasochist[teamnum] );
+			surface()->DrawSetTexture(m_nImportBLust[teamnum]);
 		}
 		else if (active_auras[i]->aura == COVEN_BUFF_SLOW)
 		{
@@ -535,6 +553,15 @@ void CHudAuras::OnThink()
 		aura_pic *temp;
 		temp = new aura_pic;
 		temp->aura = COVEN_BUFF_GCHECK;
+		temp->text = 0;
+		temp->timer = 0;
+		active_auras.AddToTail(temp);
+	}
+	if (pPlayer->covenStatusEffects & COVEN_FLAG_DODGE)
+	{
+		aura_pic *temp;
+		temp = new aura_pic;
+		temp->aura = COVEN_BUFF_DODGE;
 		temp->text = 0;
 		temp->timer = 0;
 		active_auras.AddToTail(temp);

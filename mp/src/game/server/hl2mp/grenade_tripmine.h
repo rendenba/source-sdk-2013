@@ -44,6 +44,9 @@ public:
 	int			m_nTeam;
 
 private:
+	bool		m_bReCycle;
+	Vector		m_vecRecyclePosition;
+	EHANDLE		m_hHitEntity;
 	float		m_flPowerUp;
 	Vector		m_vecDir;
 	Vector		m_vecEnd;

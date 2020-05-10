@@ -65,6 +65,8 @@ void CEntityFlame::UpdateOnRemove()
 		EmitSound( "General.StopBurning" );
 		m_bPlayingSound = false;
 	}
+	else
+		EmitSound("General.StopBurning");
 
 	BaseClass::UpdateOnRemove();
 }

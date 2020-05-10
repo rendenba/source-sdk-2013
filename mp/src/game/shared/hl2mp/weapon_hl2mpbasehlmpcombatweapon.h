@@ -38,6 +38,8 @@ public:
 	virtual bool	Holster( CBaseCombatWeapon *pSwitchingTo );
 	virtual void	WeaponIdle( void );
 
+	virtual bool	BuilderClassWeapon(void); //BB: YUCK!
+
 	virtual void	AddViewmodelBob( CBaseViewModel *viewmodel, Vector &origin, QAngle &angles );
 	virtual	float	CalcViewmodelBob( void );
 
@@ -48,6 +50,8 @@ public:
 	static const	WeaponProficiencyInfo_t *GetDefaultProficiencyValues();
 
 	virtual void	ItemHolsterFrame( void );
+
+	virtual bool	IsHolstered(void) { return m_flHolsterTime > 0.0f; };
 
 protected:
 

@@ -218,15 +218,17 @@ public:
 			{
 				if( !Q_stricmp( "reaver", GetName() ) )
 				{
-					m_pPanel->SetText("Reaver:\nClose range tank, also somewhat effective at medium range. Slow speed.\nMax HP: 120\n\n10 Gauge Double Barrel Shotgun:\nVery slow reload, but backs a close to mid range whallop.\n\nAbilities:\n\nSprint: Boosts speed.\n\nSheer Will: Boosts all stats.\n\nIntimidating Shout: Stuns all enemies within range.\n\nGut Check: Grants immunity from one damaging effect while active.");
+					m_pPanel->SetText("Reaver:\nClose range tank, also somewhat effective at medium range. Slow speed.\nMax HP: 112\n\n10 Gauge Double Barrel Shotgun:\nVery slow reload, but backs a close to mid range whallop.\n\nAbilities:\n\nSprint: Boosts speed.\n\nSheer Will: Boosts all stats.\n\nIntimidating Shout: Stuns all enemies within range.\n\nGut Check: Grants immunity from one damaging effect while active.");
 				}
 				else if( !Q_stricmp( "hellion", GetName() ) )
 				{
-					m_pPanel->SetText("Hellion:\nLightweight scout and expert at mischief. Fastest speed.\nMax HP: 100\n\n357 Magnum:\nStandard big pistol. Very accurate.\n\nAbilities:\n\nHoly Water: Throws a holy water grenade healing allies and setting vampires on fire.\n\nTrip Mine: Plants a laser activated trip mine on a wall in front of you.\n\nReflexes: Increases safe fall distance.\n\nUV Light: Toggle a flashlight emitting high powered UV light. Damages and pushes back vampires.");
+					m_pPanel->SetText("Hellion:\nEngineering genious and expert at mischief. Fastest speed.\nMax HP: 100\n\n357 Magnum:\nStandard big pistol. Very accurate.\n\nAbilities:\n\nTrip Mine: Plants a laser activated trip mine on a wall in front of you.\n\nAmmo Crate: Replenishes ammo and metal.\n\nTurret: Automated vampire defense system.");
+					//m_pPanel->SetText("Hellion:\nLightweight scout and expert at mischief. Fastest speed.\nMax HP: 100\n\n357 Magnum:\nStandard big pistol. Very accurate.\n\nAbilities:\n\nHoly Water: Throws a holy water grenade healing allies and setting vampires on fire.\n\nTrip Mine: Plants a laser activated trip mine on a wall in front of you.\n\nReflexes: Increases safe fall distance.\n\nUV Light: Toggle a flashlight emitting high powered UV light. Damages and pushes back vampires.");
 				}
 				else if( !Q_stricmp( "avenger", GetName() ) )
 				{
-					m_pPanel->SetText("Avenger:\nStandard meatshield. Average speed.\nMax HP: 100\n\n12 Gauge Pump Action Shotgun:\nHas a six shot clip.  Packs a decent punch.\n\nAbilities:\n\nBattle Yell: Boosts damage for team mates in range.\n\nBandage: Throws a med kit for team mates to pick up.\n\nRevenge: Increases all stats when a nearby ally dies.\n\nVengeful Soul: Releases a projectile that deals damage to vampires and obliterates them.");
+					m_pPanel->SetText("Avenger:\nStandard meatshield. Average speed.\nMax HP: 100\n\n12 Gauge Pump Action Shotgun:\nHas a six shot clip.  Packs a decent punch.\n\nAbilities:\n\nBattle Yell: Boosts damage for team mates in range.\n\nRevenge: Increases all stats when a nearby ally dies.");
+					//m_pPanel->SetText("Avenger:\nStandard meatshield. Average speed.\nMax HP: 100\n\n12 Gauge Pump Action Shotgun:\nHas a six shot clip.  Packs a decent punch.\n\nAbilities:\n\nBattle Yell: Boosts damage for team mates in range.\n\nBandage: Throws a med kit for team mates to pick up.\n\nRevenge: Increases all stats when a nearby ally dies.\n\nVengeful Soul: Releases a projectile that deals damage to vampires and obliterates them.");
 				}
 				else
 				{
@@ -237,15 +239,16 @@ public:
 			{
 				if( !Q_stricmp( "fiend", GetName() ) )
 				{
-					m_pPanel->SetText("Fiend:\nLightweight flyer. Insanely mobile.\nMax HP: 72\n\nAbilities:\n\nLeap: Causes you to accelerate quicky through the air.\n\nDodge: Use to reduce damage taken.\n\nSneak: Fade invisible. Movement or receiving damage cancels the effect.\n\nBerserk: Increases health and max health.");
+					m_pPanel->SetText("Fiend:\nLightweight flyer. Insanely mobile.\nMax HP: 72\n\nAbilities:\n\nLeap: Causes you to accelerate quicky through the air.\n\nBerserk: Increases health and max health.\n\nBecome Ethereal: Use to fade between worlds and reduce damage taken.\n\nSneak: Fade invisible. Movement or receiving damage cancels the effect.");
 				}
 				else if( !Q_stricmp( "gore", GetName() ) )
 				{
-					m_pPanel->SetText("Gore:\nPretty tough. Pretty slow.\nMax HP: 120\n\nAbilities:\n\nPhase: Disappears from sight and greatly boosts movement speed. Attacking phases back into sight.\n\nCharge: Charges straight ahead at immense speed. Usable while phased. Hold the effect to continue charging.\n\nGorge: Allows feeding to grant health past normal maximum health.\n\nDetonate Blood: Explode inflicting damage to self and enemies. Causes stun.");
+					m_pPanel->SetText("Gore:\nPretty tough. Pretty slow.\nMax HP: 132\n\nAbilities:\n\nDread Scream: Scream instilling fear in Slayers within ranges. Players afflicted are slowed.\n\nCharge: Charges straight ahead at immense speed. Usable while phased. Hold the effect to continue charging.\n\nPhase: Disappears from sight and greatly boosts movement speed. Attacking phases back into sight.\n\nGorge: Allows feeding to grant health past normal maximum health.");
 				}
 				else if( !Q_stricmp( "degen", GetName() ) )
 				{
-					m_pPanel->SetText("Degenerate:\nSlow and \"non-threatening,\" but excels at one-on-one combat.\nMax HP: 112\n\nAbilities:\n\nDread Scream: Scream instilling fear in Slayers within ranges. Players afflicted are slowed.\n\nBloodlust:  Causes all teammates within range to regain some of damage dealt to enemies.\n\nMasochist: Grants a speed bonus for some of all damage taken.\n\nUndying: Resurrect faster and with more health.");
+					m_pPanel->SetText("Degenerate:\nSlow and \"non-threatening,\" but excels at one-on-one combat.\nMax HP: 120\n\nAbilities:\n\nBloodlust:  Causes all teammates within range to regain some of damage dealt to enemies.\n\nDark Will: Boosts all stats.\n\nDetonate Blood: Explode inflicting damage to self and enemies.\n\nMasochist: Grants a speed bonus for some of all damage taken.");
+					//m_pPanel->SetText("Degenerate:\nSlow and \"non-threatening,\" but excels at one-on-one combat.\nMax HP: 116\n\nAbilities:\n\nDread Scream: Scream instilling fear in Slayers within ranges. Players afflicted are slowed.\n\nBloodlust:  Causes all teammates within range to regain some of damage dealt to enemies.\n\nMasochist: Grants a speed bonus for some of all damage taken.\n\nUndying: Resurrect faster and with more health.\n\nDetonate Blood: Explode inflicting damage to self and enemies.");
 				}
 				else
 				{

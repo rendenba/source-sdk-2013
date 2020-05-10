@@ -406,14 +406,15 @@ enum PLAYER_ANIM
 #define COVEN_RESPAWNTIME_VAMPIRES_MULT 0.8f
 
 #define COVEN_MAX_LEVEL 12
-#define COVEN_MAX_XP_PER_LEVEL 128
+#define COVEN_MAX_XP_PER_LEVEL 100
 //#define COVEN_XP_ITEM_SCALE 8.0f
-#define COVEN_XP_INCREASE_PER_LEVEL 24 //32
+#define COVEN_XP_INCREASE_PER_LEVEL 50 //32
 //#define COVEN_XP_PER_KILL 20
-//#define COVEN_XP_PER_ITEM 10
+#define COVEN_XP_PER_ITEM 10
 //#define COVEN_XP_LEVEL_DIFF_MULT 5
 //#define COVEN_XP_CAP_PERSEC 0.25f
 #define COVEN_XP_ASSIST_RADIUS 600.0f
+#define COVEN_HP_PER_RAGDOLL 80.0f
 
 #define COVEN_HP_PER_CON 4
 #define COVEN_MANA_PER_INT 10.0f
@@ -433,7 +434,8 @@ enum PLAYER_ANIM
 #define COVEN_TEAMID_SLAYERS 2
 #define COVEN_TEAMID_VAMPIRES 3
 
-#define COVEN_MAX_STEALTH_VELOCITY 155 //10
+#define COVEN_MAX_STEALTH_VELOCITY 150 //10
+#define COVEN_MIN_STEALTH_VELOCITY 280
 
 #define COVEN_CLASSID_AVENGER 1
 #define COVEN_CLASSID_REAVER 2
@@ -479,48 +481,77 @@ enum PLAYER_ANIM
 #define COVEN_BASESTR_REAVER 18 //20
 
 #define COVEN_BASEINT_FIEND 10
-#define COVEN_BASEINT_GORE 8
+#define COVEN_BASEINT_GORE 5
 #define COVEN_BASEINT_DEGEN 8
 
 #define COVEN_BASEINT_AVENGER 8
 #define COVEN_BASEINT_HELLION 10
-#define COVEN_BASEINT_REAVER 8
+#define COVEN_BASEINT_REAVER 5
 
 
 
-#define COVEN_MAX_BUFFS 14
+#define COVEN_MAX_BUFFS			14
 
-#define COVEN_BUFF_CAPPOINT 0
-#define COVEN_BUFF_LEVEL 1
-#define COVEN_BUFF_SPRINT 2
-#define COVEN_BUFF_BYELL 3
-#define COVEN_BUFF_STATS 4
-#define COVEN_BUFF_BERSERK 5
-#define COVEN_BUFF_MASOCHIST 6
-#define COVEN_BUFF_GCHECK 7
-#define COVEN_BUFF_DODGE 7
-#define COVEN_BUFF_HOLYWATER 8
-#define COVEN_BUFF_BLUST 9
-#define COVEN_BUFF_SLOW 10
-#define COVEN_BUFF_STUN 11
-#define COVEN_BUFF_PHASE 12
-#define COVEN_BUFF_CTS 13
+#define COVEN_BUFF_CAPPOINT		0
+#define COVEN_BUFF_LEVEL		1
+#define COVEN_BUFF_SPRINT		2
+#define COVEN_BUFF_BYELL		3
+#define COVEN_BUFF_STATS		4
+#define COVEN_BUFF_BERSERK		5
+#define COVEN_BUFF_MASOCHIST	6
+#define COVEN_BUFF_GCHECK		7
+#define COVEN_BUFF_HOLYWATER	8
+#define COVEN_BUFF_BLUST		9
+#define COVEN_BUFF_SLOW			10
+#define COVEN_BUFF_STUN			11
+#define COVEN_BUFF_PHASE		12
+#define COVEN_BUFF_CTS			13
+#define COVEN_BUFF_DODGE		14
 
-#define COVEN_FLAG_CAPPOINT (1 << 0)
-#define COVEN_FLAG_LEVEL (1 << 1)
-#define COVEN_FLAG_SPRINT (1 << 2)
-#define COVEN_FLAG_BYELL (1 << 3)
-#define COVEN_FLAG_STATS (1 << 4)
-#define COVEN_FLAG_BERSERK (1 << 5)
-#define COVEN_FLAG_MASOCHIST (1 << 6)
-#define COVEN_FLAG_GCHECK (1 << 7)
-#define COVEN_FLAG_DODGE (1 << 7)
-#define COVEN_FLAG_HOLYWATER (1 << 8)
-#define COVEN_FLAG_BLUST (1 << 9)
-#define COVEN_FLAG_SLOW (1 << 10)
-#define COVEN_FLAG_STUN (1 << 11)
-#define COVEN_FLAG_PHASE (1 << 12)
-#define COVEN_FLAG_CTS (1 << 13)
+//BB: these MUST correspond to (1 << BUFF)
+#define COVEN_FLAG_CAPPOINT		(1 << 0)
+#define COVEN_FLAG_LEVEL		(1 << 1)
+#define COVEN_FLAG_SPRINT		(1 << 2)
+#define COVEN_FLAG_BYELL		(1 << 3)
+#define COVEN_FLAG_STATS		(1 << 4)
+#define COVEN_FLAG_BERSERK		(1 << 5)
+#define COVEN_FLAG_MASOCHIST	(1 << 6)
+#define COVEN_FLAG_GCHECK		(1 << 7)
+#define COVEN_FLAG_HOLYWATER	(1 << 8)
+#define COVEN_FLAG_BLUST		(1 << 9)
+#define COVEN_FLAG_SLOW			(1 << 10)
+#define COVEN_FLAG_STUN			(1 << 11)
+#define COVEN_FLAG_PHASE		(1 << 12)
+#define COVEN_FLAG_CTS			(1 << 13)
+#define COVEN_FLAG_DODGE		(1 << 14)
+
+
+#define COVEN_ABILITY_COUNT				21
+
+#define COVEN_ABILITY_HASTE				0
+#define COVEN_ABILITY_BATTLEYELL		1
+#define COVEN_ABILITY_SNEAK				2
+#define COVEN_ABILITY_BLOODLUST			3
+#define COVEN_ABILITY_LEAP				4
+#define COVEN_ABILITY_CHARGE			5
+#define COVEN_ABILITY_PHASE				6
+#define COVEN_ABILITY_DREADSCREAM		7
+#define COVEN_ABILITY_BERSERK			8
+#define COVEN_ABILITY_INTIMIDATINGSHOUT	9
+#define COVEN_ABILITY_DETONATEBLOOD		10
+#define COVEN_ABILITY_DODGE				11
+#define COVEN_ABILITY_SHEERWILL			12
+#define COVEN_ABILITY_REVENGE			13
+#define COVEN_ABILITY_GORGE				14
+#define COVEN_ABILITY_MASOCHIST			15
+#define COVEN_ABILITY_GUTCHECK			16
+#define COVEN_ABILITY_BUILDTURRET		17
+#define COVEN_ABILITY_BUILDDISPENSER	18
+#define COVEN_ABILITY_TRIPMINE			19
+#define COVEN_ABILITY_DARKWILL			20
+
+#define COVEN_DREADSCREAM_DIST			500.0f
+#define COVEN_INTIMIDATINGSHOUT_DIST	350.0f
 
 // instant damage
 
@@ -940,13 +971,15 @@ struct EmitSound_t
 		m_bWarnOnDirectWaveReference( false ),
 		m_nSpeakerEntity( -1 ),
 		m_UtlVecSoundOrigin(),
-		m_hSoundScriptHandle( -1 )
+		m_hSoundScriptHandle( -1 ),
+		m_bIgnoreDSP(false)
 	{
 	}
 
 	EmitSound_t( const CSoundParameters &src );
 
 	int							m_nChannel;
+	bool						m_bIgnoreDSP;
 	char const					*m_pSoundName;
 	float						m_flVolume;
 	soundlevel_t				m_SoundLevel;

@@ -63,7 +63,7 @@ void C_CloakProxy::OnBind( void* pC_BaseEntity )
     }
  
     //If this is a non-player character...
-    else if ( C_BaseCombatCharacter *pNPC = dynamic_cast< C_BaseCombatCharacter *>(pEntity) )
+	else if (C_BaseAnimating *pNPC = dynamic_cast< C_BaseAnimating *>(pEntity))
     {
         cloakFactorVar->SetFloatValue( pNPC->m_floatCloakFactor );
     }

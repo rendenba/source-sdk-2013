@@ -113,6 +113,8 @@ public:
 	virtual void	Simulate();	
 	virtual void	Release();	
 
+	float            m_floatCloakFactor;
+
 	float	GetAnimTimeInterval( void ) const;
 
 	virtual unsigned char	GetClientSideFade( void );

@@ -366,22 +366,7 @@ void C_HL2MP_Player::PreThink( void )
 
 	//BB: this ensures that the viewmodel always matches the models alpha
 	//BB: holy hell... this never worked. Fixed.
-	if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
-	{
-		if (!IsObserver())
-		{
-			CBaseViewModel *pVM = GetViewModel(0);
-			if (pVM)
-			{
-				pVM->SetRenderMode(GetRenderMode());
-				pVM->SetRenderColorA(m_clrRender.GetA());
-			}
-			if (pVM && GetEffects() & EF_NODRAW)
-				pVM->AddEffects(EF_NODRAW);
-			else if (pVM)
-				pVM->RemoveEffects(EF_NODRAW);
-		}
-	}
+	//BB: this code is making me sick... literally. Fixed.
 
 	HandleSpeedChanges();
 

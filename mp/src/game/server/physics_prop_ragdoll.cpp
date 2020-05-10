@@ -217,20 +217,21 @@ void CRagdollProp::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE 
 	// if it's not a player, ignore
 	if ( !pActivator->IsPlayer() )
 		return;
-	if (feedhp <= 0.0f)
+	CHL2MP_Player *pPlayer = dynamic_cast<CHL2MP_Player *>(pActivator);
+	int index = pPlayer->GetClientIndex();
+	if (feedhp[index] >= COVEN_HP_PER_RAGDOLL)
 		return;
 
-	CHL2MP_Player *pPlayer = dynamic_cast<CHL2MP_Player *>(pActivator);
 	if (pPlayer->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
 	{
-		if (feedhp >= 0)
+		if (feedhp[index] <= COVEN_HP_PER_RAGDOLL)
 		{
 			float temp = pPlayer->Feed();
-			feedhp -= temp;
-			if (feedhp <= 0.0f)
+			feedhp[index] += temp;
+			/*if (feedhp[index] >= COVEN_HP_PER_RAGDOLL)
 			{
 				flClearTime = gpGlobals->curtime + 4.5f;
-			}
+			}*/
 		}
 	}
 }
@@ -1339,7 +1340,7 @@ CBaseEntity *CreateServerRagdoll( CBaseAnimating *pAnimating, int forceBone, con
 	//BB: for some reason, THIS is what is preventing the owner of a ragdoll from interacting with it
 	//pRagdoll->SetOwnerEntity( pAnimating );
 	//BB: set up feeding
-	pRagdoll->feedhp = 100.0f;
+	Q_memset(pRagdoll->feedhp, 0, sizeof(pRagdoll->feedhp));
 	pRagdoll->myBody = NULL;
 	pRagdoll->team = 0;
 	pRagdoll->m_iCaps	= FCAP_CONTINUOUS_USE;

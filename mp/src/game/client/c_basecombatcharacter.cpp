@@ -12,6 +12,8 @@
 //=============================================================================//
 #include "cbase.h"
 #include "c_basecombatcharacter.h"
+#include "dlight.h"
+#include "r_efx.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -36,6 +38,26 @@ C_BaseCombatCharacter::C_BaseCombatCharacter()
 	m_bOldGlowEnabled = false;
 	m_bClientSideGlowEnabled = false;
 #endif // GLOWS_ENABLE
+}
+
+void C_BaseCombatCharacter::AddEntity(void)
+{
+	BaseClass::AddEntity();
+	if (IsEffectActive(EF_DIMLIGHT))
+	{
+		Vector vForward;
+		AngleVectors(EyeAngles(), &vForward);
+		trace_t tr;
+		UTIL_TraceLine(EyePosition(), EyePosition() + (vForward * 250), MASK_SHOT, this, COLLISION_GROUP_NONE, &tr);
+
+		dlight_t *el = effects->CL_AllocDlight(0);
+		el->origin = tr.endpos;
+		el->radius = 75;
+		el->color.r = 200;
+		el->color.g = 200;
+		el->color.b = 200;
+		el->die = gpGlobals->curtime + 0.1;
+	}
 }
 
 void CFXCharSprite::Update( Vector newpos, Vector newcolor, bool draw )
@@ -336,7 +358,6 @@ BEGIN_RECV_TABLE(C_BaseCombatCharacter, DT_BaseCombatCharacter)
 	RecvPropDataTable( "bcc_localdata", 0, 0, &REFERENCE_RECV_TABLE(DT_BCCLocalPlayerExclusive) ),
 	RecvPropEHandle( RECVINFO( m_hActiveWeapon ) ),
 	RecvPropArray3( RECVINFO_ARRAY(m_hMyWeapons), RecvPropEHandle( RECVINFO( m_hMyWeapons[0] ) ) ),
-	RecvPropFloat( RECVINFO( m_floatCloakFactor ) ),
 #ifdef GLOWS_ENABLE
 	RecvPropBool( RECVINFO( m_bGlowEnabled ) ),
 #endif // GLOWS_ENABLE
@@ -354,6 +375,5 @@ BEGIN_PREDICTION_DATA( C_BaseCombatCharacter )
 	DEFINE_PRED_FIELD( m_flNextAttack, FIELD_FLOAT, FTYPEDESC_INSENDTABLE ),
 	DEFINE_PRED_FIELD( m_hActiveWeapon, FIELD_EHANDLE, FTYPEDESC_INSENDTABLE ),
 	DEFINE_PRED_ARRAY( m_hMyWeapons, FIELD_EHANDLE, MAX_WEAPONS, FTYPEDESC_INSENDTABLE ),
-	DEFINE_PRED_FIELD( m_floatCloakFactor, FIELD_FLOAT, FTYPEDESC_INSENDTABLE ),
 
 END_PREDICTION_DATA()
