@@ -93,6 +93,7 @@ m_flThrashTime(0.0f)
 	m_iAmmo = 0;
 	m_iMaxAmmo = 100;
 	m_iMaxEnergy = 50;
+	bTipped = false;
 
 	m_vecEnemyLKP = vec3_invalid;
 }
@@ -231,6 +232,26 @@ void CCoven_Turret::Spawn(void)
 	SetBoneCacheFlags(BCF_NO_ANIMATION_SKIP);
 
 	SetEnemy(NULL);
+}
+
+int CCoven_Turret::GetAmmo(int index)
+{
+	if (index == 1)
+		return m_iAmmo;
+	else if (index == 2)
+		return m_iEnergy;
+
+	return -1;
+}
+
+int CCoven_Turret::GetMaxAmmo(int index)
+{
+	if (index == 1)
+		return m_iMaxAmmo;
+	else if (index == 2)
+		return m_iMaxEnergy;
+
+	return -1;
 }
 
 //-----------------------------------------------------------------------------
@@ -887,7 +908,7 @@ void CCoven_Turret::Shoot(const Vector &vecSrc, const Vector &vecDirToEnemy, boo
 void CCoven_Turret::TippedThink(void)
 {
 	//Animate
-	StudioFrameAdvance();
+	BaseClass::PreThink();
 
 	SetNextThink(gpGlobals->curtime + 0.05f);
 	RemoveEnemy();
@@ -947,11 +968,6 @@ void CCoven_Turret::TippedThink(void)
 
 				SetActivity((Activity)ACT_FLOOR_TURRET_CLOSE);
 				EmitSound("NPC_FloorTurret.Retract");
-
-				CTakeDamageInfo	info;
-				info.SetDamage(1);
-				info.SetDamageType(DMG_CRUSH);
-				OnTakeDamage(info);
 			}
 		}
 		else if (IsActivityFinished())
@@ -995,6 +1011,8 @@ void CCoven_Turret::InactiveThink(void)
 		// Ping when the light is going to come back on
 		EmitSound("NPC_FloorTurret.Ping");
 	}
+
+	NotifyOwner();
 
 	SetEyeState(TURRET_EYE_ALARM);
 	SetNextThink(gpGlobals->curtime + 0.25f);
@@ -1101,7 +1119,13 @@ inline bool CCoven_Turret::OnSide(void)
 	Vector	up;
 	GetVectors(NULL, NULL, &up);
 
-	return (DotProduct(up, Vector(0, 0, 1)) < 0.5f);
+	if (DotProduct(up, Vector(0, 0, 1)) < 0.5f)
+	{
+		bTipped = true;
+	}
+	else
+		bTipped = false;
+	return bTipped;
 }
 
 //-----------------------------------------------------------------------------
@@ -1164,6 +1188,10 @@ bool CCoven_Turret::PreThink(covenTurretState_e state)
 		}
 		else
 		{
+			OnTakeDamage(CTakeDamageInfo(GetContainingEntity(INDEXENT(0)), GetContainingEntity(INDEXENT(0)), random->RandomFloat(5.0f, 15.0f), DMG_CRUSH));
+			if (!IsAlive()) //we died
+				return false;
+
 			// Take away the laser
 			TurnOffLight();
 
@@ -1494,14 +1522,14 @@ bool CCoven_Turret::CheckLevel(void)
 //-----------------------------------------------------------------------------
 int CCoven_Turret::OnTakeDamage(const CTakeDamageInfo &info)
 {
-	if (mOwner != NULL && info.GetAttacker() == mOwner && !(info.GetDamageType() & DMG_SHOCK))
+	if (mOwner == NULL || (info.GetAttacker() != NULL && info.GetAttacker()->GetTeamNumber() == GetTeamNumber() && !(info.GetDamageType() & DMG_SHOCK)))
 		return 0;
 
 	CTakeDamageInfo	newInfo = info;
 
 	if (info.GetDamageType() & DMG_SHOCK)
 	{
-		if (info.GetAttacker() && info.GetAttacker()->IsPlayer())
+		if (info.GetAttacker() != NULL && info.GetAttacker()->IsPlayer())
 		{
 			CHL2MP_Player *pAttacker = (CHL2MP_Player *)info.GetAttacker();
 			if (pAttacker)

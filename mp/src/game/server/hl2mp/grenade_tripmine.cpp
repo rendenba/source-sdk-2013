@@ -280,9 +280,11 @@ void CTripmineGrenade::Event_Killed( const CTakeDamageInfo &info )
 {
 	m_takedamage		= DAMAGE_NO;
 
-	if (m_hOwner && m_hOwner.Get()->IsPlayer())
+	if (m_hOwner && m_hOwner->IsPlayer())
 	{
-		((CHL2MP_Player *) m_hOwner.Get())->num_trip_mines--;
+		CHL2_Player *pPlayer = ToHL2Player(m_hOwner);
+		if (pPlayer)
+			pPlayer->RemoveTripmine();
 	}
 
 	SetThink( &CTripmineGrenade::DelayDeathThink );

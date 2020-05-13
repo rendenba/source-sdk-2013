@@ -47,6 +47,8 @@
 #include "gamestats.h"
 #include "filters.h"
 #include "tier0/icommandline.h"
+#include "covenbuilding.h"
+#include "coven_turret.h"
 
 #ifdef HL2_EPISODIC
 #include "npc_alyx_episodic.h"
@@ -393,6 +395,8 @@ END_DATADESC()
 
 CHL2_Player::CHL2_Player()
 {
+	m_hTurret = m_hDispenser = NULL;
+
 	totalXP = 0;
 	xp_part = 0.0f;
 	covenClassID = 0;
@@ -450,17 +454,28 @@ void CHL2_Player::SetStatusMagnitude(int s, int m)
 #endif
 CSuitPowerDevice SuitDeviceBreather( bits_SUIT_DEVICE_BREATHER, 6.7f );		// 100 units in 15 seconds (plus three padded seconds)
 
+void* SendProxy_SendLocalBuilderDataTable(const SendProp *pProp, const void *pStruct, const void *pVarData, CSendProxyRecipients *pRecipients, int objectID)
+{
+	CBaseCombatCharacter *pPlayer = ToBaseCombatCharacter(UTIL_PlayerByIndex(objectID));
+	if (pPlayer && pPlayer->IsBuilderClass())
+		pRecipients->SetOnly(objectID - 1);
+	else
+		pRecipients->ClearAllRecipients();
+	return (void *)pVarData;
+}
 
 IMPLEMENT_SERVERCLASS_ST(CHL2_Player, DT_HL2_Player)
 	SendPropDataTable(SENDINFO_DT(m_HL2Local), &REFERENCE_SEND_TABLE(DT_HL2Local), SendProxy_SendLocalDataTable),
+	SendPropDataTable(SENDINFO_DT(m_CovenBuilderLocal), &REFERENCE_SEND_TABLE(DT_CovenBuilderLocal), SendProxy_SendLocalBuilderDataTable),
 	SendPropBool( SENDINFO(m_fIsSprinting) ),
 	SendPropInt( SENDINFO(covenClassID), 4, SPROP_UNSIGNED ),
 	SendPropInt( SENDINFO(covenLevelCounter), 5, SPROP_UNSIGNED ),
-	SendPropInt( SENDINFO(covenStatusEffects), 16, SPROP_UNSIGNED ),
+	SendPropInt( SENDINFO(covenStatusEffects), COVEN_MAX_BUFFS, SPROP_UNSIGNED ),
 END_SEND_TABLE()
 
 void CHL2_Player::SetCurrentLoadout(int i, int load)
 {
+	//0 indexed
 	if (i == 0)
 		m_HL2Local.covenCurrentLoadout1 = load;
 	else if (i == 1)
@@ -716,6 +731,83 @@ void CHL2_Player::HandleArmorReduction( void )
 	int iArmor = Lerp( flPercent, m_iArmorReductionFrom, 0 );
 
 	SetArmorValue( iArmor );
+}
+
+void CHL2_Player::DestroyAllBuildings(void)
+{
+	if (m_hDispenser != NULL)
+	{
+		CCovenBuilding *ent = ToCovenBuilding(m_hDispenser);
+		m_CovenBuilderLocal.m_iDispenserHP = 0;
+		if (ent)
+		{
+			ent->SelfDestruct();
+		}
+	}
+	if (m_hTurret != NULL)
+	{
+		CCovenBuilding *ent = ToCovenBuilding(m_hTurret);
+		m_CovenBuilderLocal.m_iTurretHP = 0;
+		if (ent)
+		{
+			ent->SelfDestruct();
+		}
+	}
+}
+
+void CHL2_Player::ClearAllBuildings(void)
+{
+	m_hDispenser = m_hTurret = NULL;
+	m_CovenBuilderLocal.m_iDispenserHP = m_CovenBuilderLocal.m_iTurretHP = 0;
+}
+
+void CHL2_Player::ClearBuilding(CBaseCombatCharacter *building)
+{
+	if (building)
+	{
+		if (m_hTurret == building)
+		{
+			m_CovenBuilderLocal.m_iTurretHP = 0;
+			m_hTurret = NULL;
+		}
+		else if (m_hDispenser == building)
+		{
+			m_CovenBuilderLocal.m_iDispenserHP = 0;
+			m_hDispenser = NULL;
+		}
+	}
+}
+
+void CHL2_Player::UpdateBuilding(CBaseCombatCharacter *building)
+{
+	if (building)
+	{
+		if (m_hTurret == building)
+		{
+			CCovenBuilding *bldg = ToCovenBuilding(building);
+			m_CovenBuilderLocal.m_iTurretHP = building->GetHealth();
+			m_CovenBuilderLocal.m_iTurretMaxHP = building->GetMaxHealth();
+			m_CovenBuilderLocal.m_iTurretAmmo = bldg->GetAmmo(1);
+			m_CovenBuilderLocal.m_iTurretMaxAmmo = bldg->GetMaxAmmo(1);
+			m_CovenBuilderLocal.m_iTurretEnergy = bldg->GetAmmo(2);
+			m_CovenBuilderLocal.m_iTurretMaxEnergy = bldg->GetMaxAmmo(2);
+			m_CovenBuilderLocal.m_iTurretXP = bldg->m_iXP;
+			m_CovenBuilderLocal.m_iTurretMaxXP = bldg->m_iMaxXP;
+			m_CovenBuilderLocal.m_iTurretLevel = bldg->m_iLevel;
+			m_CovenBuilderLocal.m_bTurretTipped = ((CCoven_Turret *)bldg)->bTipped;
+		}
+		else if (m_hDispenser == building)
+		{
+			CCovenBuilding *bldg = ToCovenBuilding(building);
+			m_CovenBuilderLocal.m_iDispenserHP = building->GetHealth();
+			m_CovenBuilderLocal.m_iDispenserMaxHP = building->GetMaxHealth();
+			m_CovenBuilderLocal.m_iDispenserMetal = bldg->GetAmmo(1);
+			m_CovenBuilderLocal.m_iDispenserMaxMetal = bldg->GetMaxAmmo(1);
+			m_CovenBuilderLocal.m_iDispenserXP = bldg->m_iXP;
+			m_CovenBuilderLocal.m_iDispenserMaxXP = bldg->m_iMaxXP;
+			m_CovenBuilderLocal.m_iDispenserLevel = bldg->m_iLevel;
+		}
+	}
 }
 
 //-----------------------------------------------------------------------------

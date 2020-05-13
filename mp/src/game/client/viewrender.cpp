@@ -1064,10 +1064,9 @@ void CViewRender::DrawMissionIndicator()
 	int viewdist = coven_r_cappoint_dist.GetInt();
 	for (int i = 0; i < HL2MPRules()->num_cap_points; i++)
 	{
-		int parse = i*3;
-		Vector temp2 = Vector(HL2MPRules()->cap_point_coords.Get(parse), HL2MPRules()->cap_point_coords.Get(parse+1), HL2MPRules()->cap_point_coords.Get(parse+2)+40.0f);
+		Vector temp2 = HL2MPRules()->cap_point_coords.Get(i) + Vector(0, 0, 40.0f);
 		Vector temp = CBasePlayer::GetLocalPlayer()->EyePosition()-temp2;
-		int dist = temp.Length();
+		int dist = VectorNormalize(temp);
 		if (dist > viewdist && viewdist > 0)//0 means forever
 			continue;
 		Vector color(1.0f,1.0f,1.0f);
@@ -1085,7 +1084,6 @@ void CViewRender::DrawMissionIndicator()
 		//color.x = tmp_clr.r()/255.0;
 		//color.y = tmp_clr.g()/255.0;
 		//color.z = tmp_clr.b()/255.0;
-		VectorNormalize(temp);
 		CBasePlayer::GetLocalPlayer()->CreateObjectiveCircle();
 		CBasePlayer::GetLocalPlayer()->m_objectiveCircle->m_FXData.SetMaterial("effects/objective_marker");
 		CBasePlayer::GetLocalPlayer()->m_objectiveCircle->m_FXData.SetNormal( temp );

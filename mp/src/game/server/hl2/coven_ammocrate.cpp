@@ -9,7 +9,7 @@ LINK_ENTITY_TO_CLASS(coven_ammocrate_infinite, CCoven_AmmoCrate);
 
 BEGIN_DATADESC(CCoven_AmmoCrate)
 
-DEFINE_KEYFIELD(m_nAmmoType, FIELD_INTEGER, "AmmoType"),
+DEFINE_KEYFIELD(m_iAmmoType, FIELD_INTEGER, "AmmoType"),
 
 DEFINE_FIELD(m_flCloseTime, FIELD_FLOAT),
 DEFINE_FIELD(m_hActivator, FIELD_EHANDLE),
@@ -29,8 +29,9 @@ void CCoven_AmmoCrate::Spawn(void)
 	m_flCloseTime = 0.0f;
 
 	m_iMetal = 0;
-	m_flMetalTimer = 0.0f;
-	m_nAmmoType = 1;
+	m_iMaxMetal = 400;
+	m_flMetalTimer = gpGlobals->curtime + BuildTime();
+	m_iAmmoType = 1;
 }
 
 //-----------------------------------------------------------------------------
@@ -97,7 +98,7 @@ void CCoven_AmmoCrate::OnBuildingComplete(void)
 
 void CCoven_AmmoCrate::AddMetal(void)
 {
-	m_iMetal = min(m_iMetal + 40 + 10 * m_iLevel, 400);
+	m_iMetal = min(m_iMetal + 40 + 10 * m_iLevel, m_iMaxMetal);
 }
 
 int CCoven_AmmoCrate::GetMetal(int have)
@@ -106,7 +107,7 @@ int CCoven_AmmoCrate::GetMetal(int have)
 		return 200 - have;
 
 	int need = 200 - have;
-	int metal = min(min(m_iMetal, 40 + 10 * m_iLevel), need);
+	int metal = min(min(m_iMetal, 50 + 20 * m_iLevel), need);
 	m_iMetal -= metal;
 	return metal;
 }
@@ -152,6 +153,22 @@ bool CCoven_AmmoCrate::Open(CBasePlayer *pPlayer)
 		return false;
 
 	return true;
+}
+
+int CCoven_AmmoCrate::GetAmmo(int index)
+{
+	if (index == 1)
+		return m_iMetal;
+
+	return -1;
+}
+
+int CCoven_AmmoCrate::GetMaxAmmo(int index)
+{
+	if (index == 1)
+		return m_iMaxMetal;
+
+	return -1;
 }
 
 bool CCoven_AmmoCrate::GiveMetal(CHL2MP_Player *pPlayer)
@@ -265,10 +282,17 @@ void CCoven_AmmoCrate::AmmoCrateThink(void)
 	if (PreThink())
 		return;
 
-	if (gpGlobals->curtime > m_flMetalTimer)
-	{
-		AddMetal();
+	if (m_flMetalTimer == 0.0f && m_iMetal != m_iMaxMetal)
 		m_flMetalTimer = gpGlobals->curtime + 5.0f;
+	else if (gpGlobals->curtime > m_flMetalTimer)
+	{
+		if (m_iMetal == m_iMaxMetal)
+			m_flMetalTimer = 0.0f;
+		else
+		{
+			AddMetal();
+			m_flMetalTimer = gpGlobals->curtime + 5.0f;
+		}
 	}
 
 	if (m_flCloseTime > 0.0f)

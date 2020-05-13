@@ -30,6 +30,7 @@ ConVar cl_npc_speedmod_outtime( "cl_npc_speedmod_outtime", "1.5", FCVAR_CLIENTDL
 
 IMPLEMENT_CLIENTCLASS_DT(C_BaseHLPlayer, DT_HL2_Player, CHL2_Player)
 	RecvPropDataTable( RECVINFO_DT(m_HL2Local),0, &REFERENCE_RECV_TABLE(DT_HL2Local) ),
+	RecvPropDataTable( RECVINFO_DT(m_CovenBuilderLocal),0, &REFERENCE_RECV_TABLE(DT_CovenBuilderLocal) ),
 	RecvPropBool( RECVINFO( m_fIsSprinting ) ),
 	RecvPropInt( RECVINFO( covenClassID ) ),
 	RecvPropInt( RECVINFO( covenLevelCounter ) ),

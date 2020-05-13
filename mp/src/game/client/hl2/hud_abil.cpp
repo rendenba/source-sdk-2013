@@ -55,10 +55,11 @@ class CHudAbils : public CHudElement, public Panel
 
    void DrawCircleSegment( int x, int y, int wide, int tall, float flEndDegrees, bool clockwise /* = true */ );
    void DrawTextValue(int wide, int tall, int x, int y, float val);
-   void DrawTextTitle(int x, int y, int wide, int tall, wchar_t *title, bool bCooldown);
+   void DrawTextTitle(int x, int y, int wide, int tall, wchar_t *title, bool bCooldown, HFont useFont = NULL);
 
 	CPanelAnimationVar( vgui::HFont, m_hTextFont, "TextFont", "CovenHUDBoldXL" );
 	CPanelAnimationVar(vgui::HFont, m_hTextFontTitle, "TextFont", "CovenHUD");
+	CPanelAnimationVar(vgui::HFont, m_hFontNumerals, "TextFont", "WeaponIconsTiny");
 
 	CPanelAnimationVar(Color, m_AuxPowerColor, "AuxPowerColor", "255 255 255 255");
 	CPanelAnimationVar(Color, m_AuxPowerColorGray, "AuxPowerColor", "125 125 125 255");
@@ -88,9 +89,7 @@ CHudAbils::CHudAbils( const char *pElementName ) : CHudElement( pElementName ), 
 {
 	Panel *pParent = g_pClientMode->GetViewport();
 	SetParent( pParent );   
- 
-	SetVisible( false );
-	SetAlpha( 255 );
+	SetPaintBorderEnabled(false);
 
 	Q_memset(max_duration, 0, sizeof(max_duration));
 	Q_memset(cooledDown, 1, sizeof(cooledDown));
@@ -146,7 +145,6 @@ CHudAbils::CHudAbils( const char *pElementName ) : CHudElement( pElementName ), 
 	LoadAbilityTex(1, COVEN_CLASSID_DEGEN, 3, "hud/abilities/masochist", m_nBorders[3], m_nBorders[3], m_nBorders[3]);
 
 	SetHiddenBits( HIDEHUD_PLAYERDEAD | HIDEHUD_NEEDSUIT );
-	SetBgColor(Color(0,0,0,250));
 }
 
 typedef struct
@@ -195,9 +193,12 @@ void CHudAbils::DrawTextValue(int wide, int tall, int x, int y, float val)
 	surface()->DrawPrintText(szText, wcslen(szText));
 }
 
-void CHudAbils::DrawTextTitle(int x, int y, int wide, int tall, wchar_t *title, bool bCooldown)
+void CHudAbils::DrawTextTitle(int x, int y, int wide, int tall, wchar_t *title, bool bCooldown, HFont useFont)
 {
-	surface()->DrawSetTextFont(m_hTextFontTitle);
+	if (useFont == NULL)
+		surface()->DrawSetTextFont(m_hTextFontTitle);
+	else
+		surface()->DrawSetTextFont(useFont);
 	int tx = x + wide / 2 - UTIL_ComputeStringWidth(m_hTextFontTitle, title) / 2;
 	int ty = y + tall/* + surface()->GetFontTall(m_hTextFontTitle) / 2*/;
 	
@@ -348,12 +349,9 @@ void CHudAbils::Paint()
 	C_BaseHLPlayer *pPlayer = (C_BaseHLPlayer *)C_BasePlayer::GetLocalPlayer();
 	if ( !pPlayer )
 		return;
-	if (pPlayer->GetTeamNumber() < 2 || pPlayer->covenClassID < 1)
-		return;
 
 	int wide,tall;
 	GetSize(wide,tall);
-	SetPaintBorderEnabled(false);
 
 	float inset = wide * 0.15f;
 	float minset = inset*1.3f;
@@ -363,6 +361,7 @@ void CHudAbils::Paint()
 	if (pPlayer->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
 		team = 1;
 
+	//BB: TODO: optimize this!
 	/***************************************************************************************************************************/
 	int lev = 0;
 	if (pPlayer->m_HL2Local.covenCurrentLoadout1 > 0)
@@ -370,10 +369,11 @@ void CHudAbils::Paint()
 	surface()->DrawSetTexture(m_nAbils[team][pPlayer->covenClassID-1][0][lev]);
 	surface()->DrawTexturedRect(minset,y+minset,wide-minset,y+wide-minset);
 	surface()->DrawSetTexture(m_nCircleBlip);
-	for (int i=1; i <= pPlayer->m_HL2Local.covenCurrentLoadout1; i++)
+	//BB: no blips for now
+	/*for (int i=1; i <= pPlayer->m_HL2Local.covenCurrentLoadout1; i++)
 	{
 		surface()->DrawTexturedRect(wide-minset-10*i-2,y+wide-minset-10,wide-minset-10*i+6,y+wide-minset-2);
-	}
+	}*/
 	float teatime = pPlayer->m_HL2Local.covenCooldownTimers[0] - gpGlobals->curtime;
 	if (teatime > 0.0f)
 	{
@@ -383,6 +383,15 @@ void CHudAbils::Paint()
 	}
 	surface()->DrawSetTexture(m_nAbilBorders[team][pPlayer->covenClassID-1][0][lev]);
 	surface()->DrawTexturedRect(inset,y+inset,wide-inset,y+wide-inset);
+	//BB: TODO: HACK! fix this?
+	if (pPlayer->m_CovenBuilderLocal.m_iNumTripmines > 0)
+	{
+		char numTM[3];
+		wchar_t wNumTM[3];
+		Q_snprintf(numTM, sizeof(numTM), "%d", pPlayer->m_CovenBuilderLocal.m_iNumTripmines);
+		g_pVGuiLocalize->ConvertANSIToUnicode(numTM, wNumTM, sizeof(wNumTM));
+		DrawTextTitle(1.8f * minset, y, wide - 1.8f * minset, wide - 2.0f * minset, wNumTM, false, m_hFontNumerals);
+	}
 	DrawTextTitle(0, y, wide, wide - inset, abilities[team][pPlayer->covenClassID - 1][0], teatime > 0.0f);
 	y += wide-minset;
 	/***************************************************************************************************************************/
@@ -392,10 +401,10 @@ void CHudAbils::Paint()
 	surface()->DrawSetTexture(m_nAbils[team][pPlayer->covenClassID-1][1][lev]);
 	surface()->DrawTexturedRect(minset,y+minset,wide-minset,y+wide-minset);
 	surface()->DrawSetTexture(m_nCircleBlip);
-	for (int i=1; i <= pPlayer->m_HL2Local.covenCurrentLoadout2; i++)
+	/*for (int i=1; i <= pPlayer->m_HL2Local.covenCurrentLoadout2; i++)
 	{
 		surface()->DrawTexturedRect(wide-minset-10*i-2,y+wide-minset-10,wide-minset-10*i+6,y+wide-minset-2);
-	}
+	}*/
 	teatime = pPlayer->m_HL2Local.covenCooldownTimers[1] - gpGlobals->curtime;
 	if (teatime > 0.0f)
 	{
@@ -414,10 +423,10 @@ void CHudAbils::Paint()
 	surface()->DrawSetTexture(m_nAbils[team][pPlayer->covenClassID-1][2][lev]);
 	surface()->DrawTexturedRect(minset,y+minset,wide-minset,y+wide-minset);
 	surface()->DrawSetTexture(m_nCircleBlip);
-	for (int i=1; i <= pPlayer->m_HL2Local.covenCurrentLoadout3; i++)
+	/*for (int i=1; i <= pPlayer->m_HL2Local.covenCurrentLoadout3; i++)
 	{
 		surface()->DrawTexturedRect(wide-minset-10*i-2,y+wide-minset-10,wide-minset-10*i+6,y+wide-minset-2);
-	}
+	}*/
 	teatime = pPlayer->m_HL2Local.covenCooldownTimers[2] - gpGlobals->curtime;
 	if (teatime > 0.0f)
 	{
@@ -436,10 +445,10 @@ void CHudAbils::Paint()
 	surface()->DrawSetTexture(m_nAbils[team][pPlayer->covenClassID-1][3][lev]);
 	surface()->DrawTexturedRect(minset,y+minset,wide-minset,y+wide-minset);
 	surface()->DrawSetTexture(m_nCircleBlip);
-	for (int i=1; i <= pPlayer->m_HL2Local.covenCurrentLoadout4; i++)
+	/*for (int i=1; i <= pPlayer->m_HL2Local.covenCurrentLoadout4; i++)
 	{
 		surface()->DrawTexturedRect(wide-minset-10*i-2,y+wide-minset-10,wide-minset-10*i+6,y+wide-minset-2);
-	}
+	}*/
 	teatime = pPlayer->m_HL2Local.covenCooldownTimers[3] - gpGlobals->curtime;
 	if (teatime > 0.0f)
 	{
@@ -500,6 +509,16 @@ void CHudAbils::OnThink()
 	C_BaseHLPlayer *pPlayer = (C_BaseHLPlayer *)C_BasePlayer::GetLocalPlayer();
 	if ( !pPlayer )
 		return;
+	if (pPlayer->covenClassID < 1 || pPlayer->GetTeamNumber() < 2)
+	{
+		SetPaintEnabled(false);
+		SetPaintBackgroundEnabled(false);
+	}
+	else
+	{
+		SetPaintEnabled(true);
+		SetPaintBackgroundEnabled(true);
+	}
 
 	float timer = pPlayer->m_HL2Local.covenCooldownTimers[0] - gpGlobals->curtime;
 	if (timer > max_duration[0])
@@ -580,20 +599,6 @@ void CHudAbils::OnThink()
 			C_BaseEntity::EmitSound(filter, -1, params);
 		}
 	}
-
-	/*if (active_abils.Count() == 0)
-	{
-		SetPaintEnabled(false);
-		SetVisible(false);
-	}
-	else
-	{
-		SetPaintEnabled(true);
-		SetVisible(true);
-	}*/
-
-	//SetSize(84*active_abils.Count()+20*(active_abils.Count()-1),84+32);
-	//SetSize(128*active_abils.Count(),84+36);
  
    BaseClass::OnThink();
 }

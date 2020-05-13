@@ -34,7 +34,6 @@ class CHudAuras : public CHudElement, public Panel
    protected:
    CUtlVector<aura_pic *> active_auras;
    virtual void Paint();
-   virtual void PaintBackground();
 
    void DrawCircleSegment( int x, int y, int wide, int tall, float flEndDegrees, bool clockwise /* = true */ );
 
@@ -74,9 +73,9 @@ CHudAuras::CHudAuras( const char *pElementName ) : CHudElement( pElementName ), 
 {
 	Panel *pParent = g_pClientMode->GetViewport();
 	SetParent( pParent );   
- 
-	SetVisible( false );
-	SetAlpha( 255 );
+
+	SetPaintBorderEnabled(false);
+	SetPaintBackgroundEnabled(false);
 
 	humtime = 0.0f;
 
@@ -167,7 +166,6 @@ CHudAuras::CHudAuras( const char *pElementName ) : CHudElement( pElementName ), 
    surface()->DrawSetTextureFile( m_nImportCTS[0], "hud/statuseffects/s_cts", true, true);
 
    SetHiddenBits( HIDEHUD_PLAYERDEAD | HIDEHUD_NEEDSUIT );
-	SetBgColor(Color(0,0,0,250));
 }
 
 typedef struct
@@ -272,15 +270,6 @@ void CHudAuras::DrawCircleSegment( int x, int y, int wide, int tall, float flEnd
 	}
 }
 
-void CHudAuras::PaintBackground()
-{
-	/*int w,t;
-	GetSize(w,t);
-	t -= 24;
-	surface()->DrawSetColor( Color(0,0,0,125) );
-	surface()->DrawFilledRect(0,0,w,t);*/
-}
-
 /*void CHudAuras::PaintMiniBackground(int x, int y, int wide, int tall)
 {
 	int cornerWide, cornerTall;
@@ -318,8 +307,6 @@ void CHudAuras::Paint()
 	int x = 0;
 	int w,t;
 	GetSize(w,t);
-
-	SetPaintBorderEnabled(false);
 
 	int teamnum = 0;
 	if (pPlayer->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
@@ -454,6 +441,7 @@ void CHudAuras::OnThink()
 	C_BaseHLPlayer *pPlayer = (C_BaseHLPlayer *)C_BasePlayer::GetLocalPlayer();
 	if ( !pPlayer )
 		return;
+
 	active_auras.RemoveAll();
 
 	if (pPlayer->covenStatusEffects & COVEN_FLAG_LEVEL)
@@ -630,9 +618,9 @@ void CHudAuras::OnThink()
 	}
 
 	if (active_auras.Count() == 0)
-		SetVisible(false);
+		SetPaintEnabled(false);
 	else
-		SetVisible(true);
+		SetPaintEnabled(true);
 
 	//SetSize(52*active_auras.Count()+10*(active_auras.Count()-1),32+32);
 	SetSize(6+89*active_auras.Count(),89);

@@ -131,12 +131,26 @@ public:
 	{
 		if (pPlayer->IsAlive() && pPlayer->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
 		{
+			CHL2MP_Player *hl2Player = ToHL2MPPlayer(pPlayer);
 			if ( g_pGameRules->ItemShouldRespawn( this ) == GR_ITEM_RESPAWN_NO )
 			{
 				UTIL_Remove(this);	
 			}
 			HL2MPRules()->AddScore(COVEN_TEAMID_SLAYERS, sv_coven_pts_item.GetInt());
-			HL2MPRules()->GiveItemXP(COVEN_TEAMID_SLAYERS);
+			//BB: old method
+			//HL2MPRules()->GiveItemXP(COVEN_TEAMID_SLAYERS);
+			if (hl2Player)
+			{
+				//BB: TODO: this sucks... is there any way to improve this?
+				for (int i = 0; i < pPlayer->WeaponCount(); i++)
+				{
+					CBaseCombatWeapon *pWeap = pPlayer->GetWeapon(i);
+					if (pWeap && pWeap->UsesPrimaryAmmo())
+						pPlayer->GiveAmmo(GetAmmoDef()->MaxCarry(pWeap->GetPrimaryAmmoType()) * 0.3f, pWeap->m_iPrimaryAmmoType, false);
+				}
+				if (hl2Player->IsBuilderClass())
+					hl2Player->SuitPower_Charge(50.0f);
+			}
 			pPlayer->EmitSound( "ItemBattery.Touch" );
 			return true;
 		}

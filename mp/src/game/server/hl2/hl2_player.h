@@ -12,6 +12,7 @@
 
 #include "player.h"
 #include "hl2_playerlocaldata.h"
+#include "covenbuilderlocaldata.h"
 #include "simtimer.h"
 #include "soundenvelope.h"
 
@@ -140,6 +141,11 @@ public:
 	bool SuitPower_RemoveDeviceBits( int bits );
 	bool SuitPower_ShouldRecharge( void );
 	float SuitPower_GetCurrentPercentage( void ) { return m_HL2Local.m_flSuitPower; }
+
+	int		NumTripmines(void) { return m_CovenBuilderLocal.m_iNumTripmines; };
+	void	ClearTripmines(void) { m_CovenBuilderLocal.m_iNumTripmines = 0; };
+	void	AddTripmine(void) { m_CovenBuilderLocal.m_iNumTripmines++; };
+	void	RemoveTripmine(void) { m_CovenBuilderLocal.m_iNumTripmines--; };
 	
 	void SetFlashlightEnabled( bool bState );
 
@@ -312,7 +318,13 @@ public:
 	CNetworkVar( int, covenClassID );
 	CNetworkVar( int, covenLevelCounter );
 	CNetworkVar( int, covenStatusEffects );
+	EHANDLE m_hTurret;
+	EHANDLE m_hDispenser;
 
+	void UpdateBuilding(CBaseCombatCharacter *building);
+	void ClearBuilding(CBaseCombatCharacter *building);
+	void ClearAllBuildings(void);
+	virtual void DestroyAllBuildings(void);
 	void SetPointsSpent(int pts);
 	void SetCurrentLoadout(int i, int load);
 	//float GetCooldown(int abil);
@@ -343,6 +355,7 @@ private:
 	// This player's HL2 specific data that should only be replicated to 
 	//  the player and not to other players.
 	CNetworkVarEmbedded( CHL2PlayerLocalData, m_HL2Local );
+	CNetworkVarEmbedded( CCovenBuilderLocalData, m_CovenBuilderLocal );
 
 	float				m_flTimeAllSuitDevicesOff;
 
@@ -418,6 +431,17 @@ void CHL2_Player::EnableCappedPhysicsDamage()
 void CHL2_Player::DisableCappedPhysicsDamage()
 {
 	m_bUseCappedPhysicsDamageTable = false;
+}
+
+inline CHL2_Player *ToHL2Player(CBaseEntity *pEntity)
+{
+	if (!pEntity || !pEntity->IsPlayer())
+		return NULL;
+#if _DEBUG
+	return dynamic_cast<CHL2_Player *>(pEntity);
+#else
+	return static_cast<CHL2_Player *>(pEntity);
+#endif
 }
 
 

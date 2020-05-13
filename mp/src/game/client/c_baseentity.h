@@ -1003,7 +1003,8 @@ public:
 	bool							IsWorld() { return entindex() == 0; }
 	/////////////////
 
-	virtual bool					IsPlayer( void ) const { return false; };
+	virtual bool					IsPlayer(void) const { return false; };
+	virtual bool					IsABuilding(void) const { return false; };
 	virtual bool					IsBaseCombatCharacter( void ) { return false; };
 	virtual C_BaseCombatCharacter	*MyCombatCharacterPointer( void ) { return NULL; }
 	virtual bool					IsNPC( void ) { return false; }

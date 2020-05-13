@@ -490,7 +490,7 @@ enum PLAYER_ANIM
 
 
 
-#define COVEN_MAX_BUFFS			14
+#define COVEN_MAX_BUFFS			15
 
 #define COVEN_BUFF_CAPPOINT		0
 #define COVEN_BUFF_LEVEL		1

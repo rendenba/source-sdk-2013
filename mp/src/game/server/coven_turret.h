@@ -82,6 +82,7 @@ public:
 	int				m_iMaxAmmo;
 	int				m_iEnergy;
 	int				m_iMaxEnergy;
+	bool			bTipped;
 
 	void			ShootTimerUpdate();
 
@@ -100,6 +101,9 @@ public:
 	virtual int				VPhysicsTakeDamage(const CTakeDamageInfo &info);
 	virtual void			OnBuildingComplete(void);
 	virtual bool			CheckLevel(void);
+	virtual BuildingType	MyType() { return BUILDING_TURRET; };
+	virtual int				GetAmmo(int index);
+	virtual int				GetMaxAmmo(int index);
 
 	const char *GetTracerType(void) { return "AR2Tracer"; }
 
@@ -169,9 +173,6 @@ private:
 		CHandle<CBaseCombatCharacter>		m_hEnemy;
 		int									m_nHaloSprite;
 protected:
-
-	virtual BuildingType MyType() { return BUILDING_TURRET; };
-
 	virtual bool	PreThink(covenTurretState_e state);
 	virtual void	Shoot(const Vector &vecSrc, const Vector &vecDirToEnemy, bool bStrict = false);
 	virtual void	SetEyeState(covenEyeState_t state);

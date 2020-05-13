@@ -164,7 +164,7 @@ void CTargetID::Paint()
 				bShowHealth = true;
 			}
 			//BB: we dont want to see name tags for stealthed people...
-			else if (pPlayer->m_floatCloakFactor > 0.0f)
+			else if (pPlayer->m_floatCloakFactor > 0.0f && !((pPlayer->GetFlags() & EF_NODRAW) > 0))
 			{
 				printFormatString = "#Playerid_diffteam";
 			}
@@ -173,7 +173,7 @@ void CTargetID::Paint()
 			if ( bShowHealth )
 			{
 				//BB: dont show the % sign in the health... we use HP not %... NOT ANY MORE!
-				_snwprintf( wszHealthText, ARRAYSIZE(wszHealthText) - 1, L"%.0f%%",  ((float)pPlayer->GetHealth() / (float)pPlayer->GetMaxHealth()*100.0f ) );
+				_snwprintf( wszHealthText, ARRAYSIZE(wszHealthText) - 1, L"%.0f",  ((float)pPlayer->GetHealth() / (float)pPlayer->GetMaxHealth()*100.0f ) );
 				wszHealthText[ ARRAYSIZE(wszHealthText)-1 ] = '\0';
 			}
 		}

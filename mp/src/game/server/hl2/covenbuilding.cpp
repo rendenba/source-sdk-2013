@@ -139,7 +139,7 @@ void CCovenBuilding::InputKill(inputdata_t &data)
 bool CCovenBuilding::CheckLevel(void)
 {
 	bool retVal = false;
-	if (m_iXP >= 200 && m_iLevel < 1)
+	if (m_iXP >= m_iMaxXP && m_iLevel < 1)
 	{
 		m_iLevel++;
 		m_iMaxHealth += 30;
@@ -147,7 +147,7 @@ bool CCovenBuilding::CheckLevel(void)
 		m_iXP -= 200;
 		retVal = true;
 	}
-	else if (m_iXP >= 200 && m_iLevel < 2)
+	else if (m_iXP >= m_iMaxXP && m_iLevel < 2)
 	{
 		m_iLevel++;
 		m_iMaxHealth += 40;
@@ -218,10 +218,19 @@ bool CCovenBuilding::CheckLevel(void)
 	return retVal;
 }
 
+void CCovenBuilding::NotifyOwner(void)
+{
+	if (mOwner != NULL)
+	{
+		mOwner->UpdateBuilding(this);
+	}
+}
+
 bool CCovenBuilding::PreThink(void)
 {
 	StudioFrameAdvance();
 	DispatchAnimEvents(this);
+	NotifyOwner();
 	return false;
 }
 
@@ -319,12 +328,14 @@ void CCovenBuilding::SelfDestructThink(void)
 
 void CCovenBuilding::SelfDestruct(void)
 {
+	m_iHealth = 0;
+	NotifyOwner();
 	if (mOwner != NULL)
 	{
 		if (MyType() == BUILDING_TURRET)
-			mOwner->turrets.FindAndRemove(this);
+			mOwner->m_hTurret = NULL;
 		else if (MyType() == BUILDING_AMMOCRATE)
-			mOwner->dispensers.FindAndRemove(this);
+			mOwner->m_hDispenser = NULL;
 	}
 
 	m_flPingTime = gpGlobals->curtime;
@@ -496,7 +507,7 @@ void CCovenBuilding::Use(CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE
 	if (!IsDoneBuilding())
 		return;
 
-	CHL2MP_Player *pPlayer = ToHL2MPPlayer(pActivator);
+	CBasePlayer *pPlayer = ToBasePlayer(pActivator);
 
 	if (pPlayer == NULL)
 		return;
@@ -524,10 +535,10 @@ int CCovenBuilding::OnTakeDamage(const CTakeDamageInfo &info)
 	if (HasSpawnFlags(SF_COVENBUILDING_INERT))
 		return 0;
 
-	if (mOwner != NULL && info.GetAttacker() == mOwner && !(info.GetDamageType() & DMG_SHOCK))
+	if (mOwner == NULL || (info.GetAttacker() != NULL && info.GetAttacker()->GetTeamNumber() == GetTeamNumber() && !(info.GetDamageType() & DMG_SHOCK)))
 		return 0;
 
-	CHL2MP_Player *pAttacker = ToHL2MPPlayer(info.GetAttacker());
+	CHL2_Player *pAttacker = ToHL2Player(info.GetAttacker());
 	if (pAttacker)
 	{
 		if (info.GetDamageType() & DMG_SHOCK)

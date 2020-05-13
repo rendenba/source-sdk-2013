@@ -92,16 +92,16 @@ BEGIN_NETWORK_TABLE_NOBASE( CHL2MPRules, DT_HL2MPRules )
 		RecvPropInt( RECVINFO( num_cap_points ) ),
 		RecvPropBool( RECVINFO( m_bTeamPlayEnabled ) ),
 		RecvPropArray3( RECVINFO_ARRAY(cap_point_status), RecvPropInt( RECVINFO(cap_point_status[0]))),
-		RecvPropArray3( RECVINFO_ARRAY(cap_point_coords), RecvPropFloat( RECVINFO(cap_point_coords[0]))),
+		RecvPropArray3( RECVINFO_ARRAY(cap_point_coords), RecvPropVector( RECVINFO(cap_point_coords[0]))),
 		RecvPropArray3( RECVINFO_ARRAY(cap_point_state), RecvPropInt( RECVINFO(cap_point_state[0]))),
 		RecvPropEHandle( RECVINFO(cts_net) ),
 		RecvPropFloat( RECVINFO(SpawnCTS) ),
 	#else
 		SendPropInt( SENDINFO( num_cap_points ) ),
 		SendPropBool( SENDINFO( m_bTeamPlayEnabled ) ),
-		SendPropArray3( SENDINFO_ARRAY3(cap_point_status), SendPropInt( SENDINFO_ARRAY(cap_point_status), 0, SPROP_VARINT | SPROP_UNSIGNED ) ),
-		SendPropArray3( SENDINFO_ARRAY3(cap_point_coords), SendPropFloat( SENDINFO_ARRAY(cap_point_coords), 0, SPROP_NOSCALE ) ),
-		SendPropArray3( SENDINFO_ARRAY3(cap_point_state), SendPropInt( SENDINFO_ARRAY(cap_point_state), 0, SPROP_NOSCALE ) ),
+		SendPropArray3( SENDINFO_ARRAY3(cap_point_status), SendPropInt( SENDINFO_ARRAY(cap_point_status), 8, SPROP_UNSIGNED ) ),
+		SendPropArray3( SENDINFO_ARRAY3(cap_point_coords), SendPropVector( SENDINFO_ARRAY(cap_point_coords), -1, SPROP_NOSCALE ) ),
+		SendPropArray3( SENDINFO_ARRAY3(cap_point_state), SendPropInt( SENDINFO_ARRAY(cap_point_state), 2, SPROP_UNSIGNED ) ),
 		SendPropEHandle( SENDINFO(cts_net) ),
 		SendPropFloat( SENDINFO(SpawnCTS) ),
 	#endif
@@ -423,10 +423,7 @@ bool CHL2MPRules::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBa
 				const char *t = temparray;
 				float locs[3];
 				UTIL_StringToVector(locs, t);
-				int index = num_cap_points*3;
-				cap_point_coords.Set(index, locs[0]);
-				cap_point_coords.Set(index+1, locs[1]);
-				cap_point_coords.Set(index+2, locs[2]);
+				cap_point_coords.Set(num_cap_points, Vector(locs[0], locs[1], locs[2]));
 				cap_point_status.Set(num_cap_points, 60);
 				cap_point_timers[num_cap_points] = 0.0f;
 				cap_point_state.Set(num_cap_points, 0);
@@ -753,8 +750,8 @@ void CHL2MPRules::RestartRound()
 		pPlayer->SetXP(0.0f);
 		pPlayer->covenRespawnTimer = -1.0f;
 		pPlayer->KO = false;
-		pPlayer->turrets.RemoveAll();
-		pPlayer->dispensers.RemoveAll();
+		pPlayer->ClearAllBuildings();
+		pPlayer->ClearTripmines();
 		Q_memset(pPlayer->covenAbilities, 0, sizeof(pPlayer->covenAbilities));
 		Q_memset(pPlayer->covenLoadouts, 0, sizeof(pPlayer->covenLoadouts));
 		Q_memset(pPlayer->covenLevelsSpent, 0, sizeof(pPlayer->covenLevelsSpent));
@@ -1436,7 +1433,7 @@ void CHL2MPRules::ClientDisconnected( edict_t *pClient )
 			UTIL_Remove(play->myServerRagdoll);
 			play->myServerRagdoll = NULL;
 		}
-		play->ClearAllBuildings();
+		play->DestroyAllBuildings();
 		// Remove the player from his team
 		if ( pPlayer->GetTeam() )
 		{

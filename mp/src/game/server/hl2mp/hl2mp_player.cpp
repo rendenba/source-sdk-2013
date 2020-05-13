@@ -174,8 +174,6 @@ CHL2MP_Player::CHL2MP_Player() : m_PlayerAnimState( this )
 	coven_debug_prevnode = -1;
 #endif
 
-	num_trip_mines = 0;
-
 	coven_display_autolevel = false;
 
 	m_iLastWeaponFireUsercmd = 0;
@@ -401,14 +399,11 @@ bool CHL2MP_Player::BuildDispenser(int lev)
 	UTIL_TraceLine(EyePosition(), vecSrc, MASK_PLAYERSOLID, this, COLLISION_GROUP_NONE, &tr);
 	if (tr.DidHit())
 		return false;
-	if (!dispensers.IsEmpty())
+	if (m_hDispenser != NULL)
 	{
-		CBaseCombatCharacter *ent;
-		ent = dispensers[dispensers.Size() - 1];
-		if (ent)
-		{
-			((CCovenBuilding *)ent)->SelfDestruct();
-		}
+		CCovenBuilding *building = ToCovenBuilding(m_hDispenser);
+		if (building)
+			building->SelfDestruct();
 	}
 	CBaseEntity *ent = CreateEntityByName("coven_ammocrate");
 	angle.y = AngleNormalize(angle.y - 180.0f);
@@ -419,7 +414,7 @@ bool CHL2MP_Player::BuildDispenser(int lev)
 	((CCovenBuilding *)ent)->mOwner = this;
 	ent->Spawn();
 	UTIL_DropToFloor(ent, MASK_NPCSOLID);
-	dispensers.AddToHead((CBaseCombatCharacter *)ent);
+	m_hDispenser = ent;
 	return true;
 }
 
@@ -435,14 +430,11 @@ bool CHL2MP_Player::BuildTurret(int lev)
 	UTIL_TraceLine(EyePosition(), vecSrc, MASK_PLAYERSOLID, this, COLLISION_GROUP_NONE, &tr);
 	if (tr.DidHit())
 		return false;
-	if (!turrets.IsEmpty())
+	if (m_hTurret != NULL)
 	{
-		CBaseCombatCharacter *ent;
-		ent = turrets[turrets.Size() - 1];
-		if (ent)
-		{
-			((CCovenBuilding *)ent)->SelfDestruct();
-		}
+		CCovenBuilding *building = ToCovenBuilding(m_hTurret);
+		if (building)
+			building->SelfDestruct();
 	}
 	CBaseEntity *ent;
 	ent = CreateEntityByName("coven_turret");
@@ -456,7 +448,7 @@ bool CHL2MP_Player::BuildTurret(int lev)
 	ent->Teleport(&vecSrc, &angle, NULL);
 	UTIL_DropToFloor(ent, MASK_NPCSOLID);
 	ent->Activate();
-	turrets.AddToHead((CBaseCombatCharacter *)ent);
+	m_hTurret = ent;
 	return true;
 }
 
@@ -888,7 +880,7 @@ void CHL2MP_Player::DoAbilityThink(int keyNum)
 			}
 			else if (m_afButtonPressed & covenAbilities[COVEN_ABILITY_TRIPMINE])
 			{
-				if (num_trip_mines < 4 && SuitPower_GetCurrentPercentage() >= 15.0f && AttachTripmine())
+				if (NumTripmines() < 4 && SuitPower_GetCurrentPercentage() >= 15.0f && AttachTripmine())
 				{
 					SuitPower_Drain(15.0f);
 					SetGlobalCooldown(abilityNum, gpGlobals->curtime + 2.0f);
@@ -1368,7 +1360,7 @@ bool CHL2MP_Player::AttachTripmine()
 			pMine->m_hOwner = this;
 			pMine->m_nTeam = GetTeamNumber();
 
-			num_trip_mines++;
+			AddTripmine();
 		}
 		return true;
 	}
@@ -2374,8 +2366,7 @@ void CHL2MP_Player::PreThink( void )
 		Vector tVec;
 		if (pRules)
 		{
-			int index = 3*lastCheckedCapPoint;
-			tVec = Vector(pRules->cap_point_coords.Get(index), pRules->cap_point_coords.Get(index+1), pRules->cap_point_coords.Get(index+2));
+			tVec = pRules->cap_point_coords.Get(lastCheckedCapPoint);
 		}
 
 		covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_CAPPOINT;
@@ -3232,6 +3223,9 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 		}
 	}
 
+	if (iTeam != GetTeamNumber())
+		DestroyAllBuildings();
+
 	BaseClass::ChangeTeam( iTeam );
 
 	m_flNextTeamChangeTime = gpGlobals->curtime + TEAM_CHANGE_INTERVAL;
@@ -3428,34 +3422,11 @@ void CHL2MP_Player::SlayerHolywaterThink()
 	}
 }
 
-void CHL2MP_Player::ClearAllBuildings()
+void CHL2MP_Player::DestroyAllBuildings(void)
 {
-	if (covenAbilities[COVEN_ABILITY_BUILDDISPENSER] > 0)
-	{
-		if (!dispensers.IsEmpty())
-		{
-			CBaseCombatCharacter *ent;
-			ent = dispensers[dispensers.Size() - 1];
-			if (ent)
-			{
-				((CCovenBuilding *)ent)->SelfDestruct();
-			}
-		}
-	}
-	if (covenAbilities[COVEN_ABILITY_BUILDTURRET] > 0)
-	{
-		if (!turrets.IsEmpty())
-		{
-			CBaseCombatCharacter *ent;
-			ent = turrets[turrets.Size() - 1];
-			if (ent)
-			{
-				((CCovenBuilding *)ent)->SelfDestruct();
-			}
-		}
-	}
 	if (covenAbilities[COVEN_ABILITY_TRIPMINE] > 0)
 		DetonateTripmines();
+	BaseClass::DestroyAllBuildings();
 }
 
 bool CHL2MP_Player::IsBuilderClass(void)
@@ -3517,7 +3488,7 @@ bool CHL2MP_Player::HandleCommand_SelectClass( int select )
 
 	Spawn();
 
-	ClearAllBuildings();
+	DestroyAllBuildings();
 
 	return true;
 }
@@ -3581,9 +3552,6 @@ bool CHL2MP_Player::HandleCommand_JoinTeam( int team )
 		StopObserverMode();
 		State_Transition(STATE_ACTIVE);
 	}*/
-
-	if (team != GetTeamNumber())
-		ClearAllBuildings();
 
 	// Switch their actual team...
 	ChangeTeam( team );
@@ -3907,6 +3875,7 @@ void CHL2MP_Player::DetonateTripmines( void )
 			pTripmine->Event_Killed(info);
 		}
 	}
+	ClearTripmines();
 	// Play sound for pressing the detonator
 	//EmitSound( "Weapon_SLAM.SatchelDetonate" );
 }

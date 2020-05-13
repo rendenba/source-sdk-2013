@@ -15,6 +15,7 @@
 
 #include "c_baseplayer.h"
 #include "c_hl2_playerlocaldata.h"
+#include "c_covenbuilderlocaldata.h"
 
 class C_BaseHLPlayer : public C_BasePlayer
 {
@@ -60,6 +61,7 @@ public:
 public:
 
 	C_HL2PlayerLocalData		m_HL2Local;
+	C_CovenBuilderLocalData		m_CovenBuilderLocal;
 	EHANDLE				m_hClosestNPC;
 	float				m_flSpeedModTime;
 	bool				m_fIsSprinting;

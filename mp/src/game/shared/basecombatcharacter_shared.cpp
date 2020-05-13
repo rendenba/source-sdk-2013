@@ -30,11 +30,6 @@ bool CBaseCombatCharacter::SwitchToNextBestWeapon(CBaseCombatWeapon *pCurrent)
 	return false;
 }
 
-bool CBaseCombatCharacter::IsABuilding(void)
-{
-	return false;
-}
-
 bool CBaseCombatCharacter::IsBuilderClass(void)
 {
 	return false;
@@ -52,6 +47,7 @@ const Vector CBaseCombatCharacter::GetPlayerMidPoint() const
 	{
 		playerMaxs = VEC_HULL_MAX_SCALED(this);
 	}
+
 	Vector midPoint = GetLocalOrigin();
 	midPoint.z += playerMaxs.z / 2.0f;
 	return midPoint;

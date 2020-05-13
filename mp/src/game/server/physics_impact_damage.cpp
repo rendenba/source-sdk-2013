@@ -552,6 +552,11 @@ float CalculateObjectStress( IPhysicsObject *pObject, CBaseEntity *pInputOwnerEn
 			{
 				outIndex = 1;
 			}
+			//BB: this hack will fix building trolling.
+			else if ( pOtherEntity->IsABuilding() )
+			{
+				outIndex = 1;
+			}
 			else
 			{
 				if ( pOther->GetMass() >= VPHYSICS_LARGE_OBJECT_MASS )

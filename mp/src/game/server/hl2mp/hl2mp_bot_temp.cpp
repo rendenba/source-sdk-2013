@@ -18,7 +18,8 @@
 #include "in_buttons.h"
 #include "movehelper_server.h"
 #include "hl2mp_bot_temp.h"
-
+#include "covenbuilding.h"
+#include "coven_turret.h"
 
 void ClientPutInServer( edict_t *pEdict, const char *playername );
 void Bot_Think( CHL2MP_Player *pBot );
@@ -318,32 +319,28 @@ CBasePlayer *BotPutInServer( bool bFrozen, int iTeam )
 	return pPlayer;
 }
 
+//BB: TODO: this is effectively currently copying a copy of a vector... improve!
 Vector CurrentObjectiveLoc( CHL2MP_Player *pBot )
 {
-	Vector ret(0,0,0);
+	Vector ret(0, 0, 0);
 	botdata_t *botdata = &g_BotData[ ENTINDEX( pBot->edict() ) - 1 ];
 	if (botdata->m_objectiveType == OBJECTIVE_TYPE_CAPPOINT)
 	{
 		if (botdata->m_objective > -1)
 		{
-			int i = 3*botdata->m_objective;
-			ret.x = HL2MPRules()->cap_point_coords.Get(i);
-			ret.y = HL2MPRules()->cap_point_coords.Get(i+1);
-			ret.z = HL2MPRules()->cap_point_coords.Get(i+2);
+			ret = HL2MPRules()->cap_point_coords.Get(botdata->m_objective);
 		}
 	}
 	return ret;
 }
 
+//BB: TODO: this is effectively currently copying a copy of a vector... improve!
 Vector GetObjectiveLoc(int locationIndex)
 {
 	Vector ret(0, 0, 0);
 	if (locationIndex)
 	{
-		int i = 3 * locationIndex;
-		ret.x = HL2MPRules()->cap_point_coords.Get(i);
-		ret.y = HL2MPRules()->cap_point_coords.Get(i + 1);
-		ret.z = HL2MPRules()->cap_point_coords.Get(i + 2);
+		ret = HL2MPRules()->cap_point_coords.Get(locationIndex);
 	}
 	return ret;
 }
@@ -1417,6 +1414,10 @@ void Bot_Think( CHL2MP_Player *pBot )
 		}
 	}
 
+	//Forward momentum calc
+	forwardmove = botdata->m_flBaseSpeed * (botdata->backwards ? -1 : 1);
+	buttons |= botdata->backwards ? IN_BACK : IN_FORWARD; //freaking WAT. okay HL2 ladders...
+
 	//Actual movement calcs
 	if (pBot->IsAlive() && (pBot->GetSolid() == SOLID_BBOX) && !pBot->IsEFlagSet(EFL_BOT_FROZEN))
 	{
@@ -1445,11 +1446,21 @@ void Bot_Think( CHL2MP_Player *pBot )
 					{
 						if (pPlayer->IsPlayer())
 							forward = pPlayer->GetPlayerMidPoint() - pBot->EyePosition();
-						else
+						else if (pPlayer->IsABuilding())
 						{
 							forward = pPlayer->EyePosition() - pBot->EyePosition(); //BB: TODO: this will not work for supply depos?
-							if (forward.Length() == 0)
-								AngleVectors(pBot->GetLocalAngles(), &forward);
+							float temp_length = forward.Length();
+							//if (temp_length == 0)
+							//	AngleVectors(pBot->GetLocalAngles(), &forward);
+							if (temp_length < botdata->m_flBaseSpeed)
+							{
+								CCovenBuilding *building = ToCovenBuilding(pPlayer);
+								forwardmove = temp_length;
+								if (building->MyType() == BUILDING_TURRET && ((CCoven_Turret *)building)->bTipped)
+								{
+									buttons |= IN_DUCK;
+								}
+							}
 						}
 					}
 				}
@@ -1658,9 +1669,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 			}
 		}
 
-		//Forward momentum calc
-		forwardmove = botdata->m_flBaseSpeed * (botdata->backwards ? -1 : 1);
-		buttons |= botdata->backwards ? IN_BACK : IN_FORWARD; //freaking WAT. okay HL2 ladders...
+		
 		//Sidemove correction if we can't
 		/*if (botdata->sidemove != 0.0f)
 		{

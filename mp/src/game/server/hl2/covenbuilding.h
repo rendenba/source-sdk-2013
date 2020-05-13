@@ -6,7 +6,7 @@
 
 #include "player_pickup.h"
 #include "particle_system.h"
-#include "hl2mp_player.h"
+#include "hl2_player.h"
 #include "ai_basenpc.h"
 
 #define SF_COVENBUILDING_INERT				(1 << 0) //doesn't take input "damage" or damage
@@ -60,6 +60,9 @@ public:
 	virtual void	Disable(void) { m_bEnabled = false; };
 	virtual void	Detonate(void);
 	virtual void	SelfDestruct(void);
+	virtual void	NotifyOwner(void);
+	virtual int		GetAmmo(int index) { return -1; };
+	virtual int		GetMaxAmmo(int index) { return -1; };
 
 	// Player pickup
 	virtual void	OnPhysGunPickup(CBasePlayer *pPhysGunUser, PhysGunPickup_t reason);
@@ -71,7 +74,7 @@ public:
 	bool			WasJustDroppedByPlayer(void);
 
 	virtual void	Activate(void);
-	virtual bool	IsABuilding(void) { return true; };
+	virtual bool	IsABuilding(void) const { return true; };
 
 	int				BloodColor(void) { return DONT_BLEED; };
 
@@ -83,13 +86,15 @@ public:
 
 	virtual bool	CheckLevel(void);
 
-	CHandle<CHL2MP_Player>	mOwner;
+	CHandle<CHL2_Player>	mOwner;
 	int m_iLevel;
 	int m_iXP;
+	const int m_iMaxXP = 200;
 
 	virtual float	MaxTipControllerVelocity() { return 300.0f * 300.0f; };
 	virtual float	MaxTipControllerAngularVelocity() { return 90.0f * 90.0f; };
 
+	virtual BuildingType MyType() { return BUILDING_DEFAULT; };
 
 private:
 	CHandle<CCovenBuildingTipController>	m_pMotionController;
@@ -116,8 +121,6 @@ protected:
 
 	void			ComputeExtents(float scaleFactor = 1.0f);
 	virtual void	DoSelfDestructEffects(float percentage);
-
-	virtual BuildingType MyType() { return BUILDING_DEFAULT; };
 
 	// physics influence
 	CHandle<CBasePlayer>	m_hPhysicsAttacker;
@@ -182,5 +185,13 @@ private:
 	float						m_angularLimit;
 	CCovenBuilding				*m_pParentBuilding;
 };
+
+inline CCovenBuilding *ToCovenBuilding(CBaseEntity *pEntity)
+{
+	if (!pEntity)
+		return NULL;
+
+	return dynamic_cast<CCovenBuilding*>(pEntity);
+}
 
 #endif

@@ -30,6 +30,8 @@ public:
 	virtual void	HandleAnimEvent(animevent_t *pEvent);
 	virtual void	SelfDestructThink(void);
 	virtual void	SelfDestruct(void);
+	virtual int		GetAmmo(int index);
+	virtual int		GetMaxAmmo(int index);
 
 	void			AmmoCrateThink(void);
 
@@ -40,6 +42,7 @@ public:
 	virtual void	OnBuildingComplete(void);
 
 	virtual void	Enable(void);
+	virtual			BuildingType MyType() { return BUILDING_AMMOCRATE; };
 
 	void		AddMetal(void);
 	int			GetMetal(int have);
@@ -52,9 +55,9 @@ public:
 
 protected:
 
-	int		m_nAmmoType;
+	int		m_iAmmoType;
+	int		m_iMaxMetal;
 
-	virtual BuildingType MyType() { return BUILDING_AMMOCRATE; };
 	COutputEvent m_OnPhysGunPickup;
 	COutputEvent m_OnPhysGunDrop;
 

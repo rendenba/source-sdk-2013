@@ -64,8 +64,7 @@ public:
 	int XPForKill(CHL2MP_Player *pAttacker);
 	void ResetVitals( void );
 
-	void ClearAllBuildings();
-
+	virtual void DestroyAllBuildings(void);
 	virtual void Precache( void );
 	virtual void Spawn( void );
 	virtual void PostThink( void );
@@ -224,10 +223,7 @@ public:
 	bool rezsound;
 	float solidcooldown;
 
-	int num_trip_mines;
 	CUtlVector<CItem *> medkits;
-	CUtlVector<CBaseCombatCharacter *> turrets;
-	CUtlVector<CBaseCombatCharacter *> dispensers;
 
 	Vector lock_ts;
 

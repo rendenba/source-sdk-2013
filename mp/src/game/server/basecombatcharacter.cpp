@@ -3331,7 +3331,10 @@ void CBaseCombatCharacter::VPhysicsShadowCollision( int index, gamevcollisioneve
 
 	// UNDONE: Find one near damagePos?
 	m_nForceBone = 0;
-	PhysCallbackDamage( this, dmgInfo, *pEvent, index );
+	
+	//BB: we want to avoid trolling with buildings
+	if (!pOther->IsABuilding())
+		PhysCallbackDamage( this, dmgInfo, *pEvent, index );
 }
 
 

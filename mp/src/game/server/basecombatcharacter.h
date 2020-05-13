@@ -169,7 +169,6 @@ public:
 	virtual Vector		EyeDirection2D( void ) 	{ return HeadDirection2D( );  }; // No eye motion so just return head dir
 	virtual Vector		EyeDirection3D( void ) 	{ return HeadDirection3D( );  }; // No eye motion so just return head dir
 	const Vector		GetPlayerMidPoint() const;
-	virtual bool		IsABuilding(void);
 	virtual bool		IsBuilderClass(void);
 
 
