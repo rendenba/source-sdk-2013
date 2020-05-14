@@ -101,7 +101,7 @@ public:
 	virtual int				VPhysicsTakeDamage(const CTakeDamageInfo &info);
 	virtual void			OnBuildingComplete(void);
 	virtual bool			CheckLevel(void);
-	virtual BuildingType	MyType() { return BUILDING_TURRET; };
+	virtual BuildingType const	MyType() { return BUILDING_TURRET; };
 	virtual int				GetAmmo(int index);
 	virtual int				GetMaxAmmo(int index);
 
@@ -159,6 +159,8 @@ public:
 		return vecOrigin;
 	}
 
+	virtual const Vector GetPlayerMidPoint(void) const;
+
 	Vector	EyeOffset(Activity nActivity) { return Vector(0, 0, 58); }
 
 	// Restore the turret to working operation after falling over
@@ -172,6 +174,8 @@ public:
 private:
 		CHandle<CBaseCombatCharacter>		m_hEnemy;
 		int									m_nHaloSprite;
+		void								CreateEffects(void);
+
 protected:
 	virtual bool	PreThink(covenTurretState_e state);
 	virtual void	Shoot(const Vector &vecSrc, const Vector &vecDirToEnemy, bool bStrict = false);

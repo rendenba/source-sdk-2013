@@ -486,7 +486,7 @@ void CHudAuras::OnThink()
 		aura_pic *temp;
 		temp = new aura_pic;
 		temp->aura = COVEN_BUFF_SPRINT;
-		temp->text = 0;
+		temp->text = pPlayer->m_HL2Local.covenStatusMagnitude[COVEN_BUFF_SPRINT];
 		temp->timer = pPlayer->m_HL2Local.covenStatusTimers[COVEN_BUFF_SPRINT]-gpGlobals->curtime;
 		active_auras.AddToTail(temp);
 		if (temp->timer > max_duration[COVEN_BUFF_SPRINT])
@@ -601,7 +601,7 @@ void CHudAuras::OnThink()
 		aura_pic *temp;
 		temp = new aura_pic;
 		temp->aura = COVEN_BUFF_PHASE;
-		temp->text = pPlayer->m_HL2Local.covenStatusMagnitude[COVEN_BUFF_PHASE];
+		temp->text = 0;
 		temp->timer = pPlayer->m_HL2Local.covenStatusTimers[COVEN_BUFF_PHASE]-gpGlobals->curtime;
 		active_auras.AddToTail(temp);
 		if (temp->timer > max_duration[COVEN_BUFF_PHASE])

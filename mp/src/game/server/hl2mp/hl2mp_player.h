@@ -228,7 +228,7 @@ public:
 	Vector lock_ts;
 
 	//BB: coven energies
-	int coven_detonate_power;
+	//int coven_detonate_power;
 	int coven_soul_power;
 
 	//BB: coven timers
@@ -251,19 +251,14 @@ public:
 	//BB: coven loadout/abil stuff
 	int GetLoadout(int n);
 	int SetLoadout(int n, int val);
-	float GetCooldown(int n);
 	int GetLevelsSpent();
 	bool SpendPoint(int on);
 	bool SpendPointBOT(int on);
 	int PointsToSpend();
 	void RefreshLoadout();
-	void RefreshCooldowns();
-	void ResetCooldowns();
-	void SetGlobalCooldown(int n, float time);
 	int covenAbilities[COVEN_ABILITY_COUNT];
 	int covenLoadouts[2][COVEN_MAX_CLASSCOUNT][4];
 	int covenLevelsSpent[2][COVEN_MAX_CLASSCOUNT];
-	float covenCooldowns[2][COVEN_MAX_CLASSCOUNT][4];
 		
 private:
 

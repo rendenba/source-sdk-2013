@@ -231,6 +231,8 @@ void CCoven_Turret::Spawn(void)
 	// Don't allow us to skip animation setup because our attachments are critical to us!
 	SetBoneCacheFlags(BCF_NO_ANIMATION_SKIP);
 
+	CreateEffects();
+
 	SetEnemy(NULL);
 }
 
@@ -991,6 +993,24 @@ void CCoven_Turret::TippedThink(void)
 	}
 }
 
+const Vector CCoven_Turret::GetPlayerMidPoint(void) const
+{
+	//UpdateMuzzleMatrix();
+
+	Vector vecOrigin;
+	MatrixGetColumn(m_muzzleToWorld, 3, vecOrigin);
+
+	Vector vecForward;
+	MatrixGetColumn(m_muzzleToWorld, 0, vecForward);
+
+	// Note: We back up into the model to avoid an edge case where the eyes clip out of the world and
+	//		 cause problems with the PVS calculations -- jdw
+
+	vecOrigin -= vecForward * 8.0f;
+
+	return vecOrigin;
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: This turret is dead. See if it ever becomes upright again, and if 
 //			so, become active again.
@@ -1044,7 +1064,7 @@ void CCoven_Turret::DisabledThink(void)
 	{
 		m_OnTipped.FireOutput(this, this);
 		SetEyeState(TURRET_EYE_DEAD);
-		SetCollisionGroup(COLLISION_GROUP_DEBRIS);
+		SetCollisionGroup(COLLISION_GROUP_WEAPON);
 		//SetThink( NULL );
 	}
 }
@@ -1169,13 +1189,16 @@ bool CCoven_Turret::PreThink(covenTurretState_e state)
 			trace_t tr;
 			UTIL_TraceLine(startPos, startPos + (vecMuzzleDir * 300), MASK_SHOT, this, COLLISION_GROUP_NONE, &tr);
 
-			m_pFlashlightBeam->FollowEntity(this);
-			m_pFlashlightBeam->SetAbsStartPos(tr.startpos);
-			m_pFlashlightBeam->SetAbsEndPos(tr.endpos);
-			m_pFlashlightBeam->RelinkBeam();
-			m_hLightGlow->SetAbsOrigin(tr.startpos);
+			if (m_pFlashlightBeam != NULL)
+			{
+				m_pFlashlightBeam->FollowEntity(this);
+				m_pFlashlightBeam->SetAbsStartPos(tr.startpos);
+				m_pFlashlightBeam->SetAbsEndPos(tr.endpos);
+				m_pFlashlightBeam->RelinkBeam();
+				m_hLightGlow->SetAbsOrigin(tr.startpos);
 			
-			SlayerLightHandler(DOT_45DEGREE, 350.0f, 325.0f, 350.0f);
+				SlayerLightHandler(DOT_45DEGREE, 350.0f, 325.0f, 350.0f);
+			}
 		}
 	}
 
@@ -1222,7 +1245,7 @@ bool CCoven_Turret::PreThink(covenTurretState_e state)
 				/*SetThink( &CNPC_FloorTurret::InactiveThink );
 				SetEyeState( TURRET_EYE_DEAD );*/
 			}
-			SetCollisionGroup(COLLISION_GROUP_DEBRIS_TRIGGER);
+			SetCollisionGroup(COLLISION_GROUP_WEAPON);
 
 			//Disable the tip controller
 			DisableUprightController();
@@ -1345,13 +1368,8 @@ void CCoven_Turret::Ping(void)
 	m_flPingTime = gpGlobals->curtime + COVEN_TURRET_PING_TIME;
 }
 
-void CCoven_Turret::OnBuildingComplete(void)
+void CCoven_Turret::CreateEffects(void)
 {
-	SetActivity((Activity)ACT_FLOOR_TURRET_CLOSED_IDLE);
-	SetThink(&CCoven_Turret::AutoSearchThink);
-	SetEyeState(TURRET_EYE_DORMANT);
-	//Stagger our starting times
-	SetNextThink(gpGlobals->curtime + random->RandomFloat(0.1f, 0.3f));
 	if (m_pFlashlightBeam == NULL)
 	{
 		m_pFlashlightBeam = CBeam::BeamCreate(LASER_BEAM_SPRITE, 8.0f);
@@ -1372,7 +1390,7 @@ void CCoven_Turret::OnBuildingComplete(void)
 		}
 	}
 	// Must have a valid eye to affect
-	if (!m_hLightGlow)
+	if (m_hLightGlow == NULL)
 	{
 		// Create our eye sprite
 		m_hLightGlow = CSprite::SpriteCreate(COVEN_TURRET_GLOW_SPRITE, GetLocalOrigin(), false);
@@ -1382,6 +1400,16 @@ void CCoven_Turret::OnBuildingComplete(void)
 			m_hLightGlow->SetBrightness(0);
 		}
 	}
+}
+
+void CCoven_Turret::OnBuildingComplete(void)
+{
+	SetActivity((Activity)ACT_FLOOR_TURRET_CLOSED_IDLE);
+	SetThink(&CCoven_Turret::AutoSearchThink);
+	SetEyeState(TURRET_EYE_DORMANT);
+	//Stagger our starting times
+	SetNextThink(gpGlobals->curtime + random->RandomFloat(0.1f, 0.3f));
+	
 	BaseClass::OnBuildingComplete();
 }
 

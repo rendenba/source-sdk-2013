@@ -752,6 +752,7 @@ void CHL2MPRules::RestartRound()
 		pPlayer->KO = false;
 		pPlayer->ClearAllBuildings();
 		pPlayer->ClearTripmines();
+		pPlayer->ResetCovenStatus();
 		Q_memset(pPlayer->covenAbilities, 0, sizeof(pPlayer->covenAbilities));
 		Q_memset(pPlayer->covenLoadouts, 0, sizeof(pPlayer->covenLoadouts));
 		Q_memset(pPlayer->covenLevelsSpent, 0, sizeof(pPlayer->covenLevelsSpent));

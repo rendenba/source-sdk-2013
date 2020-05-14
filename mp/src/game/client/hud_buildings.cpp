@@ -163,11 +163,11 @@ void CHudBuildings::Paint()
 	{
 		int xpos3 = barXpos / 2.0f - UTIL_ComputeStringWidth(m_hTextFontIcons, L"r") / 2.0f;
 		int actualLevel = pPlayer->m_CovenBuilderLocal.m_iTurretLevel + 1;
-		char level[3];
 		wchar_t wLevel[3];
-		Q_snprintf(level, sizeof(level), "%d", actualLevel);
+		//Q_snprintf(level, sizeof(level), "%d", actualLevel);
+		swprintf(wLevel, sizeof(wLevel), L"%d", actualLevel);
 		//wcsncpy(localizeText, ansiLocal, sizeof(localizeText) / sizeof(wchar_t));
-		g_pVGuiLocalize->ConvertANSIToUnicode(level, wLevel, sizeof(wLevel));
+		//g_pVGuiLocalize->ConvertANSIToUnicode(level, wLevel, sizeof(wLevel));
 		int xpos2 = barXpos / 2.0f - UTIL_ComputeStringWidth(m_hTextFontNumerals, wLevel) / 2.0f;
 		surface()->DrawSetTextPos(xpos, ypos - yfontoffset);
 		if (pPlayer->m_CovenBuilderLocal.m_bTurretTipped)
@@ -197,11 +197,11 @@ void CHudBuildings::Paint()
 	else if (pPlayer->m_CovenBuilderLocal.m_iDispenserHP > 0 && m_iType == 2)
 	{
 		int actualLevel = pPlayer->m_CovenBuilderLocal.m_iDispenserLevel + 1;
-		char level[3];
 		wchar_t wLevel[3];
-		Q_snprintf(level, sizeof(level), "%d", actualLevel);
+		swprintf(wLevel, sizeof(wLevel), L"%d", actualLevel);
+		//Q_snprintf(level, sizeof(level), "%d", actualLevel);
 		//wcsncpy(localizeText, ansiLocal, sizeof(localizeText) / sizeof(wchar_t));
-		g_pVGuiLocalize->ConvertANSIToUnicode(level, wLevel, sizeof(wLevel));
+		//g_pVGuiLocalize->ConvertANSIToUnicode(level, wLevel, sizeof(wLevel));
 		surface()->DrawSetTextColor(m_AuxPowerColor);
 		int xpos2 = barXpos / 2.0f - UTIL_ComputeStringWidth(m_hTextFontNumerals, wLevel) / 2.0f;
 		surface()->DrawSetTextPos(xpos, ypos - yfontoffset);

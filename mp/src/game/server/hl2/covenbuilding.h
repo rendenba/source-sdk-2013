@@ -94,7 +94,7 @@ public:
 	virtual float	MaxTipControllerVelocity() { return 300.0f * 300.0f; };
 	virtual float	MaxTipControllerAngularVelocity() { return 90.0f * 90.0f; };
 
-	virtual BuildingType MyType() { return BUILDING_DEFAULT; };
+	virtual BuildingType MyType() const { return BUILDING_DEFAULT; };
 
 private:
 	CHandle<CCovenBuildingTipController>	m_pMotionController;

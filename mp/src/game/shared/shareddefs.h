@@ -552,6 +552,7 @@ enum PLAYER_ANIM
 
 #define COVEN_DREADSCREAM_DIST			500.0f
 #define COVEN_INTIMIDATINGSHOUT_DIST	350.0f
+#define COVEN_DETONATEBLOOD_DIST		400.0f
 
 // instant damage
 
@@ -604,7 +605,7 @@ enum PLAYER_ANIM
 //		 IF YOU ADD NEW DMG_ TYPES, THEIR TYPES WILL BE HOSED. WE NEED A BETTER SOLUTION.
 
 // TODO: keep this up to date so all the mod-specific flags don't overlap anything.
-#define DMG_LASTGENERICFLAG	DMG_BUCKSHOT
+#define DMG_LASTGENERICFLAG	DMG_NO
 
 
 

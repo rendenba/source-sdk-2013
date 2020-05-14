@@ -82,6 +82,11 @@ void CCoven_AmmoCrate::SelfDestructThink(void)
 	}
 }
 
+const Vector CCoven_AmmoCrate::GetPlayerMidPoint(void) const
+{
+	return EyePosition();
+}
+
 void CCoven_AmmoCrate::Enable(void)
 {
 	SetNextThink(gpGlobals->curtime + 0.1f);

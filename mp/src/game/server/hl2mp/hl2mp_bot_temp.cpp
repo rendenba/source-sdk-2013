@@ -109,6 +109,7 @@ typedef struct
 	int				m_WantedClass;
 
 	int				m_lastPlayerCheck; //index
+	BuildingType	m_lastBuildingChecked;
 	CHandle<CBaseCombatCharacter> pCombatTarget;
 	bool			bCombat;
 	bool			bForceCombat;
@@ -148,7 +149,7 @@ static botdata_t g_BotData[ MAX_PLAYERS ];
 
 void Bot_Combat_Check( CHL2MP_Player *pBot, CBaseEntity *pAtk )
 {
-	if (!pBot)
+	if (!pBot || !pAtk)
 		return;
 
 	if (g_BotData[pBot->entindex()-1].bCombat || pAtk->GetTeamNumber() == pBot->GetTeamNumber())
@@ -162,7 +163,7 @@ void Bot_Combat_Check( CHL2MP_Player *pBot, CBaseEntity *pAtk )
 
 	if (pAttacker)
 	{
-		g_BotData[pBot->entindex() - 1].m_lastPlayerCheck = -1;
+		g_BotData[pBot->entindex() - 1].m_lastPlayerCheck = 0;
 		if (pAttacker->IsPlayer())
 			g_BotData[pBot->entindex() - 1].m_lastPlayerCheck = pAttacker->entindex();
 		g_BotData[pBot->entindex() - 1].pCombatTarget = pAttacker;
@@ -199,7 +200,41 @@ CBaseCombatCharacter *BotGetEnemy(CHL2MP_Player *pBot)
 	{
 		return botdata->pCombatTarget;
 	}
-	return 	ToBaseCombatCharacter(UTIL_PlayerByIndex(botdata->m_lastPlayerCheck));
+	CBaseCombatCharacter *pPlayer = ToBaseCombatCharacter(UTIL_PlayerByIndex(botdata->m_lastPlayerCheck));
+	if (pPlayer && pPlayer->IsBuilderClass())
+	{
+		switch (botdata->m_lastBuildingChecked)
+		{
+			case BUILDING_DEFAULT:
+			{
+				botdata->m_lastBuildingChecked = BUILDING_AMMOCRATE;
+				CHL2_Player *hl2Player = ToHL2Player(pPlayer);
+				return ToBaseCombatCharacter(hl2Player->m_hDispenser);
+			}
+			case BUILDING_AMMOCRATE:
+			{
+				botdata->m_lastBuildingChecked = BUILDING_TURRET;
+				CHL2_Player *hl2Player = ToHL2Player(pPlayer);
+				return ToBaseCombatCharacter(hl2Player->m_hTurret);
+			}
+			default: case BUILDING_TURRET:
+			{
+				botdata->m_lastBuildingChecked = BUILDING_DEFAULT;
+				return pPlayer;
+			}
+		}
+	}
+	else
+		botdata->m_lastBuildingChecked = BUILDING_DEFAULT;
+
+	return pPlayer;
+}
+
+float Bot_Velocity(CHL2MP_Player *pBot)
+{
+	botdata_t *botdata = &g_BotData[ENTINDEX(pBot->edict()) - 1];
+	float vel = pBot->MaxSpeed();
+	return vel * (botdata->backwards ? -1 : 1);
 }
 
 void Set_Bot_Base_Velocity(CHL2MP_Player *pBot)
@@ -208,28 +243,28 @@ void Set_Bot_Base_Velocity(CHL2MP_Player *pBot)
 	if (pBot->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
 	{
 		if (pBot->covenClassID == COVEN_CLASSID_AVENGER)
-			botdata->m_flBaseSpeed = (float)COVEN_BASESPEED_AVENGER;
+			botdata->m_flBaseSpeed = COVEN_BASESPEED_AVENGER;
 		else if (pBot->covenClassID == COVEN_CLASSID_HELLION)
-			botdata->m_flBaseSpeed = (float)COVEN_BASESPEED_HELLION;
+			botdata->m_flBaseSpeed = COVEN_BASESPEED_HELLION;
 		else if (pBot->covenClassID == COVEN_CLASSID_REAVER)
-			botdata->m_flBaseSpeed = (float)COVEN_BASESPEED_REAVER;
+			botdata->m_flBaseSpeed = COVEN_BASESPEED_REAVER;
 		else if (pBot->covenClassID == COVEN_CLASSID_PRIEST)
-			botdata->m_flBaseSpeed = (float)COVEN_BASESPEED_PRIEST;
+			botdata->m_flBaseSpeed = COVEN_BASESPEED_PRIEST;
 		else if (pBot->covenClassID == COVEN_CLASSID_DEADEYE)
-			botdata->m_flBaseSpeed = (float)COVEN_BASESPEED_DEADEYE;
+			botdata->m_flBaseSpeed = COVEN_BASESPEED_DEADEYE;
 	}
 	else if (pBot->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
 	{
 		if (pBot->covenClassID == COVEN_CLASSID_FIEND)
-			botdata->m_flBaseSpeed = (float)COVEN_BASESPEED_FIEND;
+			botdata->m_flBaseSpeed = COVEN_BASESPEED_FIEND;
 		else if (pBot->covenClassID == COVEN_CLASSID_GORE)
-			botdata->m_flBaseSpeed = (float)COVEN_BASESPEED_GORE;
+			botdata->m_flBaseSpeed = COVEN_BASESPEED_GORE;
 		else if (pBot->covenClassID == COVEN_CLASSID_DEGEN)
-			botdata->m_flBaseSpeed = (float)COVEN_BASESPEED_DEGEN;
+			botdata->m_flBaseSpeed = COVEN_BASESPEED_DEGEN;
 		else if (pBot->covenClassID == COVEN_CLASSID_SOULEAT)
-			botdata->m_flBaseSpeed = (float)COVEN_BASESPEED_SOULEAT;
+			botdata->m_flBaseSpeed = COVEN_BASESPEED_SOULEAT;
 		//else if (pBot->covenClassID == COVEN_CLASSID_BLOOD)
-		//	botdata->m_flBaseSpeed = (float)COVEN_BASESPEED_BLOOD;
+		//	botdata->m_flBaseSpeed = COVEN_BASESPEED_BLOOD;
 	}
 	else
 		botdata->m_flBaseSpeed = 600.0f;
@@ -315,6 +350,7 @@ CBasePlayer *BotPutInServer( bool bFrozen, int iTeam )
 	g_BotData[pPlayer->entindex() - 1].lastThinkTime = gpGlobals->curtime;
 	g_BotData[pPlayer->entindex() - 1].pCombatTarget = NULL;
 	g_BotData[pPlayer->entindex() - 1].bPassedNodeLOS = false;
+	g_BotData[pPlayer->entindex() - 1].m_lastBuildingChecked = BUILDING_DEFAULT;
 
 	return pPlayer;
 }
@@ -679,7 +715,16 @@ void PlayerCheck( CHL2MP_Player *pBot )
 					trace_t trace;
 
 					if (isVampDoll)
-						UTIL_TraceLine(vecSrc, vecEnd, MASK_SHOT, pBot, COLLISION_GROUP_WEAPON, &trace );
+						UTIL_TraceLine(vecSrc, vecEnd, MASK_SHOT, pBot, COLLISION_GROUP_WEAPON, &trace);
+					//BB: BLEH.
+					else if (pPlayer->IsABuilding())
+					{
+						CCovenBuilding *bldg = ToCovenBuilding(pPlayer);
+						if (bldg->MyType() == BUILDING_TURRET && ((CCoven_Turret *)bldg)->bTipped)
+							UTIL_TraceLine(vecSrc, vecEnd, MASK_SHOT, pBot, COLLISION_GROUP_WEAPON, &trace);
+						else
+							UTIL_TraceLine(vecSrc, vecEnd, MASK_SHOT, pBot, COLLISION_GROUP_PLAYER, &trace);
+					}
 					else
 						UTIL_TraceLine(vecSrc, vecEnd, MASK_SHOT, pBot, COLLISION_GROUP_PLAYER, &trace );
 
@@ -692,6 +737,7 @@ void PlayerCheck( CHL2MP_Player *pBot )
 						botdata->m_flLastCombatDist = dist;
 						botdata->guardTimer = 0.0f;
 						botdata->bGuarding = false;
+						botdata->pCombatTarget = pPlayer;
 						return;
 					}
 				}
@@ -724,7 +770,8 @@ void PlayerCheck( CHL2MP_Player *pBot )
 	botdata->bForceCombat = false;
 	botdata->m_flLastCombatDist = MAX_TRACE_LENGTH;
 	botdata->pCombatTarget = NULL;
-	botdata->m_lastPlayerCheck++;
+	if (botdata->m_lastBuildingChecked == BUILDING_DEFAULT)
+		botdata->m_lastPlayerCheck++;
 	
 	if (botdata->m_lastPlayerCheck > gpGlobals->maxClients)
 		botdata->m_lastPlayerCheck = 0;
@@ -968,18 +1015,45 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot)
 		{
 			int abilityNum = pBot->GetAbilityNumber(pBot->covenAbilities[COVEN_ABILITY_INTIMIDATINGSHOUT]);
 			float cd = pBot->GetCooldown(abilityNum);
-			if (gpGlobals->curtime >= cd || cd == 0.0f && botdata->m_flLastCombatDist < COVEN_INTIMIDATINGSHOUT_DIST)
+			if ((gpGlobals->curtime >= cd || cd == 0.0f) && botdata->m_flLastCombatDist < COVEN_INTIMIDATINGSHOUT_DIST)
 			{
 				CBaseCombatCharacter *pEnemy = BotGetEnemy(pBot);
-				if (pEnemy && pEnemy->IsAlive() && !pEnemy->KO)
+				if (pEnemy && pEnemy->IsPlayer() && pEnemy->IsAlive() && !pEnemy->KO)
 					buttons |= pBot->covenAbilities[COVEN_ABILITY_INTIMIDATINGSHOUT];
 			}
 		}
 	}
 	//BB: TODO: random sneak walk
 	//BB: TODO: phasing
-	//BB: TODO: blood explode on cd and distance
 	//BB: TODO: dodge
+	if (pBot->covenAbilities[COVEN_ABILITY_DETONATEBLOOD] > 0)
+	{
+		if (botdata->bCombat)
+		{
+			int abilityNum = pBot->GetAbilityNumber(pBot->covenAbilities[COVEN_ABILITY_DETONATEBLOOD]);
+			float cd = pBot->GetCooldown(abilityNum);
+			if ((gpGlobals->curtime >= cd || cd == 0.0f) && botdata->m_flLastCombatDist < COVEN_DETONATEBLOOD_DIST)
+			{
+				CBaseCombatCharacter *pEnemy = BotGetEnemy(pBot);
+				if (pEnemy && pEnemy->IsAlive() && !pEnemy->KO)
+				{
+					buttons |= pBot->covenAbilities[COVEN_ABILITY_DETONATEBLOOD];
+				}
+			}
+		}
+		else
+		{
+			if (!botdata->bLost)
+			{
+				int abilityNum = pBot->GetAbilityNumber(pBot->covenAbilities[COVEN_ABILITY_DETONATEBLOOD]);
+				float cd = pBot->GetCooldown(abilityNum);
+				if ((gpGlobals->curtime >= cd || cd == 0.0f) && (float)pBot->GetHealth() / pBot->GetMaxHealth() > 0.5f && ((pBot->covenStatusEffects & COVEN_FLAG_MASOCHIST) == 0 || gpGlobals->curtime - pBot->GetStatusTime(COVEN_BUFF_MASOCHIST) < 1.0f))
+				{
+					buttons |= pBot->covenAbilities[COVEN_ABILITY_DETONATEBLOOD];
+				}
+			}
+		}
+	}
 	if (pBot->covenAbilities[COVEN_ABILITY_LEAP] > 0)
 	{
 		if (botdata->bCombat)
@@ -1071,7 +1145,7 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot)
 		{
 			int abilityNum = pBot->GetAbilityNumber(pBot->covenAbilities[COVEN_ABILITY_DREADSCREAM]);
 			float cd = pBot->GetCooldown(abilityNum);
-			if (gpGlobals->curtime >= cd || cd == 0.0f && botdata->m_flLastCombatDist < COVEN_DREADSCREAM_DIST)
+			if ((gpGlobals->curtime >= cd || cd == 0.0f) && botdata->m_flLastCombatDist < COVEN_DREADSCREAM_DIST)
 			{
 				buttons |= pBot->covenAbilities[COVEN_ABILITY_DREADSCREAM];
 			}
@@ -1415,7 +1489,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 	}
 
 	//Forward momentum calc
-	forwardmove = botdata->m_flBaseSpeed * (botdata->backwards ? -1 : 1);
+	forwardmove = Bot_Velocity(pBot);
 	buttons |= botdata->backwards ? IN_BACK : IN_FORWARD; //freaking WAT. okay HL2 ladders...
 
 	//Actual movement calcs
@@ -1455,8 +1529,8 @@ void Bot_Think( CHL2MP_Player *pBot )
 							if (temp_length < botdata->m_flBaseSpeed)
 							{
 								CCovenBuilding *building = ToCovenBuilding(pPlayer);
-								forwardmove = temp_length;
-								if (building->MyType() == BUILDING_TURRET && ((CCoven_Turret *)building)->bTipped)
+								//forwardmove = max(0.75f * botdata->m_flBaseSpeed, temp_length);
+								if ((building->MyType() == BUILDING_TURRET && ((CCoven_Turret *)building)->bTipped) || temp_length < 100)
 								{
 									buttons |= IN_DUCK;
 								}
@@ -1566,7 +1640,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 				{
 					Vector vecEnd, vecSrc;
 					float angledelta = 15.0f;
-					int maxtries = (int)360.0 / angledelta;
+					int maxtries = 360 / angledelta;
 
 					int dir = -1;
 					if (botdata->left)

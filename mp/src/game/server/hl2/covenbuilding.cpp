@@ -329,6 +329,7 @@ void CCovenBuilding::SelfDestructThink(void)
 void CCovenBuilding::SelfDestruct(void)
 {
 	m_iHealth = 0;
+	m_lifeState = LIFE_DYING;
 	NotifyOwner();
 	if (mOwner != NULL)
 	{
@@ -701,7 +702,7 @@ void CCovenBuilding::OnPhysGunDrop(CBasePlayer *pPhysGunUser, PhysGunDrop_t Reas
 	// If this is a friendly turret, remember that it was just dropped
 	m_flPlayerDropTime = gpGlobals->curtime + 2.0;
 
-	SetCollisionGroup(COLLISION_GROUP_NONE);
+	SetCollisionGroup(COLLISION_GROUP_PLAYER);
 
 	// Restore our mass to the original value
 	Assert(VPhysicsGetObject());

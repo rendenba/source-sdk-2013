@@ -173,6 +173,7 @@ public:
 	bool GiveXP(float XP);
 	void SetXP(float XP);
 	int GetTotalXP();
+	void ResetCovenStatus();
 	int GetXP();
 	float xp_part;
 	virtual bool LevelUp(int lvls, bool bBoostStats = false, bool bSound = false, bool bAutoLevel = false, bool bResetHP = false, bool bEffect = false);
@@ -327,9 +328,9 @@ public:
 	virtual void DestroyAllBuildings(void);
 	void SetPointsSpent(int pts);
 	void SetCurrentLoadout(int i, int load);
-	//float GetCooldown(int abil);
-	void SetCooldown(int abil, float time);
-	void SetStatusTime(int s, float time);
+	void SetCooldown(int n, float fTime);
+	float GetCooldown(int n);
+	void SetStatusTime(int s, float fTime);
 	float GetStatusTime(int s);
 	void SetStatusMagnitude(int s, int m);
 	int GetStatusMagnitude(int s);

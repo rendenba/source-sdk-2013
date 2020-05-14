@@ -42,13 +42,14 @@ public:
 	virtual void	OnBuildingComplete(void);
 
 	virtual void	Enable(void);
-	virtual			BuildingType MyType() { return BUILDING_AMMOCRATE; };
+	virtual			BuildingType const MyType() { return BUILDING_AMMOCRATE; };
 
 	void		AddMetal(void);
 	int			GetMetal(int have);
 	bool		GiveMetal(CHL2MP_Player *pPlayer);
 	bool		GiveAmmo(int index, bool &gaveMetal);
 	bool		Open(CBasePlayer *pPlayer);
+	virtual const Vector GetPlayerMidPoint(void) const;
 
 	int m_iMetal;
 	int m_flMetalTimer;

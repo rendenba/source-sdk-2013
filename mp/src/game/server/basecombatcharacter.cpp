@@ -427,7 +427,7 @@ void CBaseCombatCharacter::SlayerLightHandler(float angle, float influenceDistan
 		{
 			if (pRebels->GetPlayer(i))
 			{
-				CHL2MP_Player *temp = ((CHL2MP_Player *)pRebels->GetPlayer(i));
+				CHL2MP_Player *temp = ToHL2MPPlayer(pRebels->GetPlayer(i));
 				Vector direction = temp->GetPlayerMidPoint() - EyePosition();
 				float distance = VectorNormalize(direction);
 				if (distance <= 750.0f)

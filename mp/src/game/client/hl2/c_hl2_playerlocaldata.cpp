@@ -49,10 +49,6 @@ END_PREDICTION_DATA()
 
 C_HL2PlayerLocalData::C_HL2PlayerLocalData()
 {
-	covenCooldownTimers[0] = 0.0f;
-	covenCooldownTimers[1] = 0.0f;
-	covenCooldownTimers[2] = 0.0f;
-	covenCooldownTimers[3] = 0.0f;
 	covenCurrentPointsSpent = 0;
 	covenCurrentLoadout1 = 0;
 	covenCurrentLoadout2 = 0;

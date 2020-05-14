@@ -67,7 +67,7 @@ public:
 	virtual bool	IsBaseCombatCharacter( void ) { return true; };
 	virtual C_BaseCombatCharacter *MyCombatCharacterPointer( void ) { return this; }
 	virtual int		GetCovenStatusEffects( void ) { return 0; }
-	const Vector	GetPlayerMidPoint() const;
+	virtual const Vector	GetPlayerMidPoint() const;
 	virtual bool	IsBuilderClass(void);
 
 	//BB: control lights at this class level.

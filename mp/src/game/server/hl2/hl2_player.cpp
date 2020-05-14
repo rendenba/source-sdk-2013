@@ -421,9 +421,9 @@ float CHL2_Player::GetStatusTime(int s)
 	return m_HL2Local.covenStatusTimers.Get(s);
 }
 
-void CHL2_Player::SetStatusTime(int s, float time)
+void CHL2_Player::SetStatusTime(int s, float fTime)
 {
-	m_HL2Local.covenStatusTimers.Set(s, time);
+	m_HL2Local.covenStatusTimers.Set(s, fTime);
 }
 
 int CHL2_Player::GetStatusMagnitude(int s)
@@ -434,6 +434,30 @@ int CHL2_Player::GetStatusMagnitude(int s)
 void CHL2_Player::SetStatusMagnitude(int s, int m)
 {
 	m_HL2Local.covenStatusMagnitude.Set(s, m);
+}
+
+void CHL2_Player::ResetCovenStatus()
+{
+	for (int i = 0; i < m_HL2Local.covenStatusTimers.Count(); i++)
+		m_HL2Local.covenStatusTimers.Set(i, 0);
+	for (int i = 0; i < m_HL2Local.covenStatusMagnitude.Count(); i++)
+		m_HL2Local.covenStatusMagnitude.Set(i, 0);
+}
+
+
+void CHL2_Player::SetCooldown(int n, float fTime)
+{
+	if (n >= 0 && n <= 3)
+	{
+		m_HL2Local.covenCooldownTimers.Set(n, fTime);
+	}
+}
+
+float CHL2_Player::GetCooldown(int n)
+{
+	if (n < 0 || n > 3)
+		return 0.0f;
+	return m_HL2Local.covenCooldownTimers.Get(n);
 }
 
 //
@@ -490,22 +514,6 @@ void CHL2_Player::SetPointsSpent(int pts)
 {
 	m_HL2Local.covenCurrentPointsSpent = pts;
 }
-
-void CHL2_Player::SetCooldown(int abil, float time)
-{
-	if (abil >= 0 && abil <= 3)
-	{
-		m_HL2Local.covenCooldownTimers.Set(abil, time);
-	}
-}
-
-/*float CHL2_Player::GetCooldown(int abil)
-{
-	if (abil < 0 || abil > 3)
-		return 0.0f;
-
-	return m_HL2Local.covenCooldownTimers.Get(abil);
-}*/
 
 void CHL2_Player::Precache( void )
 {
@@ -1563,11 +1571,11 @@ void CHL2_Player::ComputeSpeed( void )
 	}
 
 	if (covenStatusEffects & COVEN_FLAG_SLOW)
-		speed *= 1.0f - GetStatusMagnitude(COVEN_BUFF_SLOW)*0.15f;
+		speed *= 1.0f - GetStatusMagnitude(COVEN_BUFF_SLOW)*0.01f;
 
 	if (covenStatusEffects & COVEN_FLAG_SPRINT)
 	{
-		speed *= (1.05f + 0.25f*GetStatusMagnitude(COVEN_BUFF_SPRINT));
+		speed *= (1.0f + 0.01f*GetStatusMagnitude(COVEN_BUFF_SPRINT));
 		//CBaseCombatWeapon *pActiveWeapon = GetActiveWeapon();
 		//if (GetViewModel())
 		//	GetViewModel()->SetPlaybackRate(3.0f*GetStatusMagnitude(COVEN_BUFF_SPRINT));
@@ -1583,7 +1591,7 @@ void CHL2_Player::ComputeSpeed( void )
 		speed *= 1.5f;
 
 	if (covenStatusEffects & COVEN_FLAG_MASOCHIST)
-		speed *= 1.0f + GetStatusMagnitude(COVEN_BUFF_MASOCHIST)/100.0f;
+		speed *= 1.0f + 0.01f*GetStatusMagnitude(COVEN_BUFF_MASOCHIST);
 
 	SetMaxSpeed( speed );
 }

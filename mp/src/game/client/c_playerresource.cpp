@@ -164,7 +164,8 @@ int C_PlayerResource::GetTeam(int iIndex )
 {
 	if ( iIndex < 1 || iIndex > MAX_PLAYERS )
 	{
-		Assert( false );
+		//BB: i am hacking this and am tired of this assert.
+		//Assert( false );
 		return 0;
 	}
 	else

@@ -386,10 +386,10 @@ void CHudAbils::Paint()
 	//BB: TODO: HACK! fix this?
 	if (pPlayer->m_CovenBuilderLocal.m_iNumTripmines > 0)
 	{
-		char numTM[3];
 		wchar_t wNumTM[3];
-		Q_snprintf(numTM, sizeof(numTM), "%d", pPlayer->m_CovenBuilderLocal.m_iNumTripmines);
-		g_pVGuiLocalize->ConvertANSIToUnicode(numTM, wNumTM, sizeof(wNumTM));
+		swprintf(wNumTM, sizeof(wNumTM), L"%d", pPlayer->m_CovenBuilderLocal.m_iNumTripmines);
+		//Q_snprintf(numTM, sizeof(numTM), "%d", pPlayer->m_CovenBuilderLocal.m_iNumTripmines);
+		//g_pVGuiLocalize->ConvertANSIToUnicode(numTM, wNumTM, sizeof(wNumTM));
 		DrawTextTitle(1.8f * minset, y, wide - 1.8f * minset, wide - 2.0f * minset, wNumTM, false, m_hFontNumerals);
 	}
 	DrawTextTitle(0, y, wide, wide - inset, abilities[team][pPlayer->covenClassID - 1][0], teatime > 0.0f);
