@@ -218,7 +218,7 @@ public:
 			{
 				if( !Q_stricmp( "reaver", GetName() ) )
 				{
-					m_pPanel->SetText("Reaver:\nClose range tank, also somewhat effective at medium range. Slow speed.\nMax HP: 112\n\n10 Gauge Double Barrel Shotgun:\nVery slow reload, but backs a close to mid range whallop.\n\nAbilities:\n\nSprint: Boosts speed.\n\nSheer Will: Boosts all stats.\n\nIntimidating Shout: Stuns all enemies within range.\n\nGut Check: Grants immunity from one damaging effect while active.");
+					m_pPanel->SetText("Reaver:\nClose range tank, also somewhat effective at medium range. Slow speed.\nMax HP: 100\n\n10 Gauge Double Barrel Shotgun:\nVery slow reload, but backs a close to mid range whallop.\n\nAbilities:\n\nSprint: Boosts speed.\n\nSheer Will: Boosts all stats.\n\nIntimidating Shout: Stuns all enemies within range.\n\nGut Check: Grants immunity from one damaging effect while active.");
 				}
 				else if( !Q_stricmp( "hellion", GetName() ) )
 				{

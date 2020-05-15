@@ -58,9 +58,9 @@ static int BotNumber = 1;
 static int g_iNextBotTeam = -1;
 static int g_iNextBotClass = -1;
 
-static char *botnames[2][10] = 
-{{"Blade","Gabriel Van Helsing","Lucian","Edgar Frog", "Allan Frog","Anita Blake","Simon Belmont","Buffy Summers","Abraham Van Helsing","Mister"},
-{"Edward Cullen","Lestat de Lioncourt","Louis de Pointe du Lac","Liam","Jeanette","Therese","Bill Compton","Eric Northman","Armand","Eli"}};
+static char *botnames[2][14] =
+{ { "Blade", "Gabriel Van Helsing", "Lucian", "Edgar Frog", "Allan Frog", "Anita Blake", "Simon Belmont", "Buffy Summers", "Abraham Van Helsing", "Mister", "Abraham Lincoln", "Quincey Morris", "Dr. Robert Neville", "Angel" },
+{ "Edward Cullen", "Lestat de Lioncourt", "Louis de Pointe du Lac", "Liam", "Jeanette", "Therese", "Bill Compton", "Eric Northman", "Armand", "Eli", "David", "Dracula", "Count von Count", "Claudia" } };
 
 #define OBJECTIVE_TYPE_NONE -1
 #define OBJECTIVE_TYPE_ROGUE 0
@@ -141,6 +141,7 @@ typedef struct
 	int				m_lastCheckedObjective;
 
 	int				m_role;
+	int				RN;
 
 	int				strikes;
 } botdata_t;
@@ -182,6 +183,7 @@ void BotRemove( CHL2MP_Player *pBot )
 
 	g_BotData[pBot->entindex()-1].m_WantedTeam = 0;
 	g_BotData[pBot->entindex()-1].m_flJoinTeamTime = 0;
+	HL2MPRules()->botnameUsed[pBot->GetTeamNumber() - 2][g_BotData[pBot->entindex() - 1].RN] = false;
 	//BotNumber--;
 }
 
@@ -283,76 +285,85 @@ CBasePlayer *BotPutInServer( bool bFrozen, int iTeam )
 
 	//BotNumber
 	char botname[ 64 ];
-	Q_snprintf( botname, sizeof( botname ), "%s", botnames[iTeam-2][random->RandomInt(0,9)] );
-
-	// This is an evil hack, but we use it to prevent sv_autojointeam from kicking in.
-
-	edict_t *pEdict = engine->CreateFakeClient( botname );
-
-	if (!pEdict)
+	int rn = random->RandomInt(0, 13);
+	if (!HL2MPRules()->botnameUsed[iTeam - 2][rn])
 	{
-		Msg( "Failed to create Bot.\n");
-		return NULL;
+		Q_snprintf(botname, sizeof(botname), "%s", botnames[iTeam - 2][rn]);
+
+
+		// This is an evil hack, but we use it to prevent sv_autojointeam from kicking in.
+
+		edict_t *pEdict = engine->CreateFakeClient(botname);
+
+		if (!pEdict)
+		{
+			Msg("Failed to create Bot.\n");
+			return NULL;
+		}
+
+		HL2MPRules()->botnameUsed[iTeam - 2][rn] = true;
+
+		// Allocate a CBasePlayer for the bot, and call spawn
+		//ClientPutInServer( pEdict, botname );
+		CHL2MP_Player *pPlayer = ((CHL2MP_Player *)CBaseEntity::Instance(pEdict));
+		pPlayer->ClearFlags();
+		pPlayer->AddFlag(FL_CLIENT | FL_FAKECLIENT);
+
+		pPlayer->ChangeTeam(iTeam);
+
+		if (bFrozen)
+			pPlayer->AddEFlags(EFL_BOT_FROZEN);
+
+		pPlayer->Spawn();
+
+		BotNumber++;
+
+		g_BotData[pPlayer->entindex() - 1].m_WantedTeam = iTeam;
+		g_BotData[pPlayer->entindex() - 1].m_flJoinTeamTime = gpGlobals->curtime + 0.3;
+		g_BotData[pPlayer->entindex() - 1].m_lastNode = -1;
+		g_BotData[pPlayer->entindex() - 1].m_targetNode = 0;
+		g_BotData[pPlayer->entindex() - 1].m_lastNodeProbe = 0;
+		g_BotData[pPlayer->entindex() - 1].m_lastPlayerCheck = 0;
+		g_BotData[pPlayer->entindex() - 1].goWild = 0.0f;
+		g_BotData[pPlayer->entindex() - 1].wildReverse = true;
+		g_BotData[pPlayer->entindex() - 1].stuckTimer = 0.0f;
+		g_BotData[pPlayer->entindex() - 1].stuckTimerThink = 0.0f;
+		g_BotData[pPlayer->entindex() - 1].spawnTimer = 0.0f;
+		g_BotData[pPlayer->entindex() - 1].guardTimer = 0.0f;
+		g_BotData[pPlayer->entindex() - 1].bLost = true;
+		g_BotData[pPlayer->entindex() - 1].bIgnoreZ = false;
+		g_BotData[pPlayer->entindex() - 1].bCombat = false;
+		g_BotData[pPlayer->entindex() - 1].bForceCombat = false;
+		g_BotData[pPlayer->entindex() - 1].left = false;
+		g_BotData[pPlayer->entindex() - 1].turns = 0.0f;
+		g_BotData[pPlayer->entindex() - 1].strikes = 0;
+		g_BotData[pPlayer->entindex() - 1].m_objective = -1;
+		g_BotData[pPlayer->entindex() - 1].m_objectiveType = -1;
+		g_BotData[pPlayer->entindex() - 1].m_role = -1;
+		g_BotData[pPlayer->entindex() - 1].m_flBaseSpeed = 600.0f;
+		g_BotData[pPlayer->entindex() - 1].m_flOverrideDur = 0.0f;
+		g_BotData[pPlayer->entindex() - 1].m_flAbility1Timer = 0.0f;
+		g_BotData[pPlayer->entindex() - 1].m_flAbility2Timer = 0.0f;
+		g_BotData[pPlayer->entindex() - 1].m_flAbility3Timer = 0.0f;
+		g_BotData[pPlayer->entindex() - 1].m_flAbility4Timer = 0.0f;
+		g_BotData[pPlayer->entindex() - 1].m_flLastCombat = 0.0f;
+		g_BotData[pPlayer->entindex() - 1].m_flLastCombatDist = MAX_TRACE_LENGTH;
+		g_BotData[pPlayer->entindex() - 1].bGuarding = false;
+		g_BotData[pPlayer->entindex() - 1].m_lastCheckedObjective = 0;
+		g_BotData[pPlayer->entindex() - 1].m_lastPlayerDot = 1.0f;
+		g_BotData[pPlayer->entindex() - 1].m_flReactionTime = -1.0f;
+		g_BotData[pPlayer->entindex() - 1].alreadyReacted = false;
+		g_BotData[pPlayer->entindex() - 1].stuckPCheck = true;
+		g_BotData[pPlayer->entindex() - 1].bVisCheck = false;
+		g_BotData[pPlayer->entindex() - 1].lastThinkTime = gpGlobals->curtime;
+		g_BotData[pPlayer->entindex() - 1].pCombatTarget = NULL;
+		g_BotData[pPlayer->entindex() - 1].bPassedNodeLOS = false;
+		g_BotData[pPlayer->entindex() - 1].m_lastBuildingChecked = BUILDING_DEFAULT;
+		g_BotData[pPlayer->entindex() - 1].RN = rn;
+
+		return pPlayer;
 	}
-
-	// Allocate a CBasePlayer for the bot, and call spawn
-	//ClientPutInServer( pEdict, botname );
-	CHL2MP_Player *pPlayer = ((CHL2MP_Player *)CBaseEntity::Instance( pEdict ));
-	pPlayer->ClearFlags();
-	pPlayer->AddFlag( FL_CLIENT | FL_FAKECLIENT );
-
-	pPlayer->ChangeTeam(iTeam);
-
-	if ( bFrozen )
-		pPlayer->AddEFlags( EFL_BOT_FROZEN );
-
-	pPlayer->Spawn();
-
-	BotNumber++;
-
-	g_BotData[pPlayer->entindex()-1].m_WantedTeam = iTeam;
-	g_BotData[pPlayer->entindex()-1].m_flJoinTeamTime = gpGlobals->curtime + 0.3;
-	g_BotData[pPlayer->entindex()-1].m_lastNode = -1;
-	g_BotData[pPlayer->entindex()-1].m_targetNode = 0;
-	g_BotData[pPlayer->entindex()-1].m_lastNodeProbe = 0;
-	g_BotData[pPlayer->entindex()-1].m_lastPlayerCheck = 0;
-	g_BotData[pPlayer->entindex()-1].goWild = 0.0f;
-	g_BotData[pPlayer->entindex() - 1].wildReverse = true;
-	g_BotData[pPlayer->entindex() - 1].stuckTimer = 0.0f;
-	g_BotData[pPlayer->entindex() - 1].stuckTimerThink = 0.0f;
-	g_BotData[pPlayer->entindex()-1].spawnTimer = 0.0f;
-	g_BotData[pPlayer->entindex()-1].guardTimer = 0.0f;
-	g_BotData[pPlayer->entindex() - 1].bLost = true;
-	g_BotData[pPlayer->entindex() - 1].bIgnoreZ = false;
-	g_BotData[pPlayer->entindex()-1].bCombat = false;
-	g_BotData[pPlayer->entindex()-1].bForceCombat = false;
-	g_BotData[pPlayer->entindex()-1].left = false;
-	g_BotData[pPlayer->entindex()-1].turns = 0.0f;
-	g_BotData[pPlayer->entindex()-1].strikes = 0;
-	g_BotData[pPlayer->entindex()-1].m_objective = -1;
-	g_BotData[pPlayer->entindex()-1].m_objectiveType = -1;
-	g_BotData[pPlayer->entindex()-1].m_role = -1;
-	g_BotData[pPlayer->entindex() - 1].m_flBaseSpeed = 600.0f;
-	g_BotData[pPlayer->entindex() - 1].m_flOverrideDur = 0.0f;
-	g_BotData[pPlayer->entindex() - 1].m_flAbility1Timer = 0.0f;
-	g_BotData[pPlayer->entindex() - 1].m_flAbility2Timer = 0.0f;
-	g_BotData[pPlayer->entindex() - 1].m_flAbility3Timer = 0.0f;
-	g_BotData[pPlayer->entindex() - 1].m_flAbility4Timer = 0.0f;
-	g_BotData[pPlayer->entindex() - 1].m_flLastCombat = 0.0f;
-	g_BotData[pPlayer->entindex() - 1].m_flLastCombatDist = MAX_TRACE_LENGTH;
-	g_BotData[pPlayer->entindex() - 1].bGuarding = false;
-	g_BotData[pPlayer->entindex() - 1].m_lastCheckedObjective = 0;
-	g_BotData[pPlayer->entindex() - 1].m_lastPlayerDot = 1.0f;
-	g_BotData[pPlayer->entindex() - 1].m_flReactionTime = -1.0f;
-	g_BotData[pPlayer->entindex() - 1].alreadyReacted = false;
-	g_BotData[pPlayer->entindex() - 1].stuckPCheck = true;
-	g_BotData[pPlayer->entindex() - 1].bVisCheck = false;
-	g_BotData[pPlayer->entindex() - 1].lastThinkTime = gpGlobals->curtime;
-	g_BotData[pPlayer->entindex() - 1].pCombatTarget = NULL;
-	g_BotData[pPlayer->entindex() - 1].bPassedNodeLOS = false;
-	g_BotData[pPlayer->entindex() - 1].m_lastBuildingChecked = BUILDING_DEFAULT;
-
-	return pPlayer;
+	return NULL;
 }
 
 //BB: TODO: this is effectively currently copying a copy of a vector... improve!
@@ -1009,6 +1020,21 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot)
 			}
 		}
 	}
+	if (pBot->covenAbilities[COVEN_ABILITY_DARKWILL] > 0)
+	{
+		if (botdata->bCombat)
+		{
+			if (!(pBot->covenStatusEffects & COVEN_FLAG_STATS))
+			{
+				int abilityNum = pBot->GetAbilityNumber(pBot->covenAbilities[COVEN_ABILITY_DARKWILL]);
+				float cd = pBot->GetCooldown(abilityNum);
+				if (gpGlobals->curtime >= cd || cd == 0.0f)
+				{
+					buttons |= pBot->covenAbilities[COVEN_ABILITY_DARKWILL];
+				}
+			}
+		}
+	}
 	if (pBot->covenAbilities[COVEN_ABILITY_INTIMIDATINGSHOUT] > 0)
 	{
 		if (botdata->bCombat)
@@ -1237,6 +1263,19 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot)
 	}
 	if (pBot->covenAbilities[COVEN_ABILITY_BUILDTURRET] > 0)
 	{
+		if (botdata->bCombat)
+		{
+			int abilityNum = pBot->GetAbilityNumber(pBot->covenAbilities[COVEN_ABILITY_BUILDTURRET]);
+			float cd = pBot->GetCooldown(abilityNum);
+			if ((gpGlobals->curtime >= cd || cd == 0.0f) && pBot->SuitPower_GetCurrentPercentage() >= 130.0f)
+			{
+				CCovenBuilding *bldg = ToCovenBuilding(pBot->m_hTurret);
+				if (bldg == NULL || ((CCoven_Turret *)bldg)->bTipped)
+				{
+					buttons |= pBot->covenAbilities[COVEN_ABILITY_BUILDTURRET];
+				}
+			}
+		}
 	}
 	if (pBot->covenAbilities[COVEN_ABILITY_BUILDDISPENSER] > 0)
 	{

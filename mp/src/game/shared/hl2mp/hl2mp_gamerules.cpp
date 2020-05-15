@@ -240,6 +240,7 @@ CHL2MPRules::CHL2MPRules()
 		g_Teams.AddToTail( pTeam );
 	}
 
+	Q_memset(botnameUsed, 0, sizeof(botnameUsed));
 	Q_memset(botnet, 0, sizeof(botnet));
 	bot_node_count = 0;
 

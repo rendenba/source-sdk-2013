@@ -160,6 +160,7 @@ public:
 	int covenGameState;
 	float covenGameStateTimer;
 	float covenFlashTimer;
+	bool botnameUsed[2][14];
 
 	CBaseEntity *thects;
 	

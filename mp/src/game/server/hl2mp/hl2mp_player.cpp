@@ -850,8 +850,8 @@ void CHL2MP_Player::DoAbilityThink(int keyNum)
 			}
 			else if (m_afButtonPressed & covenAbilities[COVEN_ABILITY_BLOODLUST])
 			{
-				SetCooldown(abilityNum, gpGlobals->curtime + 18.0f);
-				DoBloodLust(10);
+				SetCooldown(abilityNum, gpGlobals->curtime + 16.0f);
+				DoBloodLust(20);
 			}
 			else if (m_afButtonPressed & covenAbilities[COVEN_ABILITY_BERSERK])
 			{
@@ -1110,14 +1110,23 @@ bool CHL2MP_Player::LevelUp(int lvls, bool bBoostStats = false, bool bSound = fa
 
 		EmitSound( "NPC_CombineBall.Explosion" );
 	}
+
+	int oldMax = GetMaxHealth();
 	ResetVitals();
 
 	//BB: too many levels... do not reset health anymore?
-	if (bResetHP && GetHealth() <= GetMaxHealth())
+	if (bResetHP)
 	{
-		int hp = myConstitution()*COVEN_HP_PER_CON;
-		if (GetHealth() < hp)
-			SetHealth(hp);
+		if (GetHealth() <= GetMaxHealth())
+		{
+			int hp = myConstitution()*COVEN_HP_PER_CON;
+			if (GetHealth() < hp)
+				SetHealth(hp);
+		}
+	}
+	else
+	{
+		SetHealth(GetHealth() + GetMaxHealth() - oldMax);
 	}
 
 	if (bSound)
@@ -4588,7 +4597,7 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 		}
 		stat = min(stat + add, 175);
 		SetStatusMagnitude(COVEN_BUFF_MASOCHIST, stat);
-		SetStatusTime(COVEN_BUFF_MASOCHIST, gpGlobals->curtime + 8.0f);
+		SetStatusTime(COVEN_BUFF_MASOCHIST, gpGlobals->curtime + 10.0f);
 		ComputeSpeed();
 	}
 	if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)

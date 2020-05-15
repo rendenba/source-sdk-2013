@@ -442,6 +442,8 @@ void CHL2_Player::ResetCovenStatus()
 		m_HL2Local.covenStatusTimers.Set(i, 0);
 	for (int i = 0; i < m_HL2Local.covenStatusMagnitude.Count(); i++)
 		m_HL2Local.covenStatusMagnitude.Set(i, 0);
+	for (int i = 0; i < m_HL2Local.covenCooldownTimers.Count(); i++)
+		m_HL2Local.covenCooldownTimers.Set(i, 0);
 }
 
 
