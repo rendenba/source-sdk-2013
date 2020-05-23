@@ -14,11 +14,14 @@
 #include <vgui_controls/AnimationController.h>
 #include <vgui/ISurface.h>
 #include <vgui/ILocalize.h>
+#include "hl2mp_gamerules.h"
 
 using namespace vgui;
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
+
+extern ConVar sv_coven_mana_per_int;
 
 DECLARE_HUDELEMENT( CHudSuitPower );
 
@@ -156,10 +159,11 @@ void CHudSuitPower::Paint()
 	if ( !pPlayer )
 		return;
 
-	float max = pPlayer->myIntellect() * COVEN_MANA_PER_INT;
+	float max = pPlayer->GetIntellect() * sv_coven_mana_per_int.GetFloat();
 
 	//BB: HACK builder needs a lot (builder is not networked)
-	if (pPlayer->GetTeamNumber() == COVEN_TEAMID_SLAYERS && pPlayer->covenClassID == COVEN_CLASSID_HELLION)
+	//if (pPlayer->GetTeamNumber() == COVEN_TEAMID_SLAYERS && pPlayer->covenClassID == (COVEN_CLASSID_HELLION & COVEN_CLASS_MASK))
+	if (pPlayer->IsBuilderClass())
 		max = 200.0f;
 
 	int wide, tall;

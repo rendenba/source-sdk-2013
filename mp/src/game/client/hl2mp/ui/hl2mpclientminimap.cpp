@@ -595,7 +595,7 @@ bool CHL2MPClientMiniMapDialog::LoadFromBuffer( char const *resourceName, CUtlBu
 				buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
 				const char *v = temparray;
 				UTIL_StringToIntArray(&y, 1, v);
-				Vector temp(x,y,0);
+				Vector2D temp(x,y);
 				mapspots.AddToTail(temp);
 				buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
 				const char *a = temparray;
@@ -603,7 +603,7 @@ bool CHL2MPClientMiniMapDialog::LoadFromBuffer( char const *resourceName, CUtlBu
 				buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
 				const char *b = temparray;
 				UTIL_StringToIntArray(&y, 1, b);
-				Vector temp2(x,y,0);
+				Vector2D temp2(x,y);
 				textspots.AddToTail(temp2);
 				buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
 				const char *c = temparray;
@@ -621,7 +621,7 @@ bool CHL2MPClientMiniMapDialog::LoadFromBuffer( char const *resourceName, CUtlBu
 			buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
 			const char *v = temparray;
 			UTIL_StringToIntArray(&y, 1, v);
-			cts = Vector(x,y,0);
+			cts = Vector2D(x,y);
 			buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
 			const char *t = temparray;
 			float locs[3];
@@ -637,7 +637,7 @@ bool CHL2MPClientMiniMapDialog::LoadFromBuffer( char const *resourceName, CUtlBu
 			buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
 			const char *v = temparray;
 			UTIL_StringToIntArray(&y, 1, v);
-			cts_zone = Vector(x,y,0);
+			cts_zone = Vector2D(x,y);
 		}
 	}
 	return true;
@@ -670,6 +670,49 @@ bool CHL2MPClientMiniMapDialog::LoadDotFile( IBaseFileSystem *filesystem, const 
 	return retOK;
 }
 
+bool CHL2MPClientMiniMapDialog::LoadDotFile(IBaseFileSystem *filesystem, const char *resourceName)
+{
+	KeyValues *pMapData = new KeyValues("mapdata");
+	if (pMapData->LoadFromFile(filesystem, resourceName, "GAME"))
+	{
+		KeyValues *pCapturePoints = pMapData->FindKey("capturepoints");
+		if (pCapturePoints)
+		{
+			for (KeyValues *sub = pCapturePoints->GetFirstSubKey(); sub != NULL; sub = sub->GetNextKey())
+			{
+				mapspots.AddToTail(Vector2D(sub->GetInt("x"), sub->GetInt("y")));
+				KeyValues *label = sub->FindKey("label");
+				if (label)
+				{
+					textspots.AddToTail(Vector2D(label->GetInt("x"), label->GetInt("y")));
+					if (textspots.Size() - 1 >= 0)
+						Q_snprintf(text_names[textspots.Size() - 1], sizeof(text_names[textspots.Size() - 1]), "%s", label->GetString("text"));
+				}
+			}
+		}
+		KeyValues *pCTS = pMapData->FindKey("cts");
+		if (pCTS)
+		{
+			usingCTS = true;
+			cts.x = pCTS->GetInt("x");
+			cts.y = pCTS->GetInt("y");
+			float locs[3];
+			UTIL_StringToVector(locs, pCTS->GetString("origin", "0 0 0"));
+			cts_origin.x = locs[0];
+			cts_origin.y = locs[1];
+			cts_origin.z = locs[2];
+			KeyValues *zone = pCTS->FindKey("ctszone");
+			if (zone)
+			{
+				cts_zone.x = zone->GetInt("x");
+				cts_zone.y = zone->GetInt("y");
+			}
+		}
+		return true;
+	}
+	return false;
+}
+
 void CHL2MPClientMiniMapDialog::FireGameEvent( IGameEvent *event )
 {
 	const char * type = event->GetName();
@@ -683,7 +726,7 @@ void CHL2MPClientMiniMapDialog::FireGameEvent( IGameEvent *event )
 
 		char tempfile[MAX_PATH];
 		Q_snprintf( tempfile, sizeof( tempfile ), "maps/%s_hud.txt", event->GetString("mapname") );
-		LoadDotFile(filesystem, tempfile, "GAME");
+		LoadDotFile(filesystem, tempfile);
 
 		m_nMapTex = surface()->CreateNewTextureID();
 		surface()->DrawSetTextureFile( m_nMapTex, mapname, true, true);

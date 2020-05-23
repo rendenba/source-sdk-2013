@@ -101,7 +101,7 @@ public:
 				HL2MPRules()->thects = NULL;
 				HL2MPRules()->cts_return_timer = 0.0f;
 			}
-			((CHL2MP_Player *)pPlayer)->covenStatusEffects |= COVEN_FLAG_CTS;
+			((CHL2_Player *)pPlayer)->AddStatus(COVEN_STATUS_HAS_CTS);
 			pPlayer->AddGlowEffect();
 			pPlayer->EmitSound( "ItemBattery.Touch" );
 			return true;

@@ -82,7 +82,7 @@ bool CHudHealthBar::ShouldDraw()
 		return false;
 
 	// needs draw if suit power changed or animation in progress
-	bNeedsDraw = ( ( pPlayer->GetHealth() != m_iHealth ) || ( m_AuxPowerColor[3] > 0 ) );
+	bNeedsDraw = ( ( pPlayer->GetHealth() != m_iHealth ) || ( pPlayer->GetMaxHealth() != m_iMaxHealth ) || ( m_AuxPowerColor[3] > 0 ) );
 
 	return ( bNeedsDraw && CHudElement::ShouldDraw() );
 }

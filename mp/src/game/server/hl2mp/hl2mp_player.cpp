@@ -27,6 +27,7 @@
 #include "grenade_hh.h"
 #include "coven_turret.h"
 #include "covenbuilding.h"
+#include "coven_parse.h"
 
 #include "grenade_tripmine.h"
 
@@ -61,6 +62,10 @@ extern ConVar sv_coven_xp_basekill;
 extern ConVar sv_coven_xp_inckill;
 extern ConVar sv_coven_xp_diffkill;
 extern ConVar sv_coven_cts_returntime;
+extern ConVar sv_coven_hp_per_con;
+extern ConVar sv_coven_mana_per_int;
+extern ConVar sv_coven_max_stealth_velocity;
+extern ConVar sv_coven_min_stealth_velocity;
 
 #define HL2MP_COMMAND_MAX_RATE 0.3
 
@@ -72,7 +77,6 @@ LINK_ENTITY_TO_CLASS( info_player_combine, CPointEntity );
 LINK_ENTITY_TO_CLASS( info_player_rebel, CPointEntity );
 
 IMPLEMENT_SERVERCLASS_ST(CHL2MP_Player, DT_HL2MP_Player)
-	SendPropInt( SENDINFO(m_iClass), 4 ), //BB: TODO: this is a duplicate? do we need this?
 	SendPropInt( SENDINFO(m_iLevel)),
 	SendPropAngle( SENDINFO_VECTORELEM(m_angEyeAngles, 0), 11, SPROP_CHANGES_OFTEN ),
 	SendPropAngle( SENDINFO_VECTORELEM(m_angEyeAngles, 1), 11, SPROP_CHANGES_OFTEN ),
@@ -188,7 +192,6 @@ CHL2MP_Player::CHL2MP_Player() : m_PlayerAnimState( this )
 
 	BaseClass::ChangeTeam( 0 );
 
-	Q_memset(covenAbilities, 0, sizeof(covenAbilities));
 	Q_memset(covenLoadouts, 0, sizeof(covenLoadouts));
 	Q_memset(covenLevelsSpent, 0, sizeof(covenLevelsSpent));
 	
@@ -346,12 +349,6 @@ void CHL2MP_Player::SlayerSoulThink()
 	}
 }
 
-void CHL2MP_Player::DoIntimidatingShout(int lev)
-{
-	EmitSound("IntShout");
-	GiveBuffInRadius(COVEN_TEAMID_VAMPIRES, COVEN_BUFF_STUN, 1, lev*0.01f, COVEN_INTIMIDATINGSHOUT_DIST, 0);
-}
-
 void CHL2MP_Player::ThrowHolywaterGrenade(int lev)
 {
 	Vector	vecEye = EyePosition();
@@ -389,8 +386,12 @@ void CHL2MP_Player::CheckThrowPosition(const Vector &vecEye, Vector &vecSrc)
 	}
 }
 
-bool CHL2MP_Player::BuildDispenser(int lev)
+bool CHL2MP_Player::BuildDispenser(int iAbilityNum)
 {
+	CovenAbilityInfo_t *info = GetCovenAbilityData(COVEN_ABILITY_BUILDDISPENSER);
+	if (SuitPower_GetCurrentPercentage() < info->flCost)
+		return false;
+
 	QAngle angle = GetLocalAngles();
 	Vector	vForward;
 	AngleVectors(angle, &vForward);
@@ -399,6 +400,9 @@ bool CHL2MP_Player::BuildDispenser(int lev)
 	UTIL_TraceLine(EyePosition(), vecSrc, MASK_PLAYERSOLID, this, COLLISION_GROUP_NONE, &tr);
 	if (tr.DidHit())
 		return false;
+
+	SuitPower_Drain(info->flCost);
+	SetCooldown(iAbilityNum, gpGlobals->curtime + info->flCooldown);
 	if (m_hDispenser != NULL)
 	{
 		CCovenBuilding *building = ToCovenBuilding(m_hDispenser);
@@ -418,8 +422,12 @@ bool CHL2MP_Player::BuildDispenser(int lev)
 	return true;
 }
 
-bool CHL2MP_Player::BuildTurret(int lev)
+bool CHL2MP_Player::BuildTurret(int iAbilityNum)
 {
+	CovenAbilityInfo_t *info = GetCovenAbilityData(COVEN_ABILITY_BUILDTURRET);
+	if (SuitPower_GetCurrentPercentage() < info->flCost)
+		return false;
+
 	Vector	vForward;
 	QAngle angle = GetLocalAngles();
 	angle.x = 0;
@@ -430,6 +438,9 @@ bool CHL2MP_Player::BuildTurret(int lev)
 	UTIL_TraceLine(EyePosition(), vecSrc, MASK_PLAYERSOLID, this, COLLISION_GROUP_NONE, &tr);
 	if (tr.DidHit())
 		return false;
+
+	SuitPower_Drain(info->flCost);
+	SetCooldown(iAbilityNum, gpGlobals->curtime + info->flCooldown);
 	if (m_hTurret != NULL)
 	{
 		CCovenBuilding *building = ToCovenBuilding(m_hTurret);
@@ -481,134 +492,152 @@ void CHL2MP_Player::GenerateBandage(int lev)
 	medkits.AddToHead(((CItem *)ent));
 }
 
-void CHL2MP_Player::BoostStats(int lev, float duration)
+void CHL2MP_Player::BoostStats(CovenAbility_t iReason, int iAbilityNum)
 {
-	int tlev = lev;
+	CovenAbilityInfo_t *info = GetCovenAbilityData(iReason);
 
-	SetStatusTime(COVEN_BUFF_STATS, gpGlobals->curtime + duration);
-	covenStatusEffects |= COVEN_FLAG_STATS;
+	float currentMagnitude = 0.01f * GetStatusMagnitude(COVEN_STATUS_STATBOOST);
+	float magnitude = 0.01f * info->iMagnitude;
+	float str = GetStrength();
+	float intel = GetIntellect();
+	float con = GetConstitution();
+	float stradd = str * magnitude;
+	float inteladd = intel * magnitude;
+	float conadd = con * magnitude;
+	if (iReason == COVEN_ABILITY_REVENGE) //revenge stacks
+	{
+		float totalMagnitude = currentMagnitude + magnitude;
+		AddStatus(COVEN_STATUS_STATBOOST, round(totalMagnitude * 100), gpGlobals->curtime + info->flDuration);
+	}
+	else
+	{
+		if (magnitude == currentMagnitude)
+		{
+			stradd = conadd = inteladd = 0.0f;
+			SetStatusTime(COVEN_STATUS_STATBOOST, gpGlobals->curtime + info->flDuration);
+		}
+		else if (magnitude > currentMagnitude)
+		{
+			CovenClassInfo_t *classInfo = GetCovenClassData(covenClassID);
+			float addtime = (GetStatusTime(COVEN_STATUS_STATBOOST) - gpGlobals->curtime) * currentMagnitude / magnitude;
+			str = classInfo->flStrength;
+			intel = classInfo->flIntellect;
+			con = classInfo->flConstitution;
+			stradd = str * magnitude;
+			inteladd = intel * magnitude;
+			conadd = con * magnitude;
+			AddStatus(COVEN_STATUS_STATBOOST, round(magnitude * 100), gpGlobals->curtime + info->flDuration + addtime);
+		}
+		else //weaker
+		{
+			stradd = conadd = inteladd = 0.0f;
+			float addtime = info->flDuration * magnitude / currentMagnitude;
+			SetStatusTime(COVEN_STATUS_STATBOOST, GetStatusTime(COVEN_STATUS_STATBOOST) + addtime);
+		}
+		SuitPower_Drain(info->flCost);
+		SetCooldown(iAbilityNum, gpGlobals->curtime + info->flCooldown);
+	}
 
-	if (GetStatusMagnitude(COVEN_BUFF_STATS) > 0)
-		tlev -= GetStatusMagnitude(COVEN_BUFF_STATS);
-
-	int str = myStrength();
-	int intel = myIntellect();
-	int con = myConstitution();
-
-	int stradd = ceil(str * 0.1f);
-	int inteladd = ceil(intel * 0.1f);
-	int conadd = ceil(con * 0.1f);
-
-	SetConstitution(con+conadd*tlev);
-	SetStrength(str+stradd*tlev);
-	SetIntellect(intel+inteladd*tlev);
-	ResetVitals();
-	SetStatusMagnitude(COVEN_BUFF_STATS, lev);
-	SetHealth(GetHealth() + conadd * tlev * COVEN_HP_PER_CON);
-	SuitPower_SetCharge(SuitPower_GetCurrentPercentage() + inteladd * tlev * COVEN_MANA_PER_INT);
+	SetConstitution(con + conadd);
+	SetStrength(str + stradd);
+	SetIntellect(intel + inteladd);
+	if (conadd > 0.0f)
+		SetHealth(GetHealth() + ceil(conadd * sv_coven_hp_per_con.GetFloat()));
+	if (inteladd > 0.0f)
+		SuitPower_SetCharge(SuitPower_GetCurrentPercentage() + inteladd * sv_coven_mana_per_int.GetFloat());
+	EmitSound(info->aSounds[ABILITY_SND_START]);
 }
 
 void CHL2MP_Player::RevengeCheck()
 {
+	CovenAbilityInfo_t *info = GetCovenAbilityData(COVEN_ABILITY_REVENGE);
 	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
 		CHL2MP_Player *pPlayer = (CHL2MP_Player *)UTIL_PlayerByIndex( i );
-		if (pPlayer && pPlayer->IsAlive() && pPlayer->covenAbilities[COVEN_ABILITY_REVENGE] > 0)
+		if (pPlayer && pPlayer->IsAlive() && pPlayer->GetTeamNumber() == GetTeamNumber() && pPlayer->HasAbility(COVEN_ABILITY_REVENGE))
 		{
-			if ((pPlayer->GetLocalOrigin()-GetLocalOrigin()).Length() > 600.0f)
+			if ((pPlayer->GetLocalOrigin()-GetLocalOrigin()).Length() > info->flRange)
 				continue;
 
-			pPlayer->EmitSound("Revenge");
-			int abilityNum = GetAbilityNumber(pPlayer->covenAbilities[COVEN_ABILITY_REVENGE]);
-			pPlayer->BoostStats(pPlayer->GetLoadout(abilityNum), 10.0f);
+			pPlayer->EmitSound(info->aSounds[ABILITY_SND_START]);
+			pPlayer->BoostStats(COVEN_ABILITY_REVENGE, pPlayer->AbilityKey(COVEN_ABILITY_REVENGE));
 		}
 	}
 }
 
-void CHL2MP_Player::GiveBuffInRadius(int team, int buff, int mag, float duration, float distance, int classid)
+void CHL2MP_Player::GiveBuffInRadius(int iTeam, CovenStatus_t iStatus, int iMagnitude, float flDuration, float flDistance, int iClassID)
 {
 	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
 		CHL2MP_Player *pPlayer = (CHL2MP_Player *)UTIL_PlayerByIndex( i );
-		if (pPlayer && pPlayer->GetTeamNumber() == team && pPlayer->IsAlive())
+		if (pPlayer && pPlayer->GetTeamNumber() == iTeam && pPlayer->IsAlive())
 		{
-			if (classid && pPlayer->covenClassID != classid)
+			if (iClassID && pPlayer->covenClassID != iClassID)
 				continue;
 
-			if ((pPlayer->GetLocalOrigin()-GetLocalOrigin()).Length() > distance)
+			if ((pPlayer->GetLocalOrigin() - GetLocalOrigin()).Length() > flDistance)
 				continue;
 
-			pPlayer->SetStatusTime(buff, gpGlobals->curtime + duration);
-			if (mag > 0)
-				pPlayer->SetStatusMagnitude(buff, mag);
-
-			pPlayer->covenStatusEffects |= (1 << buff);
+			pPlayer->AddStatus(iStatus, iMagnitude, gpGlobals->curtime + flDuration);
 		}
 	}
 }
 
-void CHL2MP_Player::DoGoreCharge()
+bool CHL2MP_Player::DoGoreCharge()
 {
 	if (gorelock == GORELOCK_NONE)
 	{
-		if (SuitPower_GetCurrentPercentage() >= 2.0f)
+		CovenAbilityInfo_t *info = GetCovenAbilityData(COVEN_ABILITY_CHARGE);
+		if (SuitPower_GetCurrentPercentage() >= 1.0f)
 		{
 			gorelock = GORELOCK_CHARGING;
 			AngleVectors(GetLocalAngles(), &lock_ts);
 			VectorNormalize(lock_ts);
 			lock_ts.z = 0.0f;
-			RecalcGoreDrain();
-			EmitSound("HL2Player.Sweet");
+			SuitPower_AddDrain(info->flDrain);
+			EmitSound(info->aSounds[ABILITY_SND_START]);
+			return true;
 		}
-		else
-			EmitSound("HL2Player.UseDeny");
 	}
+	return false;
 }
 
-bool CHL2MP_Player::DoGorePhase(int lev)
+bool CHL2MP_Player::DoGorePhase(int iAbilityNum)
 {
-	//ret => set cooldown as active
-	bool ret = false;
+	CovenAbilityInfo_t *abilityInfo = GetCovenAbilityData(COVEN_ABILITY_PHASE);
 
 	if (gorephased)
-	{
-		covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_PHASE;
-		SetStatusTime(COVEN_BUFF_PHASE, 0.0f);
-		SetStatusMagnitude(COVEN_BUFF_PHASE, 0);
-	}
+		RemoveStatus(COVEN_STATUS_PHASE);
 	else
-	{
-		covenStatusEffects |= COVEN_FLAG_PHASE;
-		SetStatusMagnitude(COVEN_BUFF_PHASE, lev);
-		SetStatusTime(COVEN_BUFF_PHASE, gpGlobals->curtime + 12.0f);
-		ret = true;
-	}
+		AddStatus(COVEN_STATUS_PHASE, abilityInfo->iMagnitude, gpGlobals->curtime + abilityInfo->flCooldown);
 
-	if (GetRenderMode() != kRenderTransTexture)
+	/*if (GetRenderMode() != kRenderTransTexture)
 				SetRenderMode( kRenderTransTexture );
 
 	if (GetActiveWeapon() != NULL && GetActiveWeapon()->GetRenderMode() != kRenderTransTexture)
 		GetActiveWeapon()->SetRenderMode(kRenderTransTexture);
 
 	if (GetViewModel() && GetViewModel()->GetRenderMode() != kRenderTransTexture)
-				GetViewModel()->SetRenderMode( kRenderTransTexture );
+				GetViewModel()->SetRenderMode( kRenderTransTexture );*/
 
 	gorephased = !gorephased;
+
 	float cloak = 1.0f;
 	if (gorephased)
 	{
+		SetCooldown(iAbilityNum, gpGlobals->curtime + abilityInfo->flCooldown);
+		EmitSound(abilityInfo->aSounds[ABILITY_SND_START]);
+		SuitPower_AddDrain(abilityInfo->flDrain);
 		//AddEffects(EF_NODRAW);
 	}
 	else
 	{
 		cloak = 0.0f;
+		EmitSound(abilityInfo->aSounds[ABILITY_SND_STOP]);
+		SuitPower_RemoveDrain(abilityInfo->flDrain);
 		//RemoveEffects(EF_NODRAW);
 	}
-
 	m_floatCloakFactor = cloak;
-	//SetRenderColorA(alpha);
-	//if (GetViewModel())
-	//	GetViewModel()->SetRenderColorA(alpha);
 
 	float m_DmgRadius = 51.2f;
 	trace_t		pTrace;
@@ -673,56 +702,20 @@ bool CHL2MP_Player::DoGorePhase(int lev)
 	UTIL_DecalTrace( &pTrace, "Scorch" );
 
 	ComputeSpeed();
-	RecalcGoreDrain();
-
-	EmitSound( "Weapon_Mortar.Impact" );
 #endif
-	return ret;
-}
-
-void CHL2MP_Player::DoBattleYell(int lev)
-{
-	GiveBuffInRadius(COVEN_TEAMID_SLAYERS, COVEN_BUFF_BYELL, 10, 10.0f, 500.0f, 0);
-}
-
-void CHL2MP_Player::DoBloodLust(int lev)
-{
-	GiveBuffInRadius(COVEN_TEAMID_VAMPIRES, COVEN_BUFF_BLUST, lev, 10.0f, 500.0f, 0);
-	EmitSound("Bloodlust");
-
-}
-
-void CHL2MP_Player::DoDreadScream(int lev)
-{
-	GiveBuffInRadius(COVEN_TEAMID_SLAYERS, COVEN_BUFF_SLOW, lev, 8.0f, COVEN_DREADSCREAM_DIST, 0);
-	EmitSound("VampScream");
-
-}
-
-void CHL2MP_Player::RecalcGoreDrain()
-{
-	SuitPower_ResetDrain();
-	if (gorephased)
-	{
-		float mdrain_phase = 1.0f;
-		SuitPower_AddDrain(mdrain_phase);
-	}
-	if (gorelock > GORELOCK_NONE)
-	{
-		float mdrain_charge = 6.0f;
-		SuitPower_AddDrain(mdrain_charge);
-	}
+	return true;
 }
 
 void CHL2MP_Player::UnDodge()
 {
-	covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_DODGE;
-	SuitPower_ResetDrain();
-	SetCooldown(GetAbilityNumber(covenAbilities[COVEN_ABILITY_DODGE]), gpGlobals->curtime + 5.0f);
+	CovenAbilityInfo_t *info = GetCovenAbilityData(COVEN_ABILITY_DODGE);
+	RemoveStatus(COVEN_STATUS_DODGE);
+	SuitPower_RemoveDrain(info->flDrain);
+	SetCooldown(AbilityKey(COVEN_ABILITY_DODGE), gpGlobals->curtime + info->flCooldown);
 	SetRenderColorA(255);
 	if (GetActiveWeapon())
 	{
-		GetActiveWeapon()->SetRenderColorA(255.0f);
+		GetActiveWeapon()->SetRenderColorA(255);
 	}
 	if (GetViewModel())
 	{
@@ -730,7 +723,7 @@ void CHL2MP_Player::UnDodge()
 	}
 	if( IsAlive() )
 	{
-		EmitSound( "CovenCancel" );
+		EmitSound(info->aSounds[ABILITY_SND_STOP]);
 	}
 }
 
@@ -740,165 +733,179 @@ int CHL2MP_Player::GetAbilityNumber(int keyNum)
 	return max(min(keyNum >> 27, 3), 0);
 }
 
-void CHL2MP_Player::DoAbilityThink(int keyNum)
+bool CHL2MP_Player::DoAbilityThink()
 {
-	// BB: abilities are usuable while dead spectating
+	// BB: abilities were usuable while dead spectating
 	if (!IsAlive() || KO)
-		return; 
-	
-	if (m_afButtonPressed & keyNum)
+		return false;
+
+	for (int i = 0; i < COVEN_MAX_ABILITIES; i++)
 	{
-		int abilityNum = GetAbilityNumber(keyNum);
-		float cd = GetCooldown(abilityNum);
-		int lev = GetLoadout(abilityNum);
-		if ((cd > 0.0f && gpGlobals->curtime < cd && !(gorephased)) || lev == 0)
+		int keyNum = 1 << (26 + i);
+		if (m_afButtonPressed & keyNum)
 		{
-			EmitSound("HL2Player.UseDeny");
-		}
-		else
-		{
-			if (m_afButtonPressed & covenAbilities[COVEN_ABILITY_LEAP])
+			CovenAbility_t iAbility = GetCovenAbility(i);
+			if (iAbility == COVEN_ABILITY_PHASE && gorephased) //special cases
+				DoGorePhase(i);
+			else if (iAbility == COVEN_ABILITY_DODGE && HasStatus(COVEN_STATUS_DODGE))
+				UnDodge();
+			else
 			{
-				//BB: JAM request. fixed lowered leap cooldown... mana costs dec
-				SetCooldown(abilityNum, gpGlobals->curtime + 3.00f);
-				DoLeap();
-			}
-			else if (m_afButtonPressed & covenAbilities[COVEN_ABILITY_CHARGE])
-			{
-				DoGoreCharge();
-			}
-			else if (m_afButtonPressed & covenAbilities[COVEN_ABILITY_PHASE])
-			{
-				if (DoGorePhase(lev))
-					SetCooldown(abilityNum, gpGlobals->curtime + 14.0f);
-			}
-			else if (m_afButtonPressed & covenAbilities[COVEN_ABILITY_BATTLEYELL])
-			{
-				SetCooldown(0, gpGlobals->curtime + 20.0f);
-				DoBattleYell(lev);
-				EmitSound("BattleYell");
-			}
-			else if (m_afButtonPressed & covenAbilities[COVEN_ABILITY_DODGE])
-			{
-				if (covenStatusEffects & COVEN_FLAG_DODGE)
+				if (IsInCooldown(i))// || lev == 0)
 				{
-					UnDodge();
+					EmitLocalSound("Coven.Deny");
 				}
-				else if (SuitPower_GetCurrentPercentage() > 1.0f)
+				else
 				{
-					covenStatusEffects |= COVEN_FLAG_DODGE;
-					EmitSound("Dodge");
-					SetRenderColorA(100);
-					if (GetActiveWeapon())
+					CovenAbilityInfo_t *info = GetCovenAbilityData(iAbility);
+					if (SuitPower_GetCurrentPercentage() < info->flCost)
 					{
-						GetActiveWeapon()->SetRenderColorA(100.0f);
+						EmitLocalSound("Coven.Deny");
 					}
-					if (GetViewModel())
+					else
 					{
-						GetViewModel()->SetRenderColorA(100);
+						switch (iAbility)
+						{
+						case COVEN_ABILITY_LEAP:
+							DoLeap(i);
+							return true;
+						case COVEN_ABILITY_CHARGE:
+							if (DoGoreCharge())
+								return true;
+							EmitLocalSound("Coven.Deny");
+							break;
+						case COVEN_ABILITY_DETONATEBLOOD:
+							BloodExplode(i);
+							return true;
+						case COVEN_ABILITY_PHASE:
+							DoGorePhase(i);
+							return true;
+						case COVEN_ABILITY_SHEERWILL:
+							BoostStats(COVEN_ABILITY_SHEERWILL, i);
+							return true;
+						case COVEN_ABILITY_DARKWILL:
+							BoostStats(COVEN_ABILITY_DARKWILL, i);
+							return true;
+						case COVEN_ABILITY_BERSERK:
+							DoBerserk(i);
+							return true;
+						case COVEN_ABILITY_BUILDTURRET:
+							if (BuildTurret(i))
+								return true;
+							EmitLocalSound("Coven.Deny");
+							break;
+						case COVEN_ABILITY_BUILDDISPENSER:
+							if (BuildDispenser(i))
+								return true;
+							EmitLocalSound("Coven.Deny");
+							break;
+						case COVEN_ABILITY_TRIPMINE:
+							if (AttachTripmine(i))
+								return true;
+							EmitLocalSound("Coven.Deny");
+							break;
+						case COVEN_ABILITY_DODGE:
+							if (ToggleDodge(i))
+								return true;
+							EmitLocalSound("Coven.Deny");
+							break;
+						case COVEN_ABILITY_HASTE:
+							if (ToggleSprint(i))
+								return true;
+							EmitLocalSound("Coven.Deny");
+							break;
+						case COVEN_ABILITY_INTIMIDATINGSHOUT:
+							DoRadiusAbility(COVEN_ABILITY_INTIMIDATINGSHOUT, i, 1, COVEN_STATUS_STUN, false);
+							return true;
+						case COVEN_ABILITY_DREADSCREAM:
+							DoRadiusAbility(COVEN_ABILITY_DREADSCREAM, i, 1, COVEN_STATUS_SLOW, false);
+							return true;
+						case COVEN_ABILITY_BLOODLUST:
+							DoRadiusAbility(COVEN_ABILITY_BLOODLUST, i, 1, COVEN_STATUS_BLOODLUST, true);
+							return true;
+						case COVEN_ABILITY_BATTLEYELL:
+							DoRadiusAbility(COVEN_ABILITY_BATTLEYELL, i, 1, COVEN_STATUS_BATTLEYELL, true);
+							return true;
+						default:
+							Warning("Invalid ability assigned to button %d!\n", keyNum);
+						}
 					}
-					SuitPower_AddDrain(4.0f);
 				}
-				else
-					EmitSound("HL2Player.UseDeny");
-			}
-			else if (m_afButtonPressed & covenAbilities[COVEN_ABILITY_HASTE])
-			{
-				if (covenStatusEffects & COVEN_FLAG_SPRINT)
-				{
-					covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_SPRINT;
-					SetCooldown(abilityNum, gpGlobals->curtime + 3.0f);
-					SuitPower_ResetDrain();
-					ComputeSpeed();
-				}
-				else if (SuitPower_GetCurrentPercentage() > 1.0f)
-				{
-					covenStatusEffects |= COVEN_FLAG_SPRINT;
-					SetStatusMagnitude(COVEN_BUFF_SPRINT, 30);
-					ComputeSpeed();
-					EmitSound("HL2Player.SprintStart");
-					SuitPower_AddDrain(2.0f);
-				}
-				else
-					EmitSound("HL2Player.UseDeny");
-			}
-			else if (m_afButtonPressed & covenAbilities[COVEN_ABILITY_DETONATEBLOOD])
-			{
-				float magnitude = 15.0f;
-				if (SuitPower_GetCurrentPercentage() < magnitude)
-					magnitude = SuitPower_GetCurrentPercentage();
-				SetCooldown(abilityNum, gpGlobals->curtime + 4.0f);
-				BloodExplode(15, magnitude);
-				SuitPower_Drain(magnitude);
-			}
-			else if (m_afButtonPressed & covenAbilities[COVEN_ABILITY_DREADSCREAM])
-			{
-				SetCooldown(abilityNum, gpGlobals->curtime + 15.0f);
-				DoDreadScream(15);
-			}
-			else if (m_afButtonPressed & covenAbilities[COVEN_ABILITY_SHEERWILL])
-			{
-				SetCooldown(abilityNum, gpGlobals->curtime + 16.0f);
-				EmitSound("SheerWill");
-				BoostStats(1, 10.0f);
-			}
-			else if (m_afButtonPressed & covenAbilities[COVEN_ABILITY_DARKWILL])
-			{
-				SetCooldown(abilityNum, gpGlobals->curtime + 16.0f);
-				EmitSound("DarkWill");
-				BoostStats(1, 10.0f);
-			}
-			else if (m_afButtonPressed & covenAbilities[COVEN_ABILITY_BLOODLUST])
-			{
-				SetCooldown(abilityNum, gpGlobals->curtime + 16.0f);
-				DoBloodLust(20);
-			}
-			else if (m_afButtonPressed & covenAbilities[COVEN_ABILITY_BERSERK])
-			{
-				SetCooldown(abilityNum, gpGlobals->curtime + 20.0f);
-				DoBerserk(80, 10.0f);
-			}
-			else if (m_afButtonPressed & covenAbilities[COVEN_ABILITY_BUILDTURRET])
-			{
-				if (SuitPower_GetCurrentPercentage() >= 130.0f && BuildTurret(lev))
-				{
-					SuitPower_Drain(130.0f);
-					SetCooldown(abilityNum, gpGlobals->curtime + 3.0f);
-				}
-				else
-					EmitSound("HL2Player.UseDeny");
-			}
-			else if (m_afButtonPressed & covenAbilities[COVEN_ABILITY_BUILDDISPENSER])
-			{
-				if (SuitPower_GetCurrentPercentage() >= 100.0f && BuildDispenser(lev))
-				{
-					SuitPower_Drain(100.0f);
-					SetCooldown(abilityNum, gpGlobals->curtime + 3.0f);
-				}
-				else
-					EmitSound("HL2Player.UseDeny");
-			}
-			else if (m_afButtonPressed & covenAbilities[COVEN_ABILITY_TRIPMINE])
-			{
-				if (NumTripmines() < 4 && SuitPower_GetCurrentPercentage() >= 15.0f && AttachTripmine())
-				{
-					SuitPower_Drain(15.0f);
-					SetCooldown(abilityNum, gpGlobals->curtime + 2.0f);
-				}
-				else
-					EmitSound("HL2Player.UseDeny");
-			}
-			else if (m_afButtonPressed & covenAbilities[COVEN_ABILITY_INTIMIDATINGSHOUT])
-			{
-				SetCooldown(abilityNum, gpGlobals->curtime + 20.0f);
-				DoIntimidatingShout(150);
 			}
 		}
 	}
+
+	return false;
 }
 
-void CHL2MP_Player::BloodExplode(int lev, float magnitude)
+bool CHL2MP_Player::ToggleDodge(int iAbilityNum)
 {
+	CovenAbilityInfo_t *info = GetCovenAbilityData(COVEN_ABILITY_DODGE);
+	if (HasStatus(COVEN_STATUS_DODGE))
+	{
+		UnDodge();
+		return true;
+	}
+	if (SuitPower_GetCurrentPercentage() >= 1.0f)
+	{
+		SetRenderColorA(info->iMagnitude);
+		if (GetActiveWeapon())
+		{
+			GetActiveWeapon()->SetRenderColorA(info->iMagnitude);
+		}
+		if (GetViewModel())
+		{
+			GetViewModel()->SetRenderColorA(info->iMagnitude);
+		}
+		AddStatus(COVEN_STATUS_DODGE);
+		SuitPower_AddDrain(info->flDrain);
+		EmitSound(info->aSounds[ABILITY_SND_START]);
+		return true;
+	}
+	return false;
+}
+
+bool CHL2MP_Player::ToggleSprint(int iAbilityNum)
+{
+	CovenAbilityInfo_t *info = GetCovenAbilityData(COVEN_ABILITY_HASTE);
+	if (HasStatus(COVEN_STATUS_SPRINT))
+	{
+		RemoveStatus(COVEN_STATUS_SPRINT);
+		SetCooldown(iAbilityNum, gpGlobals->curtime + info->flCooldown);
+		SuitPower_RemoveDrain(info->flDrain);
+		ComputeSpeed();
+		return true;
+	}
+	if (SuitPower_GetCurrentPercentage() >= 1.0f)
+	{
+		AddStatus(COVEN_STATUS_SPRINT, 30);
+		ComputeSpeed();
+		EmitSound(info->aSounds[ABILITY_SND_START]);
+		SuitPower_AddDrain(info->flDrain);
+		return true;
+	}
+	return false;
+}
+
+void CHL2MP_Player::DoRadiusAbility(CovenAbility_t iAbility, int iAbilityNum, int iLevel, CovenStatus_t iBuff, bool bSameTeam)
+{
+	int iTeam = bSameTeam ? GetTeamNumber() : (GetTeamNumber() == COVEN_TEAMID_SLAYERS ? COVEN_TEAMID_VAMPIRES : COVEN_TEAMID_SLAYERS);
+	CovenAbilityInfo_t *info = GetCovenAbilityData(iAbility);
+	EmitSound(info->aSounds[ABILITY_SND_START]);
+	SetCooldown(iAbilityNum, gpGlobals->curtime + info->flCooldown);
+	GiveBuffInRadius(iTeam, iBuff, info->iMagnitude, info->flDuration, info->flRange);
+	SuitPower_Drain(info->flCost);
+}
+
+void CHL2MP_Player::BloodExplode(int iAbilityNum)
+{
+	CovenAbilityInfo_t *abilityInfo = GetCovenAbilityData(COVEN_ABILITY_DETONATEBLOOD);
+	float magnitude = abilityInfo->flDrain;
+	if (SuitPower_GetCurrentPercentage() < magnitude)
+		magnitude = SuitPower_GetCurrentPercentage();
+	SetCooldown(iAbilityNum, gpGlobals->curtime + abilityInfo->flCooldown);
+	SuitPower_Drain(magnitude);
+
 	float m_DmgRadius = 51.2f;
 	trace_t		pTrace;
 	Vector		vecSpot;// trace starts here!
@@ -950,40 +957,39 @@ void CHL2MP_Player::BloodExplode(int lev, float magnitude)
 	// Use the thrower's position as the reported position
 	Vector vecReported = GetAbsOrigin();
 
-	int bits = DMG_BLAST | DMG_SLOWBURN;// DMG_PARALYZE;
+	int bits = DMG_BLAST | DMG_SLOW;
 	float damn = 3.0f * magnitude;
-	//float damn = 0.25f*lev*GetMaxHealth();
 
-	CTakeDamageInfo info( this, this, vec3_origin, GetAbsOrigin(), lev, bits, 0, &vecReported );
-	info.SetAmmoType(500);
+	CTakeDamageInfo info( this, this, vec3_origin, GetAbsOrigin(), abilityInfo->iMagnitude, bits, 0, &vecReported );
+	info.SetAmmoType(100 * abilityInfo->flDuration);
 	info.CopyDamageToBaseDamage();
 	info.SetDamage(damn);
 
-	RadiusDamage( info, GetAbsOrigin(), COVEN_DETONATEBLOOD_DIST, CLASS_NONE, this );
+	RadiusDamage( info, GetAbsOrigin(), abilityInfo->flRange, CLASS_NONE, this );
 
 	UTIL_DecalTrace( &pTrace, "Blood" );
 
 	bits = DMG_GENERIC;
 	damn = magnitude;
-	//damn = 0.15f*lev*GetMaxHealth();
 	info.SetDamage(damn);
 	info.SetDamageType(bits);
 	TakeDamage(info);
 
-	EmitSound( "NPC_SScanner.DiveBombFlyby" );
+	EmitSound(abilityInfo->aSounds[ABILITY_SND_START]);
 #endif
 }
 
-void CHL2MP_Player::DoBerserk(int lev, float duration)
+void CHL2MP_Player::DoBerserk(int iAbilityNum)
 {
-	SetStatusTime(COVEN_BUFF_BERSERK, gpGlobals->curtime + duration);
-	SetStatusMagnitude(COVEN_BUFF_BERSERK, lev);
-	covenStatusEffects |= COVEN_FLAG_BERSERK;
+	CovenAbilityInfo_t *info = GetCovenAbilityData(COVEN_ABILITY_BERSERK);
+	SetCooldown(iAbilityNum, gpGlobals->curtime + info->flCooldown);
+	AddStatus(COVEN_STATUS_BERSERK, info->iMagnitude, gpGlobals->curtime + info->flDuration);
 	int oldmax = GetMaxHealth();
-	int newmax = oldmax*(1.0f + 0.01f*lev);
+	int newmax = oldmax*(1.0f + 0.01f * info->iMagnitude);
 	SetMaxHealth(newmax);
 	SetHealth(GetHealth()+(newmax-oldmax));
-	EmitSound("VampYell");
+	EmitSound(info->aSounds[ABILITY_SND_START]);
+	SuitPower_Drain(info->flCost);
 }
 
 void CHL2MP_Player::UpdateOnRemove( void )
@@ -1002,53 +1008,10 @@ bool CHL2MP_Player::LevelUp(int lvls, bool bBoostStats = false, bool bSound = fa
 {
 	if (bBoostStats)
 	{
-		if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
-		{
-			switch (covenClassID)
-			{
-			case COVEN_CLASSID_FIEND:
-				GiveConstitution(2);
-				GiveStrength(1);
-				//GiveAgility(5);
-				GiveIntellect(1);
-				break;
-			case COVEN_CLASSID_GORE:
-				GiveConstitution(4);
-				GiveStrength(2);
-				//GiveAgility(1);
-				GiveIntellect(1);
-				break;
-			case COVEN_CLASSID_DEGEN:
-				GiveConstitution(3);
-				GiveStrength(1);
-				//GiveAgility(3);
-				GiveIntellect(2);
-				break;
-			default:break;
-			}
-		}
-		else if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
-		{
-			switch (covenClassID)
-			{
-			case COVEN_CLASSID_REAVER:
-				//GiveStrength(6);
-				//GiveAgility(2);
-				//GiveIntellect(1);
-				break;
-			case COVEN_CLASSID_AVENGER:
-				//GiveStrength(4);
-				//GiveAgility(4);
-				//GiveIntellect(2);
-				break;
-			case COVEN_CLASSID_HELLION:
-				//GiveStrength(3);
-				//GiveAgility(6);
-				//GiveIntellect(2);
-				break;
-			default:break;
-			}
-		}
+		CovenClassInfo_t *info = GetCovenClassData(covenClassID);
+		GiveConstitution(info->flAddConstitution);
+		GiveStrength(info->flAddStrength);
+		GiveIntellect(info->flAddIntellect);
 	}
 
 	if (bEffect && IsAlive() && !KO)
@@ -1111,22 +1074,15 @@ bool CHL2MP_Player::LevelUp(int lvls, bool bBoostStats = false, bool bSound = fa
 		EmitSound( "NPC_CombineBall.Explosion" );
 	}
 
-	int oldMax = GetMaxHealth();
-	ResetVitals();
-
 	//BB: too many levels... do not reset health anymore?
 	if (bResetHP)
 	{
 		if (GetHealth() <= GetMaxHealth())
 		{
-			int hp = myConstitution()*COVEN_HP_PER_CON;
+			int hp = ceil(GetConstitution() * sv_coven_hp_per_con.GetFloat());
 			if (GetHealth() < hp)
 				SetHealth(hp);
 		}
-	}
-	else
-	{
-		SetHealth(GetHealth() + GetMaxHealth() - oldMax);
 	}
 
 	if (bSound)
@@ -1166,7 +1122,6 @@ bool CHL2MP_Player::SpendPoint(int on)
 				t -= 2;
 				covenLevelsSpent[t][covenClassID - 1]++;
 				covenLoadouts[t][covenClassID - 1][on]++;
-				RefreshLoadout();
 			}
 			SetCooldown(on, gpGlobals->curtime);
 		}
@@ -1203,22 +1158,12 @@ bool CHL2MP_Player::SpendPointBOT(int on)
 				t -= 2;
 				covenLevelsSpent[t][covenClassID - 1]++;
 				covenLoadouts[t][covenClassID - 1][on]++;
-				RefreshLoadout();
 			}
 			SetCooldown(on, gpGlobals->curtime);
 		}
 	}
 
 	return false;
-}
-
-void CHL2MP_Player::RefreshLoadout()
-{
-	SetCurrentLoadout(0, GetLoadout(0));
-	SetCurrentLoadout(1, GetLoadout(1));
-	SetCurrentLoadout(2, GetLoadout(2));
-	SetCurrentLoadout(3, GetLoadout(3));
-	SetPointsSpent(GetLevelsSpent());
 }
 
 int CHL2MP_Player::SetLoadout(int n, int val)
@@ -1259,69 +1204,20 @@ int CHL2MP_Player::GetLevelsSpent()
 	return -1;
 }
 
-void CHL2MP_Player::ResetStats()
+bool CHL2MP_Player::AttachTripmine(int iAbilityNum)
 {
-	if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
-	{
-		switch(covenClassID)
-		{
-		case COVEN_CLASSID_AVENGER:
-			SetConstitution(COVEN_BASECON_AVENGER);
-			SetStrength(COVEN_BASESTR_AVENGER);
-			SetIntellect(COVEN_BASEINT_AVENGER);
-			break;
-		case COVEN_CLASSID_HELLION:
-			SetConstitution(COVEN_BASECON_HELLION);
-			SetStrength(COVEN_BASESTR_HELLION);
-			SetIntellect(COVEN_BASEINT_HELLION);
-			break;
-		case COVEN_CLASSID_REAVER:
-			SetConstitution(COVEN_BASECON_REAVER);
-			SetStrength(COVEN_BASESTR_REAVER);
-			SetIntellect(COVEN_BASEINT_REAVER);
-			break;
-		default:break;
-		}
-	}
-	else if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
-	{
-		switch(covenClassID)
-		{
-		case COVEN_CLASSID_FIEND:
-			SetConstitution(COVEN_BASECON_FIEND);
-			SetStrength(COVEN_BASESTR_FIEND);
-			SetIntellect(COVEN_BASEINT_FIEND);
-			break;
-		case COVEN_CLASSID_GORE:
-			SetConstitution(COVEN_BASECON_GORE);
-			SetStrength(COVEN_BASESTR_GORE);
-			SetIntellect(COVEN_BASEINT_GORE);
-			break;
-		case COVEN_CLASSID_DEGEN:
-			SetConstitution(COVEN_BASECON_DEGEN);
-			SetStrength(COVEN_BASESTR_DEGEN);
-			SetIntellect(COVEN_BASEINT_DEGEN);
-			break;
-		default:break;
-		}
-	}
-}
+	CovenAbilityInfo_t *info = GetCovenAbilityData(COVEN_ABILITY_TRIPMINE);
+	if (NumTripmines() >= info->iMagnitude || SuitPower_GetCurrentPercentage() < info->flCost)
+		return false;
 
-bool CHL2MP_Player::AttachTripmine()
-{
 	Vector vecSrc, vecAiming;
 
 	// Take the eye position and direction
 	vecSrc = EyePosition();
-
 	QAngle angles = EyeAngles();
-
 	AngleVectors(angles, &vecAiming);
-
 	trace_t tr;
-
-	UTIL_TraceLine(vecSrc, vecSrc + (vecAiming * 64), MASK_SOLID, this, COLLISION_GROUP_NONE, &tr);
-
+	UTIL_TraceLine(vecSrc, vecSrc + (vecAiming * info->flRange), MASK_SOLID, this, COLLISION_GROUP_NONE, &tr);
 	if (tr.fraction < 1.0)
 	{
 		CBaseEntity *pEntity = tr.m_pEnt;
@@ -1339,15 +1235,12 @@ bool CHL2MP_Player::AttachTripmine()
 			pMine->m_nTeam = GetTeamNumber();
 
 			AddTripmine();
+			SuitPower_Drain(info->flCost);
+			SetCooldown(iAbilityNum, gpGlobals->curtime + info->flCooldown);
+			return true;
 		}
-		return true;
 	}
 	return false;
-}
-
-void CHL2MP_Player::ResetVitals( void )
-{
-	SetMaxHealth(myConstitution()*COVEN_HP_PER_CON);
 }
 
 void CHL2MP_Player::Precache( void )
@@ -1422,19 +1315,11 @@ void CHL2MP_Player::Precache( void )
 	PrecacheScriptSound( "Cappoint.Hum" );
 	PrecacheScriptSound( "LevelUp" );
 	PrecacheScriptSound( "CooldownBlip" );
-	PrecacheScriptSound( "SheerWill" );
-	PrecacheScriptSound( "IntShout" );
-	PrecacheScriptSound( "Revenge" );
-	PrecacheScriptSound( "BattleYell" );
-	PrecacheScriptSound( "Dodge" );
-	PrecacheScriptSound( "CovenCancel" );
-	PrecacheScriptSound( "DarkWill" );
-	PrecacheScriptSound( "Bloodlust" );
 
-	PrecacheScriptSound( "Leap" );
+	PrecacheScriptSound( "Coven.Deny" );
+	PrecacheScriptSound( "Coven.Cancel" );
 
 	PrecacheScriptSound( "Weapon_StunStick.Activate" );
-	PrecacheScriptSound( "NPC_SScanner.DiveBombFlyby" );
 }
 
 void CHL2MP_Player::GiveAllItems( void )
@@ -1478,36 +1363,13 @@ void CHL2MP_Player::GiveDefaultItems( void )
 {
 	EquipSuit();
 
-	if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
-	{
-		switch (covenClassID)
-		{
-		case COVEN_CLASSID_AVENGER:
-			//CBasePlayer::GiveAmmo( 90,	"SMG1");
-			//GiveNamedItem( "weapon_smg1" );
-			CBasePlayer::GiveAmmo( 16,	"Buckshot");
-			GiveNamedItem( "weapon_shotgun" );
-			break;
-		case COVEN_CLASSID_REAVER:
-			CBasePlayer::GiveAmmo( 16,	"Buckshot");
-			GiveNamedItem( "weapon_doubleshotgun" );
-			break;
-		case COVEN_CLASSID_HELLION:
-			//CBasePlayer::GiveAmmo( 60,	"Pistol");
-			//GiveNamedItem( "weapon_pistol" );
-			CBasePlayer::GiveAmmo( 18,	"357");
-			GiveNamedItem( "weapon_357" );
-			GiveNamedItem("weapon_stunstick");
-			break;
-		default:
-			break;
-		}
-		GiveNamedItem( "weapon_stake" );
-	}
-	else if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
-	{
-		GiveNamedItem( "weapon_crowbar" );
-	}
+	CovenClassInfo_t *info = GetCovenClassData(covenClassID);
+
+	for (int i = 0; i < info->szWeapons.Count(); i++)
+		GiveNamedItem(info->szWeapons[i]);
+
+	for (int i = 0; i < info->tAmmo.Count(); i++)
+		CBasePlayer::GiveAmmo(info->tAmmo[i]->iAmmoCount, info->tAmmo[i]->szAmmoName);
 
 	const char *szDefaultWeaponName = engine->GetClientConVarValue( engine->IndexOfEdict( edict() ), "cl_defaultweapon" );
 
@@ -1534,7 +1396,7 @@ void CHL2MP_Player::PickDefaultSpawnTeam( void )
 				const char *szModelName = NULL;
 				szModelName = engine->GetClientConVarValue( engine->IndexOfEdict( edict() ), "cl_playermodel" );
 
-				if ( ValidatePlayerModel( szModelName ) == false )
+				if ( !ValidatePlayerModel( szModelName ) )
 				{
 					char szReturnString[512];
 
@@ -1631,14 +1493,12 @@ void CHL2MP_Player::Spawn(void)
 		LevelUp(1);
 
 #ifndef COVEN_DEVELOPER_MODE
-	if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES && covenClassID > COVEN_CLASSCOUNT_VAMPIRES)
+	if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES && (covenClassID & COVEN_CLASS_MASK) > COVEN_CLASSCOUNT_VAMPIRES)
 		return;
 
-	if (GetTeamNumber() == COVEN_TEAMID_SLAYERS && covenClassID > COVEN_CLASSCOUNT_SLAYERS)
+	if (GetTeamNumber() == COVEN_TEAMID_SLAYERS && (covenClassID & COVEN_CLASS_MASK) > COVEN_CLASSCOUNT_SLAYERS)
 		return;
 #endif
-
-	ResetAbilities();
 
 	ResetStats();
 
@@ -1681,15 +1541,19 @@ void CHL2MP_Player::Spawn(void)
 	AddFlag(FL_ONGROUND); // set the player on the ground at the start of the round.
 
 	//BB: need to move this to prevent unfreezing accidentally
-	if ( HL2MPRules()->IsIntermission() || (HL2MPRules()->covenGameState == COVEN_GAME_STATE_FREEZE && sv_coven_freezetime.GetInt() > 0))
+	if ( HL2MPRules()->IsIntermission() || (HL2MPRules()->covenGameState == COVEN_GAMESTATE_FREEZE && sv_coven_freezetime.GetInt() > 0))
 	{
-		AddFlag( FL_FROZEN );
-		AddEFlags( EFL_BOT_FROZEN );
+		if (IsBot())
+			AddEFlags(EFL_BOT_FROZEN);
+		else
+			AddFlag(FL_FROZEN);
 	}
 	else
 	{
-		RemoveFlag( FL_FROZEN );
-		RemoveEFlags( EFL_BOT_FROZEN );
+		if (IsBot())
+			RemoveEFlags(EFL_BOT_FROZEN);
+		else
+			RemoveFlag(FL_FROZEN);
 	}
 
 	m_impactEnergyScale = HL2MPPLAYER_PHYSDAMAGE_SCALE;
@@ -1703,7 +1567,7 @@ void CHL2MP_Player::Spawn(void)
 	m_bReady = false;
 
 	ResetVitals();
-	SetHealth(myConstitution()*COVEN_HP_PER_CON);
+	SetHealth(ceil(GetConstitution() * sv_coven_hp_per_con.GetFloat()));
 	lastCheckedCapPoint = 0;
 	lastCapPointTime = 0.0f;
 
@@ -1729,195 +1593,54 @@ void CHL2MP_Player::PickupObject( CBaseEntity *pObject, bool bLimitMassAndSize )
 
 void CHL2MP_Player::ResetAbilities()
 {
-	Q_memset(covenAbilities, 0, sizeof(covenAbilities));
-	
+	ClearCovenAbilities();
+
 	if (GetTeamNumber() > TEAM_SPECTATOR)
 	{
-		if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
-		{
-			if (covenClassID == COVEN_CLASSID_FIEND)
-			{
-				covenAbilities[COVEN_ABILITY_LEAP] |= IN_ABIL1;
-				covenAbilities[COVEN_ABILITY_BERSERK] |= IN_ABIL2;
-				covenAbilities[COVEN_ABILITY_DODGE] |= IN_ABIL3;
-				covenAbilities[COVEN_ABILITY_SNEAK] |= IN_ABIL4;
-			}
-			else if (covenClassID == COVEN_CLASSID_GORE)
-			{
-				covenAbilities[COVEN_ABILITY_DREADSCREAM] |= IN_ABIL1;
-				covenAbilities[COVEN_ABILITY_CHARGE] |= IN_ABIL2;
-				covenAbilities[COVEN_ABILITY_PHASE] |= IN_ABIL3;
-				covenAbilities[COVEN_ABILITY_GORGE] |= IN_ABIL4;
-			}
-			else if (covenClassID == COVEN_CLASSID_DEGEN)
-			{
-				covenAbilities[COVEN_ABILITY_BLOODLUST] |= IN_ABIL1;
-				covenAbilities[COVEN_ABILITY_DARKWILL] |= IN_ABIL2;
-				covenAbilities[COVEN_ABILITY_DETONATEBLOOD] |= IN_ABIL3;
-				covenAbilities[COVEN_ABILITY_MASOCHIST] |= IN_ABIL4;
-			}
-		}
-		else if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
-		{
-			if (covenClassID == COVEN_CLASSID_REAVER)
-			{
-				covenAbilities[COVEN_ABILITY_HASTE] |= IN_ABIL1;
-				covenAbilities[COVEN_ABILITY_SHEERWILL] |= IN_ABIL2;
-				covenAbilities[COVEN_ABILITY_INTIMIDATINGSHOUT] |= IN_ABIL3;
-				covenAbilities[COVEN_ABILITY_GUTCHECK] |= IN_ABIL4;
-			}
-			else if (covenClassID == COVEN_CLASSID_AVENGER)
-			{
-				covenAbilities[COVEN_ABILITY_BATTLEYELL] |= IN_ABIL1;
-
-				covenAbilities[COVEN_ABILITY_REVENGE] |= IN_ABIL4;
-			}
-			else if (covenClassID == COVEN_CLASSID_HELLION)
-			{
-				covenAbilities[COVEN_ABILITY_TRIPMINE] |= IN_ABIL1;
-				covenAbilities[COVEN_ABILITY_BUILDDISPENSER] |= IN_ABIL2;
-				covenAbilities[COVEN_ABILITY_BUILDTURRET] |= IN_ABIL3;
-			}
-		}
-		SetLoadout(0, 1);
-		SetLoadout(1, 1);
-		SetLoadout(2, 1);
-		SetLoadout(3, 1);
+		CovenClassInfo_t *info = GetCovenClassData(covenClassID);
+		for (int i = 0; i < COVEN_MAX_ABILITIES; i++)
+			SetCovenAbility(i, info->iAbilities[i]);
+		
+		//SetLoadout(0, 1);
+		//SetLoadout(1, 1);
+		//SetLoadout(2, 1);
+		//SetLoadout(3, 1);
 	}
 }
 
 bool CHL2MP_Player::ValidatePlayerModel( const char *pModel )
 {
-	if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
-	{
-		switch (covenClassID)
-			{
-		case COVEN_CLASSID_FIEND:
-			if ( !Q_stricmp( "models/breen.mdl", pModel ) )
-			{
-				return true;
-			}
-			break;
-		case COVEN_CLASSID_GORE:
-			if ( !Q_stricmp( "models/gman.mdl", pModel ) )
-			{
-				return true;
-			}
-			break;
-		case COVEN_CLASSID_BLOOD:
-			if ( !Q_stricmp( "models/Humans/Group01/male_04.mdl", pModel ) )
-			{
-				return true;
-			}
-			break;
-		case COVEN_CLASSID_DEGEN:
-			if ( !Q_stricmp( "models/brdeg.mdl", pModel ) )
-			{
-				return true;
-			}
-			break;
-		default:break;
-			}
-	}
-	
-	if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
-	{
-		switch (covenClassID)
-		{
-		case COVEN_CLASSID_AVENGER:
-			if ( !Q_stricmp( "models/combine_soldier_prisonguard.mdl", pModel ) )
-			{
-				return true;
-			}
-			break;
-		case COVEN_CLASSID_REAVER:
-			if ( !Q_stricmp( "models/combine_soldier.mdl", pModel ) )
-			{
-				return true;
-			}
-			break;
-		case COVEN_CLASSID_DEADEYE:
-			if ( !Q_stricmp( "models/combine_super_soldier.mdl", pModel ) )
-			{
-				return true;
-			}
-			break;
-		case COVEN_CLASSID_HELLION:
-			if ( !Q_stricmp( "models/police.mdl", pModel ) )
-			{
-				return true;
-			}
-			break;
-		default:break;
-		}
-		/*
-			if ( !Q_stricmp( "models/sargexx_soldier.mdl", pModel ) )
-			{
-				return true;
-			}
-		}*/
-	}
-	return false;
+	CovenClassInfo_t *info = GetCovenClassData(covenClassID);
+	if (!Q_stricmp(info->szModelName, ""))
+		return false;
+	return !Q_stricmp(info->szModelName, pModel);
 }
 
 void CHL2MP_Player::SetPlayerTeamModel( void )
 {
 	const char *szModelName = NULL;
-	szModelName = engine->GetClientConVarValue( engine->IndexOfEdict( edict() ), "cl_playermodel" );
+	//szModelName = engine->GetClientConVarValue( engine->IndexOfEdict( edict() ), "cl_playermodel" );
 
-	int modelIndex = modelinfo->GetModelIndex( szModelName );
+	CovenClassInfo_t *info = GetCovenClassData(covenClassID);
+	szModelName = info->szModelName;
+	int modelIndex = modelinfo->GetModelIndex(szModelName);
 
-	if ( GetTeamNumber() == COVEN_TEAMID_SLAYERS )
-	{
-		switch (covenClassID)
-			{
-		case COVEN_CLASSID_REAVER:
-			szModelName = "models/combine_soldier.mdl";
-			break;
-		case COVEN_CLASSID_DEADEYE:
-			szModelName = "models/combine_super_soldier.mdl";
-			break;
-		case COVEN_CLASSID_AVENGER:
-			szModelName = "models/combine_soldier_prisonguard.mdl";
-			break;
-		default:
-			szModelName = "models/police.mdl";
-			break;
-			}
-
-		m_iModelType = TEAM_COMBINE;
-	}
-	else if ( GetTeamNumber() == COVEN_TEAMID_VAMPIRES )
-	{
-		switch (covenClassID)
-			{
-		case COVEN_CLASSID_FIEND:
-			szModelName = "models/breen.mdl";
-			break;
-		case COVEN_CLASSID_GORE:
-			szModelName = "models/gman.mdl";
-			break;
-		case COVEN_CLASSID_BLOOD:
-			szModelName = "models/Humans/Group01/male_04.mdl";
-			break;
-		case COVEN_CLASSID_DEGEN:
-			szModelName = "models/brdeg.mdl";
-			break;
-		default:break;
-			}
-		m_iModelType = TEAM_REBELS;
-	}
-
-	if ( modelIndex == -1 || ValidatePlayerModel( szModelName ) == false )
+	if ( modelIndex == -1 || !ValidatePlayerModel( szModelName ) )
 	{
 		szModelName = "models/Combine_Soldier.mdl";
-		m_iModelType = TEAM_COMBINE;
 
 		char szReturnString[512];
 
 		Q_snprintf( szReturnString, sizeof (szReturnString ), "cl_playermodel %s\n", szModelName );
 		engine->ClientCommand ( edict(), szReturnString );
 	}
+	//Msg("%d %d %s\n", entindex(), covenClassID, szModelName);
+	//BB: will slayers always be combine?
+	//if (Q_stristr(szModelName, "models/combine"))
+	if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+		m_iModelType = TEAM_COMBINE;
+	else
+		m_iModelType = TEAM_REBELS;
 	
 	SetModel( szModelName );
 	SetupPlayerSoundsByModel( szModelName );
@@ -2008,7 +1731,7 @@ void CHL2MP_Player::SetPlayerModel( void )
 
 void CHL2MP_Player::StealthCalc()
 {
-	if (covenAbilities[COVEN_ABILITY_SNEAK] > 0)
+	if (HasAbility(COVEN_ABILITY_SNEAK))
 	{
 		if (GetRenderMode() != kRenderTransTexture)
 			SetRenderMode(kRenderTransTexture);
@@ -2031,7 +1754,7 @@ void CHL2MP_Player::StealthCalc()
 			float speed = GetAbsVelocity().Length();
 			float min = 0.0f;
 			int factor = 3;
-			if (speed > COVEN_MAX_STEALTH_VELOCITY)
+			if (speed > sv_coven_max_stealth_velocity.GetFloat())
 			{
 				factor = 1;
 				min = 0.07f;
@@ -2041,18 +1764,16 @@ void CHL2MP_Player::StealthCalc()
 				factor = 2;
 				min = 0.01f;
 			}
-			if (/*m_Local.m_bDucked && */coven_timer_vstealth == 0.0f && speed <= COVEN_MIN_STEALTH_VELOCITY)
+			if (/*m_Local.m_bDucked && */coven_timer_vstealth == 0.0f && speed <= sv_coven_min_stealth_velocity.GetFloat())
 			{
 				coven_timer_vstealth = gpGlobals->curtime + 1.0f;
 			}
-			else if (/*m_Local.m_bDucked && */gpGlobals->curtime >= coven_timer_vstealth && speed <= COVEN_MIN_STEALTH_VELOCITY)
+			else if (/*m_Local.m_bDucked && */gpGlobals->curtime >= coven_timer_vstealth && speed <= sv_coven_min_stealth_velocity.GetFloat())
 			{
 				alpha = 1.0f - m_floatCloakFactor - 0.2f * factor * (gpGlobals->curtime - coven_timer_vstealth);//180
 				coven_timer_vstealth = gpGlobals->curtime;
-				//BB: TODO: this will technically get called twice per think. Optimize this.
-				VampireCheckRegen(1.0f);
 			}
-			else if (/*!m_Local.m_bDucked || */speed > COVEN_MIN_STEALTH_VELOCITY)
+			else if (/*!m_Local.m_bDucked || */speed > sv_coven_min_stealth_velocity.GetFloat())
 			{
 				coven_timer_vstealth = 0.0f;
 				alpha = 1.0f;
@@ -2099,7 +1820,7 @@ float CHL2MP_Player::Feed()
 		int temp = 0.04f * GetMaxHealth();
 		int xp = 0;
 		//BB: Coven GORGE implementation
-		if (covenAbilities[COVEN_ABILITY_GORGE] > 0)
+		if (HasAbility(COVEN_ABILITY_GORGE))
 		{
 			int newmax = GetMaxHealth() * 1.3f;
 			temp = 0.04f * GetMaxHealth();
@@ -2229,18 +1950,21 @@ bool CHL2MP_Player::Weapon_Switch( CBaseCombatWeapon *pWeapon, int viewmodelinde
 	return bRet;
 }
 
-void CHL2MP_Player::DoLeap()
+void CHL2MP_Player::DoLeap(int iAbilityNum)
 {
+	CovenAbilityInfo_t *info = GetCovenAbilityData(COVEN_ABILITY_LEAP);
 	Vector force;
 	AngleVectors(EyeAngles(), &force );
 	//Msg("%f\n", force.z);
 	force.z = force.z*0.92f;
-	EmitSound("Leap");
+	EmitSound(info->aSounds[ABILITY_SND_START]);
+	SetCooldown(iAbilityNum, gpGlobals->curtime + info->flCooldown);
 	//force = 780 * force;
 	//VectorAdd(GetLocalVelocity(), force, force);
 	//force.z += 1.5*sqrt(2 * 800.0f * 21.0f);
 	//SetLocalVelocity(force);
-	ApplyAbsVelocityImpulse( (520)*force );//780?? 520
+	ApplyAbsVelocityImpulse( info->iMagnitude * force );//780?? 520
+	SuitPower_Drain(info->flCost);
 }
 
 float CHL2MP_Player::DamageForce( const Vector &size, float damage )
@@ -2297,11 +2021,11 @@ void CHL2MP_Player::PreThink( void )
 	SetLocalAngles( vOldAngles );
 
 	//BB: CTS logic
-	if (HL2MPRules()->cts_inplay && covenStatusEffects & COVEN_FLAG_CTS)
+	if (HL2MPRules()->cts_inplay && HasStatus(COVEN_STATUS_HAS_CTS))
 	{
 		if ((HL2MPRules()->cts_zone-GetLocalOrigin()).Length() < HL2MPRules()->cts_zone_radius)
 		{
-			covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_CTS;
+			RemoveStatus(COVEN_STATUS_HAS_CTS);
 			HL2MPRules()->AddScore(COVEN_TEAMID_SLAYERS, sv_coven_pts_cts.GetInt());
 			HL2MPRules()->GiveItemXP(COVEN_TEAMID_SLAYERS, sv_coven_xp_basekill.GetInt()+sv_coven_xp_inckill.GetInt()*(covenLevelCounter-1));
 			EmitSound( "ItemBattery.Touch" );
@@ -2331,7 +2055,7 @@ void CHL2MP_Player::PreThink( void )
 			tVec = pRules->cap_point_coords.Get(lastCheckedCapPoint);
 		}
 
-		covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_CAPPOINT;
+		RemoveStatus(COVEN_STATUS_CAPPOINT);
 
 		if (IsAlive() && !KO && ((tVec-GetLocalOrigin()).Length() < pRules->cap_point_distance[lastCheckedCapPoint]))
 		{
@@ -2345,7 +2069,7 @@ void CHL2MP_Player::PreThink( void )
 			}
 			if (itsago)
 			{
-				covenStatusEffects |= COVEN_FLAG_CAPPOINT;
+				AddStatus(COVEN_STATUS_CAPPOINT);
 				int n = pRules->cap_point_status.Get(lastCheckedCapPoint);
 				lastCapPointTime = gpGlobals->curtime+0.1f;
 				pRules->cap_point_timers[lastCheckedCapPoint] = gpGlobals->curtime+0.2f;
@@ -2408,10 +2132,8 @@ void CHL2MP_Player::PreThink( void )
 			lastCheckedCapPoint = 0;
 	}
 
-	DoAbilityThink(IN_ABIL1);
-	DoAbilityThink(IN_ABIL2);
-	DoAbilityThink(IN_ABIL3);
-	DoAbilityThink(IN_ABIL4);
+	if (DoAbilityThink())
+		TriggerGCD();
 
 	if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
 	{
@@ -2447,7 +2169,7 @@ void CHL2MP_Player::CheckGore()
 {
 	if (SuitPower_GetCurrentPercentage() <= 0.0f && gorephased)
 	{
-		DoGorePhase(0);
+		DoGorePhase(AbilityKey(COVEN_ABILITY_PHASE));
 	}
 	else if (gorephased)
 	{
@@ -2456,20 +2178,22 @@ void CHL2MP_Player::CheckGore()
 
 	if (gorelock > GORELOCK_NONE)
 	{
-		SetMaxSpeed(HL2_NITRO_SPEED);
-		int velocityLock = 800;
+		CovenAbilityInfo_t *abilityInfo = GetCovenAbilityData(COVEN_ABILITY_CHARGE);
+		SetMaxSpeed(abilityInfo->iMagnitude);
+		int velocityLock = abilityInfo->iMagnitude;
 		if (gorelock == GORELOCK_CHARGING_IN_UVLIGHT)
 			velocityLock = 10;
 		Vector t = GetAbsVelocity();
 		t.x = t.y = 0;
 		SetAbsVelocity(lock_ts * velocityLock + t);
-		if (m_afButtonReleased & covenAbilities[COVEN_ABILITY_CHARGE] || SuitPower_GetCurrentPercentage() <= 0.0f)
+		unsigned int key = 0;
+		int slot = AbilityKey(COVEN_ABILITY_CHARGE, &key);
+		if ((m_afButtonReleased & key) || SuitPower_GetCurrentPercentage() <= 0.0f)
 		{
-			int abilityNum = GetAbilityNumber(covenAbilities[COVEN_ABILITY_CHARGE]);
+			SuitPower_RemoveDrain(abilityInfo->flDrain);
 			gorelock = GORELOCK_NONE;
-			RecalcGoreDrain();
 			ComputeSpeed();
-			SetCooldown(abilityNum, gpGlobals->curtime + 3.0f);
+			SetCooldown(slot, gpGlobals->curtime + abilityInfo->flCooldown);
 		}
 	}
 }
@@ -2777,6 +2501,10 @@ void CHL2MP_Player::VampireCheckResurrect()
 
 void CHL2MP_Player::VampireCheckRegen(float maxpercent)
 {
+	//BB: this technically works, but is hacky!
+	if (m_floatCloakFactor > 0.0f)
+		maxpercent = 1.0f;
+
 	if (coven_timer_damage > 0.0f || KO)
 	{
 		if (gpGlobals->curtime > coven_timer_damage)
@@ -2846,33 +2574,34 @@ void CHL2MP_Player::FireBullets ( const FireBulletsInfo_t &info )
 	if ( pWeapon )
 	{
 		int val = pWeapon->GetHL2MPWpnData().m_iPlayerDamage;
-		int add = 0;
+		//BB: this was the old strength calc:
+		/*int add = 0;
 		if (Q_strcmp(pWeapon->GetHL2MPWpnData().szAmmo1,"Buckshot") == 0)
 		{
 			if (covenClassID == COVEN_CLASSID_REAVER)
-				add = myStrength() - COVEN_BASESTR_REAVER;
+				add = GetStrength() - COVEN_BASESTR_REAVER;
 			else
-				add = myStrength() - COVEN_BASESTR_AVENGER;
+				add = GetStrength() - COVEN_BASESTR_AVENGER;
 		}
 		else if (Q_strcmp(pWeapon->GetHL2MPWpnData().szAmmo1,"357") == 0)
 		{
-			add = myStrength() - COVEN_BASESTR_HELLION;
+			add = GetStrength() - COVEN_BASESTR_HELLION;
 		}
 		else if (Q_strcmp(pWeapon->GetHL2MPWpnData().szAmmo1,"Pistol") == 0)
 		{
-			add = myStrength() - 10;
+			add = GetStrength() - 10;
 		}
 		else if (Q_strcmp(pWeapon->GetHL2MPWpnData().szAmmo1,"SMG1") == 0)
 		{
-			add = myStrength() - 10;
-		}
-		modinfo.m_iPlayerDamage = modinfo.m_flDamage = val + add;
+			add = GetStrength() - 10;
+		}*/
+		modinfo.m_iPlayerDamage = modinfo.m_flDamage = val;// +add;
 		//Msg("Damage: %d\n", val+add);
 	}
 
 	NoteWeaponFired();
 
-	BaseClass::FireBullets( modinfo );
+	BaseClass::FireBullets(modinfo);
 
 	// Move other players back to history positions based on local player's lag
 	lagcompensation->FinishLagCompensation( this );
@@ -3230,18 +2959,17 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 
 void CHL2MP_Player::GutcheckThink()
 {
-	if (covenAbilities[COVEN_ABILITY_GUTCHECK] > 0)
+	if (HasAbility(COVEN_ABILITY_GUTCHECK))
 	{
-		if (gpGlobals->curtime > GetCooldown(GetAbilityNumber(covenAbilities[COVEN_ABILITY_GUTCHECK])))
+		if (gpGlobals->curtime > GetCooldown(AbilityKey(COVEN_ABILITY_GUTCHECK)))
 		{
-			covenStatusEffects |= COVEN_FLAG_GCHECK;
+			AddStatus(COVEN_STATUS_GUTCHECK);
 		}
 	}
 }
 
 void CHL2MP_Player::DoStatusThink()
 {
-	RefreshLoadout();
 	//BB: we are not leveling like this anymore!
 	/*if (PointsToSpend() > 0)
 	{
@@ -3255,13 +2983,11 @@ void CHL2MP_Player::DoStatusThink()
 	//SPRINT (actual sprintspeed handled in ComputeSpeed in HL2Player)
 
 	//STUN (handle it here)
-	if (covenStatusEffects & COVEN_FLAG_STUN)
+	if (HasStatus(COVEN_STATUS_STUN))
 	{
-		if (gpGlobals->curtime > GetStatusTime(COVEN_BUFF_STUN))
+		if (gpGlobals->curtime > GetStatusTime(COVEN_STATUS_STUN))
 		{
-			covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_STUN;
-			SetStatusTime(COVEN_BUFF_STUN, 0.0f);
-			SetStatusMagnitude(COVEN_BUFF_STUN, 0);
+			RemoveStatus(COVEN_STATUS_STUN);
 			RemoveFlag(FL_FROZEN);
 		}
 		else
@@ -3270,97 +2996,77 @@ void CHL2MP_Player::DoStatusThink()
 	}
 
 	//SLOW (actual slow handled in ComputeSpeed in HL2Player)
-	if (covenStatusEffects & COVEN_FLAG_SLOW)
+	if (HasStatus(COVEN_STATUS_SLOW))
 	{
-		if (gpGlobals->curtime > GetStatusTime(COVEN_BUFF_SLOW))
+		if (gpGlobals->curtime > GetStatusTime(COVEN_STATUS_SLOW))
 		{
-			covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_SLOW;
-			SetStatusMagnitude(COVEN_BUFF_SLOW, 0);
-			SetStatusTime(COVEN_BUFF_SLOW, 0.0f);
+			RemoveStatus(COVEN_STATUS_SLOW);
 		}
 		ComputeSpeed();
 	}
 
 	//BLOODLUST
-	if (covenStatusEffects & COVEN_FLAG_BLUST)
+	if (HasStatus(COVEN_STATUS_BLOODLUST))
 	{
-		if (gpGlobals->curtime > GetStatusTime(COVEN_BUFF_BLUST))
+		if (gpGlobals->curtime > GetStatusTime(COVEN_STATUS_BLOODLUST))
 		{
-			covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_BLUST;
-			SetStatusTime(COVEN_BUFF_BLUST, 0.0f);
-			SetStatusMagnitude(COVEN_BUFF_BLUST, 0);
+			RemoveStatus(COVEN_STATUS_BLOODLUST);
 		}
 	}
 
 	//MASOCHISM
-	if (covenStatusEffects & COVEN_FLAG_MASOCHIST)
+	if (HasStatus(COVEN_STATUS_MASOCHIST))
 	{
-		if (gpGlobals->curtime > GetStatusTime(COVEN_BUFF_MASOCHIST))
+		if (gpGlobals->curtime > GetStatusTime(COVEN_STATUS_MASOCHIST))
 		{
-			covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_MASOCHIST;
-			SetStatusTime(COVEN_BUFF_MASOCHIST, 0.0f);
-			SetStatusMagnitude(COVEN_BUFF_MASOCHIST, 0);
+			RemoveStatus(COVEN_STATUS_MASOCHIST);
 			ComputeSpeed();
 		}
 	}
 
 	//NEW PHASE
-	if (covenStatusEffects & COVEN_FLAG_PHASE)
+	if (HasStatus(COVEN_STATUS_PHASE))
 	{
-		if (gpGlobals->curtime > GetStatusTime(COVEN_BUFF_PHASE))
+		if (gpGlobals->curtime > GetStatusTime(COVEN_STATUS_PHASE))
 		{
-			DoGorePhase(0);
-		}
-		else
-		{
-			//Regen hp
-			//BB: TODO: this will technically get called twice per think. Optimize this.
-			VampireCheckRegen(1.0f);
+			DoGorePhase(AbilityKey(COVEN_ABILITY_PHASE));
 		}
 	}
 
 	//BYELL (actual battleyell will be handled in takedamage)
-	if (covenStatusEffects & COVEN_FLAG_BYELL)
+	if (HasStatus(COVEN_STATUS_BATTLEYELL))
 	{
-		if (gpGlobals->curtime > GetStatusTime(COVEN_BUFF_BYELL))
+		if (gpGlobals->curtime > GetStatusTime(COVEN_STATUS_BATTLEYELL))
 		{
-			covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_BYELL;
-			SetStatusTime(COVEN_BUFF_BYELL, 0.0f);
-			SetStatusMagnitude(COVEN_BUFF_BYELL, 0);
+			RemoveStatus(COVEN_STATUS_BATTLEYELL);
 		}
 	}
 
 	//SHEERWILL
-	if (covenStatusEffects & COVEN_FLAG_STATS)
+	if (HasStatus(COVEN_STATUS_STATBOOST))
 	{
-		if (gpGlobals->curtime > GetStatusTime(COVEN_BUFF_STATS))
+		if (gpGlobals->curtime > GetStatusTime(COVEN_STATUS_STATBOOST))
 		{
-			covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_STATS;
-			SetStatusTime(COVEN_BUFF_STATS, 0.0f);
 			ResetStats();
-			ResetVitals();
-			int hp = min(GetHealth(), GetMaxHealth());
-			SetHealth(hp);
-			float maxcharge = myIntellect() * COVEN_MANA_PER_INT;
+			SetHealth(min(GetHealth(), GetMaxHealth()));
+			float maxcharge = GetIntellect() * sv_coven_mana_per_int.GetFloat();
 			if (SuitPower_GetCurrentPercentage() > maxcharge)
 				SuitPower_SetCharge(maxcharge);
-			SetStatusMagnitude(COVEN_BUFF_STATS, 0);
+			RemoveStatus(COVEN_STATUS_STATBOOST);
 		}
 	}
 
 	//BERSERK
-	if (covenStatusEffects & COVEN_FLAG_BERSERK)
+	if (HasStatus(COVEN_STATUS_BERSERK))
 	{
-		if (gpGlobals->curtime > GetStatusTime(COVEN_BUFF_BERSERK))
+		if (gpGlobals->curtime > GetStatusTime(COVEN_STATUS_BERSERK))
 		{
-			covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_BERSERK;
-			SetStatusTime(COVEN_BUFF_BERSERK, 0.0f);
 			int oldmax = GetMaxHealth();
 			ResetVitals();
 			//dont kill us!!!
 			int hp = max(GetHealth()-(oldmax-GetMaxHealth()),1);
 			SetHealth(hp);
-			SetStatusMagnitude(COVEN_BUFF_BERSERK, 0);
+			RemoveStatus(COVEN_STATUS_BERSERK);
 		}
 	}
 }
@@ -3368,34 +3074,29 @@ void CHL2MP_Player::DoStatusThink()
 void CHL2MP_Player::SlayerHolywaterThink()
 {
 	//HOLYWATER
-	if (IsAlive() && covenStatusEffects & COVEN_FLAG_HOLYWATER && gpGlobals->curtime > coven_timer_holywater)
+	if (IsAlive() && HasStatus(COVEN_STATUS_HOLYWATER) && gpGlobals->curtime > coven_timer_holywater)
 	{
-		int mag = GetStatusMagnitude(COVEN_BUFF_HOLYWATER);
+		int mag = GetStatusMagnitude(COVEN_STATUS_HOLYWATER);
 		float temp = ceil(mag/50.0f);
 		int newtot = mag-temp;
 		if (newtot <= 0)
 		{
 			newtot = 0;
 			coven_timer_holywater = -1.0f;
-			covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_HOLYWATER;
+			RemoveStatus(COVEN_STATUS_HOLYWATER);
 		}
 		else
 			coven_timer_holywater = gpGlobals->curtime + 1.0f;
-		SetStatusMagnitude(COVEN_BUFF_HOLYWATER, newtot);
+		SetStatusMagnitude(COVEN_STATUS_HOLYWATER, newtot);
 		TakeHealth(temp, DMG_GENERIC);
 	}
 }
 
 void CHL2MP_Player::DestroyAllBuildings(void)
 {
-	if (covenAbilities[COVEN_ABILITY_TRIPMINE] > 0)
+	if (HasAbility(COVEN_ABILITY_TRIPMINE))
 		DetonateTripmines();
 	BaseClass::DestroyAllBuildings();
-}
-
-bool CHL2MP_Player::IsBuilderClass(void)
-{
-	return covenAbilities[COVEN_ABILITY_BUILDDISPENSER] > 0 || covenAbilities[COVEN_ABILITY_BUILDTURRET] > 0;
 }
 
 bool CHL2MP_Player::HandleCommand_SelectClass( int select )
@@ -3408,33 +3109,15 @@ bool CHL2MP_Player::HandleCommand_SelectClass( int select )
 	{
 		if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
 		{
-			//int n = random->RandomInt(0,3);
-			int n = random->RandomInt(0,2);
-			if (n == 0)
-				select = COVEN_CLASSID_AVENGER;
-			else if (n == 1)
-				select = COVEN_CLASSID_REAVER;
-			else if (n == 2)
-				select = COVEN_CLASSID_HELLION;
-			/*else if (n == 3)
-				select = DEADEYE;*/
+			select = random->RandomInt(1, COVEN_CLASSCOUNT_SLAYERS);
 		}
 		else if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
 		{
-			//int n = random->RandomInt(0,3);
-			int n = random->RandomInt(0,2);
-			if (n == 0)
-				select = COVEN_CLASSID_FIEND;
-			else if (n == 1)
-				select = COVEN_CLASSID_GORE;
-			else if (n == 2)
-				select = COVEN_CLASSID_DEGEN;
-			/*else if (n == 3)
-				select = BLOODBANK;*/
+			select = random->RandomInt(1, COVEN_CLASSCOUNT_VAMPIRES);
 		}
 	}
 
-	covenClassID = select;
+	covenClassID = select | (1 << (GetTeamNumber() + 2));
 
 	if (!IsDead())
 	{
@@ -3450,9 +3133,10 @@ bool CHL2MP_Player::HandleCommand_SelectClass( int select )
 		State_Transition(STATE_ACTIVE);
 	}
 
-	Spawn();
 
 	DestroyAllBuildings();
+	ResetAbilities();
+	Spawn();
 
 	return true;
 }
@@ -3602,7 +3286,7 @@ bool CHL2MP_Player::ClientCommand( const CCommand &args )
 	}
 	else if ( FStrEq( args[0], "drop_supplies" ) )
 	{
-		if (HL2MPRules()->cts_inplay && (covenStatusEffects & COVEN_FLAG_CTS))
+		if (HL2MPRules()->cts_inplay && HasStatus(COVEN_STATUS_HAS_CTS))
 		{
 			Vector forward, forwardvel, pos;
 			forwardvel = GetAbsVelocity();
@@ -3624,7 +3308,7 @@ bool CHL2MP_Player::ClientCommand( const CCommand &args )
 			//drop it... if theres room
 			if (!tr.DidHit())
 			{
-				covenStatusEffects &= ~COVEN_FLAG_CTS;
+				RemoveStatus(COVEN_STATUS_HAS_CTS);
 				CBaseEntity *mysupplies = CreateEntityByName( "item_cts" );
 				mysupplies->SetAbsOrigin(pos);
 				mysupplies->SetLocalAngles(QAngle(random->RandomInt(0,180), random->RandomInt(0,90), random->RandomInt(0,180)));
@@ -3898,17 +3582,14 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 	else
 		covenRespawnTimer = gpGlobals->curtime;
 
-	if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+	if (covenClassID == COVEN_CLASSID_AVENGER)
 	{
-		if (covenClassID == COVEN_CLASSID_AVENGER)
-		{
-			coven_timer_soul = -1.0f;
-			coven_soul_power = 0;
-		}
-		RevengeCheck();
+		coven_timer_soul = -1.0f;
+		coven_soul_power = 0;
 	}
+	RevengeCheck();
 
-	if (covenStatusEffects & COVEN_FLAG_CTS && HL2MPRules()->cts_inplay)
+	if (HL2MPRules()->cts_inplay && HasStatus(COVEN_STATUS_HAS_CTS))
 	{
 		CBaseEntity *ent = CreateEntityByName( "item_cts" );
 		ent->SetLocalOrigin(EyePosition());
@@ -4382,7 +4063,7 @@ CON_COMMAND(selectbotnode, "Select BOT or Node")
 
 void CHL2MP_Player::DodgeHandler()
 {
-	if (covenStatusEffects & COVEN_FLAG_DODGE && (SuitPower_GetCurrentPercentage() <= 0.0f))
+	if (HasStatus(COVEN_STATUS_DODGE) && (SuitPower_GetCurrentPercentage() <= 0.0f))
 	{
 		UnDodge();
 	}
@@ -4402,15 +4083,15 @@ void CHL2MP_Player::EnergyHandler()
 		}
 	}
 
-	if (covenAbilities[COVEN_ABILITY_HASTE] > 0 && SuitPower_GetCurrentPercentage() <= 0.0f)
+	if (HasAbility(COVEN_ABILITY_HASTE) && SuitPower_GetCurrentPercentage() <= 0.0f)
 	{
-		covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_SPRINT;
+		RemoveStatus(COVEN_STATUS_SPRINT);
 		ComputeSpeed();
 		SetCooldown(0, gpGlobals->curtime + 3.0f);
 		SuitPower_ResetDrain();
 		if (IsAlive())
 		{
-			EmitSound("CovenCancel");
+			EmitSound("Coven.Cancel");
 		}
 	}
 }
@@ -4424,16 +4105,14 @@ int CHL2MP_Player::OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo )
 		DoGorePhase(0);
 
 	//UN-BERSERK
-	if (m_iHealth <= 0 && covenStatusEffects & COVEN_FLAG_BERSERK)
+	if (m_iHealth <= 0 && HasStatus(COVEN_STATUS_BERSERK))
 	{
-		covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_BERSERK;
-		SetStatusTime(COVEN_BUFF_BERSERK, 0.0f);
-		SetStatusMagnitude(COVEN_BUFF_BERSERK, 0);
+		RemoveStatus(COVEN_STATUS_BERSERK);
 		ResetVitals();
 	}
 
 	//UN-DODGE
-	if (m_iHealth <= 0 && covenStatusEffects & COVEN_FLAG_DODGE)
+	if (m_iHealth <= 0 && HasStatus(COVEN_STATUS_DODGE))
 	{
 		UnDodge();
 	}
@@ -4441,10 +4120,10 @@ int CHL2MP_Player::OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo )
 	//BLOODLUST
 	if (inputInfo.GetAttacker() && inputInfo.GetAttacker()->IsPlayer() && inputInfo.GetAttacker() != this)
 	{
-		CHL2MP_Player *temp = (CHL2MP_Player *)inputInfo.GetAttacker();
-		if (temp->covenStatusEffects & COVEN_FLAG_BLUST)
+		CHL2_Player *temp = (CHL2_Player *)inputInfo.GetAttacker();
+		if (temp->HasStatus(COVEN_STATUS_BLOODLUST))
 		{
-			temp->TakeHealth(inputInfo.GetDamage()*0.01f*temp->GetStatusMagnitude(COVEN_BUFF_BLUST), DMG_GENERIC);
+			temp->TakeHealth(inputInfo.GetDamage()*0.01f*temp->GetStatusMagnitude(COVEN_STATUS_BLOODLUST), DMG_GENERIC);
 		}
 	}
 
@@ -4454,8 +4133,7 @@ int CHL2MP_Player::OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo )
 void CHL2MP_Player::Extinguish()
 {
 	m_pFlame = NULL;
-	covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_HOLYWATER;
-	SetStatusTime(COVEN_BUFF_HOLYWATER, 0.0f);
+	RemoveStatus(COVEN_STATUS_HOLYWATER);
 	BaseClass::Extinguish(); //FL_ONFIRE ALREADY REMOVED...
 }
 
@@ -4473,56 +4151,53 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 	CTakeDamageInfo inputInfoAdjust = inputInfo;
 
 	//DODGE
-	if (covenStatusEffects & COVEN_FLAG_DODGE)
+	if (HasStatus(COVEN_STATUS_DODGE))
 	{
-		inputInfoAdjust.SetDamage(inputInfoAdjust.GetDamage() * 0.75f);
-		int r = random->RandomInt(0,5);
-		if (r < 2)
+		CovenAbilityInfo_t *abilityInfo = GetCovenAbilityData(COVEN_ABILITY_DODGE);
+		inputInfoAdjust.SetDamage(inputInfoAdjust.GetDamage() * abilityInfo->flDuration);
+		if (random->RandomFloat() <= abilityInfo->flRange)
 			inputInfoAdjust.SetDamage(0.0f);
 	}
 
 	//Stun Damage
-	if (inputInfoAdjust.GetDamageType() & DMG_PARALYZE)
+	if (inputInfoAdjust.GetDamageType() & DMG_STUN)
 	{
-		int bits = inputInfoAdjust.GetDamageType() & ~DMG_PARALYZE;
+		int bits = inputInfoAdjust.GetDamageType() & ~DMG_STUN;
 		float duration = inputInfoAdjust.GetAmmoType() * 0.01f;
-		if (covenStatusEffects & COVEN_FLAG_STUN)
+		if (HasStatus(COVEN_STATUS_STUN))
 		{
-			SetStatusTime(COVEN_BUFF_STUN, GetStatusTime(COVEN_BUFF_STUN) + duration);
+			SetStatusTime(COVEN_STATUS_STUN, GetStatusTime(COVEN_STATUS_STUN) + duration);
 		}
 		else
 		{
-			covenStatusEffects |= COVEN_FLAG_STUN;
-			SetStatusTime(COVEN_BUFF_STUN, gpGlobals->curtime + duration);
+			AddStatus(COVEN_STATUS_STUN, 1, gpGlobals->curtime + duration);
 		}
 		inputInfoAdjust.SetDamageType(bits);
 	}
 
 	//Slow Damage
-	if (inputInfoAdjust.GetDamageType() & DMG_SLOWBURN)
+	if (inputInfoAdjust.GetDamageType() & DMG_SLOW)
 	{
-		int bits = inputInfoAdjust.GetDamageType() & ~DMG_SLOWBURN;
+		int bits = inputInfoAdjust.GetDamageType() & ~DMG_SLOW;
 		float duration = inputInfoAdjust.GetAmmoType() * 0.01f;
 		int magnitude = inputInfoAdjust.GetBaseDamage();
-		if (covenStatusEffects & COVEN_FLAG_SLOW)
+		if (HasStatus(COVEN_STATUS_SLOW))
 		{
-			float oldTime = GetStatusTime(COVEN_BUFF_SLOW);
-			int oldMagnitude = GetStatusMagnitude(COVEN_BUFF_SLOW);
+			float oldTime = GetStatusTime(COVEN_STATUS_SLOW);
+			int oldMagnitude = GetStatusMagnitude(COVEN_STATUS_SLOW);
 			if (magnitude <= oldMagnitude)
 			{
-				SetStatusTime(COVEN_BUFF_SLOW, oldTime + duration * magnitude / oldMagnitude);
+				SetStatusTime(COVEN_STATUS_SLOW, oldTime + duration * magnitude / oldMagnitude);
 			}
 			else //greater than
 			{
-				SetStatusMagnitude(COVEN_BUFF_SLOW, magnitude);
-				SetStatusTime(COVEN_BUFF_SLOW, gpGlobals->curtime + duration + (oldTime - gpGlobals->curtime) * oldMagnitude / magnitude);
+				SetStatusMagnitude(COVEN_STATUS_SLOW, magnitude);
+				SetStatusTime(COVEN_STATUS_SLOW, gpGlobals->curtime + duration + (oldTime - gpGlobals->curtime) * oldMagnitude / magnitude);
 			}
 		}
 		else
 		{
-			covenStatusEffects |= COVEN_FLAG_SLOW;
-			SetStatusTime(COVEN_BUFF_SLOW, gpGlobals->curtime + duration);
-			SetStatusMagnitude(COVEN_BUFF_SLOW, magnitude);
+			AddStatus(COVEN_STATUS_SLOW, magnitude, gpGlobals->curtime + duration);
 		}
 		inputInfoAdjust.SetDamageType(bits);
 		//Reset damage
@@ -4532,10 +4207,10 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 		inputInfoAdjust.SetDamage(damn);
 	}
 
-	if (GetTeamNumber() == COVEN_TEAMID_SLAYERS && covenStatusEffects & COVEN_FLAG_HOLYWATER)
+	if (GetTeamNumber() == COVEN_TEAMID_SLAYERS && HasStatus(COVEN_STATUS_HOLYWATER))
 	{
 		float temp = floor(0.2f * inputInfoAdjust.GetDamage());
-		int mag = GetStatusMagnitude(COVEN_BUFF_HOLYWATER);
+		int mag = GetStatusMagnitude(COVEN_STATUS_HOLYWATER);
 		if (temp > mag)
 		{
 			temp = mag;
@@ -4553,10 +4228,10 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 			if (newtot <= 0)
 			{
 				newtot = 0;
-				covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_HOLYWATER;
+				RemoveStatus(COVEN_STATUS_HOLYWATER);
 				coven_timer_holywater = -1.0f;
 			}
-			SetStatusMagnitude(COVEN_BUFF_HOLYWATER, newtot);
+			SetStatusMagnitude(COVEN_STATUS_HOLYWATER, newtot);
 		}
 	}
 
@@ -4570,34 +4245,34 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 	}*/
 
 	//BB: handle damage boost
-	if (inputInfo.GetAttacker() && inputInfo.GetAttacker()->IsPlayer() && ((CHL2MP_Player *)inputInfo.GetAttacker())->covenStatusEffects & COVEN_FLAG_BYELL)
+	if (inputInfo.GetAttacker() && inputInfo.GetAttacker()->IsPlayer() && ((CHL2_Player *)inputInfo.GetAttacker())->HasStatus(COVEN_STATUS_BATTLEYELL))
 	{
-		inputInfoAdjust.SetDamage(inputInfoAdjust.GetDamage()*(1.0f+0.01f*((CHL2MP_Player *)inputInfo.GetAttacker())->GetStatusMagnitude(COVEN_BUFF_BYELL)));
+		inputInfoAdjust.SetDamage(inputInfoAdjust.GetDamage()*(1.0f + 0.01f*((CHL2_Player *)inputInfo.GetAttacker())->GetStatusMagnitude(COVEN_STATUS_BATTLEYELL)));
 	}
 	
 	gamestats->Event_PlayerDamage( this, inputInfoAdjust );
 
-	if (covenStatusEffects & COVEN_FLAG_GCHECK && inputInfoAdjust.GetDamageType() & DMG_CLUB && inputInfo.GetAttacker() && inputInfo.GetAttacker()->IsPlayer())
+	if (HasStatus(COVEN_STATUS_GUTCHECK) && inputInfoAdjust.GetDamageType() & DMG_CLUB && inputInfo.GetAttacker() && inputInfo.GetAttacker()->IsPlayer())
 	{
-		covenStatusEffects &= covenStatusEffects & ~COVEN_FLAG_GCHECK;
-		SetCooldown(GetAbilityNumber(covenAbilities[COVEN_ABILITY_GUTCHECK]),gpGlobals->curtime + 8.0f);
-		EmitSound("Weapon_Crowbar.Melee_HitWorld");
+		CovenAbilityInfo_t *abilityInfo = GetCovenAbilityData(COVEN_ABILITY_GUTCHECK);
+		RemoveStatus(COVEN_STATUS_GUTCHECK);
+		SetCooldown(AbilityKey(COVEN_ABILITY_GUTCHECK), gpGlobals->curtime + abilityInfo->flCooldown);
+		EmitSound(abilityInfo->aSounds[ABILITY_SND_START]);
 		inputInfoAdjust.SetDamage(0.0f);
 	}
-	if (covenAbilities[COVEN_ABILITY_MASOCHIST] > 0 && !(inputInfoAdjust.GetDamageType() & DMG_NO))
+	if (HasAbility(COVEN_ABILITY_MASOCHIST) && !(inputInfoAdjust.GetDamageType() & DMG_NO))
 	{
 		//BB: MASOCHIST implementation
-		covenStatusEffects |= COVEN_FLAG_MASOCHIST;
-		int stat = GetStatusMagnitude(COVEN_BUFF_MASOCHIST);
-		float add = 1.6f * inputInfoAdjust.GetDamage();
+		CovenAbilityInfo_t *abilityInfo = GetCovenAbilityData(COVEN_ABILITY_MASOCHIST);
+		int status = GetStatusMagnitude(COVEN_STATUS_MASOCHIST);
+		float add = 0.01f * abilityInfo->iMagnitude * inputInfoAdjust.GetDamage();
 		//BLOOD EXPLODE increase
 		if (inputInfo.GetAttacker() && inputInfo.GetAttacker()->IsPlayer() && inputInfo.GetAttacker() == this)
 		{
 			add *= 2.0f;
 		}
-		stat = min(stat + add, 175);
-		SetStatusMagnitude(COVEN_BUFF_MASOCHIST, stat);
-		SetStatusTime(COVEN_BUFF_MASOCHIST, gpGlobals->curtime + 10.0f);
+		status = min(status + add, abilityInfo->flRange);
+		AddStatus(COVEN_STATUS_MASOCHIST, status, gpGlobals->curtime + abilityInfo->flDuration);
 		ComputeSpeed();
 	}
 	if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
@@ -4622,9 +4297,8 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 		if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
 		{
 			//startup the healing aura...
-			int mag = min(GetStatusMagnitude(COVEN_BUFF_HOLYWATER)+inputInfo.GetDamage()/5.0f*30.0f, 150);//50.0f 40
-			SetStatusMagnitude(COVEN_BUFF_HOLYWATER, mag);
-			covenStatusEffects |= COVEN_FLAG_HOLYWATER;
+			int mag = min(GetStatusMagnitude(COVEN_STATUS_HOLYWATER) + inputInfo.GetDamage() / 5.0f * 30.0f, 150);//50.0f 40
+			AddStatus(COVEN_STATUS_HOLYWATER, mag);
 			coven_timer_holywater = gpGlobals->curtime + 1.0f;
 			//insta heal component
 			//TakeHealth(inputInfo.GetDamage()/5.0f*20.0f, DMG_GENERIC);
@@ -4649,8 +4323,7 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 			{
 				m_pFlame->SupplementDamage(inputInfo.GetDamage());
 			}
-			SetStatusTime(COVEN_BUFF_HOLYWATER, gpGlobals->curtime+m_pFlame->GetRemainingLife());
-			covenStatusEffects |= COVEN_FLAG_HOLYWATER;
+			AddStatus(COVEN_STATUS_HOLYWATER, -1, gpGlobals->curtime + m_pFlame->GetRemainingLife());
 		}
 	}
 

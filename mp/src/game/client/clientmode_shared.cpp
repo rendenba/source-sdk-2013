@@ -1062,14 +1062,14 @@ void ClientModeShared::FireGameEvent( IGameEvent *event )
 			wchar_t wszTeam[64];
 			C_Team *pTeam = GetGlobalTeam( team );
 
-			//BB: TODO: this is where joined team 1 error is happening!
+			//BB: this is where joined team 1 error is happening. Teams have not been set up at this point. Default to predefined string table.
 			if ( pTeam )
 			{
 				g_pVGuiLocalize->ConvertANSIToUnicode( pTeam->Get_Name(), wszTeam, sizeof(wszTeam) );
 			}
 			else
 			{
-				_snwprintf ( wszTeam, sizeof( wszTeam ) / sizeof( wchar_t ), L"%d", team );
+				g_pVGuiLocalize->ConvertANSIToUnicode( sTeamNames[team], wszTeam, sizeof(wszTeam) );
 			}
 
 			if ( !IsInCommentaryMode() )

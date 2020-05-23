@@ -8032,8 +8032,8 @@ void SendProxy_CropFlagsToPlayerFlagBitsLength( const SendProp *pProp, const voi
 
 		SendPropEHandle(SENDINFO(m_hVehicle)),
 		SendPropEHandle(SENDINFO(m_hUseEntity)),
-		SendPropInt		(SENDINFO(m_iHealth), -1, SPROP_VARINT | SPROP_CHANGES_OFTEN ),
-		SendPropInt		(SENDINFO(m_iMaxHealth), -1, SPROP_VARINT),
+		SendPropInt		(SENDINFO(m_iHealth), -1, SPROP_UNSIGNED | SPROP_CHANGES_OFTEN ),
+		SendPropInt		(SENDINFO(m_iMaxHealth), -1, SPROP_UNSIGNED),
 		SendPropInt		(SENDINFO(m_lifeState), 3, SPROP_UNSIGNED ),
 		SendPropInt		(SENDINFO(m_iBonusProgress), 15 ),
 		SendPropInt		(SENDINFO(m_iBonusChallenge), 4 ),

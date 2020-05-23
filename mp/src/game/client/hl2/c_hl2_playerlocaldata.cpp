@@ -26,14 +26,12 @@ BEGIN_RECV_TABLE_NOBASE( C_HL2PlayerLocalData, DT_HL2Local )
 	RecvPropBool( RECVINFO(m_bStickyAutoAim) ),
 	RecvPropBool( RECVINFO(m_bAutoAimTarget) ),
 	RecvPropInt( RECVINFO(covenXPCounter) ),
-	RecvPropInt( RECVINFO(covenStrengthCounter) ),
-	RecvPropInt( RECVINFO(covenConstitutionCounter) ),
-	RecvPropInt( RECVINFO(covenIntellectCounter) ),
+	RecvPropFloat( RECVINFO(covenStrengthCounter) ),
+	RecvPropFloat( RECVINFO(covenConstitutionCounter) ),
+	RecvPropFloat( RECVINFO(covenIntellectCounter) ),
 	RecvPropInt( RECVINFO(covenCurrentPointsSpent) ),
-	RecvPropInt( RECVINFO(covenCurrentLoadout1) ),
-	RecvPropInt( RECVINFO(covenCurrentLoadout2) ),
-	RecvPropInt( RECVINFO(covenCurrentLoadout3) ),
-	RecvPropInt( RECVINFO(covenCurrentLoadout4) ),
+	RecvPropFloat( RECVINFO(covenGCD) ),
+	RecvPropArray3( RECVINFO_ARRAY(covenAbilities), RecvPropInt( RECVINFO(covenAbilities[0]))),
 	RecvPropArray3( RECVINFO_ARRAY(covenStatusTimers), RecvPropFloat( RECVINFO(covenStatusTimers[0]))),
 	RecvPropArray3( RECVINFO_ARRAY(covenCooldownTimers), RecvPropFloat( RECVINFO(covenCooldownTimers[0]))),
 	RecvPropArray3( RECVINFO_ARRAY(covenStatusMagnitude), RecvPropInt( RECVINFO(covenStatusMagnitude[0]))),
@@ -50,14 +48,11 @@ END_PREDICTION_DATA()
 C_HL2PlayerLocalData::C_HL2PlayerLocalData()
 {
 	covenCurrentPointsSpent = 0;
-	covenCurrentLoadout1 = 0;
-	covenCurrentLoadout2 = 0;
-	covenCurrentLoadout3 = 0;
-	covenCurrentLoadout4 = 0;
 	covenXPCounter = 0;
-	covenStrengthCounter = 0;
-	covenConstitutionCounter = 0;
-	covenIntellectCounter = 0;
+	covenStrengthCounter = 0.0f;
+	covenConstitutionCounter = 0.0f;
+	covenIntellectCounter = 0.0f;
+	covenGCD = 0.0f;
 	m_flSuitPower = 0.0;
 	m_bZooming = false;
 	m_iSquadMemberCount = 0;

@@ -30,15 +30,16 @@ public:
 
 	void				Weapon_DropPrimary( void );
 		
-	int myStrength() { return m_HL2Local.covenStrengthCounter; }
-	int myConstitution() { return m_HL2Local.covenConstitutionCounter; }
-	int myIntellect() { return m_HL2Local.covenIntellectCounter; }
+	float GetStrength() { return m_HL2Local.covenStrengthCounter; }
+	float GetConstitution() { return m_HL2Local.covenConstitutionCounter; }
+	float GetIntellect() { return m_HL2Local.covenIntellectCounter; }
 
 	float				GetFOV();
 	void				Zoom( float FOVOffset, float time );
 	float				GetZoom( void );
 	bool				IsZoomed( void )	{ return m_HL2Local.m_bZooming; }
 	virtual int			GetCovenStatusEffects( void ) { return covenStatusEffects; }
+	inline bool			HasStatus(CovenStatus_t iEffectNum) { return (covenStatusEffects & (1 << iEffectNum)) > 0; };
 
 	bool				IsSprinting( void ) { return m_HL2Local.m_bitsActiveDevices & bits_SUIT_DEVICE_SPRINT; }
 	bool				IsFlashlightActive( void ) { return m_HL2Local.m_bitsActiveDevices & bits_SUIT_DEVICE_FLASHLIGHT; }
@@ -50,7 +51,9 @@ public:
 	LadderMove_t		*GetLadderMove() { return &m_HL2Local.m_LadderMove; }
 	virtual void		ExitLadder();
 	bool				IsSprinting() const { return m_fIsSprinting; }
-	
+	virtual bool		IsBuilderClass(void);
+	bool				HasAbility(CovenAbility_t iAbility);
+
 	// Input handling
 	virtual bool	CreateMove( float flInputSampleTime, CUserCmd *pCmd );
 	void			PerformClientSideObstacleAvoidance( float flFrameTime, CUserCmd *pCmd );
@@ -62,6 +65,7 @@ public:
 
 	C_HL2PlayerLocalData		m_HL2Local;
 	C_CovenBuilderLocalData		m_CovenBuilderLocal;
+
 	EHANDLE				m_hClosestNPC;
 	float				m_flSpeedModTime;
 	bool				m_fIsSprinting;
@@ -71,7 +75,7 @@ public:
 
 private:
 	C_BaseHLPlayer( const C_BaseHLPlayer & ); // not defined, not accessible
-	
+
 	bool				TestMove( const Vector &pos, float fVertDist, float radius, const Vector &objPos, const Vector &objDir );
 
 	float				m_flZoomStart;

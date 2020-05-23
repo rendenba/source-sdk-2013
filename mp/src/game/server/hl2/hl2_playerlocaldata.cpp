@@ -29,15 +29,13 @@ BEGIN_SEND_TABLE_NOBASE( CHL2PlayerLocalData, DT_HL2Local )
 	SendPropBool( SENDINFO(m_bStickyAutoAim) ),
 	SendPropBool( SENDINFO(m_bAutoAimTarget) ),
 	SendPropInt( SENDINFO(covenXPCounter) ),
-	SendPropInt( SENDINFO(covenStrengthCounter), 8, SPROP_UNSIGNED ),
-	SendPropInt( SENDINFO(covenConstitutionCounter), 8, SPROP_UNSIGNED ),
-	SendPropInt( SENDINFO(covenIntellectCounter), 8, SPROP_UNSIGNED ),
+	SendPropFloat( SENDINFO(covenStrengthCounter), 10,  SPROP_ROUNDUP, 0.0, 256.0 ),
+	SendPropFloat( SENDINFO(covenConstitutionCounter), 10,  SPROP_ROUNDUP, 0.0, 256.0 ),
+	SendPropFloat( SENDINFO(covenIntellectCounter), 10,  SPROP_ROUNDUP, 0.0, 256.0 ),
 	SendPropInt( SENDINFO(covenCurrentPointsSpent), 4, SPROP_UNSIGNED ),
-	SendPropInt( SENDINFO(covenCurrentLoadout1), 5, SPROP_UNSIGNED ),
-	SendPropInt( SENDINFO(covenCurrentLoadout2),  5, SPROP_UNSIGNED ),
-	SendPropInt( SENDINFO(covenCurrentLoadout3),  5, SPROP_UNSIGNED ),
-	SendPropInt( SENDINFO(covenCurrentLoadout4), 5, SPROP_UNSIGNED ),
-	SendPropArray3( SENDINFO_ARRAY3(covenStatusTimers), SendPropFloat( SENDINFO_ARRAY(covenStatusTimers), -1, SPROP_NOSCALE ) ),
+	SendPropFloat( SENDINFO(covenGCD), -1, SPROP_NOSCALE),
+	SendPropArray3( SENDINFO_ARRAY3(covenAbilities), SendPropInt(SENDINFO_ARRAY(covenAbilities), 5, SPROP_UNSIGNED)),
+	SendPropArray3( SENDINFO_ARRAY3(covenStatusTimers), SendPropFloat(SENDINFO_ARRAY(covenStatusTimers), -1, SPROP_NOSCALE)),
 	SendPropArray3( SENDINFO_ARRAY3(covenCooldownTimers), SendPropFloat( SENDINFO_ARRAY(covenCooldownTimers), -1, SPROP_NOSCALE ) ),
 	SendPropArray3( SENDINFO_ARRAY3(covenStatusMagnitude), SendPropInt( SENDINFO_ARRAY(covenStatusMagnitude), 8, SPROP_UNSIGNED ) ),
 #ifdef HL2_EPISODIC
@@ -72,14 +70,11 @@ END_DATADESC()
 CHL2PlayerLocalData::CHL2PlayerLocalData()
 {
 	covenCurrentPointsSpent = 0;
-	covenCurrentLoadout1 = 0;
-	covenCurrentLoadout2 = 0;
-	covenCurrentLoadout3 = 0;
-	covenCurrentLoadout4 = 0;
 	covenXPCounter = 0;
-	covenStrengthCounter = 0;
-	covenConstitutionCounter = 0;
-	covenIntellectCounter = 0;
+	covenStrengthCounter = 0.0f;
+	covenConstitutionCounter = 0.0f;
+	covenIntellectCounter = 0.0f;
+	covenGCD = 0.0f;
 	m_flSuitPower = 0.0;
 	m_bZooming = false;
 	m_bWeaponLowered = false;

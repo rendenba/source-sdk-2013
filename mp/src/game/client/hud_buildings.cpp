@@ -141,15 +141,15 @@ void CHudBuildings::Paint()
 		team = 1;
 
 	int barXpos = wide * 0.15f;
-	float scale = wide / 180.0f;
-	int ypos = scale * 8.0f;
-	int yfontoffsetnormal = surface()->GetFontTall(m_hTextFontIcons) / 3.0f;
-	int yfontoffset = surface()->GetFontTall(m_hTextFontIcons) / 2.0f - 2.0f * scale;
+	int ypos = 0.12f * tall;
+	int fontTall = surface()->GetFontTall(m_hTextFontIcons);
+	int yfontoffsetnormal = fontTall * 0.3333f;
+	int yfontoffset = fontTall * 0.48f;
 	float barWidth = wide * 0.8f;
-	float barHeight = scale * 16.0f;
-	int yfontoffset2 = surface()->GetFontTall(m_hTextFontNumerals) / 2.0f - 5.0f * scale;
-	float barRowGap = scale * 8.0f;
-	int xpos = barXpos / 2.0f - UTIL_ComputeStringWidth(m_hTextFontIcons, L"+") / 2.0f;
+	float barHeight = fontTall * 0.3f;
+	int yfontoffset2 = surface()->GetFontTall(m_hTextFontNumerals) * 0.3f;
+	float barRowGap = fontTall * 0.25f;//tall * 0.12f;
+	int xpos = barXpos * 0.5f - UTIL_ComputeStringWidth(m_hTextFontIcons, L"+") * 0.5f;
 
 	surface()->DrawSetTextFont(m_hTextFontIcons);
 
@@ -230,23 +230,11 @@ void CHudBuildings::OnThink()
 
 	if (pPlayer->m_CovenBuilderLocal.m_iDispenserHP > 0 && m_iType == 2)
 	{
-		int defaultTall = 76;
-		int wide, tall;
-		GetSize(wide, tall);
-		float scale = wide / 180.0f;
-		int newHeight = defaultTall * scale;
-		SetSize(wide, newHeight);
 		SetPaintEnabled(true);
 		SetPaintBackgroundEnabled(true);
 	}
 	else if (pPlayer->m_CovenBuilderLocal.m_iTurretHP > 0 && m_iType == 1)
 	{
-		int turretTall = 102;
-		int wide, tall;
-		GetSize(wide, tall);
-		float scale = wide / 180.0f;
-		int newHeight = turretTall * scale;
-		SetSize(wide, newHeight);
 		SetPaintEnabled(true);
 		SetPaintBackgroundEnabled(true);
 	}

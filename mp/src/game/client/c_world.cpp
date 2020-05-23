@@ -13,6 +13,7 @@
 #include "ivieweffects.h"
 #include "shake.h"
 #include "eventlist.h"
+#include "coven_parse.h"
 // NVNT haptic include for notification of world precache
 #include "haptics/haptic_utils.h"
 // memdbgon must be the last include file in a .cpp file!!!
@@ -158,6 +159,21 @@ void W_Precache(void)
 	g_sModelIndexLaserDot = modelinfo->GetModelIndex("sprites/laserdot.vmt");
 }
 
+void Status_Precache(void)
+{
+	PrecacheStatusEffects(filesystem);
+}
+
+void Abil_Precache(void)
+{
+	PrecacheAbilities(filesystem);
+}
+
+void Class_Precache(void)
+{
+	PrecacheClasses(filesystem);
+}
+
 void C_World::Precache( void )
 {
 	// UNDONE: Make most of these things server systems or precache_registers
@@ -171,6 +187,9 @@ void C_World::Precache( void )
 
 	// Get weapon precaches
 	W_Precache();	
+	Abil_Precache();
+	Class_Precache();
+	Status_Precache();
 
 	// Call all registered precachers.
 	CPrecacheRegister::Precache();

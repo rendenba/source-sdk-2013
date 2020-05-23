@@ -16,11 +16,16 @@
 #include <vgui_controls/Button.h>
 #include <vgui/KeyCode.h>
 #include <filesystem.h>
+#include <vgui/ILocalize.h>
 
 #include "c_basehlplayer.h"
+#include "coven_parse.h"
+#include "weapon_parse.h"
 
 extern vgui::Panel *g_lastPanel;
 extern vgui::Button *g_lastButton;
+
+extern ConVar sv_coven_hp_per_con;
 
 //-----------------------------------------------------------------------------
 // Purpose: Triggers a new panel when the mouse goes over the button
@@ -216,43 +221,80 @@ public:
 			}
 			else if ( !Q_stricmp( "SClassInfo", m_pPanel->GetName() ))
 			{
-				if( !Q_stricmp( "reaver", GetName() ) )
+				for (int i = 1; i <= COVEN_CLASSCOUNT_SLAYERS; i++)
 				{
-					m_pPanel->SetText("Reaver:\nClose range tank, also somewhat effective at medium range. Slow speed.\nMax HP: 100\n\n10 Gauge Double Barrel Shotgun:\nVery slow reload, but backs a close to mid range whallop.\n\nAbilities:\n\nSprint: Boosts speed.\n\nSheer Will: Boosts all stats.\n\nIntimidating Shout: Stuns all enemies within range.\n\nGut Check: Grants immunity from one damaging effect while active.");
-				}
-				else if( !Q_stricmp( "hellion", GetName() ) )
-				{
-					m_pPanel->SetText("Hellion:\nEngineering genious and expert at mischief. Fastest speed.\nMax HP: 100\n\n357 Magnum:\nStandard big pistol. Very accurate.\n\nAbilities:\n\nTrip Mine: Plants a laser activated trip mine on a wall in front of you.\n\nAmmo Crate: Replenishes ammo and metal.\n\nTurret: Automated vampire defense system.");
-					//m_pPanel->SetText("Hellion:\nLightweight scout and expert at mischief. Fastest speed.\nMax HP: 100\n\n357 Magnum:\nStandard big pistol. Very accurate.\n\nAbilities:\n\nHoly Water: Throws a holy water grenade healing allies and setting vampires on fire.\n\nTrip Mine: Plants a laser activated trip mine on a wall in front of you.\n\nReflexes: Increases safe fall distance.\n\nUV Light: Toggle a flashlight emitting high powered UV light. Damages and pushes back vampires.");
-				}
-				else if( !Q_stricmp( "avenger", GetName() ) )
-				{
-					m_pPanel->SetText("Avenger:\nStandard meatshield. Average speed.\nMax HP: 100\n\n12 Gauge Pump Action Shotgun:\nHas a six shot clip.  Packs a decent punch.\n\nAbilities:\n\nBattle Yell: Boosts damage for team mates in range.\n\nRevenge: Increases all stats when a nearby ally dies.");
-					//m_pPanel->SetText("Avenger:\nStandard meatshield. Average speed.\nMax HP: 100\n\n12 Gauge Pump Action Shotgun:\nHas a six shot clip.  Packs a decent punch.\n\nAbilities:\n\nBattle Yell: Boosts damage for team mates in range.\n\nBandage: Throws a med kit for team mates to pick up.\n\nRevenge: Increases all stats when a nearby ally dies.\n\nVengeful Soul: Releases a projectile that deals damage to vampires and obliterates them.");
-				}
-				else
-				{
-					m_pPanel->SetText(" ");
+					CovenClassInfo_t *info = GetCovenClassData(i, COVEN_TEAMID_SLAYERS);
+					if (!Q_stricmp(info->szName, GetName()))
+					{
+						wchar_t statsHP[4];
+						swprintf(statsHP, sizeof(statsHP), L"%d", (int)(info->flConstitution * sv_coven_hp_per_con.GetFloat()));
+						wchar_t statsCon[4];
+						swprintf(statsCon, sizeof(statsCon), L"%d", (int)(info->flConstitution));
+						wchar_t statsStr[4];
+						swprintf(statsStr, sizeof(statsStr), L"%d", (int)(info->flStrength));
+						wchar_t statsInt[4];
+						swprintf(statsInt, sizeof(statsInt), L"%d", (int)(info->flIntellect));
+						wchar_t statsSpeed[4];
+						swprintf(statsSpeed, sizeof(statsSpeed), L"%d", (int)(info->flBaseSpeed));
+
+						wchar_t statsString[128];
+						g_pVGuiLocalize->ConstructString(statsString, sizeof(statsString), g_pVGuiLocalize->Find("#class_selection_stats"), 5, statsHP, statsSpeed, statsCon, statsStr, statsInt);
+
+						wchar_t abilitiesString[COVEN_MAX_ABILITIES][256];
+						for (int j = 0; j < COVEN_MAX_ABILITIES; j++)
+						{
+							CovenAbilityInfo_t *abilityInfo = GetCovenAbilityData(info->iAbilities[j]);
+							swprintf(abilitiesString[j], sizeof(abilitiesString[j]), L"%s:\n%s\n\n", g_pVGuiLocalize->Find(abilityInfo->szPrintName), g_pVGuiLocalize->Find(abilityInfo->szDescription));
+						}
+
+						wchar_t weaponsString[128];
+						weaponsString[0] = 0;
+						for (int j = 0; j < info->szWeapons.Count(); j++)
+						{
+							FileWeaponInfo_t *weapInfo = GetFileWeaponInfoFromHandle(LookupWeaponInfoSlot(info->szWeapons[j]));
+							swprintf(weaponsString, sizeof(weaponsString), L"%s%s\n", weaponsString, g_pVGuiLocalize->Find(weapInfo->szPrintName));
+						}
+
+						wchar_t string[1024];
+						g_pVGuiLocalize->ConstructString(string, sizeof(string), g_pVGuiLocalize->Find("#class_selection_slayers"), 8, g_pVGuiLocalize->Find(info->szPrintName), g_pVGuiLocalize->Find(info->szDescription), statsString,
+							weaponsString, abilitiesString[0], abilitiesString[1], abilitiesString[2], abilitiesString[3]);
+						m_pPanel->SetText(string);
+					}
 				}
 			}
 			else if ( !Q_stricmp( "VClassInfo", m_pPanel->GetName() ))
 			{
-				if( !Q_stricmp( "fiend", GetName() ) )
+				for (int i = 1; i <= COVEN_CLASSCOUNT_VAMPIRES; i++)
 				{
-					m_pPanel->SetText("Fiend:\nLightweight flyer. Insanely mobile.\nMax HP: 72\n\nAbilities:\n\nLeap: Causes you to accelerate quicky through the air.\n\nBerserk: Increases health and max health.\n\nBecome Ethereal: Use to fade between worlds and reduce damage taken.\n\nSneak: Fade invisible. Movement or receiving damage cancels the effect.");
-				}
-				else if( !Q_stricmp( "gore", GetName() ) )
-				{
-					m_pPanel->SetText("Gore:\nPretty tough. Pretty slow.\nMax HP: 132\n\nAbilities:\n\nDread Scream: Scream instilling fear in Slayers within ranges. Players afflicted are slowed.\n\nCharge: Charges straight ahead at immense speed. Usable while phased. Hold the effect to continue charging.\n\nPhase: Disappears from sight and greatly boosts movement speed. Attacking phases back into sight.\n\nGorge: Allows feeding to grant health past normal maximum health.");
-				}
-				else if( !Q_stricmp( "degen", GetName() ) )
-				{
-					m_pPanel->SetText("Degenerate:\nSlow and \"non-threatening,\" but excels at one-on-one combat.\nMax HP: 120\n\nAbilities:\n\nBloodlust:  Causes all teammates within range to regain some of damage dealt to enemies.\n\nDark Will: Boosts all stats.\n\nDetonate Blood: Explode inflicting damage to self and enemies.\n\nMasochist: Grants a speed bonus for some of all damage taken.");
-					//m_pPanel->SetText("Degenerate:\nSlow and \"non-threatening,\" but excels at one-on-one combat.\nMax HP: 116\n\nAbilities:\n\nDread Scream: Scream instilling fear in Slayers within ranges. Players afflicted are slowed.\n\nBloodlust:  Causes all teammates within range to regain some of damage dealt to enemies.\n\nMasochist: Grants a speed bonus for some of all damage taken.\n\nUndying: Resurrect faster and with more health.\n\nDetonate Blood: Explode inflicting damage to self and enemies.");
-				}
-				else
-				{
-					m_pPanel->SetText(" ");
+					CovenClassInfo_t *info = GetCovenClassData(i, COVEN_TEAMID_VAMPIRES);
+					if (!Q_stricmp(info->szName, GetName()))
+					{
+						wchar_t statsHP[4];
+						swprintf(statsHP, sizeof(statsHP), L"%d", (int)(info->flConstitution * sv_coven_hp_per_con.GetFloat()));
+						wchar_t statsCon[4];
+						swprintf(statsCon, sizeof(statsCon), L"%d", (int)(info->flConstitution));
+						wchar_t statsStr[4];
+						swprintf(statsStr, sizeof(statsStr), L"%d", (int)(info->flStrength));
+						wchar_t statsInt[4];
+						swprintf(statsInt, sizeof(statsInt), L"%d", (int)(info->flIntellect));
+						wchar_t statsSpeed[4];
+						swprintf(statsSpeed, sizeof(statsSpeed), L"%d", (int)(info->flBaseSpeed));
+
+						wchar_t statsString[128];
+						g_pVGuiLocalize->ConstructString(statsString, sizeof(statsString), g_pVGuiLocalize->Find("#class_selection_stats"), 5, statsHP, statsSpeed, statsCon, statsStr, statsInt);
+
+						wchar_t abilitiesString[COVEN_MAX_ABILITIES][256];
+						for (int j = 0; j < COVEN_MAX_ABILITIES; j++)
+						{
+							CovenAbilityInfo_t *abilityInfo = GetCovenAbilityData(info->iAbilities[j]);
+							swprintf(abilitiesString[j], sizeof(abilitiesString[j]), L"%s:\n%s\n\n", g_pVGuiLocalize->Find(abilityInfo->szPrintName), g_pVGuiLocalize->Find(abilityInfo->szDescription));
+						}
+
+						wchar_t string[1024];
+						g_pVGuiLocalize->ConstructString(string, sizeof(string), g_pVGuiLocalize->Find("#class_selection_vampires"), 7, g_pVGuiLocalize->Find(info->szPrintName), g_pVGuiLocalize->Find(info->szDescription), statsString,
+							abilitiesString[0], abilitiesString[1], abilitiesString[2], abilitiesString[3]);
+						m_pPanel->SetText(string);
+					}
 				}
 			}
 

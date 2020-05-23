@@ -524,37 +524,14 @@ bool CHL2MPClientScoreBoardDialog::GetPlayerScoreInfo(int playerIndex, KeyValues
 	kv->SetInt("deaths", g_PR->GetDeaths( playerIndex ));
 	kv->SetInt("frags", g_PR->GetPlayerScore( playerIndex ));
 	//
-	int iclass = g_PR->GetPlayerClass( playerIndex );
-	switch (iclass)
-	{
-	case COVEN_CLASSID_AVENGER:
-		if (g_PR->GetTeam( playerIndex ) == COVEN_TEAMID_SLAYERS)
-			kv->SetString("class", "Avenger");
-		else
-			kv->SetString("class", "Fiend");
-		break;
-	case COVEN_CLASSID_REAVER:
-		if (g_PR->GetTeam( playerIndex ) == COVEN_TEAMID_SLAYERS)
-			kv->SetString("class", "Reaver");
-		else
-			kv->SetString("class", "Gore");
-		break;
-	case COVEN_CLASSID_HELLION:
-		if (g_PR->GetTeam( playerIndex ) == COVEN_TEAMID_SLAYERS)
-			kv->SetString("class", "Hellion");
-		else
-			kv->SetString("class", "Degenerate");
-		break;
-	case COVEN_CLASSID_DEADEYE:
-		if (g_PR->GetTeam( playerIndex ) == COVEN_TEAMID_SLAYERS)
-			kv->SetString("class", "Deadeye");
-		else
-			kv->SetString("class", "Blood");
-		break;
-	default:break;
-	}
+	
 	if (g_PR->GetTeam( playerIndex ) == 1)
 		kv->SetString("class", "");
+	else
+	{
+		CovenClassInfo_t *info = GetCovenClassData((CovenClassID_t)g_PR->GetPlayerClass(playerIndex));
+		kv->SetString("class", g_pVGuiLocalize->FindAsUTF8(info->szPrintName));
+	}
 
 	if (g_PR->GetTeam(playerIndex) == COVEN_TEAMID_VAMPIRES)
 		kv->SetInt("level", g_PR->GetLevel(playerIndex));

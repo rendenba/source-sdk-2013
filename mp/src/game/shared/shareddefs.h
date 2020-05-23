@@ -397,9 +397,23 @@ enum PLAYER_ANIM
 //BB: CovenDefs
 //#define COVEN_DEVELOPER_MODE
 
-#define COVEN_GAME_STATE_WARMUP 0
-#define COVEN_GAME_STATE_FREEZE 1
-#define COVEN_GAME_STATE_PLAY 2
+typedef enum
+{
+	COVEN_GAMESTATE_UNDEFINED,
+	COVEN_GAMESTATE_WARMUP,
+	COVEN_GAMESTATE_FREEZE,
+	COVEN_GAMESTATE_PLAY,
+	COVEN_GAMESTATE_MAX
+} CovenGamestate_t;
+
+// NOTE: the indices here must match TEAM_TERRORIST, TEAM_CT, TEAM_SPECTATOR, etc.
+static const char *sTeamNames[] =
+{
+	"Unassigned",
+	"Spooky Ghosts",
+	"Slayers",
+	"Vampires",
+};
 
 #define COVEN_RESPAWNTIME_BASE 5.0f
 #define COVEN_RESPAWNTIME_SLAYERS_MULT 1.2f
@@ -416,190 +430,155 @@ enum PLAYER_ANIM
 #define COVEN_XP_ASSIST_RADIUS 600.0f
 #define COVEN_HP_PER_RAGDOLL 80.0f
 
-#define COVEN_HP_PER_CON 4
-#define COVEN_MANA_PER_INT 10.0f
+//#define COVEN_HP_PER_CON 4
+//#define COVEN_MANA_PER_INT 10.0f
 
 #define COVEN_DAMAGE_PER_LEVEL_ADJUST 0.1f
 
 #define COVEN_MAX_CAP_POINTS 8
 #define COVEN_MAX_BOT_NODES 200
 //#define COVEN_CAP_SCORE 10
-//#define COVEN_CAP_SCORE_PERSEC 1
-//#define COVEN_PTS_PER_ITEM 5
-//#define COVEN_PTS_PER_CTS 125
 
 #define COVEN_MELEE_STR_MULT 2
 #define COVEN_RANGE_STR_MULT 1
 
-#define COVEN_TEAMID_SLAYERS 2
-#define COVEN_TEAMID_VAMPIRES 3
+#define COVEN_MAX_CLASSES_PER_TEAM 16 //15 + 1 invalid. This is hardcoded into the networking at 4 bits. Client will truncate the higher bit.
 
-#define COVEN_MAX_STEALTH_VELOCITY 150 //10
-#define COVEN_MIN_STEALTH_VELOCITY 280
+#define COVEN_CLASS_MASK 0xF
 
-#define COVEN_CLASSID_AVENGER 1
-#define COVEN_CLASSID_REAVER 2
-#define COVEN_CLASSID_HELLION 3
-#define COVEN_CLASSID_PRIEST 4
-#define COVEN_CLASSID_DEADEYE 5
+#define COVEN_TEAM_MASK 0xFFFFFFF0
 
-#define COVEN_MAX_CLASSCOUNT 4
-#define COVEN_CLASSCOUNT_SLAYERS 3
-#define COVEN_CLASSCOUNT_VAMPIRES 3
+typedef enum
+{
+	COVEN_TEAMID_NONE,
+	COVEN_TEAMID_SPECTATOR,
+	COVEN_TEAMID_SLAYERS,
+	COVEN_TEAMID_VAMPIRES,
+	COVEN_MAX_TEAMS
+} CovenTeamID_t;
 
-#define COVEN_CLASSID_FIEND 1
-#define COVEN_CLASSID_GORE 2
-#define COVEN_CLASSID_DEGEN 3
-#define COVEN_CLASSID_SOULEAT 4
-#define COVEN_CLASSID_BLOOD 5
+typedef enum
+{
+	COVEN_CLASSID_NONE,
+	COVEN_CLASSID_AVENGER = COVEN_MAX_CLASSES_PER_TEAM + 1,
+	COVEN_CLASSID_REAVER,
+	COVEN_CLASSID_HELLION,
+	COVEN_CLASSCOUNT_SLAYERS = COVEN_CLASSID_HELLION & COVEN_CLASS_MASK,
+	COVEN_CLASSID_PRIEST,
+	COVEN_CLASSID_DEADEYE,
 
-#define COVEN_BASESPEED_FIEND 320
-#define COVEN_BASESPEED_GORE 190 /*210*/
-#define COVEN_BASESPEED_DEGEN 210 /*150*/
+	COVEN_CLASSID_VAMPIRE_TEAM_MASK = COVEN_MAX_CLASSES_PER_TEAM * 2,
+	COVEN_CLASSID_FIEND,
+	COVEN_CLASSID_GORE,
+	COVEN_CLASSID_DEGEN,
+	COVEN_CLASSCOUNT_VAMPIRES = COVEN_CLASSID_DEGEN & COVEN_CLASS_MASK,
+	COVEN_CLASSID_SOULEAT,
+	COVEN_CLASSID_BLOOD,
+
+	COVEN_MAX_CLASSCOUNT = COVEN_CLASSCOUNT_SLAYERS + COVEN_CLASSCOUNT_VAMPIRES + 1,
+	
+} CovenClassID_t;
+
 #define COVEN_BASESPEED_SOULEAT 220
-
-#define COVEN_BASESPEED_AVENGER 210
-#define COVEN_BASESPEED_REAVER 190
-#define COVEN_BASESPEED_HELLION 250
 #define COVEN_BASESPEED_DEADEYE 220
 #define COVEN_BASESPEED_PRIEST 220
 
-#define COVEN_BASECON_FIEND 20 //18
-#define COVEN_BASECON_GORE 33 //30
-#define COVEN_BASECON_DEGEN 30 //28
+#define COVEN_MAX_ABILITIES		4
 
-#define COVEN_BASECON_AVENGER 25
-#define COVEN_BASECON_REAVER 25 //30
-#define COVEN_BASECON_HELLION 25
+typedef enum
+{
+	COVEN_STATUS_CAPPOINT,
+	COVEN_STATUS_LEVELUP,
+	COVEN_STATUS_SPRINT,
+	COVEN_STATUS_BATTLEYELL,
+	COVEN_STATUS_STATBOOST,
+	COVEN_STATUS_BERSERK,
+	COVEN_STATUS_MASOCHIST,
+	COVEN_STATUS_GUTCHECK,
+	COVEN_STATUS_HOLYWATER,
+	COVEN_STATUS_BLOODLUST,
+	COVEN_STATUS_SLOW,
+	COVEN_STATUS_STUN,
+	COVEN_STATUS_PHASE,
+	COVEN_STATUS_HAS_CTS,
+	COVEN_STATUS_DODGE,
+	COVEN_STATUS_COUNT
+} CovenStatus_t;
 
-#define COVEN_BASESTR_FIEND 16 //15
-#define COVEN_BASESTR_GORE 25
-#define COVEN_BASESTR_DEGEN 22
-
-#define COVEN_BASESTR_AVENGER 15
-#define COVEN_BASESTR_HELLION 10
-#define COVEN_BASESTR_REAVER 18 //20
-
-#define COVEN_BASEINT_FIEND 10
-#define COVEN_BASEINT_GORE 5
-#define COVEN_BASEINT_DEGEN 8
-
-#define COVEN_BASEINT_AVENGER 8
-#define COVEN_BASEINT_HELLION 10
-#define COVEN_BASEINT_REAVER 5
-
-
-
-#define COVEN_MAX_BUFFS			15
-
-#define COVEN_BUFF_CAPPOINT		0
-#define COVEN_BUFF_LEVEL		1
-#define COVEN_BUFF_SPRINT		2
-#define COVEN_BUFF_BYELL		3
-#define COVEN_BUFF_STATS		4
-#define COVEN_BUFF_BERSERK		5
-#define COVEN_BUFF_MASOCHIST	6
-#define COVEN_BUFF_GCHECK		7
-#define COVEN_BUFF_HOLYWATER	8
-#define COVEN_BUFF_BLUST		9
-#define COVEN_BUFF_SLOW			10
-#define COVEN_BUFF_STUN			11
-#define COVEN_BUFF_PHASE		12
-#define COVEN_BUFF_CTS			13
-#define COVEN_BUFF_DODGE		14
-
-//BB: these MUST correspond to (1 << BUFF)
-#define COVEN_FLAG_CAPPOINT		(1 << 0)
-#define COVEN_FLAG_LEVEL		(1 << 1)
-#define COVEN_FLAG_SPRINT		(1 << 2)
-#define COVEN_FLAG_BYELL		(1 << 3)
-#define COVEN_FLAG_STATS		(1 << 4)
-#define COVEN_FLAG_BERSERK		(1 << 5)
-#define COVEN_FLAG_MASOCHIST	(1 << 6)
-#define COVEN_FLAG_GCHECK		(1 << 7)
-#define COVEN_FLAG_HOLYWATER	(1 << 8)
-#define COVEN_FLAG_BLUST		(1 << 9)
-#define COVEN_FLAG_SLOW			(1 << 10)
-#define COVEN_FLAG_STUN			(1 << 11)
-#define COVEN_FLAG_PHASE		(1 << 12)
-#define COVEN_FLAG_CTS			(1 << 13)
-#define COVEN_FLAG_DODGE		(1 << 14)
-
-
-#define COVEN_ABILITY_COUNT				21
-
-#define COVEN_ABILITY_HASTE				0
-#define COVEN_ABILITY_BATTLEYELL		1
-#define COVEN_ABILITY_SNEAK				2
-#define COVEN_ABILITY_BLOODLUST			3
-#define COVEN_ABILITY_LEAP				4
-#define COVEN_ABILITY_CHARGE			5
-#define COVEN_ABILITY_PHASE				6
-#define COVEN_ABILITY_DREADSCREAM		7
-#define COVEN_ABILITY_BERSERK			8
-#define COVEN_ABILITY_INTIMIDATINGSHOUT	9
-#define COVEN_ABILITY_DETONATEBLOOD		10
-#define COVEN_ABILITY_DODGE				11
-#define COVEN_ABILITY_SHEERWILL			12
-#define COVEN_ABILITY_REVENGE			13
-#define COVEN_ABILITY_GORGE				14
-#define COVEN_ABILITY_MASOCHIST			15
-#define COVEN_ABILITY_GUTCHECK			16
-#define COVEN_ABILITY_BUILDTURRET		17
-#define COVEN_ABILITY_BUILDDISPENSER	18
-#define COVEN_ABILITY_TRIPMINE			19
-#define COVEN_ABILITY_DARKWILL			20
-
-#define COVEN_DREADSCREAM_DIST			500.0f
-#define COVEN_INTIMIDATINGSHOUT_DIST	350.0f
-#define COVEN_DETONATEBLOOD_DIST		400.0f
+typedef enum
+{
+	COVEN_ABILITY_NONE,
+	COVEN_ABILITY_HASTE,
+	COVEN_ABILITY_BATTLEYELL,
+	COVEN_ABILITY_SNEAK,
+	COVEN_ABILITY_BLOODLUST,
+	COVEN_ABILITY_LEAP,
+	COVEN_ABILITY_CHARGE,
+	COVEN_ABILITY_PHASE,
+	COVEN_ABILITY_DREADSCREAM,
+	COVEN_ABILITY_BERSERK,
+	COVEN_ABILITY_INTIMIDATINGSHOUT,
+	COVEN_ABILITY_DETONATEBLOOD,
+	COVEN_ABILITY_DODGE,
+	COVEN_ABILITY_SHEERWILL,
+	COVEN_ABILITY_REVENGE,
+	COVEN_ABILITY_GORGE,
+	COVEN_ABILITY_MASOCHIST,
+	COVEN_ABILITY_GUTCHECK,
+	COVEN_ABILITY_BUILDTURRET,
+	COVEN_ABILITY_BUILDDISPENSER,
+	COVEN_ABILITY_TRIPMINE,
+	COVEN_ABILITY_DARKWILL,
+	COVEN_ABILITY_COUNT
+} CovenAbility_t;
 
 // instant damage
 
 // For a means of resolving these consts into debug string text, see function
 // CTakeDamageInfo::DebugGetDamageTypeString(unsigned int DamageType, char *outbuf, unsigned int outbuflength )
-#define DMG_GENERIC			0			// generic damage -- do not use if you want players to flinch and bleed!
-#define DMG_CRUSH			(1 << 0)	// crushed by falling or moving object. 
-										// NOTE: It's assumed crush damage is occurring as a result of physics collision, so no extra physics force is generated by crush damage.
-										// DON'T use DMG_CRUSH when damaging entities unless it's the result of a physics collision. You probably want DMG_CLUB instead.
-#define DMG_BULLET			(1 << 1)	// shot
-#define DMG_SLASH			(1 << 2)	// cut, clawed, stabbed
-#define DMG_BURN			(1 << 3)	// heat burned
-#define DMG_VEHICLE			(1 << 4)	// hit by a vehicle
-#define DMG_FALL			(1 << 5)	// fell too far
-#define DMG_BLAST			(1 << 6)	// explosive blast damage
-#define DMG_CLUB			(1 << 7)	// crowbar, punch, headbutt
-#define DMG_SHOCK			(1 << 8)	// electric shock
-#define DMG_SONIC			(1 << 9)	// sound pulse shockwave
-#define DMG_ENERGYBEAM		(1 << 10)	// laser or other high energy beam 
+#define DMG_GENERIC						0			// generic damage -- do not use if you want players to flinch and bleed!
+#define DMG_CRUSH						(1 << 0)	// crushed by falling or moving object. 
+													// NOTE: It's assumed crush damage is occurring as a result of physics collision, so no extra physics force is generated by crush damage.
+													// DON'T use DMG_CRUSH when damaging entities unless it's the result of a physics collision. You probably want DMG_CLUB instead.
+#define DMG_BULLET						(1 << 1)	// shot
+#define DMG_SLASH						(1 << 2)	// cut, clawed, stabbed
+#define DMG_BURN						(1 << 3)	// heat burned
+#define DMG_VEHICLE						(1 << 4)	// hit by a vehicle
+#define DMG_FALL						(1 << 5)	// fell too far
+#define DMG_BLAST						(1 << 6)	// explosive blast damage
+#define DMG_CLUB						(1 << 7)	// crowbar, punch, headbutt
+#define DMG_SHOCK						(1 << 8)	// electric shock
+#define DMG_SONIC						(1 << 9)	// sound pulse shockwave
+#define DMG_ENERGYBEAM					(1 << 10)	// laser or other high energy beam 
 #define DMG_PREVENT_PHYSICS_FORCE		(1 << 11)	// Prevent a physics force 
-#define DMG_NEVERGIB		(1 << 12)	// with this bit OR'd in, no damage type will be able to gib victims upon death
-#define DMG_ALWAYSGIB		(1 << 13)	// with this bit OR'd in, any damage type can be made to gib victims upon death.
-#define DMG_DROWN			(1 << 14)	// Drowning
+#define DMG_NEVERGIB					(1 << 12)	// with this bit OR'd in, no damage type will be able to gib victims upon death
+#define DMG_ALWAYSGIB					(1 << 13)	// with this bit OR'd in, any damage type can be made to gib victims upon death.
+#define DMG_DROWN						(1 << 14)	// Drowning
 
 
-#define DMG_PARALYZE		(1 << 15)	// slows affected creature down
-#define DMG_NERVEGAS		(1 << 16)	// nerve toxins, very bad
-#define DMG_POISON			(1 << 17)	// blood poisoning - heals over time like drowning damage
-#define DMG_RADIATION		(1 << 18)	// radiation exposure
-#define DMG_DROWNRECOVER	(1 << 19)	// drowning recovery
-#define DMG_ACID			(1 << 20)	// toxic chemicals or acid burns
-#define DMG_SLOWBURN		(1 << 21)	// in an oven
+#define DMG_PARALYZE					(1 << 15)	// slows affected creature down
+#define DMG_STUN						(1 << 15)	// COVEN STUN
+#define DMG_NERVEGAS					(1 << 16)	// nerve toxins, very bad
+#define DMG_POISON						(1 << 17)	// blood poisoning - heals over time like drowning damage
+#define DMG_RADIATION					(1 << 18)	// radiation exposure
+#define DMG_DROWNRECOVER				(1 << 19)	// drowning recovery
+#define DMG_ACID						(1 << 20)	// toxic chemicals or acid burns
+#define DMG_SLOWBURN					(1 << 21)	// in an oven
+#define DMG_SLOW						(1 << 21)	// COVEN SLOW
+#define DMG_REMOVENORAGDOLL				(1 << 22)	// with this bit OR'd in, no ragdoll will be created, and the target will be quietly removed.
+													// use this to kill an entity that you've already got a server-side ragdoll for
 
-#define DMG_REMOVENORAGDOLL	(1<<22)		// with this bit OR'd in, no ragdoll will be created, and the target will be quietly removed.
-										// use this to kill an entity that you've already got a server-side ragdoll for
+#define DMG_PHYSGUN						(1 << 23)	// Hit by manipulator. Usually doesn't do any damage.
+#define DMG_PLASMA						(1 << 24)	// Shot by Cremator
+#define DMG_AIRBOAT						(1 << 25)	// Hit by the airboat's gun
 
-#define DMG_PHYSGUN			(1<<23)		// Hit by manipulator. Usually doesn't do any damage.
-#define DMG_PLASMA			(1<<24)		// Shot by Cremator
-#define DMG_AIRBOAT			(1<<25)		// Hit by the airboat's gun
+#define DMG_DISSOLVE					(1 << 26)	// Dissolving!
+#define DMG_BLAST_SURFACE				(1 << 27)	// A blast on the surface of water that cannot harm things underwater
+#define DMG_DIRECT						(1 << 28)
+#define DMG_BUCKSHOT					(1 << 29)	// not quite a bullet. Little, rounder, different.
 
-#define DMG_DISSOLVE		(1<<26)		// Dissolving!
-#define DMG_BLAST_SURFACE	(1<<27)		// A blast on the surface of water that cannot harm things underwater
-#define DMG_DIRECT			(1<<28)
-#define DMG_BUCKSHOT		(1<<29)		// not quite a bullet. Little, rounder, different.
-
-#define DMG_NO				(1<<30)
-#define DMG_HOLY			(1<<16)
+#define DMG_NO							(1 << 30)	// COVEN DO NOT DAMAGE!
+#define DMG_HOLY						(1 << 16)	// COVEN HOLY
 
 // NOTE: DO NOT ADD ANY MORE CUSTOM DMG_ TYPES. MODS USE THE DMG_LASTGENERICFLAG BELOW, AND
 //		 IF YOU ADD NEW DMG_ TYPES, THEIR TYPES WILL BE HOSED. WE NEED A BETTER SOLUTION.

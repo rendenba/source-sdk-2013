@@ -42,17 +42,15 @@ public:
 	bool	m_bStickyAutoAim;
 	bool	m_bAutoAimTarget;
 	int		covenXPCounter;
-	int		covenStrengthCounter;
-	int		covenConstitutionCounter;
-	int		covenIntellectCounter;
+	float	covenStrengthCounter;
+	float	covenConstitutionCounter;
+	float	covenIntellectCounter;
 	int		covenCurrentPointsSpent;
-	int		covenCurrentLoadout1;
-	int		covenCurrentLoadout2;
-	int		covenCurrentLoadout3;
-	int		covenCurrentLoadout4;
-	float	covenStatusTimers[COVEN_MAX_BUFFS];
-	int		covenStatusMagnitude[COVEN_MAX_BUFFS];
-	float	covenCooldownTimers[4];
+	float	covenGCD;
+	CovenAbility_t		covenAbilities[COVEN_MAX_ABILITIES];
+	float	covenStatusTimers[COVEN_STATUS_COUNT];
+	int		covenStatusMagnitude[COVEN_STATUS_COUNT];
+	float	covenCooldownTimers[COVEN_MAX_ABILITIES];
 #ifdef HL2_EPISODIC
 	float	m_flFlashBattery;
 	Vector	m_vecLocatorOrigin;

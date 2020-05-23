@@ -62,7 +62,6 @@ public:
 
 	virtual bool LevelUp(int lvls, bool bBoostStats, bool bSound, bool bAutoLevel, bool bResetHP, bool bEffect);
 	int XPForKill(CHL2MP_Player *pAttacker);
-	void ResetVitals( void );
 
 	virtual void DestroyAllBuildings(void);
 	virtual void Precache( void );
@@ -91,7 +90,6 @@ public:
 	virtual void DeathSound( const CTakeDamageInfo &info );
 	float Feed();
 	virtual CBaseEntity* EntSelectSpawnPoint( void );
-	virtual bool IsBuilderClass(void);
 		
 	int FlashlightIsOn( void );
 	void FlashlightTurnOn( void );
@@ -145,8 +143,7 @@ public:
 	void State_PreThink_OBSERVER_MODE();
 
 	void GiveTeamXPCentered(int team, int xp, CBasePlayer *ignore);
-	void GiveBuffInRadius(int team, int buff, int mag, float duration, float distance, int classid);
-	void ResetStats();
+	void GiveBuffInRadius(int iTeam, CovenStatus_t iStatus, int iMagnitude, float flDuration, float flDistance, int iClassID = 0);
 	void ResetAbilities();
 	int GetAbilityNumber(int keyNum);
 
@@ -154,22 +151,24 @@ public:
 
 	//BB: thinking functions consolidated for convienience
 	void DoStatusThink();
-	void DoAbilityThink(int keyNum);
+	bool DoAbilityThink();
 	void DoVampirePreThink();
 	void DoVampirePostThink();
 	void DoSlayerPreThink();
 	void DoSlayerPostThink();
 
+	void DoRadiusAbility(CovenAbility_t iAbility, int iAbilityNum, int iLevel, CovenStatus_t iBuff, bool bSameTeam);
+	void BoostStats(CovenAbility_t iReason, int iAbilityNum);
+	void StartEffect(int iEffect);
+	void StopEffect(int iEffect);
+
 	//BB: vampire helper functions
-	void DoLeap();
+	void DoLeap(int iAbilityNum);
 	void CheckGore();
-	bool DoGorePhase(int lev);
-	void DoGoreCharge();
-	void BloodExplode(int lev, float magnitude);
-	void RecalcGoreDrain();
-	void DoBloodLust(int lev);
-	void DoDreadScream(int lev);
-	void DoBerserk(int lev, float duration);
+	bool DoGorePhase(int iAbilityNum);
+	bool DoGoreCharge();
+	void BloodExplode(int iAbilityNum);
+	void DoBerserk(int iAbilityNum);
 	void VampireCheckRegen(float maxpercent);
 	void VampireCheckResurrect();
 	void VampireManageRagdoll();
@@ -177,21 +176,20 @@ public:
 	void StealthCalc();
 	void DodgeHandler();
 	void VampireEnergyHandler();
+	bool ToggleDodge(int iAbilityNumber);
 	void UnDodge();
 
 	//BB: slayer helper functions
 	void UnleashSoul();
 	//void SlayerLightHandler(); This is handled higher up now.
 	void EnergyHandler();
-	void DoBattleYell(int lev);
-	void BoostStats(int lev, float duration);
-	void DoIntimidatingShout(int lev);
+	bool ToggleSprint(int iAbilityNum);
 	void RevengeCheck();
 	void GenerateBandage(int lev);
-	bool BuildTurret(int lev);
-	bool BuildDispenser(int lev);
+	bool BuildTurret(int iAbilityNum);
+	bool BuildDispenser(int iAbilityNum);
 	void ThrowHolywaterGrenade(int lev);
-	bool AttachTripmine();
+	bool AttachTripmine(int iAbilityNum);
 	void CheckThrowPosition(const Vector &vecEye, Vector &vecSrc);
 	void SlayerHolywaterThink();
 	void GutcheckThink();
@@ -255,8 +253,6 @@ public:
 	bool SpendPoint(int on);
 	bool SpendPointBOT(int on);
 	int PointsToSpend();
-	void RefreshLoadout();
-	int covenAbilities[COVEN_ABILITY_COUNT];
 	int covenLoadouts[2][COVEN_MAX_CLASSCOUNT][4];
 	int covenLevelsSpent[2][COVEN_MAX_CLASSCOUNT];
 		
@@ -272,7 +268,6 @@ private:
 
 	//BB: Variables!!!
 	CNetworkVar( int, m_iLevel);
-	CNetworkVar( int, m_iClass);
 
 	float m_flNextModelChangeTime;
 	float m_flNextTeamChangeTime;

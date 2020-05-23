@@ -41,17 +41,15 @@ public:
 	CNetworkVar( bool,	m_bStickyAutoAim );
 	CNetworkVar( bool,	m_bAutoAimTarget );
 	CNetworkVar( int, covenXPCounter );
-	CNetworkVar( int, covenStrengthCounter );
-	CNetworkVar( int, covenConstitutionCounter );
-	CNetworkVar( int, covenIntellectCounter );
-	CNetworkVar( int, covenCurrentLoadout1 );
-	CNetworkVar( int, covenCurrentLoadout2 );
-	CNetworkVar( int, covenCurrentLoadout3 );
-	CNetworkVar( int, covenCurrentLoadout4 );
+	CNetworkVar( float, covenStrengthCounter );
+	CNetworkVar( float, covenConstitutionCounter );
+	CNetworkVar( float, covenIntellectCounter );
 	CNetworkVar( int, covenCurrentPointsSpent );
-	CNetworkArray( float, covenStatusTimers, COVEN_MAX_BUFFS );
-	CNetworkArray( int, covenStatusMagnitude, COVEN_MAX_BUFFS );
-	CNetworkArray( float, covenCooldownTimers, 4 );
+	CNetworkVar( float, covenGCD );
+	CNetworkArray( CovenAbility_t, covenAbilities, COVEN_MAX_ABILITIES );
+	CNetworkArray( float, covenStatusTimers, COVEN_STATUS_COUNT );
+	CNetworkArray( int, covenStatusMagnitude, COVEN_STATUS_COUNT );
+	CNetworkArray( float, covenCooldownTimers, COVEN_MAX_ABILITIES );
 #ifdef HL2_EPISODIC
 	CNetworkVar( float, m_flFlashBattery );
 	CNetworkVar( Vector, m_vecLocatorOrigin );

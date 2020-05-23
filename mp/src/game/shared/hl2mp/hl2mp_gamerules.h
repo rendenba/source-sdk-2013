@@ -18,6 +18,7 @@
 #include "gamerules.h"
 #include "teamplay_gamerules.h"
 #include "gamevars_shared.h"
+#include "coven_parse.h"
 
 #ifndef CLIENT_DLL
 #include "hl2mp_player.h"
@@ -49,7 +50,7 @@ public:
 	DECLARE_NETWORKCLASS();
 };
 
-struct botnode
+struct BotNode_t
 {
 	int ID;
 	CUtlVector<int> connectors;
@@ -117,10 +118,11 @@ public:
 	bool LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBaseFileSystem *pFileSystem, const char *pPathID );
 	bool LoadFromBuffer( char const *resourceName, const char *pBuffer, IBaseFileSystem* pFileSystem, const char *pPathID = NULL );
 	bool LoadCowFile( IBaseFileSystem *filesystem, const char *resourceName, const char *pathID );
+	bool LoadCowFile(IBaseFileSystem *filesystem, const char *resourceName);
 	void PlayerCount(int &slayers, int &vampires);
 
 	CUtlVector<CBaseEntity *> crates;
-	botnode *botnet[COVEN_MAX_BOT_NODES];
+	BotNode_t *pBotNet[COVEN_MAX_BOT_NODES];
 	int bot_node_count;
 	bool cowsloaded;
 	bool cowsloadfail;
@@ -157,13 +159,13 @@ public:
 	float AverageLevel(int team, int &n);
 
 	float covenSlayerRespawnTime;
-	int covenGameState;
+	CovenGamestate_t covenGameState;
 	float covenGameStateTimer;
 	float covenFlashTimer;
 	bool botnameUsed[2][14];
 
 	CBaseEntity *thects;
-	
+
 #ifndef CLIENT_DLL
 	virtual Vector VecItemRespawnSpot( CItem *pItem );
 	virtual QAngle VecItemRespawnAngles( CItem *pItem );
@@ -181,7 +183,7 @@ public:
 	char cap_point_names[COVEN_MAX_CAP_POINTS][MAX_PLAYER_NAME_LENGTH];
 	float cap_point_timers[COVEN_MAX_CAP_POINTS];
 	int cap_point_distance[COVEN_MAX_CAP_POINTS];
-	int cap_point_sightcheck[COVEN_MAX_CAP_POINTS];
+	bool cap_point_sightcheck[COVEN_MAX_CAP_POINTS];
 	float scoreTimer;
 	int last_verified_cap_point;
 

@@ -10,10 +10,13 @@
 #include <vgui/ISurface.h>
 #include <vgui/ILocalize.h>
 #include "c_basehlplayer.h"
+#include "coven_parse.h"
 
 #include "tier0/memdbgon.h" 
  
 using namespace vgui;
+
+static ConVar cl_coven_statuseffecttitles("cl_coven_statuseffecttitles", "1", FCVAR_ARCHIVE, "Display status effect titles.");
 
 struct aura_pic
 {
@@ -32,37 +35,21 @@ class CHudAuras : public CHudElement, public Panel
    virtual void OnThink();
  
    protected:
-   CUtlVector<aura_pic *> active_auras;
    virtual void Paint();
 
    void DrawCircleSegment( int x, int y, int wide, int tall, float flEndDegrees, bool clockwise /* = true */ );
+   void DrawBlipText(int x, int y, wchar_t *text, int fixedwidth = -1, int margin = 4);
 
    //void PaintMiniBackground(int x, int y, int wide, int tall);
 
    int m_nImportBlips[3];
    int m_nImportBlanks[2];
 
-   int m_nImportCapPoint[2];
-   int m_nImportLevel[2];
-   int m_nImportSprint[2];
-   int m_nImportFury[2];
-   int m_nImportStats[2];
-   int m_nImportBerserk[2];
-   int m_nImportMasochist[2];
-   int m_nImportGCheck[2];
-   int m_nImportDodge[2];
-   int m_nImportHH[2];
-   int m_nImportBLust[2];
-   int m_nImportSlow[2];
-   int m_nImportStun[2];
-   int m_nImportPhase[2];
-   int m_nImportCTS[2];
-
    int m_nShadowTex;
 
    float humtime;
 
-   float max_duration[COVEN_MAX_BUFFS];
+   float max_duration[COVEN_STATUS_COUNT];
 
 	CPanelAnimationVar( vgui::HFont, m_hTextFont, "TextFont", "CovenHUD" );
 };
@@ -99,71 +86,6 @@ CHudAuras::CHudAuras( const char *pElementName ) : CHudElement( pElementName ), 
 
    m_nImportBlanks[1] = surface()->CreateNewTextureID();
    surface()->DrawSetTextureFile(m_nImportBlanks[1], "hud/statuseffects/v_blank", true, true);
-
-
-
-   m_nImportCapPoint[0] = surface()->CreateNewTextureID();
-   surface()->DrawSetTextureFile( m_nImportCapPoint[0], "hud/statuseffects/star", true, true);
-
-   m_nImportCapPoint[1] = surface()->CreateNewTextureID();
-   surface()->DrawSetTextureFile( m_nImportCapPoint[1], "hud/statuseffects/star", true, true);
-
-   m_nImportLevel[0] = surface()->CreateNewTextureID();
-   surface()->DrawSetTextureFile( m_nImportLevel[0], "hud/statuseffects/s_level", true, true);
-
-   m_nImportLevel[1] = surface()->CreateNewTextureID();
-   surface()->DrawSetTextureFile( m_nImportLevel[1], "hud/statuseffects/v_level", true, true);
-
-   m_nImportSprint[0] = surface()->CreateNewTextureID();
-   surface()->DrawSetTextureFile( m_nImportSprint[0], "hud/statuseffects/haste", true, true);
-
-   m_nImportFury[0] = surface()->CreateNewTextureID();
-   surface()->DrawSetTextureFile( m_nImportFury[0], "hud/statuseffects/battleyell", true, true);
-
-   m_nImportStats[0] = surface()->CreateNewTextureID();
-   surface()->DrawSetTextureFile( m_nImportStats[0], "hud/statuseffects/stats", true, true);
-
-   m_nImportStats[1] = surface()->CreateNewTextureID();
-   surface()->DrawSetTextureFile(m_nImportStats[1], "hud/statuseffects/stats", true, true);
-
-   m_nImportBerserk[1] = surface()->CreateNewTextureID();
-   surface()->DrawSetTextureFile( m_nImportBerserk[1], "hud/statuseffects/berserk", true, true);
-
-   m_nImportMasochist[1] = surface()->CreateNewTextureID();
-   surface()->DrawSetTextureFile( m_nImportMasochist[1], "hud/statuseffects/masochist", true, true);
-
-   m_nImportGCheck[0] = surface()->CreateNewTextureID();
-   surface()->DrawSetTextureFile( m_nImportGCheck[0], "hud/statuseffects/gutcheck", true, true);
-
-   m_nImportDodge[1] = surface()->CreateNewTextureID();
-   surface()->DrawSetTextureFile( m_nImportDodge[1], "hud/statuseffects/ethereal", true, true);
-
-   m_nImportHH[0] = surface()->CreateNewTextureID();
-   surface()->DrawSetTextureFile( m_nImportHH[0], "hud/statuseffects/s_holywater" , true, true);
-
-   m_nImportHH[1] = surface()->CreateNewTextureID();
-   surface()->DrawSetTextureFile( m_nImportHH[1], "hud/statuseffects/v_holywater" , true, true);
-
-   m_nImportBLust[1] = surface()->CreateNewTextureID();
-   surface()->DrawSetTextureFile( m_nImportBLust[1], "hud/statuseffects/bloodlust" , true, true);
-
-   m_nImportSlow[0] = surface()->CreateNewTextureID();
-   surface()->DrawSetTextureFile( m_nImportSlow[0], "hud/statuseffects/slow", true, true);
-
-   m_nImportSlow[1] = surface()->CreateNewTextureID();
-   surface()->DrawSetTextureFile(m_nImportSlow[1], "hud/statuseffects/slow", true, true);
-
-   m_nImportStun[0] = surface()->CreateNewTextureID();
-   surface()->DrawSetTextureFile( m_nImportStun[0], "hud/statuseffects/stun", true, true);
-
-   m_nImportStun[1] = surface()->CreateNewTextureID();
-   surface()->DrawSetTextureFile( m_nImportStun[1], "hud/statuseffects/stun", true, true);
-
-   m_nImportPhase[1] = surface()->CreateNewTextureID();
-   surface()->DrawSetTextureFile( m_nImportPhase[1], "hud/statuseffects/phase", true, true);
-
-   m_nImportCTS[0] = surface()->CreateNewTextureID();
-   surface()->DrawSetTextureFile( m_nImportCTS[0], "hud/statuseffects/s_cts", true, true);
 
    SetHiddenBits( HIDEHUD_PLAYERDEAD | HIDEHUD_NEEDSUIT );
 }
@@ -270,170 +192,120 @@ void CHudAuras::DrawCircleSegment( int x, int y, int wide, int tall, float flEnd
 	}
 }
 
-/*void CHudAuras::PaintMiniBackground(int x, int y, int wide, int tall)
+void CHudAuras::DrawBlipText(int x, int y, wchar_t *text, int fixedwidth, int margin)
 {
-	int cornerWide, cornerTall;
-	GetCornerTextureSize( cornerWide, cornerTall );
-	surface()->DrawFilledRect(x + cornerWide, y, x + wide - cornerWide,	y + cornerTall);
-	surface()->DrawFilledRect(x, y + cornerTall, x + wide, y + tall - cornerTall);
-	surface()->DrawFilledRect(x + cornerWide, y + tall - cornerTall, x + wide - cornerWide, y + tall);
-	//TOP-LEFT
-		surface()->DrawSetTexture(m_nCBgTextureId1);
-		surface()->DrawTexturedRect(x, y, x + cornerWide, y + cornerTall);
-
-
-
-	//TOP-RIGHT
-		surface()->DrawSetTexture(m_nCBgTextureId2);
-		surface()->DrawTexturedRect(x + wide - cornerWide, y, x + wide, y + cornerTall);
-
-
-	//BOTTOM-LEFT
-		surface()->DrawSetTexture(m_nCBgTextureId4);
-		surface()->DrawTexturedRect(x + 0, y + tall - cornerTall, x + cornerWide, y + tall);
-
-
-
-	//BOTTOM-RIGHT
-		surface()->DrawSetTexture(m_nCBgTextureId3);
-		surface()->DrawTexturedRect(x + wide - cornerWide, y + tall - cornerTall, x + wide, y + tall);
-}*/
+	int stringwidth = UTIL_ComputeStringWidth(m_hTextFont, text) + margin * 2;
+	int height = surface()->GetFontTall(m_hTextFont) * 1.5f;
+	if (fixedwidth > 0)
+	{
+		stringwidth = fixedwidth + margin * 2;
+	}
+	int midwidth = stringwidth - 24;
+	surface()->DrawSetTexture(m_nImportBlips[0]);
+	surface()->DrawTexturedRect(x, y, x + 12, y + height);
+	surface()->DrawSetTexture(m_nImportBlips[1]);
+	surface()->DrawTexturedRect(x + 12, y, x + 12 + midwidth, y + height);
+	surface()->DrawSetTexture(m_nImportBlips[2]);
+	surface()->DrawTexturedRect(x + 12 + midwidth, y, x + 24 + midwidth, y + height);
+	surface()->DrawSetTextFont(m_hTextFont);
+	surface()->DrawSetTextPos(x + (stringwidth) / 2.0f - UTIL_ComputeStringWidth(m_hTextFont, text) / 2.0f, y + height / 2.0f - surface()->GetFontTall(m_hTextFont) / 2.0f);
+	surface()->DrawUnicodeString(text);
+}
 
 void CHudAuras::Paint()
 {
 	C_BaseHLPlayer *pPlayer = (C_BaseHLPlayer *)C_BasePlayer::GetLocalPlayer();
 	if ( !pPlayer )
 		return;
+
 	int x = 0;
 	int w,t;
 	GetSize(w,t);
+	float picheight = 0.5f * t;
+	float inset = 0.15f * picheight;
+	float maxpicwidth = picheight + 2 * inset;
+	int maxwidth = 0;
+	int thiswidth = 0;
+	int margin = UTIL_ComputeStringWidth(m_hTextFont, "0");
 
 	int teamnum = 0;
 	if (pPlayer->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
 		teamnum = 1;
 
-	for (int i = 0; i < active_auras.Count(); i++)
+	for (int i = 0; i < COVEN_STATUS_COUNT; i++)
 	{
-		Color blk(0,0,0,250);
-		surface()->DrawSetTextColor(Color(120,120,120,250));
-		surface()->DrawSetColor( blk );
-		//PaintMiniBackground(x-6,0,44,t+44);
+		CovenStatus_t iStatus = (CovenStatus_t)i;
+		if (pPlayer->HasStatus(iStatus))
+		{
+			thiswidth = maxpicwidth;
+			CovenStatusEffectInfo_t *info = GetCovenStatusEffectData(iStatus);
+			Color blk(0, 0, 0, 250);
+			surface()->DrawSetTextColor(Color(120, 120, 120, 250));
+			surface()->DrawSetColor(blk);
+			int size = 0;
+			float timer = 0.0f;
+			if (info->bShowTimer)
+			{
+				timer = pPlayer->m_HL2Local.covenStatusTimers[iStatus] - gpGlobals->curtime;
+				if (timer < 4.2f && timer > 0.5f)
+				{
+					float part = timer - (int)timer;
+					if (part == 0.0f)
+						size = inset;
+					else if (part < 0.2f) //growing fast
+						size = 0.2f / part;
+					else if (part > 0.6f) //slow fade out
+						size = (part - 0.6f) / 0.08f;
 
-		if (active_auras[i]->aura == COVEN_BUFF_CAPPOINT)
-		{
-			surface()->DrawSetTexture( m_nImportCapPoint[teamnum] );
-		}
-		else if (active_auras[i]->aura == COVEN_BUFF_LEVEL)
-		{
-			surface()->DrawSetTexture( m_nImportLevel[teamnum] );
-		}
-		else if (active_auras[i]->aura == COVEN_BUFF_SPRINT)
-		{
-			surface()->DrawSetTexture( m_nImportSprint[teamnum] );
-		}
-		else if (active_auras[i]->aura == COVEN_BUFF_BYELL)
-		{
-			surface()->DrawSetTexture( m_nImportFury[teamnum] );
-		}
-		else if (active_auras[i]->aura == COVEN_BUFF_STATS)
-		{
-			surface()->DrawSetTexture( m_nImportStats[teamnum] );
-		}
-		else if (active_auras[i]->aura == COVEN_BUFF_BERSERK)
-		{
-			surface()->DrawSetTexture( m_nImportBerserk[teamnum] );
-		}
-		else if (active_auras[i]->aura == COVEN_BUFF_MASOCHIST)
-		{
-			surface()->DrawSetTexture(m_nImportMasochist[teamnum]);
-		}
-		else if (active_auras[i]->aura == COVEN_BUFF_GCHECK)
-		{
-			surface()->DrawSetTexture( m_nImportGCheck[teamnum] );
-		}
-		else if (active_auras[i]->aura == COVEN_BUFF_DODGE)
-		{
-			surface()->DrawSetTexture(m_nImportDodge[teamnum]);
-		}
-		else if (active_auras[i]->aura == COVEN_BUFF_HOLYWATER)
-		{
-			surface()->DrawSetTexture( m_nImportHH[teamnum] );
-		}
-		else if (active_auras[i]->aura == COVEN_BUFF_BLUST)
-		{
-			surface()->DrawSetTexture(m_nImportBLust[teamnum]);
-		}
-		else if (active_auras[i]->aura == COVEN_BUFF_SLOW)
-		{
-			surface()->DrawSetTexture( m_nImportSlow[teamnum] );
-		}
-		else if (active_auras[i]->aura == COVEN_BUFF_STUN)
-		{
-			surface()->DrawSetTexture( m_nImportStun[teamnum] );
-		}
-		else if (active_auras[i]->aura == COVEN_BUFF_PHASE)
-		{
-			surface()->DrawSetTexture( m_nImportPhase[teamnum] );
-		}
-		else if (active_auras[i]->aura == COVEN_BUFF_CTS)
-		{
-			surface()->DrawSetTexture( m_nImportCapPoint[teamnum] );
-		}
+					size = clamp(size, 0.0f, inset);
+				}
+			}
+			if (cl_coven_statuseffecttitles.GetInt() > 0)
+			{
+				wchar_t *tempString = g_pVGuiLocalize->Find(info->szPrintName);
+				if (tempString)
+				{
+					int strwidth = UTIL_ComputeStringWidth(m_hTextFont, tempString);
+					int width = strwidth + 2 * margin;
+					if (width > thiswidth)
+						thiswidth = width + 2 * inset;
+					DrawBlipText(x + thiswidth / 2.0f - width / 2.0f, picheight + inset + surface()->GetFontTall(m_hTextFont), tempString, strwidth, margin);
+				}
+			}
+			surface()->DrawSetTexture(info->statusIcon->textureId);
+			int offsetx = inset - size + (thiswidth - maxpicwidth) / 2.0f;
+			int offsety = inset - size;
+			surface()->DrawTexturedRect(x + offsetx, offsety, x + offsetx + picheight + 2 * size, offsety + picheight + 2 * size);
 
-		int size = 0;
-		if (active_auras[i]->timer > 0.0f && active_auras[i]->timer < 4.2f && active_auras[i]->timer > 0.5f)
-		{
-			float part = active_auras[i]->timer - (int)active_auras[i]->timer;
-			if (part == 0.0f)
-				size = 6;
-			else if (part < 0.2f)
-				size = 0.2f/part;
-			else if (part > 0.6f)
-				size = (part-0.6f)/0.08f;
+			if (info->bShowTimer)
+				if (timer > 0.0f)
+					DrawCircleSegment(x + offsetx, offsety, picheight + 2 * size, picheight + 2 * size, 1.0f - timer / max_duration[iStatus], true);
 
-			if (size > 6)
-				size = 6;
-			if (size < 0)
-				size = 0;
+			if (info->bShowMagnitude)
+			{
+				wchar_t uc_text[4];
+				swprintf(uc_text, sizeof(uc_text), L"%d", pPlayer->m_HL2Local.covenStatusMagnitude[iStatus]);
+				int width = UTIL_ComputeStringWidth(m_hTextFont, L"100");
+				DrawBlipText(x + picheight - width, 0, uc_text, width, margin);
+			}
+			if (info->bShowTimer)
+			{
+				wchar_t uc_text[8];
+				if (timer > 60.0f)
+					swprintf(uc_text, sizeof(uc_text), L"%.0fm", timer / 60.0f);
+				else if (timer > 10.0f)
+					swprintf(uc_text, sizeof(uc_text), L"%.0f", timer);
+				else
+					swprintf(uc_text, sizeof(uc_text), L"%.1f", timer);
+				int width = UTIL_ComputeStringWidth(m_hTextFont, L"100.0");
+				DrawBlipText(x + picheight - width, picheight, uc_text, width, margin);
+			}
+			
+			x += thiswidth;
+			maxwidth += thiswidth;
 		}
-
-		surface()->DrawTexturedRect( x+6-size, 7-size, x+70+size, 71+size );
-
-		if (active_auras[i]->timer > 0.0f)
-			DrawCircleSegment(x+6-size, 7-size, 64+2*size, 64+2*size, 1.0f-active_auras[i]->timer/max_duration[active_auras[i]->aura], true);
-
-		//BB: TODO: use surface()->GetFontTall
-		if (active_auras[i]->text)
-		{
-			surface()->DrawSetTexture( m_nImportBlips[0] );
-			surface()->DrawTexturedRect( x+57, 0, x+69, 24 );
-			surface()->DrawSetTexture( m_nImportBlips[1] );
-			surface()->DrawTexturedRect( x+69, 0, x+77, 24 );
-			surface()->DrawSetTexture( m_nImportBlips[2] );
-			surface()->DrawTexturedRect( x+77, 0, x+89, 24 );
-			wchar_t uc_text[4];
-			swprintf(uc_text, sizeof(uc_text), L"%d", active_auras[i]->text);
-			surface()->DrawSetTextFont(m_hTextFont);
-			surface()->DrawSetTextPos( x+73-UTIL_ComputeStringWidth(m_hTextFont,uc_text)/2, 12-surface()->GetFontTall(m_hTextFont)/2 );
-			surface()->DrawUnicodeString(uc_text);
-		}
-		if (active_auras[i]->timer > 0.0f)
-		{
-			surface()->DrawSetTexture( m_nImportBlips[0] );
-			surface()->DrawTexturedRect( x+32, 65, x+44, 89 );
-			surface()->DrawSetTexture( m_nImportBlips[1] );
-			surface()->DrawTexturedRect( x+44, 65, x+68, 89 );
-			surface()->DrawSetTexture( m_nImportBlips[2] );
-			surface()->DrawTexturedRect( x+68, 65, x+80, 89 );
-			wchar_t uc_text[8];
-			swprintf(uc_text, sizeof(uc_text), L"%.1f", active_auras[i]->timer);
-			surface()->DrawSetTextFont(m_hTextFont);
-			surface()->DrawSetTextPos( x+56-UTIL_ComputeStringWidth(m_hTextFont,uc_text)/2, 77-surface()->GetFontTall(m_hTextFont)/2 );
-			surface()->DrawUnicodeString(uc_text);
-		}
-
-		x += 89;//t=32
 	}
+	SetSize(maxwidth, t);
 }
 
 void CHudAuras::OnThink()
@@ -442,27 +314,10 @@ void CHudAuras::OnThink()
 	if ( !pPlayer )
 		return;
 
-	active_auras.RemoveAll();
+	int iNumActiveAuras = 0;
 
-	if (pPlayer->covenStatusEffects & COVEN_FLAG_LEVEL)
+	if (pPlayer->HasStatus(COVEN_STATUS_CAPPOINT))
 	{
-		int lev = min(pPlayer->covenLevelCounter, COVEN_MAX_LEVEL);
-		aura_pic *temp;
-		temp = new aura_pic;
-		temp->aura = COVEN_BUFF_LEVEL;
-		temp->text = lev-pPlayer->m_HL2Local.covenCurrentPointsSpent;
-		temp->timer = 0.0f;
-		active_auras.AddToTail(temp);
-	}
-	if (pPlayer->covenStatusEffects & COVEN_FLAG_CAPPOINT)
-	{
-		aura_pic *temp;
-		temp = new aura_pic;
-		temp->aura = COVEN_BUFF_CAPPOINT;
-		temp->text = 0;
-		temp->timer = 0.0f;
-		active_auras.AddToTail(temp);
-
 		if (gpGlobals->curtime > humtime)
 		{
 			humtime = 0.0f;
@@ -481,149 +336,28 @@ void CHudAuras::OnThink()
 		humtime = 0.0f;
 	}
 
-	if (pPlayer->covenStatusEffects & COVEN_FLAG_SPRINT)
+	for (int i = 0; i < COVEN_STATUS_COUNT; i++)
 	{
-		aura_pic *temp;
-		temp = new aura_pic;
-		temp->aura = COVEN_BUFF_SPRINT;
-		temp->text = pPlayer->m_HL2Local.covenStatusMagnitude[COVEN_BUFF_SPRINT];
-		temp->timer = pPlayer->m_HL2Local.covenStatusTimers[COVEN_BUFF_SPRINT]-gpGlobals->curtime;
-		active_auras.AddToTail(temp);
-		if (temp->timer > max_duration[COVEN_BUFF_SPRINT])
-			max_duration[COVEN_BUFF_SPRINT] = temp->timer;
-	}
-	if (pPlayer->covenStatusEffects & COVEN_FLAG_BYELL)
-	{
-		aura_pic *temp;
-		temp = new aura_pic;
-		temp->aura = COVEN_BUFF_BYELL;
-		temp->text = pPlayer->m_HL2Local.covenStatusMagnitude[COVEN_BUFF_BYELL];
-		temp->timer = pPlayer->m_HL2Local.covenStatusTimers[COVEN_BUFF_BYELL]-gpGlobals->curtime;
-		active_auras.AddToTail(temp);
-		if (temp->timer > max_duration[COVEN_BUFF_BYELL])
-			max_duration[COVEN_BUFF_BYELL] = temp->timer;
-	}
-	if (pPlayer->covenStatusEffects & COVEN_FLAG_STATS)
-	{
-		aura_pic *temp;
-		temp = new aura_pic;
-		temp->aura = COVEN_BUFF_STATS;
-		temp->text = pPlayer->m_HL2Local.covenStatusMagnitude[COVEN_BUFF_STATS];
-		temp->timer = pPlayer->m_HL2Local.covenStatusTimers[COVEN_BUFF_STATS]-gpGlobals->curtime;
-		active_auras.AddToTail(temp);
-		if (temp->timer > max_duration[COVEN_BUFF_STATS])
-			max_duration[COVEN_BUFF_STATS] = temp->timer;
-	}
-	if (pPlayer->covenStatusEffects & COVEN_FLAG_BERSERK)
-	{
-		aura_pic *temp;
-		temp = new aura_pic;
-		temp->aura = COVEN_BUFF_BERSERK;
-		temp->text = pPlayer->m_HL2Local.covenStatusMagnitude[COVEN_BUFF_BERSERK];
-		temp->timer = pPlayer->m_HL2Local.covenStatusTimers[COVEN_BUFF_BERSERK]-gpGlobals->curtime;
-		active_auras.AddToTail(temp);
-		if (temp->timer > max_duration[COVEN_BUFF_BERSERK])
-			max_duration[COVEN_BUFF_BERSERK] = temp->timer;
-	}
-	if (pPlayer->covenStatusEffects & COVEN_FLAG_MASOCHIST)
-	{
-		aura_pic *temp;
-		temp = new aura_pic;
-		temp->aura = COVEN_BUFF_MASOCHIST;
-		temp->text = pPlayer->m_HL2Local.covenStatusMagnitude[COVEN_BUFF_MASOCHIST];
-		temp->timer = pPlayer->m_HL2Local.covenStatusTimers[COVEN_BUFF_MASOCHIST]-gpGlobals->curtime;
-		active_auras.AddToTail(temp);
-		if (temp->timer > max_duration[COVEN_BUFF_MASOCHIST])
-			max_duration[COVEN_BUFF_MASOCHIST] = temp->timer;
-	}
-	if (pPlayer->covenStatusEffects & COVEN_FLAG_GCHECK)
-	{
-		aura_pic *temp;
-		temp = new aura_pic;
-		temp->aura = COVEN_BUFF_GCHECK;
-		temp->text = 0;
-		temp->timer = 0;
-		active_auras.AddToTail(temp);
-	}
-	if (pPlayer->covenStatusEffects & COVEN_FLAG_DODGE)
-	{
-		aura_pic *temp;
-		temp = new aura_pic;
-		temp->aura = COVEN_BUFF_DODGE;
-		temp->text = 0;
-		temp->timer = 0;
-		active_auras.AddToTail(temp);
-	}
-	if (pPlayer->covenStatusEffects & COVEN_FLAG_HOLYWATER)
-	{
-		aura_pic *temp;
-		temp = new aura_pic;
-		temp->aura = COVEN_BUFF_HOLYWATER;
-		temp->text = pPlayer->m_HL2Local.covenStatusMagnitude[COVEN_BUFF_HOLYWATER];
-		temp->timer = 0;
-		active_auras.AddToTail(temp);
-	}
-	if (pPlayer->covenStatusEffects & COVEN_FLAG_BLUST)
-	{
-		aura_pic *temp;
-		temp = new aura_pic;
-		temp->aura = COVEN_BUFF_BLUST;
-		temp->text = pPlayer->m_HL2Local.covenStatusMagnitude[COVEN_BUFF_BLUST];
-		temp->timer = pPlayer->m_HL2Local.covenStatusTimers[COVEN_BUFF_BLUST]-gpGlobals->curtime;
-		active_auras.AddToTail(temp);
-		if (temp->timer > max_duration[COVEN_BUFF_BLUST])
-			max_duration[COVEN_BUFF_BLUST] = temp->timer;
-	}
-	if (pPlayer->covenStatusEffects & COVEN_FLAG_SLOW)
-	{
-		aura_pic *temp;
-		temp = new aura_pic;
-		temp->aura = COVEN_BUFF_SLOW;
-		temp->text = pPlayer->m_HL2Local.covenStatusMagnitude[COVEN_BUFF_SLOW];
-		temp->timer = pPlayer->m_HL2Local.covenStatusTimers[COVEN_BUFF_SLOW]-gpGlobals->curtime;
-		active_auras.AddToTail(temp);
-		if (temp->timer > max_duration[COVEN_BUFF_SLOW])
-			max_duration[COVEN_BUFF_SLOW] = temp->timer;
-	}
-	if (pPlayer->covenStatusEffects & COVEN_FLAG_STUN)
-	{
-		aura_pic *temp;
-		temp = new aura_pic;
-		temp->aura = COVEN_BUFF_STUN;
-		temp->text = 0;
-		temp->timer = pPlayer->m_HL2Local.covenStatusTimers[COVEN_BUFF_STUN]-gpGlobals->curtime;
-		active_auras.AddToTail(temp);
-		if (temp->timer > max_duration[COVEN_BUFF_STUN])
-			max_duration[COVEN_BUFF_STUN] = temp->timer;
-	}
-	if (pPlayer->covenStatusEffects & COVEN_FLAG_PHASE)
-	{
-		aura_pic *temp;
-		temp = new aura_pic;
-		temp->aura = COVEN_BUFF_PHASE;
-		temp->text = 0;
-		temp->timer = pPlayer->m_HL2Local.covenStatusTimers[COVEN_BUFF_PHASE]-gpGlobals->curtime;
-		active_auras.AddToTail(temp);
-		if (temp->timer > max_duration[COVEN_BUFF_PHASE])
-			max_duration[COVEN_BUFF_PHASE] = temp->timer;
-	}
-	if (pPlayer->covenStatusEffects & COVEN_FLAG_CTS)
-	{
-		aura_pic *temp;
-		temp = new aura_pic;
-		temp->aura = COVEN_BUFF_CTS;
-		temp->text = 0;
-		temp->timer = 0;
-		active_auras.AddToTail(temp);
+		CovenStatus_t iStatus = (CovenStatus_t)i;
+		if (pPlayer->HasStatus(iStatus))
+		{
+			iNumActiveAuras++;
+			float timer = pPlayer->m_HL2Local.covenStatusTimers[iStatus] - gpGlobals->curtime;
+			if (timer > max_duration[iStatus])
+				max_duration[iStatus] = timer;
+		}
 	}
 
-	if (active_auras.Count() == 0)
+	if (iNumActiveAuras == 0)
 		SetPaintEnabled(false);
 	else
 		SetPaintEnabled(true);
 
-	//SetSize(52*active_auras.Count()+10*(active_auras.Count()-1),32+32);
-	SetSize(6+89*active_auras.Count(),89);
+	//int wide, tall;
+	//GetSize(wide, tall);
+	//float scale = tall / 90.0f;
+	//float picheight = tall * 0.575f; //50% + 15%
+	//SetSize((picheight * iNumActiveAuras), tall);
  
    BaseClass::OnThink();
 }

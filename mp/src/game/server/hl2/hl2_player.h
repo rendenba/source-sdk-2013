@@ -107,6 +107,7 @@ public:
 	virtual void		StopLoopingSounds( void );
 	virtual void		Splash( void );
 	virtual void 		ModifyOrAppendPlayerCriteria( AI_CriteriaSet& set );
+	virtual bool		IsBuilderClass(void);
 
 	void				DrawDebugGeometryOverlays(void);
 
@@ -136,6 +137,7 @@ public:
 	bool SuitPower_AddDevice( const CSuitPowerDevice &device );
 	bool SuitPower_AddDeviceBits( int bits );
 	bool SuitPower_AddDrain( float drain );
+	bool SuitPower_RemoveDrain( float drain );
 	bool SuitPower_ResetDrain();
 	bool SuitPower_RemoveDevice( const CSuitPowerDevice &device );
 	bool SuitPower_RemoveDeviceBits( int bits );
@@ -177,15 +179,15 @@ public:
 	int GetXP();
 	float xp_part;
 	virtual bool LevelUp(int lvls, bool bBoostStats = false, bool bSound = false, bool bAutoLevel = false, bool bResetHP = false, bool bEffect = false);
-	void GiveStrength(int s);
-	void SetStrength(int s);
-	int myStrength();
-	void GiveConstitution(int c);
-	void SetConstitution(int c);
-	int myConstitution();
-	void GiveIntellect(int i);
-	void SetIntellect(int i);
-	int myIntellect();
+	void GiveStrength(float s);
+	void SetStrength(float s);
+	float GetStrength();
+	void GiveConstitution(float c);
+	void SetConstitution(float c);
+	float GetConstitution();
+	void GiveIntellect(float i);
+	void SetIntellect(float i);
+	float GetIntellect();
 	int GetXPCap();
 
 	int totalXP;
@@ -316,7 +318,7 @@ public:
 	CSoundPatch *m_sndLeeches;
 	CSoundPatch *m_sndWaterSplashes;
 
-	CNetworkVar( int, covenClassID );
+	CNetworkVar( CovenClassID_t, covenClassID );
 	CNetworkVar( int, covenLevelCounter );
 	CNetworkVar( int, covenStatusEffects );
 	EHANDLE m_hTurret;
@@ -327,13 +329,25 @@ public:
 	void ClearAllBuildings(void);
 	virtual void DestroyAllBuildings(void);
 	void SetPointsSpent(int pts);
-	void SetCurrentLoadout(int i, int load);
-	void SetCooldown(int n, float fTime);
-	float GetCooldown(int n);
-	void SetStatusTime(int s, float fTime);
-	float GetStatusTime(int s);
-	void SetStatusMagnitude(int s, int m);
-	int GetStatusMagnitude(int s);
+	void ClearCovenAbilities();
+	void SetCovenAbility(int iAbilityNum, CovenAbility_t iValue);
+	CovenAbility_t GetCovenAbility(int iAbilityNum);
+	void SetCooldown(int iAbilityNum, float flTime);
+	float GetCooldown(int iAbilityNum);
+	bool IsInCooldown(int iAbilityNum);
+	void SetStatusTime(CovenStatus_t iStatusNum, float flTime);
+	float GetStatusTime(CovenStatus_t iStatusNum);
+	void SetStatusMagnitude(CovenStatus_t iStatusNum, int iMagnitude);
+	int GetStatusMagnitude(CovenStatus_t iStatusNum);
+	void AddStatus(CovenStatus_t iStatusNum, int iMagnitude = -1, float flDuration = -1.0f);
+	void RemoveStatus(CovenStatus_t iStatusNum);
+	inline bool HasStatus(CovenStatus_t iStatusNum) { return (covenStatusEffects & (1 << iStatusNum)) > 0; };
+	int AbilityKey(CovenAbility_t iAbility, unsigned int *key = NULL);
+	bool HasAbility(CovenAbility_t iAbility);
+	void ResetStats(void);
+	void ResetVitals(void);
+	void TriggerGCD(void);
+	void EmitLocalSound(const char *soundname);
 
 	bool gorephased;
 
@@ -348,6 +362,7 @@ protected:
 	virtual void		PlayUseDenySound();
 
 private:
+	int					m_covenabilities[COVEN_ABILITY_COUNT]; //for speed!
 	bool				CommanderExecuteOne( CAI_BaseNPC *pNpc, const commandgoal_t &goal, CAI_BaseNPC **Allies, int numAllies );
 
 	void				OnSquadMemberKilled( inputdata_t &data );

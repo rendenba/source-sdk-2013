@@ -1,8 +1,8 @@
 #include "cbase.h"
 
 #include "coven_ammocrate.h"
-
-
+#include "coven_parse.h"
+#include "weapon_parse.h"
 
 LINK_ENTITY_TO_CLASS(coven_ammocrate, CCoven_AmmoCrate);
 LINK_ENTITY_TO_CLASS(coven_ammocrate_infinite, CCoven_AmmoCrate);
@@ -208,25 +208,15 @@ bool CCoven_AmmoCrate::GiveAmmo(int index, bool &gaveMetal)
 				if (!gaveMetal)
 					gaveMetal |= GiveMetal(pPlayer);
 
-				//BB: another hacky hack... just give ammo to the first weapon we find that takes ammo. Coven only has one ammo-y weapon right now
-				for (int i = 0; i < pPlayer->WeaponCount(); i++)
+				CovenClassInfo_t *info = GetCovenClassData(pPlayer->covenClassID);
+				for (int i = 0; i < info->szWeapons.Count(); i++)
 				{
-					CBaseCombatWeapon *pWeap = pPlayer->GetWeapon(i);
-					if (pWeap && pWeap->UsesPrimaryAmmo())
-					{
-						if (HasSpawnFlags(SF_COVEN_CRATE_INFINITE))
-						{
-							pPlayer->GiveAmmo(100, pWeap->m_iPrimaryAmmoType, false);
-						}
-						else
-						{
-							
-							if (pPlayer->GiveAmmo(GetAmmoDef()->MaxCarry(pWeap->GetPrimaryAmmoType()) * 0.1f * (m_iLevel + 1), pWeap->m_iPrimaryAmmoType, false) != 0)
-							{
-								return true;
-							}
-						}
-					}
+					FileWeaponInfo_t *weapInfo = GetFileWeaponInfoFromHandle(LookupWeaponInfoSlot(info->szWeapons[i]));
+					weapInfo->iAmmoType;
+					if (HasSpawnFlags(SF_COVEN_CRATE_INFINITE))
+						pPlayer->GiveAmmo(GetAmmoDef()->MaxCarry(weapInfo->iAmmoType), weapInfo->iAmmoType, false);
+					else
+						pPlayer->GiveAmmo(GetAmmoDef()->MaxCarry(weapInfo->iAmmoType)* 0.1f * (m_iLevel + 1), weapInfo->iAmmoType, false);
 				}
 			}
 		}

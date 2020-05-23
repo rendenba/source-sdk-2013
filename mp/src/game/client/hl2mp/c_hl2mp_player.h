@@ -99,7 +99,6 @@ private:
 	EHANDLE	m_hRagdoll;
 
 	//BB: Variables!!!
-	int m_iClass;
 	int m_iLevel;
 
 	int	m_headYawPoseParam;

@@ -63,6 +63,10 @@
 
 extern ConVar weapon_showproficiency;
 extern ConVar autoaim_max_dist;
+extern ConVar sv_coven_mana_per_int;
+extern ConVar sv_coven_manachargerate;
+extern ConVar sv_coven_hp_per_con;
+extern ConVar sv_coven_gcd;
 
 // Do not touch with without seeing me, please! (sjb)
 // For consistency's sake, enemy gunfire is traced against a scaled down
@@ -409,6 +413,7 @@ CHL2_Player::CHL2_Player()
 
 	m_flArmorReductionTime = 0.0f;
 	m_iArmorReductionFrom = 0;
+	Q_memset(m_covenabilities, 0, sizeof(m_covenabilities));
 }
 
 int CHL2_Player::GetTotalXP()
@@ -416,24 +421,47 @@ int CHL2_Player::GetTotalXP()
 	return totalXP;
 }
 
-float CHL2_Player::GetStatusTime(int s)
+void CHL2_Player::ClearCovenAbilities()
 {
-	return m_HL2Local.covenStatusTimers.Get(s);
+	Q_memset(m_covenabilities, 0, sizeof(m_covenabilities));
+	for (int i = 0; i < COVEN_MAX_ABILITIES; i++)
+	{
+		m_HL2Local.covenAbilities.Set(i, COVEN_ABILITY_NONE);
+	}
 }
 
-void CHL2_Player::SetStatusTime(int s, float fTime)
+void CHL2_Player::SetCovenAbility(int iAbilityNum, CovenAbility_t iValue)
 {
-	m_HL2Local.covenStatusTimers.Set(s, fTime);
+	if (HasAbility(iValue))
+		m_covenabilities[m_HL2Local.covenAbilities.Get(iAbilityNum)] = 0;
+
+	m_covenabilities[iValue] = (1 << (26 + iAbilityNum));
+	m_HL2Local.covenAbilities.Set(iAbilityNum, iValue);
 }
 
-int CHL2_Player::GetStatusMagnitude(int s)
+CovenAbility_t CHL2_Player::GetCovenAbility(int iAbilityNum)
 {
-	return m_HL2Local.covenStatusMagnitude.Get(s);
+	return (CovenAbility_t)m_HL2Local.covenAbilities[iAbilityNum];
 }
 
-void CHL2_Player::SetStatusMagnitude(int s, int m)
+float CHL2_Player::GetStatusTime(CovenStatus_t iStatusNum)
 {
-	m_HL2Local.covenStatusMagnitude.Set(s, m);
+	return m_HL2Local.covenStatusTimers.Get(iStatusNum);
+}
+
+void CHL2_Player::SetStatusTime(CovenStatus_t iStatusNum, float flTime)
+{
+	m_HL2Local.covenStatusTimers.Set(iStatusNum, flTime);
+}
+
+int CHL2_Player::GetStatusMagnitude(CovenStatus_t iStatusNum)
+{
+	return m_HL2Local.covenStatusMagnitude.Get(iStatusNum);
+}
+
+void CHL2_Player::SetStatusMagnitude(CovenStatus_t iStatusNum, int iMagnitude)
+{
+	m_HL2Local.covenStatusMagnitude.Set(iStatusNum, iMagnitude);
 }
 
 void CHL2_Player::ResetCovenStatus()
@@ -444,28 +472,50 @@ void CHL2_Player::ResetCovenStatus()
 		m_HL2Local.covenStatusMagnitude.Set(i, 0);
 	for (int i = 0; i < m_HL2Local.covenCooldownTimers.Count(); i++)
 		m_HL2Local.covenCooldownTimers.Set(i, 0);
+	m_HL2Local.covenGCD = 0.0f;
 }
 
 
-void CHL2_Player::SetCooldown(int n, float fTime)
+void CHL2_Player::SetCooldown(int iAbilityNum, float flTime)
 {
-	if (n >= 0 && n <= 3)
-	{
-		m_HL2Local.covenCooldownTimers.Set(n, fTime);
-	}
+	m_HL2Local.covenCooldownTimers.Set(iAbilityNum, flTime);
 }
 
-float CHL2_Player::GetCooldown(int n)
+float CHL2_Player::GetCooldown(int iAbilityNum)
 {
-	if (n < 0 || n > 3)
-		return 0.0f;
-	return m_HL2Local.covenCooldownTimers.Get(n);
+	return m_HL2Local.covenCooldownTimers.Get(iAbilityNum);
+}
+
+bool CHL2_Player::IsInCooldown(int iAbilityNum)
+{
+	float val = m_HL2Local.covenCooldownTimers.Get(iAbilityNum);
+	return gpGlobals->curtime < m_HL2Local.covenGCD || (val > 0.0f && gpGlobals->curtime < val);
+}
+
+void CHL2_Player::AddStatus(CovenStatus_t iStatusNum, int iMagnitude, float flTime)
+{
+	covenStatusEffects |= (1 << iStatusNum);
+	if (iMagnitude >= 0)
+		SetStatusMagnitude(iStatusNum, iMagnitude);
+	if (flTime >= 0.0f)
+		SetStatusTime(iStatusNum, flTime);
+}
+
+void CHL2_Player::RemoveStatus(CovenStatus_t iStatusNum)
+{
+	covenStatusEffects &= covenStatusEffects & ~(1 << iStatusNum);
+	SetStatusMagnitude(iStatusNum, 0);
+	SetStatusTime(iStatusNum, 0.0f);
+}
+
+bool CHL2_Player::HasAbility(CovenAbility_t iAbility)
+{
+	return m_covenabilities[iAbility] > 0;
 }
 
 //
 // SUIT POWER DEVICES
 //
-#define SUITPOWER_CHARGE_RATE	myIntellect()/5.0											// 12.5 = 100 units in 8 seconds
 
 #ifdef HL2MP
 	CSuitPowerDevice SuitDeviceSprint( bits_SUIT_DEVICE_SPRINT, 25.0f );				// 100 units in 4 seconds
@@ -480,6 +530,7 @@ float CHL2_Player::GetCooldown(int n)
 #endif
 CSuitPowerDevice SuitDeviceBreather( bits_SUIT_DEVICE_BREATHER, 6.7f );		// 100 units in 15 seconds (plus three padded seconds)
 
+//BB: TODO: tweak this! it doesnt send the zeroing I need!
 void* SendProxy_SendLocalBuilderDataTable(const SendProp *pProp, const void *pStruct, const void *pVarData, CSendProxyRecipients *pRecipients, int objectID)
 {
 	CBaseCombatCharacter *pPlayer = ToBaseCombatCharacter(UTIL_PlayerByIndex(objectID));
@@ -492,25 +543,12 @@ void* SendProxy_SendLocalBuilderDataTable(const SendProp *pProp, const void *pSt
 
 IMPLEMENT_SERVERCLASS_ST(CHL2_Player, DT_HL2_Player)
 	SendPropDataTable(SENDINFO_DT(m_HL2Local), &REFERENCE_SEND_TABLE(DT_HL2Local), SendProxy_SendLocalDataTable),
-	SendPropDataTable(SENDINFO_DT(m_CovenBuilderLocal), &REFERENCE_SEND_TABLE(DT_CovenBuilderLocal), SendProxy_SendLocalBuilderDataTable),
+	SendPropDataTable(SENDINFO_DT(m_CovenBuilderLocal), &REFERENCE_SEND_TABLE(DT_CovenBuilderLocal), SendProxy_SendLocalDataTable),
 	SendPropBool( SENDINFO(m_fIsSprinting) ),
 	SendPropInt( SENDINFO(covenClassID), 4, SPROP_UNSIGNED ),
 	SendPropInt( SENDINFO(covenLevelCounter), 5, SPROP_UNSIGNED ),
-	SendPropInt( SENDINFO(covenStatusEffects), COVEN_MAX_BUFFS, SPROP_UNSIGNED ),
+	SendPropInt( SENDINFO(covenStatusEffects), COVEN_STATUS_COUNT, SPROP_UNSIGNED ),
 END_SEND_TABLE()
-
-void CHL2_Player::SetCurrentLoadout(int i, int load)
-{
-	//0 indexed
-	if (i == 0)
-		m_HL2Local.covenCurrentLoadout1 = load;
-	else if (i == 1)
-		m_HL2Local.covenCurrentLoadout2 = load;
-	else if (i == 2)
-		m_HL2Local.covenCurrentLoadout3 = load;
-	else if (i == 3)
-		m_HL2Local.covenCurrentLoadout4 = load;
-}
 
 void CHL2_Player::SetPointsSpent(int pts)
 {
@@ -539,6 +577,24 @@ void CHL2_Player::SetXP(float XP)
 	iXP = floor(XP);
 	m_HL2Local.covenXPCounter = iXP;
 	xp_part = XP-iXP;
+}
+
+void CHL2_Player::ResetStats(void)
+{
+	CovenClassInfo_t *info = GetCovenClassData(covenClassID);
+	SetConstitution(info->flConstitution);
+	SetStrength(info->flStrength);
+	SetIntellect(info->flIntellect);
+}
+
+void CHL2_Player::ResetVitals(void)
+{
+	SetMaxHealth(ceil(m_HL2Local.covenConstitutionCounter * sv_coven_hp_per_con.GetFloat()));
+}
+
+void CHL2_Player::TriggerGCD(void)
+{
+	m_HL2Local.covenGCD = gpGlobals->curtime + sv_coven_gcd.GetFloat();
 }
 
 bool CHL2_Player::GiveXP(float XP)
@@ -579,47 +635,60 @@ bool CHL2_Player::LevelUp(int lvls, bool bBoostStats, bool bSound, bool bAutoLev
 	return true;
 }
 
-void CHL2_Player::SetStrength(int s)
+void CHL2_Player::EmitLocalSound(const char *soundname)
+{
+	CRecipientFilter filter;
+	filter.AddRecipient(this);
+	EmitSound_t params;
+	params.m_pSoundName = soundname;
+	EmitSound(filter, entindex(), params);
+}
+
+void CHL2_Player::SetStrength(float s)
 {
 	m_HL2Local.covenStrengthCounter = s;
 }
 
-void CHL2_Player::GiveStrength(int s)
+void CHL2_Player::GiveStrength(float s)
 {
 	m_HL2Local.covenStrengthCounter += s;
 }
 
-int CHL2_Player::myStrength()
+float CHL2_Player::GetStrength()
 {
 	return m_HL2Local.covenStrengthCounter;
 }
 
-void CHL2_Player::SetConstitution(int c)
+void CHL2_Player::SetConstitution(float c)
 {
 	m_HL2Local.covenConstitutionCounter = c;
+	ResetVitals();
 }
 
-void CHL2_Player::GiveConstitution(int c)
+void CHL2_Player::GiveConstitution(float c)
 {
 	m_HL2Local.covenConstitutionCounter += c;
+	ResetVitals();
+	SetHealth(min(GetHealth() + ceil(c * sv_coven_hp_per_con.GetFloat()), GetMaxHealth()));
 }
 
-int CHL2_Player::myConstitution()
+float CHL2_Player::GetConstitution()
 {
 	return m_HL2Local.covenConstitutionCounter;
 }
 
-void CHL2_Player::GiveIntellect(int i)
+void CHL2_Player::GiveIntellect(float i)
 {
 	m_HL2Local.covenIntellectCounter += i;
+	SuitPower_Charge(i * sv_coven_mana_per_int.GetFloat());
 }
 
-void CHL2_Player::SetIntellect(int i)
+void CHL2_Player::SetIntellect(float i)
 {
 	m_HL2Local.covenIntellectCounter = i;
 }
 
-int CHL2_Player::myIntellect()
+float CHL2_Player::GetIntellect()
 {
 	return m_HL2Local.covenIntellectCounter;
 }
@@ -1394,7 +1463,7 @@ void CHL2_Player::Spawn(void)
 	if (IsBuilderClass())
 		SuitPower_SetCharge(200.0f);
 	else
-		SuitPower_SetCharge(myIntellect());
+		SuitPower_SetCharge(GetIntellect());
 
 	m_Local.m_iHideHUD |= HIDEHUD_CHAT;
 
@@ -1537,47 +1606,15 @@ void CHL2_Player::EnableSprint( bool bEnable )
 void CHL2_Player::ComputeSpeed( void )
 {
 	int speed = HL2_WALK_SPEED;
-	if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
-	{
-		speed = HL2_NORMAL_SPEED;
-		switch (covenClassID)
-		{
-		case COVEN_CLASSID_AVENGER:
-			speed = COVEN_BASESPEED_AVENGER;
-			break;
-		case COVEN_CLASSID_REAVER:
-			speed = COVEN_BASESPEED_REAVER;
-			break;
-		case COVEN_CLASSID_HELLION:
-			speed = COVEN_BASESPEED_HELLION;
-			break;
-		default:break;
-		}
-	}
-	else if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
-	{
-		speed = HL2_FAST_SPEED;
-		switch (covenClassID)
-		{
-		case COVEN_CLASSID_FIEND:
-			speed = COVEN_BASESPEED_FIEND;
-			break;
-		case COVEN_CLASSID_GORE:
-			speed = COVEN_BASESPEED_GORE;
-			break;
-		case COVEN_CLASSID_DEGEN:
-			speed = COVEN_BASESPEED_DEGEN;
-			break;
-		default:break;
-		}
-	}
+	CovenClassInfo_t *info = GetCovenClassData(covenClassID);
+	speed = info->flBaseSpeed;
 
-	if (covenStatusEffects & COVEN_FLAG_SLOW)
-		speed *= 1.0f - GetStatusMagnitude(COVEN_BUFF_SLOW)*0.01f;
+	if (HasStatus(COVEN_STATUS_SLOW))
+		speed *= 1.0f - GetStatusMagnitude(COVEN_STATUS_SLOW)*0.01f;
 
-	if (covenStatusEffects & COVEN_FLAG_SPRINT)
+	if (HasStatus(COVEN_STATUS_SPRINT))
 	{
-		speed *= (1.0f + 0.01f*GetStatusMagnitude(COVEN_BUFF_SPRINT));
+		speed *= (1.0f + 0.01f*GetStatusMagnitude(COVEN_STATUS_SPRINT));
 		//CBaseCombatWeapon *pActiveWeapon = GetActiveWeapon();
 		//if (GetViewModel())
 		//	GetViewModel()->SetPlaybackRate(3.0f*GetStatusMagnitude(COVEN_BUFF_SPRINT));
@@ -1592,8 +1629,8 @@ void CHL2_Player::ComputeSpeed( void )
 	if (gorephased)
 		speed *= 1.5f;
 
-	if (covenStatusEffects & COVEN_FLAG_MASOCHIST)
-		speed *= 1.0f + 0.01f*GetStatusMagnitude(COVEN_BUFF_MASOCHIST);
+	if (HasStatus(COVEN_STATUS_MASOCHIST))
+		speed *= 1.0f + 0.01f*GetStatusMagnitude(COVEN_STATUS_MASOCHIST);
 
 	SetMaxSpeed( speed );
 }
@@ -2131,7 +2168,7 @@ void CHL2_Player::SuitPower_Update( void )
 {
 	if( SuitPower_ShouldRecharge() )
 	{
-		SuitPower_Charge( SUITPOWER_CHARGE_RATE * gpGlobals->frametime );
+		SuitPower_Charge( GetIntellect() / sv_coven_manachargerate.GetFloat() * gpGlobals->frametime);
 	}
 	//BB: hacky hack override devices
 	else// if( m_HL2Local.m_bitsActiveDevices )
@@ -2239,7 +2276,7 @@ void CHL2_Player::SuitPower_Charge( float flPower, bool bSound )
 
 	m_HL2Local.m_flSuitPower += flPower;
 
-	float max = myIntellect() * COVEN_MANA_PER_INT;
+	float max = GetIntellect() * sv_coven_mana_per_int.GetFloat();
 
 	//BB: HACK builder needs a lot
 	if (IsBuilderClass())
@@ -2293,12 +2330,36 @@ bool CHL2_Player::SuitPower_AddDrain( float drain )
 	return true;
 }
 
+bool CHL2_Player::SuitPower_RemoveDrain(float drain)
+{
+	m_flSuitPowerLoad -= drain;
+	return true;
+}
+
 bool CHL2_Player::SuitPower_ResetDrain()
 {
 	m_flSuitPowerLoad = 0.0f;
 	return true;
 }
 
+int CHL2_Player::AbilityKey(CovenAbility_t iAbility, unsigned int *key)
+{
+	for (int i = 0; i < COVEN_MAX_ABILITIES; i++)
+	{
+		if (m_HL2Local.covenAbilities.Get(i) == iAbility)
+		{
+			if (key != NULL)
+				*key = m_covenabilities[iAbility];
+			return i;
+		}
+	}
+	return -1;
+}
+
+bool CHL2_Player::IsBuilderClass(void)
+{
+	return HasAbility(COVEN_ABILITY_BUILDDISPENSER) || HasAbility(COVEN_ABILITY_BUILDTURRET);
+}
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
@@ -2339,7 +2400,7 @@ bool CHL2_Player::SuitPower_ShouldRecharge( void )
 	if( m_HL2Local.m_bitsActiveDevices != 0x00000000 )
 		return false;
 
-	float max = myIntellect() * COVEN_MANA_PER_INT;
+	float max = GetIntellect() * sv_coven_mana_per_int.GetFloat();
 	//BB: HACK builder needs a lot
 	if (IsBuilderClass())
 		max = 200.0f;

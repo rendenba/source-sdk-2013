@@ -92,7 +92,7 @@ float CWeaponCrowbar::GetDamageForActivity( Activity hitActivity )
 
 	CHL2MP_Player *pHLPlayer = (CHL2MP_Player *)pPlayer;
 
-	float baseDMG = 5.0f + pHLPlayer->myStrength();
+	float baseDMG = 5.0f + pHLPlayer->GetStrength();
 
 	return baseDMG + random->RandomInt(0,20);
 }
@@ -143,9 +143,9 @@ void CWeaponCrowbar::PrimaryAttack()
 		if (pPlayer->gorephased)
 		{
 			//BB: JAM Request... sneak attacks
-			pPlayer->DoGorePhase(0);
+			pPlayer->DoGorePhase(pPlayer->AbilityKey(COVEN_ABILITY_PHASE));
 		}
-		if (pPlayer->covenStatusEffects & COVEN_FLAG_DODGE)
+		if (pPlayer->HasStatus(COVEN_STATUS_DODGE))
 		{
 			pPlayer->UnDodge();
 		}

@@ -72,6 +72,7 @@ private:
 	bool LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBaseFileSystem *pFileSystem, const char *pPathID );
 	bool LoadFromBuffer( char const *resourceName, const char *pBuffer, IBaseFileSystem* pFileSystem, const char *pPathID = NULL );
 	bool LoadDotFile( IBaseFileSystem *filesystem, const char *resourceName, const char *pathID );
+	bool LoadDotFile( IBaseFileSystem *filesystem, const char *resourceName );
 
 	int m_nMapTex;
 	int m_nGrayDot;
@@ -80,11 +81,11 @@ private:
 	int m_nGoldStar;
 	char mapname[MAX_PATH];
 
-	CUtlVector<Vector> mapspots;
-	CUtlVector<Vector> textspots;
+	CUtlVector<Vector2D> mapspots;
+	CUtlVector<Vector2D> textspots;
 	char text_names[COVEN_MAX_CAP_POINTS][MAX_PLAYER_NAME_LENGTH];
-	Vector cts;
-	Vector cts_zone;
+	Vector2D cts;
+	Vector2D cts_zone;
 	Vector cts_origin;
 	bool usingCTS;
 	int			m_iDesiredHeight;

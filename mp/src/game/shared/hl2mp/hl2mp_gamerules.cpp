@@ -71,6 +71,9 @@ ConVar sv_coven_pts_cappersec("sv_coven_pts_cappersec", "0.75", FCVAR_GAMEDLL | 
 ConVar sv_coven_pts_cts("sv_coven_pts_cts", "125", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_coven_pts_item("sv_coven_pts_item", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_coven_cts_returntime("sv_coven_cts_returntime", "16", FCVAR_GAMEDLL | FCVAR_NOTIFY);
+ConVar sv_coven_manachargerate("sv_coven_manachargerate", "5.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Intellect / X per second.");
+ConVar sv_coven_max_stealth_velocity("sv_coven_max_stealth_velocity", "150.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Lower boundary for stealth invisibility.");
+ConVar sv_coven_min_stealth_velocity("sv_coven_min_stealth_velocity", "280.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Minimum stealth velocity.");
 
 extern ConVar mp_chattime;
 
@@ -83,6 +86,9 @@ static char temparray[256];
 
 #endif
 
+ConVar sv_coven_mana_per_int("sv_coven_mana_per_int", "10.0", FCVAR_GAMEDLL | FCVAR_NOTIFY | FCVAR_REPLICATED);
+ConVar sv_coven_gcd("sv_coven_gcd", "1.5", FCVAR_GAMEDLL | FCVAR_NOTIFY | FCVAR_REPLICATED);
+ConVar sv_coven_hp_per_con("sv_coven_hp_per_con", "4.0", FCVAR_GAMEDLL | FCVAR_NOTIFY | FCVAR_REPLICATED);
 
 REGISTER_GAMERULES_CLASS( CHL2MPRules );
 
@@ -179,7 +185,6 @@ static const char *s_PreserveEnts[] =
 };
 //BB: TODO: item_ammo_crate might need to come off this list once they are actually baked into maps...
 
-
 #ifdef CLIENT_DLL
 	void RecvProxy_HL2MPRules( const RecvProp *pProp, void **pOut, void *pData, int objectID )
 	{
@@ -219,15 +224,6 @@ static const char *s_PreserveEnts[] =
 
 #endif
 
-// NOTE: the indices here must match TEAM_TERRORIST, TEAM_CT, TEAM_SPECTATOR, etc.
-char *sTeamNames[] =
-{
-	"Unassigned",
-	"Spectator",
-	"Slayers",
-	"Vampires",
-};
-
 CHL2MPRules::CHL2MPRules()
 {
 #ifndef CLIENT_DLL
@@ -241,7 +237,7 @@ CHL2MPRules::CHL2MPRules()
 	}
 
 	Q_memset(botnameUsed, 0, sizeof(botnameUsed));
-	Q_memset(botnet, 0, sizeof(botnet));
+	Q_memset(pBotNet, 0, sizeof(pBotNet));
 	bot_node_count = 0;
 
 	thects = NULL;
@@ -268,7 +264,7 @@ CHL2MPRules::CHL2MPRules()
 	last_verified_cap_point = 0;
 	scoreTimer = 0.0f;
 
-	covenGameState = -1;
+	covenGameState = COVEN_GAMESTATE_UNDEFINED;
 	covenGameStateTimer = 0.0f;
 	covenFlashTimer = 0.0f;
 
@@ -334,10 +330,10 @@ CHL2MPRules::~CHL2MPRules( void )
 	g_Teams.Purge();
 	for (int i = 0; i < bot_node_count; i++)
 	{
-		if (botnet[i])
+		if (pBotNet[i])
 		{
-			delete botnet[i];
-			botnet[i] = NULL;
+			delete pBotNet[i];
+			pBotNet[i] = NULL;
 		}
 	}
 #endif
@@ -369,8 +365,8 @@ bool CHL2MPRules::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBa
 			buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
 			const char *u = temparray;
 			UTIL_StringToVector(locs, u);
-			botnode *node;
-			node = new botnode;
+			BotNode_t *node;
+			node = new BotNode_t;
 #ifdef DEBUG_BOTS_VISUAL
 			node->bSelected = false;
 #endif
@@ -389,7 +385,7 @@ bool CHL2MPRules::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBa
 			}
 			if (node->ID < COVEN_MAX_BOT_NODES)
 			{
-				botnet[node->ID] = node;
+				pBotNet[node->ID] = node;
 				if (bot_node_count < node->ID+1)
 				{
 					bot_node_count = node->ID+1;
@@ -440,7 +436,7 @@ bool CHL2MPRules::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBa
 				const char *w = temparray;
 				int m;
 				UTIL_StringToIntArray(&m, 1, w);
-				cap_point_sightcheck[num_cap_points] = m;
+				cap_point_sightcheck[num_cap_points] = (m != 0) ? true : false;
 				num_cap_points++;
 			}
 		}
@@ -609,10 +605,166 @@ bool CHL2MPRules::LoadFromBuffer( char const *resourceName, const char *pBuffer,
 	return false;
 }
 
+bool CHL2MPRules::LoadCowFile(IBaseFileSystem *filesystem, const char *resourceName)
+{
+#ifndef CLIENT_DLL
+	KeyValues *pCowData = new KeyValues("cowdata");
+	if (pCowData->LoadFromFile(filesystem, resourceName, "GAME"))
+	{
+		KeyValues *pBotNetKV = pCowData->FindKey("BotNet");
+		if (pBotNetKV)
+		{
+#ifdef COVEN_DEVELOPER_MODE
+			Msg("Botnet:\n");
+#endif
+			for (KeyValues *sub = pBotNetKV->GetFirstSubKey(); sub != NULL; sub = sub->GetNextKey())
+			{
+				BotNode_t *node;
+				node = new BotNode_t;
+				UTIL_StringToIntArray(&node->ID, 1, sub->GetName());
+				float locs[3];
+				UTIL_StringToVector(locs, sub->GetString("location","0 0 0"));
+				node->location = Vector(locs[0], locs[1], locs[2]);
+#ifdef COVEN_DEVELOPER_MODE
+				Msg("botnode: %d - %f %f %f\n", node->ID, locs[0], locs[1], locs[2]);
+#endif
+#ifdef DEBUG_BOTS_VISUAL
+				node->bSelected = false;
+#endif
+				KeyValues *pConnectors = sub->FindKey("connectors");
+				if (pConnectors)
+				{
+					for (KeyValues *temp = pConnectors->GetFirstSubKey(); temp != NULL; temp = temp->GetNextKey())
+					{
+						node->connectors.AddToTail(temp->GetInt());
+#ifdef COVEN_DEVELOPER_MODE
+						Msg("    connector: %d\n", node->connectors[node->connectors.Count() - 1]);
+#endif
+					}
+				}
+				if (node->ID < COVEN_MAX_BOT_NODES)
+				{
+					pBotNet[node->ID] = node;
+					if (bot_node_count < node->ID + 1)
+					{
+						bot_node_count = node->ID + 1;
+					}
+				}
+			}
+		}
+		KeyValues *pAmmoCrates = pCowData->FindKey("AmmoCrates");
+		if (pAmmoCrates)
+		{
+#ifdef COVEN_DEVELOPER_MODE
+			Msg("Ammocrates:\n");
+#endif
+			for (KeyValues *sub = pAmmoCrates->GetFirstSubKey(); sub != NULL; sub = sub->GetNextKey())
+			{
+				float locs[3];
+				UTIL_StringToVector(locs, sub->GetString("location", "0 0 0"));
+				CBaseEntity *ent = CreateEntityByName("coven_ammocrate_infinite");
+				ent->SetLocalOrigin(Vector(locs[0], locs[1], locs[2] + 15.0f));
+#ifdef COVEN_DEVELOPER_MODE
+				Msg("coven_ammocrate_infinite: %f %f %f\n", locs[0], locs[1], locs[2]);
+#endif
+				UTIL_StringToVector(locs, sub->GetString("angles", "0 0 0"));
+				ent->SetLocalAngles(QAngle(locs[0], locs[1], locs[2]));
+				ent->AddSpawnFlags(SF_COVEN_CRATE_INFINITE);
+				ent->AddSpawnFlags(SF_COVENBUILDING_INERT);
+				crates.AddToTail(ent);
+				ent->Spawn();
+			}
+		}
+		KeyValues *pCTS = pCowData->FindKey("CTS");
+		if (pCTS)
+		{
+#ifdef COVEN_DEVELOPER_MODE
+			Msg("CTS:\n");
+#endif
+			if (sv_coven_usects.GetInt() > 0)
+			{
+				float locs[3];
+				UTIL_StringToVector(locs, pCTS->GetString("location", "0 0 0"));
+				CBaseEntity *ent = CreateEntityByName( "item_cts" );
+				cts_position.x = locs[0];
+				cts_position.y = locs[1];
+				cts_position.z = locs[2] + 10.0f;
+				ent->SetLocalOrigin(cts_position);
+				ent->SetLocalAngles(QAngle(random->RandomInt(0, 180), random->RandomInt(0, 90), random->RandomInt(0, 180)));
+				ent->Spawn();
+				ent->AddSpawnFlags(SF_NORESPAWN);
+				thects = ent;
+				cts_inplay = true;
+				KeyValues *pCTSZone = pCTS->FindKey("ctszone");
+				if (pCTSZone)
+				{
+					UTIL_StringToVector(locs, pCTSZone->GetString("location", "0 0 0"));
+					cts_zone.x = locs[0];
+					cts_zone.y = locs[1];
+					cts_zone.z = locs[2];
+					cts_zone_radius = pCTSZone->GetInt("radius");
+				}
+			}
+		}
+		KeyValues *pCapPoints = pCowData->FindKey("CapPoints");
+		if (pCapPoints)
+		{
+#ifdef COVEN_DEVELOPER_MODE
+			Msg("Cappoints:\n");
+#endif
+			for (KeyValues *sub = pCapPoints->GetFirstSubKey(); sub != NULL; sub = sub->GetNextKey())
+			{
+				if (num_cap_points < COVEN_MAX_CAP_POINTS)
+				{
+					float locs[3];
+					UTIL_StringToVector(locs, sub->GetString("location", "0 0 0"));
+					cap_point_coords.Set(num_cap_points, Vector(locs[0], locs[1], locs[2]));
+					cap_point_status.Set(num_cap_points, 60);
+					cap_point_timers[num_cap_points] = 0.0f;
+					cap_point_state.Set(num_cap_points, 0);
+					cap_point_distance[num_cap_points] = sub->GetInt("radius", 100);
+					Q_snprintf(cap_point_names[num_cap_points], sizeof(cap_point_names[num_cap_points]), "%s", sub->GetString("name", "MISSING_NAME"));
+					cap_point_sightcheck[num_cap_points] = (sub->GetInt("vischeck", 0) != 0) ? true : false;
+#ifdef COVEN_DEVELOPER_MODE
+					Msg("%s: - vischeck:%d - radius:%d - %f %f %f\n", cap_point_names[num_cap_points], cap_point_sightcheck[num_cap_points], cap_point_distance[num_cap_points], locs[0], locs[1], locs[2]);
+#endif
+					num_cap_points++;
+				}
+			}
+		}
+		KeyValues *pXPItems = pCowData->FindKey("XPItems");
+		if (pXPItems)
+		{
+#ifdef COVEN_DEVELOPER_MODE
+			Msg("XP Items:\n");
+#endif
+			for (KeyValues *sub = pXPItems->GetFirstSubKey(); sub != NULL; sub = sub->GetNextKey())
+			{
+				float locs[3];
+				UTIL_StringToVector(locs, sub->GetString((const char *)NULL, "0 0 0"));
+				if (sv_coven_usexpitems.GetInt() > 0)
+				{
+					char temp[MAX_COVEN_STRING];
+					Q_snprintf(temp, sizeof(temp), "item_xp_%s", sub->GetName());
+					CBaseEntity *ent = CreateEntityByName(temp);
+					ent->SetLocalOrigin(Vector(locs[0], locs[1], locs[2] + 10.0f));
+					ent->SetLocalAngles(QAngle(random->RandomInt(0, 180), random->RandomInt(0, 180), random->RandomInt(0, 180)));
+					ent->Spawn();
+#ifdef COVEN_DEVELOPER_MODE
+					Msg("%s: %f %f %f\n", temp, locs[0], locs[1], locs[2]);
+#endif
+				}
+			}
+		}
+		return true;
+	}
+#endif
+	return false;
+}
+
 bool CHL2MPRules::LoadCowFile( IBaseFileSystem *filesystem, const char *resourceName, const char *pathID )
 {
 #ifndef CLIENT_DLL
-
 	FileHandle_t f = filesystem->Open(resourceName, "rb", pathID);
 	if (!f)
 		return false;
@@ -742,7 +894,7 @@ void CHL2MPRules::RestartRound()
 	{
 		CHL2MP_Player *pPlayer = (CHL2MP_Player*) UTIL_PlayerByIndex( i );
 
-		if ( !pPlayer )
+		if ( !pPlayer || pPlayer->GetTeamNumber() < COVEN_TEAMID_SLAYERS)
 			continue;
 
 		pPlayer->ResetScores();
@@ -754,7 +906,7 @@ void CHL2MPRules::RestartRound()
 		pPlayer->ClearAllBuildings();
 		pPlayer->ClearTripmines();
 		pPlayer->ResetCovenStatus();
-		Q_memset(pPlayer->covenAbilities, 0, sizeof(pPlayer->covenAbilities));
+		pPlayer->ResetAbilities();
 		Q_memset(pPlayer->covenLoadouts, 0, sizeof(pPlayer->covenLoadouts));
 		Q_memset(pPlayer->covenLevelsSpent, 0, sizeof(pPlayer->covenLevelsSpent));
 		pPlayer->m_lifeState = LIFE_RESPAWNABLE;
@@ -793,33 +945,13 @@ void CHL2MPRules::Think( void )
 	int numVampires = 0;
 	int numSlayers = 0;
 
-	if (!cowsloaded)
-	{
-		char tempfile[MAX_PATH];
-		Q_snprintf( tempfile, sizeof( tempfile ), "maps/%s_cows.txt", STRING(gpGlobals->mapname) );
-		Msg("Loading cow file: %s\n", tempfile);
-		if (!LoadCowFile( filesystem, tempfile, "GAME" ))
-		{
-			//either a failure to load, or simply not implemented for this map
-			//setup alternate game mode for this map...
-			cowsloadfail = true;
-			Msg("Failed to load cow file, defaulting.\n");
-		}
-		else
-		{
-			//Successful load
-			Msg("Cow file loaded!\n");
-		}
-		cowsloaded = true;
-	}
-
 	//BB: coven game state things!
-	if (covenGameState < COVEN_GAME_STATE_WARMUP)
+	if (covenGameState == COVEN_GAMESTATE_UNDEFINED)
 	{
-		covenGameState++;
+		covenGameState = COVEN_GAMESTATE_WARMUP;
 		covenGameStateTimer = gpGlobals->curtime + sv_coven_warmuptime.GetInt();
 	}
-	else if (covenGameState == COVEN_GAME_STATE_WARMUP)
+	else if (covenGameState == COVEN_GAMESTATE_WARMUP)
 	{
 		if (gpGlobals->curtime > covenFlashTimer && sv_coven_warmuptime.GetInt() > 0)
 		{
@@ -828,7 +960,7 @@ void CHL2MPRules::Think( void )
 		}
 		if (gpGlobals->curtime > covenGameStateTimer)
 		{
-			covenGameState++;
+			covenGameState = COVEN_GAMESTATE_FREEZE;
 			covenFlashTimer = 0.0f;
 			covenGameStateTimer = gpGlobals->curtime + sv_coven_freezetime.GetInt();
 			if (sv_coven_warmuptime.GetInt() > 0)
@@ -853,7 +985,7 @@ void CHL2MPRules::Think( void )
 
 		}
 	}
-	else if (covenGameState == COVEN_GAME_STATE_FREEZE)
+	else if (covenGameState == COVEN_GAMESTATE_FREEZE)
 	{
 		if (gpGlobals->curtime > covenFlashTimer && sv_coven_freezetime.GetInt() > 0)
 		{
@@ -862,7 +994,7 @@ void CHL2MPRules::Think( void )
 		}
 		if (gpGlobals->curtime > covenGameStateTimer)
 		{
-			covenGameState++;
+			covenGameState = COVEN_GAMESTATE_PLAY;
 			covenFlashTimer = 0.0f;
 			if (sv_coven_freezetime.GetInt() > 0 || sv_coven_warmuptime.GetInt() > 0)
 				UTIL_ClientPrintAll( HUD_PRINTCENTER, "FIGHT!" );
@@ -1004,14 +1136,7 @@ void CHL2MPRules::Think( void )
 	//BB: add bots to make playercounts
 	if (numSlayers < sv_coven_minplayers.GetInt() && !cowsloadfail)
 	{
-		CHL2MP_Player *pBot = (CHL2MP_Player *)BotPutInServer(false, TEAM_COMBINE);
-		if (pBot)
-		{
-			pBot->covenClassID = random->RandomInt(1,COVEN_CLASSCOUNT_SLAYERS);
-			Set_Bot_Base_Velocity(pBot);
-			pBot->State_Transition(STATE_ACTIVE);
-			Bot_Think(pBot);
-		}
+		BotPutInServer(covenGameState == COVEN_GAMESTATE_FREEZE, COVEN_TEAMID_SLAYERS);
 	}
 	else if (numSlayers > sv_coven_minplayers.GetInt())
 	{
@@ -1031,14 +1156,7 @@ void CHL2MPRules::Think( void )
 
 	if (numVampires < sv_coven_minplayers.GetInt() && !cowsloadfail)
 	{
-		CHL2MP_Player *pBot = (CHL2MP_Player *)BotPutInServer(false, TEAM_REBELS);
-		if (pBot)
-		{
-			pBot->covenClassID = random->RandomInt(1,COVEN_CLASSCOUNT_VAMPIRES);
-			Set_Bot_Base_Velocity(pBot);
-			pBot->State_Transition(STATE_ACTIVE);
-			Bot_Think(pBot);
-		}
+		BotPutInServer(covenGameState == COVEN_GAMESTATE_FREEZE, COVEN_TEAMID_VAMPIRES);
 	}
 	else if (numVampires > sv_coven_minplayers.GetInt())
 	{
@@ -1060,20 +1178,20 @@ void CHL2MPRules::Think( void )
 	{
 		for (int i = 0; i < bot_node_count; i++)
 		{
-			if (botnet[i] != NULL)
+			if (pBotNet[i] != NULL)
 			{
 				char sTemp[8];
-				Q_snprintf(sTemp, sizeof(sTemp), "%d", botnet[i]->ID);
-				NDebugOverlay::Text(botnet[i]->location + Vector(0, 0, 8), sTemp, true, 0.05f);
-				if (botnet[i]->bSelected)
+				Q_snprintf(sTemp, sizeof(sTemp), "%d", pBotNet[i]->ID);
+				NDebugOverlay::Text(pBotNet[i]->location + Vector(0, 0, 8), sTemp, true, 0.05f);
+				if (pBotNet[i]->bSelected)
 				{
-					NDebugOverlay::Cross3D(botnet[i]->location, -Vector(12, 12, 12), Vector(12, 12, 12), 255, 0, 255, false, 0.05f);
-					NDebugOverlay::SweptBox(botnet[i]->location, botnet[i]->location + Vector(0, 0, 72), Vector(0, -16, -16), Vector(0, 16, 16), QAngle(90, 0, 0), 0, 255, 255, 50, 0.05f);
-					for (int j = 0; j < botnet[i]->connectors.Count(); j++)
-						NDebugOverlay::Line(botnet[i]->location, botnet[botnet[i]->connectors[j]]->location, 0, 255, 255, true, 0.05f);
+					NDebugOverlay::Cross3D(pBotNet[i]->location, -Vector(12, 12, 12), Vector(12, 12, 12), 255, 0, 255, false, 0.05f);
+					NDebugOverlay::SweptBox(pBotNet[i]->location, pBotNet[i]->location + Vector(0, 0, 72), Vector(0, -16, -16), Vector(0, 16, 16), QAngle(90, 0, 0), 0, 255, 255, 50, 0.05f);
+					for (int j = 0; j < pBotNet[i]->connectors.Count(); j++)
+						NDebugOverlay::Line(pBotNet[i]->location, pBotNet[pBotNet[i]->connectors[j]]->location, 0, 255, 255, true, 0.05f);
 				}
 				else
-					NDebugOverlay::Cross3D(botnet[i]->location, -Vector(2, 2, 2), Vector(2, 2, 2), 255, 0, 255, false, 0.05f);
+					NDebugOverlay::Cross3D(pBotNet[i]->location, -Vector(2, 2, 2), Vector(2, 2, 2), 255, 0, 255, false, 0.05f);
 			}
 		}
 	}
@@ -1669,6 +1787,29 @@ float CHL2MPRules::GetMapRemainingTime()
 void CHL2MPRules::Precache( void )
 {
 	CBaseEntity::PrecacheScriptSound( "AlyxEmp.Charge" );
+#ifndef CLIENT_DLL
+	if (!cowsloaded)
+	{
+		char tempfile[MAX_PATH];
+		Q_snprintf(tempfile, sizeof(tempfile), "maps/%s_cows.txt", STRING(gpGlobals->mapname));
+		Msg("Loading cow file: %s\n", tempfile);
+		if (!LoadCowFile(filesystem, tempfile))
+		{
+			//either a failure to load, or simply not implemented for this map
+			//setup alternate game mode for this map...
+			cowsloadfail = true;
+			Msg("Failed to load cow file, defaulting.\n");
+		}
+		else
+		{
+			//Successful load
+			Msg("Cow file loaded!\n");
+		}
+		cowsloaded = true;
+	}
+	PrecacheAbilities(filesystem);
+	PrecacheClasses(filesystem);
+#endif
 }
 
 bool CHL2MPRules::ShouldCollide( int collisionGroup0, int collisionGroup1 )
@@ -1753,28 +1894,6 @@ CAmmoDef *GetAmmoDef()
 
 //BB: BOTS!
 #ifdef DEBUG
-
-	// Handler for the "bot" command.
-	void Bot_f()
-	{		
-		// Look at -count.
-		int count = 1;
-		count = clamp( count, 1, 16 );
-
-		int iTeam = TEAM_COMBINE;
-				
-		// Look at -frozen.
-		bool bFrozen = false;
-			
-		// Ok, spawn all the bots.
-		while ( --count >= 0 )
-		{
-			BotPutInServer( bFrozen, iTeam );
-		}
-	}
-
-
-	ConCommand cc_Bot( "bot", Bot_f, "Add a bot.", FCVAR_NOTIFY/*FCVAR_CHEAT*/ );
 
 #endif
 

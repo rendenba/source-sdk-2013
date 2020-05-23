@@ -261,7 +261,7 @@ void C_BaseCombatCharacter::DoMuzzleFlash()
 //-----------------------------------------------------------------------------
 void C_BaseCombatCharacter::GetGlowEffectColor( float *r, float *g, float *b )
 {
-	if (GetCovenStatusEffects() & COVEN_FLAG_CTS)
+	if (GetCovenStatusEffects() & (1 << COVEN_STATUS_HAS_CTS))
 	{
 		*r = 1.0f;
 		*g = 1.0f;

@@ -16,7 +16,7 @@
 #define BOT_NODE_TOLERANCE 20.0f
 
 // If iTeam or iClass is -1, then a team or class is randomly chosen.
-CBasePlayer *BotPutInServer( bool bFrozen, int iTeam );
+CBasePlayer *BotPutInServer( bool bFrozen, CovenTeamID_t iTeam );
 void BotRemove( CHL2MP_Player *pBot );
 void Bot_Think( CHL2MP_Player *pBot );
 void Set_Bot_Base_Velocity( CHL2MP_Player *pBot );
