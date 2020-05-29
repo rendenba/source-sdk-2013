@@ -74,7 +74,9 @@ static const char *pCovenAbilities[COVEN_ABILITY_COUNT] =
 	"buildturret",
 	"builddispenser",
 	"tripmine",
-	"darkwill"
+	"darkwill",
+	"dash",
+	"innerlight"
 };
 
 //BB: this must be in the same order as shareddefs
@@ -94,7 +96,8 @@ static const char *pCovenStatusEffects[COVEN_STATUS_COUNT] =
 	"stun",
 	"phase",
 	"has_cts",
-	"dodge"
+	"dodge",
+	"weakness"
 };
 
 static CUtlMap<unsigned int, CovenClassInfo_t *> m_CovenClassInfoDatabase;

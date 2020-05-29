@@ -470,6 +470,12 @@ int CCollisionEvent::ShouldCollide_2( IPhysicsObject *pObj0, IPhysicsObject *pOb
 	if ( !pEntity0 || !pEntity1 )
 		return 1;
 
+	/*if (pEntity0->IsABuilding() && pEntity1->IsPlayer())
+		return pEntity0->GetTeamNumber() != pEntity1->GetTeamNumber();
+
+	if (pEntity1->IsABuilding() && pEntity0->IsPlayer())
+		return pEntity0->GetTeamNumber() != pEntity1->GetTeamNumber();*/
+
 	unsigned short gameFlags0 = pObj0->GetGameFlags();
 	unsigned short gameFlags1 = pObj1->GetGameFlags();
 

@@ -242,6 +242,8 @@ int CCoven_Turret::GetAmmo(int index)
 		return m_iAmmo;
 	else if (index == 2)
 		return m_iEnergy;
+	else if (index == 3)
+		return m_iAmmo + m_iEnergy;
 
 	return -1;
 }
@@ -891,12 +893,6 @@ void CCoven_Turret::Shoot(const Vector &vecSrc, const Vector &vecDirToEnemy, boo
 		info.m_iAmmoType = m_iAmmoType;
 		vecDir = vecDirToEnemy;
 	}
-
-	//BB: suck. Gotta do my own effects due to the way server/client side effects work from FireBullets in HL2MP.
-	trace_t tr;
-	UTIL_TraceLine(vecSrc, vecSrc + vecDir * MAX_COORD_RANGE, MASK_SHOT, this, COLLISION_GROUP_NONE, &tr);
-	UTIL_Tracer(vecSrc, tr.endpos, entindex(), m_iMuzzleAttachment, 0.0f, true, NULL);
-	UTIL_ImpactTrace(&tr, DMG_BULLET);
 
 	FireBullets(info);
 	EmitSound("NPC_FloorTurret.ShotSounds", m_ShotSounds);
@@ -1557,7 +1553,7 @@ int CCoven_Turret::OnTakeDamage(const CTakeDamageInfo &info)
 
 	if (info.GetDamageType() & DMG_SHOCK)
 	{
-		if (info.GetAttacker() != NULL && info.GetAttacker()->IsPlayer())
+		if (info.GetAttacker() != NULL && info.GetAttacker()->IsPlayer() && info.GetAttacker()->GetTeamNumber() == GetTeamNumber())
 		{
 			CHL2MP_Player *pAttacker = (CHL2MP_Player *)info.GetAttacker();
 			if (pAttacker)
@@ -1634,6 +1630,7 @@ int CCoven_Turret::OnTakeDamage(const CTakeDamageInfo &info)
 	newInfo.ScaleDamageForce( 2.5f );
 	}*/
 
+	//BB: TODO: check this... I don't think I need this anymore...
 	// Manually apply vphysics because AI_BaseNPC takedamage doesn't call back to CBaseEntity OnTakeDamage
 	VPhysicsTakeDamage(newInfo);
 

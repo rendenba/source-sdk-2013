@@ -98,9 +98,9 @@ public:
 	inline bool SequenceLoops( void ) { return m_bSequenceLoops; }
 	bool		 IsSequenceLooping( CStudioHdr *pStudioHdr, int iSequence );
 	inline bool	 IsSequenceLooping( int iSequence ) { return IsSequenceLooping(GetModelPtr(),iSequence); }
-	inline float SequenceDuration( void ) { return SequenceDuration( m_nSequence ); }
+	virtual float SequenceDuration( void ) { return SequenceDuration( m_nSequence ); }
 	float	SequenceDuration( CStudioHdr *pStudioHdr, int iSequence );
-	inline float SequenceDuration( int iSequence ) { return SequenceDuration(GetModelPtr(), iSequence); }
+	virtual float SequenceDuration( int iSequence ) { return SequenceDuration(GetModelPtr(), iSequence); }
 	float	GetSequenceCycleRate( CStudioHdr *pStudioHdr, int iSequence );
 	inline float	GetSequenceCycleRate( int iSequence ) { return GetSequenceCycleRate(GetModelPtr(),iSequence); }
 	float	GetLastVisibleCycle( CStudioHdr *pStudioHdr, int iSequence );

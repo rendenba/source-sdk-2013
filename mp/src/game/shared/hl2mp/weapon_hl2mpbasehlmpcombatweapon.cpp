@@ -52,6 +52,26 @@ CBaseHL2MPCombatWeapon::CBaseHL2MPCombatWeapon( void )
 
 }
 
+float CBaseHL2MPCombatWeapon::SequenceDuration(int iSequence)
+{
+	CHL2MP_Player *pOwner = ToHL2MPPlayer(GetOwner());
+
+	if (pOwner && pOwner->HasStatus(COVEN_STATUS_HASTE))
+		return (1.0f - 0.01f * pOwner->GetStatusMagnitude(COVEN_STATUS_HASTE)) * BaseClass::SequenceDuration(iSequence);
+
+	return BaseClass::SequenceDuration(iSequence);
+}
+
+float CBaseHL2MPCombatWeapon::SequenceDuration(void)
+{
+	CHL2MP_Player *pOwner = ToHL2MPPlayer(GetOwner());
+
+	if (pOwner && pOwner->HasStatus(COVEN_STATUS_HASTE))
+		return (1.0f - 0.01f * pOwner->GetStatusMagnitude(COVEN_STATUS_HASTE)) * BaseClass::SequenceDuration();
+
+	return BaseClass::SequenceDuration();
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------

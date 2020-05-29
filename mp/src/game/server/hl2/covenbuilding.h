@@ -29,13 +29,17 @@ class CCovenBuilding : public CBaseCombatCharacter, public CDefaultPlayerPickupV
 {
 public:
 	DECLARE_CLASS(CCovenBuilding, CBaseCombatCharacter);
-	
+	DECLARE_SERVERCLASS();
+
 	CCovenBuilding();
 
 	virtual void	Spawn(void);
 	virtual void	Precache(void);
 	bool			CreateVPhysics(void);
 
+	void			LockController(void);
+	void			UnlockController(void);
+	virtual void	VPhysicsCollision(int index, gamevcollisionevent_t *pEvent);
 	virtual void	InputKill(inputdata_t &data);
 	virtual int		ObjectCaps(void) { return (BaseClass::ObjectCaps() | FCAP_IMPULSE_USE); };
 	virtual void	Use(CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value);
@@ -106,6 +110,8 @@ private:
 	void									Spark(float height, int mag, int length);
 	float									m_flBottom; //to get around buildings with legs
 	float									m_flTop;
+	bool									m_bGoneToSleep;
+	void									WakeUp(void);
 
 protected:
 
@@ -155,6 +161,8 @@ public:
 	void Enable(bool state = true);
 	void Suspend(float time);
 	float SuspendedTill(void);
+	void Lock(void);
+	void Unlock(void);
 
 	bool Enabled(void);
 

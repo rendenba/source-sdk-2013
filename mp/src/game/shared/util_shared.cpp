@@ -227,6 +227,28 @@ bool PassServerEntityFilter( const IHandleEntity *pTouch, const IHandleEntity *p
 	if ( pEntPass->GetOwnerEntity() == pEntTouch )
 		return false;	
 
+	/*if (pEntTouch->IsABuilding())
+	{
+		if (pEntPass->IsPlayer() && pEntTouch->GetTeamNumber() == pEntPass->GetTeamNumber())
+		{
+			//const CCovenBuilding *bldg = dynamic_cast<const CCovenBuilding *>(pEntTouch);
+			//if (bldg && bldg->mOwner != NULL)
+			//{
+			//	return bldg->mOwner->entindex() == pEntPass->entindex();
+			//}
+		}
+	}
+	if (pEntPass->IsABuilding())
+	{
+		if (pEntTouch->IsPlayer() && pEntTouch->GetTeamNumber() == pEntPass->GetTeamNumber())
+		{
+			//const CCovenBuilding *bldg = dynamic_cast<const CCovenBuilding *>(pEntPass);
+			//if (bldg && bldg->mOwner != NULL)
+			//{
+			//	return bldg->mOwner->entindex() == pEntTouch->entindex();
+			//}
+		}
+	}*/
 
 	return true;
 }

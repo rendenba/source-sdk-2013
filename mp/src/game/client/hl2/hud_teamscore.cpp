@@ -63,7 +63,7 @@ void CHudTeamScore::Init( void )
 {
 	m_TeamSScore = TEAMSCORE_INIT;
 	m_TeamVScore = TEAMSCORE_INIT;
-	SetBgColor(Color(0,0,0,250));
+	SetBgColor(Color(0,0,0,255));
 }
 
 //-----------------------------------------------------------------------------

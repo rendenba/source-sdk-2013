@@ -66,6 +66,8 @@ extern ConVar sv_coven_hp_per_con;
 extern ConVar sv_coven_mana_per_int;
 extern ConVar sv_coven_max_stealth_velocity;
 extern ConVar sv_coven_min_stealth_velocity;
+extern ConVar sv_coven_dash_bump;
+extern ConVar sv_coven_light_bump;
 
 #define HL2MP_COMMAND_MAX_RATE 0.3
 
@@ -371,6 +373,34 @@ void CHL2MP_Player::ThrowHolywaterGrenade(int lev)
 	pGrenade->SetDamageRadius( 150.0f );
 }
 
+void CHL2MP_Player::DashHandler()
+{
+	if (HasAbility(COVEN_ABILITY_DASH) && coven_timer_dash > 0.0f)
+	{
+		Vector zContrib(0, 0, 0);
+		if (gpGlobals->curtime < coven_timer_dash)
+		{
+			zContrib.z = GetAbsVelocity().z;
+			CovenAbilityInfo_t *abilityInfo = GetCovenAbilityData(COVEN_ABILITY_DASH);
+			SetMaxSpeed(abilityInfo->iMagnitude);
+			if (lock_vel < abilityInfo->iMagnitude)
+			{
+				lock_vel_rate += abilityInfo->iMagnitude * 10.0f * gpGlobals->frametime;
+				lock_vel += lock_vel_rate * gpGlobals->frametime;
+			}
+			SetAbsVelocity(lock_vel * lock_dash + zContrib);
+		}
+		else
+		{
+			zContrib.z = MIN(GetAbsVelocity().z, 0);
+			coven_timer_dash = -1.0f;
+			ComputeSpeed();
+			if (GetGroundEntity() == NULL)
+				SetAbsVelocity(MaxSpeed() * lock_dash + zContrib);
+		}
+	}
+}
+
 void CHL2MP_Player::CheckThrowPosition(const Vector &vecEye, Vector &vecSrc)
 {
 	trace_t tr;
@@ -392,12 +422,12 @@ bool CHL2MP_Player::BuildDispenser(int iAbilityNum)
 	if (SuitPower_GetCurrentPercentage() < info->flCost)
 		return false;
 
-	QAngle angle = GetLocalAngles();
+	QAngle angle = EyeAngles();
 	Vector	vForward;
 	AngleVectors(angle, &vForward);
 	Vector vecSrc = EyePosition() + vForward * 55.0f;
 	trace_t tr;
-	UTIL_TraceLine(EyePosition(), vecSrc, MASK_PLAYERSOLID, this, COLLISION_GROUP_NONE, &tr);
+	UTIL_TraceLine(EyePosition(), vecSrc, MASK_PLAYERSOLID, this, COLLISION_GROUP_PLAYER_MOVEMENT, &tr);
 	if (tr.DidHit())
 		return false;
 
@@ -429,13 +459,13 @@ bool CHL2MP_Player::BuildTurret(int iAbilityNum)
 		return false;
 
 	Vector	vForward;
-	QAngle angle = GetLocalAngles();
+	QAngle angle = EyeAngles();
 	angle.x = 0;
 	angle.z = 0;
 	AngleVectors(angle, &vForward);
 	Vector vecSrc = EyePosition() + vForward * 50.0f;
 	trace_t tr;
-	UTIL_TraceLine(EyePosition(), vecSrc, MASK_PLAYERSOLID, this, COLLISION_GROUP_NONE, &tr);
+	UTIL_TraceLine(EyePosition(), vecSrc, MASK_PLAYERSOLID, this, COLLISION_GROUP_PLAYER_MOVEMENT, &tr);
 	if (tr.DidHit())
 		return false;
 
@@ -496,55 +526,17 @@ void CHL2MP_Player::BoostStats(CovenAbility_t iReason, int iAbilityNum)
 {
 	CovenAbilityInfo_t *info = GetCovenAbilityData(iReason);
 
-	float currentMagnitude = 0.01f * GetStatusMagnitude(COVEN_STATUS_STATBOOST);
-	float magnitude = 0.01f * info->iMagnitude;
-	float str = GetStrength();
-	float intel = GetIntellect();
-	float con = GetConstitution();
-	float stradd = str * magnitude;
-	float inteladd = intel * magnitude;
-	float conadd = con * magnitude;
 	if (iReason == COVEN_ABILITY_REVENGE) //revenge stacks
 	{
-		float totalMagnitude = currentMagnitude + magnitude;
-		AddStatus(COVEN_STATUS_STATBOOST, round(totalMagnitude * 100), gpGlobals->curtime + info->flDuration);
+		AddStatus(COVEN_STATUS_STATBOOST, GetStatusMagnitude(COVEN_STATUS_STATBOOST) + info->iMagnitude, gpGlobals->curtime + info->flDuration, true);
 	}
 	else
 	{
-		if (magnitude == currentMagnitude)
-		{
-			stradd = conadd = inteladd = 0.0f;
-			SetStatusTime(COVEN_STATUS_STATBOOST, gpGlobals->curtime + info->flDuration);
-		}
-		else if (magnitude > currentMagnitude)
-		{
-			CovenClassInfo_t *classInfo = GetCovenClassData(covenClassID);
-			float addtime = (GetStatusTime(COVEN_STATUS_STATBOOST) - gpGlobals->curtime) * currentMagnitude / magnitude;
-			str = classInfo->flStrength;
-			intel = classInfo->flIntellect;
-			con = classInfo->flConstitution;
-			stradd = str * magnitude;
-			inteladd = intel * magnitude;
-			conadd = con * magnitude;
-			AddStatus(COVEN_STATUS_STATBOOST, round(magnitude * 100), gpGlobals->curtime + info->flDuration + addtime);
-		}
-		else //weaker
-		{
-			stradd = conadd = inteladd = 0.0f;
-			float addtime = info->flDuration * magnitude / currentMagnitude;
-			SetStatusTime(COVEN_STATUS_STATBOOST, GetStatusTime(COVEN_STATUS_STATBOOST) + addtime);
-		}
+		AddStatus(COVEN_STATUS_STATBOOST, info->iMagnitude, gpGlobals->curtime + info->flDuration, true, false);//BB: reset time if same magnitude
 		SuitPower_Drain(info->flCost);
 		SetCooldown(iAbilityNum, gpGlobals->curtime + info->flCooldown);
 	}
 
-	SetConstitution(con + conadd);
-	SetStrength(str + stradd);
-	SetIntellect(intel + inteladd);
-	if (conadd > 0.0f)
-		SetHealth(GetHealth() + ceil(conadd * sv_coven_hp_per_con.GetFloat()));
-	if (inteladd > 0.0f)
-		SuitPower_SetCharge(SuitPower_GetCurrentPercentage() + inteladd * sv_coven_mana_per_int.GetFloat());
 	EmitSound(info->aSounds[ABILITY_SND_START]);
 }
 
@@ -556,11 +548,11 @@ void CHL2MP_Player::RevengeCheck()
 		CHL2MP_Player *pPlayer = (CHL2MP_Player *)UTIL_PlayerByIndex( i );
 		if (pPlayer && pPlayer->IsAlive() && pPlayer->GetTeamNumber() == GetTeamNumber() && pPlayer->HasAbility(COVEN_ABILITY_REVENGE))
 		{
-			if ((pPlayer->GetLocalOrigin()-GetLocalOrigin()).Length() > info->flRange)
-				continue;
-
-			pPlayer->EmitSound(info->aSounds[ABILITY_SND_START]);
-			pPlayer->BoostStats(COVEN_ABILITY_REVENGE, pPlayer->AbilityKey(COVEN_ABILITY_REVENGE));
+			if ((pPlayer->GetLocalOrigin() - GetLocalOrigin()).Length() <= info->flRange)
+			{
+				pPlayer->EmitSound(info->aSounds[ABILITY_SND_START]);
+				pPlayer->BoostStats(COVEN_ABILITY_REVENGE, pPlayer->AbilityKey(COVEN_ABILITY_REVENGE));
+			}
 		}
 	}
 }
@@ -570,7 +562,7 @@ void CHL2MP_Player::GiveBuffInRadius(int iTeam, CovenStatus_t iStatus, int iMagn
 	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
 		CHL2MP_Player *pPlayer = (CHL2MP_Player *)UTIL_PlayerByIndex( i );
-		if (pPlayer && pPlayer->GetTeamNumber() == iTeam && pPlayer->IsAlive())
+		if (pPlayer && pPlayer->GetTeamNumber() == iTeam && pPlayer->IsAlive() && !pPlayer->KO)
 		{
 			if (iClassID && pPlayer->covenClassID != iClassID)
 				continue;
@@ -578,7 +570,7 @@ void CHL2MP_Player::GiveBuffInRadius(int iTeam, CovenStatus_t iStatus, int iMagn
 			if ((pPlayer->GetLocalOrigin() - GetLocalOrigin()).Length() > flDistance)
 				continue;
 
-			pPlayer->AddStatus(iStatus, iMagnitude, gpGlobals->curtime + flDuration);
+			pPlayer->AddStatus(iStatus, iMagnitude, gpGlobals->curtime + flDuration, true);
 		}
 	}
 }
@@ -591,7 +583,7 @@ bool CHL2MP_Player::DoGoreCharge()
 		if (SuitPower_GetCurrentPercentage() >= 1.0f)
 		{
 			gorelock = GORELOCK_CHARGING;
-			AngleVectors(GetLocalAngles(), &lock_ts);
+			AngleVectors(EyeAngles(), &lock_ts);
 			VectorNormalize(lock_ts);
 			lock_ts.z = 0.0f;
 			SuitPower_AddDrain(info->flDrain);
@@ -610,15 +602,6 @@ bool CHL2MP_Player::DoGorePhase(int iAbilityNum)
 		RemoveStatus(COVEN_STATUS_PHASE);
 	else
 		AddStatus(COVEN_STATUS_PHASE, abilityInfo->iMagnitude, gpGlobals->curtime + abilityInfo->flCooldown);
-
-	/*if (GetRenderMode() != kRenderTransTexture)
-				SetRenderMode( kRenderTransTexture );
-
-	if (GetActiveWeapon() != NULL && GetActiveWeapon()->GetRenderMode() != kRenderTransTexture)
-		GetActiveWeapon()->SetRenderMode(kRenderTransTexture);
-
-	if (GetViewModel() && GetViewModel()->GetRenderMode() != kRenderTransTexture)
-				GetViewModel()->SetRenderMode( kRenderTransTexture );*/
 
 	gorephased = !gorephased;
 
@@ -794,6 +777,12 @@ bool CHL2MP_Player::DoAbilityThink()
 								return true;
 							EmitLocalSound("Coven.Deny");
 							break;
+						case COVEN_ABILITY_DASH:
+							Dash(i);
+							return true;
+						case COVEN_ABILITY_INNERLIGHT:
+							DoInnerLight(i);
+							return true;
 						case COVEN_ABILITY_BUILDDISPENSER:
 							if (BuildDispenser(i))
 								return true;
@@ -810,12 +799,12 @@ bool CHL2MP_Player::DoAbilityThink()
 							EmitLocalSound("Coven.Deny");
 							break;
 						case COVEN_ABILITY_HASTE:
-							if (ToggleSprint(i))
+							if (ToggleHaste(i))
 								return true;
 							EmitLocalSound("Coven.Deny");
 							break;
 						case COVEN_ABILITY_INTIMIDATINGSHOUT:
-							DoRadiusAbility(COVEN_ABILITY_INTIMIDATINGSHOUT, i, 1, COVEN_STATUS_STUN, false);
+							DoRadiusAbility(COVEN_ABILITY_INTIMIDATINGSHOUT, i, 1, COVEN_STATUS_WEAKNESS, false);
 							return true;
 						case COVEN_ABILITY_DREADSCREAM:
 							DoRadiusAbility(COVEN_ABILITY_DREADSCREAM, i, 1, COVEN_STATUS_SLOW, false);
@@ -848,6 +837,14 @@ bool CHL2MP_Player::ToggleDodge(int iAbilityNum)
 	}
 	if (SuitPower_GetCurrentPercentage() >= 1.0f)
 	{
+		if (GetRenderMode() != kRenderTransTexture)
+			SetRenderMode(kRenderTransTexture);
+		if (GetActiveWeapon() != NULL && GetActiveWeapon()->GetRenderMode() != kRenderTransTexture)
+			GetActiveWeapon()->SetRenderMode(kRenderTransTexture);
+		CBaseViewModel *pVM = GetViewModel();
+		if (pVM && pVM->GetRenderMode() != kRenderTransTexture)
+			pVM->SetRenderMode(kRenderTransTexture);
+
 		SetRenderColorA(info->iMagnitude);
 		if (GetActiveWeapon())
 		{
@@ -865,12 +862,12 @@ bool CHL2MP_Player::ToggleDodge(int iAbilityNum)
 	return false;
 }
 
-bool CHL2MP_Player::ToggleSprint(int iAbilityNum)
+bool CHL2MP_Player::ToggleHaste(int iAbilityNum)
 {
 	CovenAbilityInfo_t *info = GetCovenAbilityData(COVEN_ABILITY_HASTE);
-	if (HasStatus(COVEN_STATUS_SPRINT))
+	if (HasStatus(COVEN_STATUS_HASTE))
 	{
-		RemoveStatus(COVEN_STATUS_SPRINT);
+		RemoveStatus(COVEN_STATUS_HASTE);
 		SetCooldown(iAbilityNum, gpGlobals->curtime + info->flCooldown);
 		SuitPower_RemoveDrain(info->flDrain);
 		ComputeSpeed();
@@ -878,7 +875,7 @@ bool CHL2MP_Player::ToggleSprint(int iAbilityNum)
 	}
 	if (SuitPower_GetCurrentPercentage() >= 1.0f)
 	{
-		AddStatus(COVEN_STATUS_SPRINT, 30);
+		AddStatus(COVEN_STATUS_HASTE, 30);
 		ComputeSpeed();
 		EmitSound(info->aSounds[ABILITY_SND_START]);
 		SuitPower_AddDrain(info->flDrain);
@@ -895,6 +892,96 @@ void CHL2MP_Player::DoRadiusAbility(CovenAbility_t iAbility, int iAbilityNum, in
 	SetCooldown(iAbilityNum, gpGlobals->curtime + info->flCooldown);
 	GiveBuffInRadius(iTeam, iBuff, info->iMagnitude, info->flDuration, info->flRange);
 	SuitPower_Drain(info->flCost);
+}
+
+void CHL2MP_Player::Dash(int iAbilityNum)
+{
+	CovenAbilityInfo_t *abilityInfo = GetCovenAbilityData(COVEN_ABILITY_DASH);
+	SetCooldown(iAbilityNum, gpGlobals->curtime + abilityInfo->flCooldown);
+	AngleVectors(EyeAngles(), &lock_dash);
+	VectorNormalize(lock_dash);
+	lock_dash.z = 0.0f;
+	coven_timer_dash = gpGlobals->curtime + 0.4f;
+	lock_vel = GetAbsVelocity().Length2D();
+	lock_vel_rate = abilityInfo->iMagnitude * 4.0f;// -lock_vel;
+	SuitPower_Drain(abilityInfo->flCost);
+	EmitSound(abilityInfo->aSounds[ABILITY_SND_START]);
+}
+
+void CHL2MP_Player::DoInnerLight(int iAbilityNum)
+{
+	CovenAbilityInfo_t *info = GetCovenAbilityData(COVEN_ABILITY_INNERLIGHT);
+	EmitSound(info->aSounds[ABILITY_SND_START]);
+	SetCooldown(iAbilityNum, gpGlobals->curtime + info->flCooldown);
+	Vector vecReported = GetLocalOrigin();
+	CTakeDamageInfo dmg(this, this, vec3_origin, GetAbsOrigin(), info->flCost * random->RandomFloat(0.6f, 2.2f), DMG_GENERIC, 0, &vecReported);
+	for (int i = 1; i <= gpGlobals->maxClients; i++)
+	{
+		CHL2MP_Player *pPlayer = (CHL2MP_Player *)UTIL_PlayerByIndex(i);
+		if (pPlayer && pPlayer->GetTeamNumber() != GetTeamNumber() && pPlayer->IsAlive() && !pPlayer->KO)
+		{
+			Vector dir = pPlayer->GetLocalOrigin() - GetLocalOrigin();
+			if (dir.Length() > info->flRange)
+				continue;
+
+			VectorNormalize(dir);
+			dir.z = 0.2f;
+			pPlayer->Pushback(&dir, sv_coven_light_bump.GetFloat());
+			pPlayer->AddStatus(COVEN_STATUS_WEAKNESS, info->iMagnitude, gpGlobals->curtime + info->flDuration, true);
+			pPlayer->TakeDamage(dmg);
+		}
+	}
+	SuitPower_Drain(info->flCost);
+
+
+#if !defined( TF_DLL )
+	// Since this code only runs on the server, make sure it shows the tempents it creates.
+	// This solves a problem with remote detonating the pipebombs (client wasn't seeing the explosion effect)
+	CDisablePredictionFiltering disabler;
+#endif
+
+	UTIL_ScreenShake(GetAbsOrigin(), 20.0f, 150.0, 1.0, 1250.0f, SHAKE_START);
+
+	CBroadcastRecipientFilter filter2;
+
+	te->BeamRingPoint(filter2, 0, GetAbsOrigin(),	//origin
+		50,	//start radius
+		1024,		//end radius
+		s_nExplosionTexture, //texture
+		0,			//halo index
+		0,			//start frame
+		2,			//framerate
+		0.2f,		//life
+		64,			//width
+		0,			//spread
+		0,			//amplitude
+		255,	//r
+		255,	//g
+		225,	//b
+		32,		//a
+		0,		//speed
+		FBEAM_FADEOUT
+		);
+
+	//Shockring
+	te->BeamRingPoint(filter2, 0, GetAbsOrigin(),	//origin
+		50,	//start radius
+		1024,		//end radius
+		s_nExplosionTexture, //texture
+		0,			//halo index
+		0,			//start frame
+		2,			//framerate
+		0.5f,		//life
+		64,			//width
+		0,			//spread
+		0,			//amplitude
+		255,	//r
+		255,	//g
+		225,	//b
+		64,		//a
+		0,		//speed
+		FBEAM_FADEOUT
+		);
 }
 
 void CHL2MP_Player::BloodExplode(int iAbilityNum)
@@ -957,11 +1044,11 @@ void CHL2MP_Player::BloodExplode(int iAbilityNum)
 	// Use the thrower's position as the reported position
 	Vector vecReported = GetAbsOrigin();
 
-	int bits = DMG_BLAST | DMG_SLOW;
-	float damn = 3.0f * magnitude;
+	int bits = DMG_CLUB | DMG_WEAKNESS;
+	float damn = 2.0f * magnitude;
 
-	CTakeDamageInfo info( this, this, vec3_origin, GetAbsOrigin(), abilityInfo->iMagnitude, bits, 0, &vecReported );
-	info.SetAmmoType(100 * abilityInfo->flDuration);
+	CTakeDamageInfo info( this, this, vec3_origin, GetAbsOrigin(), abilityInfo->flDuration, bits, 0, &vecReported );
+	info.SetAmmoType(abilityInfo->iMagnitude);
 	info.CopyDamageToBaseDamage();
 	info.SetDamage(damn);
 
@@ -983,11 +1070,7 @@ void CHL2MP_Player::DoBerserk(int iAbilityNum)
 {
 	CovenAbilityInfo_t *info = GetCovenAbilityData(COVEN_ABILITY_BERSERK);
 	SetCooldown(iAbilityNum, gpGlobals->curtime + info->flCooldown);
-	AddStatus(COVEN_STATUS_BERSERK, info->iMagnitude, gpGlobals->curtime + info->flDuration);
-	int oldmax = GetMaxHealth();
-	int newmax = oldmax*(1.0f + 0.01f * info->iMagnitude);
-	SetMaxHealth(newmax);
-	SetHealth(GetHealth()+(newmax-oldmax));
+	AddStatus(COVEN_STATUS_BERSERK, info->iMagnitude, gpGlobals->curtime + info->flDuration, true);
 	EmitSound(info->aSounds[ABILITY_SND_START]);
 	SuitPower_Drain(info->flCost);
 }
@@ -1004,7 +1087,7 @@ void CHL2MP_Player::UpdateOnRemove( void )
 	BaseClass::UpdateOnRemove();
 }
 
-bool CHL2MP_Player::LevelUp(int lvls, bool bBoostStats = false, bool bSound = false, bool bAutoLevel = false, bool bResetHP = false, bool bEffect = false)
+bool CHL2MP_Player::LevelUp(int lvls, bool bBoostStats, bool bSound, bool bAutoLevel, bool bResetHP, bool bEffect)
 {
 	if (bBoostStats)
 	{
@@ -1298,11 +1381,6 @@ void CHL2MP_Player::Precache( void )
 
 	PrecacheScriptSound( "NPC_CombineBall.Explosion" );
 
-	PrecacheScriptSound( "HL2Player.Sweet" );
-	PrecacheScriptSound( "VampScream" );
-	PrecacheScriptSound( "VampYell" );
-	PrecacheScriptSound( "Weapon_Mortar.Impact" );
-	PrecacheScriptSound( "Leap.Impact" );
 	PrecacheScriptSound( "Stake.Taunt" );
 	PrecacheScriptSound( "Leap.Detect" );
 	PrecacheScriptSound( "Vampire.Regen" );
@@ -1318,8 +1396,6 @@ void CHL2MP_Player::Precache( void )
 
 	PrecacheScriptSound( "Coven.Deny" );
 	PrecacheScriptSound( "Coven.Cancel" );
-
-	PrecacheScriptSound( "Weapon_StunStick.Activate" );
 }
 
 void CHL2MP_Player::GiveAllItems( void )
@@ -1500,7 +1576,7 @@ void CHL2MP_Player::Spawn(void)
 		return;
 #endif
 
-	ResetStats();
+	RemoveAllDecals();
 
 	BaseClass::Spawn();
 
@@ -1534,7 +1610,8 @@ void CHL2MP_Player::Spawn(void)
 	SetNumAnimOverlays( 3 );
 	ResetAnimation();
 
-	m_nRenderFX = kRenderNormal;
+	//m_nRenderFX = kRenderNormal;
+	SetRenderMode(kRenderTransTexture);
 
 	m_Local.m_iHideHUD = 0;
 	
@@ -1566,7 +1643,6 @@ void CHL2MP_Player::Spawn(void)
 
 	m_bReady = false;
 
-	ResetVitals();
 	SetHealth(ceil(GetConstitution() * sv_coven_hp_per_con.GetFloat()));
 	lastCheckedCapPoint = 0;
 	lastCapPointTime = 0.0f;
@@ -1584,6 +1660,7 @@ void CHL2MP_Player::Spawn(void)
 	coven_timer_soul = -1.0f;
 	coven_timer_light = 0.0f;
 	coven_timer_holywater = -1.0f;
+	coven_timer_dash = -1.0f;
 }
 
 void CHL2MP_Player::PickupObject( CBaseEntity *pObject, bool bLimitMassAndSize )
@@ -1733,19 +1810,6 @@ void CHL2MP_Player::StealthCalc()
 {
 	if (HasAbility(COVEN_ABILITY_SNEAK))
 	{
-		if (GetRenderMode() != kRenderTransTexture)
-			SetRenderMode(kRenderTransTexture);
-		if (GetActiveWeapon() != NULL && GetActiveWeapon()->GetRenderMode() != kRenderTransTexture)
-			GetActiveWeapon()->SetRenderMode(kRenderTransTexture);
-		CBaseViewModel *pVM = GetViewModel();
-		if (pVM && pVM->GetRenderMode() != kRenderTransTexture)
-			pVM->SetRenderMode(kRenderTransTexture);
-
-		/*if (GetRenderMode() != kRenderNone)
-			SetRenderMode(kRenderNone);
-		if (GetActiveWeapon() != NULL && GetActiveWeapon()->GetRenderMode() != kRenderNone)
-			GetActiveWeapon()->SetRenderMode(kRenderNone);*/
-
 		float alpha = 1.0f;
 
 		if (IsAlive() && !KO && GetFlags() & FL_ONGROUND)
@@ -2151,6 +2215,7 @@ void CHL2MP_Player::PreThink( void )
 		StealthCalc();
 		GutcheckThink();
 		CheckGore();
+		DashHandler();
 	}
 }
 
@@ -2183,9 +2248,9 @@ void CHL2MP_Player::CheckGore()
 		int velocityLock = abilityInfo->iMagnitude;
 		if (gorelock == GORELOCK_CHARGING_IN_UVLIGHT)
 			velocityLock = 10;
-		Vector t = GetAbsVelocity();
-		t.x = t.y = 0;
-		SetAbsVelocity(lock_ts * velocityLock + t);
+		Vector zContrib(0, 0, 0);
+		zContrib.z = GetAbsVelocity().z;
+		SetAbsVelocity(velocityLock * lock_ts + zContrib);
 		unsigned int key = 0;
 		int slot = AbilityKey(COVEN_ABILITY_CHARGE, &key);
 		if ((m_afButtonReleased & key) || SuitPower_GetCurrentPercentage() <= 0.0f)
@@ -2194,33 +2259,32 @@ void CHL2MP_Player::CheckGore()
 			gorelock = GORELOCK_NONE;
 			ComputeSpeed();
 			SetCooldown(slot, gpGlobals->curtime + abilityInfo->flCooldown);
+			zContrib.z = MIN(zContrib.z, 0);
+			if (GetGroundEntity() == NULL)
+				SetAbsVelocity(COVEN_ABS_MAX_VELOCITY * lock_ts + zContrib);
 		}
 	}
 }
 
+void CHL2MP_Player::Pushback(const Vector *direction, float flMagnitude)
+{
+	ApplyAbsVelocityImpulse((IsBot() ? flMagnitude * 1.5f : flMagnitude) * (*direction));
+}
+
 void CHL2MP_Player::Touch(CBaseEntity *pOther)
 {
-	if (pOther->IsPlayer())
+	if (HasAbility(COVEN_ABILITY_DASH) && pOther && pOther->IsPlayer())
 	{
-		if (pOther->GetTeamNumber() == COVEN_TEAMID_SLAYERS && GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+		CHL2MP_Player *pPlayer = ToHL2MPPlayer(pOther);
+		if (coven_timer_dash > 0.0f && pPlayer->GetTeamNumber() != GetTeamNumber())
 		{
-			/*if (covenClassID == COVEN_CLASSID_GORE && gorelock)
-			{
-				//CTakeDamageInfo info(this, this, 0.0f, DMG_CLUB);
-				Vector temp = GetAbsVelocity();
-				//trace_t tr;
-				//UTIL_TraceLine( GetAbsOrigin(), pOther->GetAbsOrigin(), MASK_SHOT_HULL, pOther, COLLISION_GROUP_NONE, &tr );
-				VectorNormalize(temp);
-				//pOther->DispatchTraceAttack(info, temp, &tr);
-				temp.z = 1;
-				//pOther->SetAbsVelocity(Vector(0,0,200));
-				pOther->ApplyAbsVelocityImpulse(250*temp);
-				Vector temp2 = pOther->GetAbsVelocity();
-				if (temp2.z > 250)
-					temp2.z = 250;
-				pOther->SetAbsVelocity(temp2);
-				//VectorAdd(temp2, 450*temp, temp2);
-			}*/
+			Vector temp = pOther->GetLocalOrigin() - GetLocalOrigin();
+			VectorNormalize(temp);
+			temp.z = 0.2f;
+			pPlayer->Pushback(&temp, sv_coven_dash_bump.GetFloat());
+			CovenAbilityInfo_t *abilityInfo = GetCovenAbilityData(COVEN_ABILITY_DASH);
+			pPlayer->AddStatus(COVEN_STATUS_SLOW, abilityInfo->flDrain, gpGlobals->curtime + abilityInfo->flDuration, true, false); //BB: we have to be careful here... multiple touch can get out of hand.
+			pPlayer->EmitSound(abilityInfo->aSounds[ABILITY_SND_STOP]);
 		}
 	}
 	BaseClass::Touch(pOther);
@@ -2267,7 +2331,7 @@ void CHL2MP_Player::SlayerVampLeapDetect()
 		}
 		if (itsago && pEntity)
 		{
-			if (pEntity->GetTeamNumber() == TEAM_REBELS && VectorLength(pEntity->GetAbsVelocity()) > 400 && coven_timer_leapdetectcooldown < 0.0f)
+			if (pEntity->GetTeamNumber() == COVEN_TEAMID_VAMPIRES && VectorLength(pEntity->GetAbsVelocity()) > 400 && coven_timer_leapdetectcooldown < 0.0f)
 			{
 				EmitSound("Leap.Detect");
 				coven_timer_leapdetectcooldown = gpGlobals->curtime;
@@ -2341,6 +2405,15 @@ void CHL2MP_Player::VampireCheckResurrect()
 			if (GetHealth() < newhealth)
 				SetHealth(newhealth);
 		}*/
+		if (myServerRagdoll != NULL && ((CRagdollProp *)myServerRagdoll)->flClearTime < 0.0f)
+		{
+			if (IsAlive())
+			{
+				SetAbsAngles(myServerRagdoll->GetAbsAngles());
+				SetAbsOrigin(myServerRagdoll->GetAbsOrigin());
+				SetAbsVelocity(myServerRagdoll->GetAbsVelocity());
+			}
+		}
 	}
 	else
 	//BB: release the vampire player if enough time has passed (and not freezetime)
@@ -2409,7 +2482,6 @@ void CHL2MP_Player::VampireCheckResurrect()
 			//BB: reset the faded screen...
 			color32 nothing = {75,0,0,200};
 			UTIL_ScreenFade( this, nothing, 1, 0, FFADE_IN | FFADE_PURGE );
-			RemoveAllDecals();
 			float m_DmgRadius = 51.2f;
 			trace_t		pTrace;
 			Vector		vecSpot;// trace starts here!
@@ -2417,61 +2489,62 @@ void CHL2MP_Player::VampireCheckResurrect()
 			vecSpot = GetAbsOrigin() + Vector ( 0 , 0 , 8 );
 			UTIL_TraceLine ( vecSpot, vecSpot + Vector ( 0, 0, -32 ), MASK_SHOT_HULL, this, COLLISION_GROUP_NONE, & pTrace);
 
-			#if !defined( CLIENT_DLL )
-				Vector vecAbsOrigin = GetAbsOrigin();
-				int contents = UTIL_PointContents ( vecAbsOrigin );
+#if !defined( CLIENT_DLL )
+			Vector vecAbsOrigin = GetAbsOrigin();
+			int contents = UTIL_PointContents ( vecAbsOrigin );
 
-				#if !defined( TF_DLL )
-					// Since this code only runs on the server, make sure it shows the tempents it creates.
-					// This solves a problem with remote detonating the pipebombs (client wasn't seeing the explosion effect)
-					CDisablePredictionFiltering disabler;
-				#endif
-
-				if ( pTrace.fraction != 1.0 )
-				{
-					Vector vecNormal = pTrace.plane.normal;
-					surfacedata_t *pdata = physprops->GetSurfaceData( pTrace.surface.surfaceProps );	
-					CPASFilter filter( vecAbsOrigin );
-
-					te->Explosion( filter, -1.0, // don't apply cl_interp delay
-						&vecAbsOrigin,
-						!( contents & MASK_WATER ) ? g_sModelIndexFireball : g_sModelIndexWExplosion,
-						m_DmgRadius,// * .03, 
-						12,
-						TE_EXPLFLAG_NONE | TE_EXPLFLAG_NOSOUND,
-						m_DmgRadius,
-						0.0,
-						&vecNormal,
-						(char) pdata->game.material );
-				}
-				else
-				{
-					CPASFilter filter( vecAbsOrigin );
-					te->Explosion( filter, -1.0, // don't apply cl_interp delay
-						&vecAbsOrigin, 
-						!( contents & MASK_WATER ) ? g_sModelIndexFireball : g_sModelIndexWExplosion,
-						m_DmgRadius,// * .03, 
-						12,
-						TE_EXPLFLAG_NONE | TE_EXPLFLAG_NOSOUND,
-						m_DmgRadius,
-						0.0 );
-				}
-
-				// Use the thrower's position as the reported position
-				Vector vecReported = GetAbsOrigin();
-		
-				CTakeDamageInfo info( this, this, vec3_origin, GetAbsOrigin(), 40.0, DMG_NO | DMG_BLAST, 0, &vecReported );
-
-				RadiusDamage( info, GetAbsOrigin(), 300.0f, CLASS_NONE, NULL );
-
-				UTIL_DecalTrace( &pTrace, "Scorch" );
+			#if !defined( TF_DLL )
+				// Since this code only runs on the server, make sure it shows the tempents it creates.
+				// This solves a problem with remote detonating the pipebombs (client wasn't seeing the explosion effect)
+				CDisablePredictionFiltering disabler;
 			#endif
-				//BB: only unfreeze if it is not intermission
-				if (!HL2MPRules()->IsIntermission())
-				{
-					RemoveFlag(FL_FROZEN);
-					RemoveEFlags(EFL_BOT_FROZEN);
-				}
+
+			if ( pTrace.fraction != 1.0 )
+			{
+				Vector vecNormal = pTrace.plane.normal;
+				surfacedata_t *pdata = physprops->GetSurfaceData( pTrace.surface.surfaceProps );	
+				CPASFilter filter( vecAbsOrigin );
+
+				te->Explosion( filter, -1.0, // don't apply cl_interp delay
+					&vecAbsOrigin,
+					!( contents & MASK_WATER ) ? g_sModelIndexFireball : g_sModelIndexWExplosion,
+					m_DmgRadius,// * .03, 
+					12,
+					TE_EXPLFLAG_NONE | TE_EXPLFLAG_NOSOUND,
+					m_DmgRadius,
+					0.0,
+					&vecNormal,
+					(char) pdata->game.material );
+			}
+			else
+			{
+				CPASFilter filter( vecAbsOrigin );
+				te->Explosion( filter, -1.0, // don't apply cl_interp delay
+					&vecAbsOrigin, 
+					!( contents & MASK_WATER ) ? g_sModelIndexFireball : g_sModelIndexWExplosion,
+					m_DmgRadius,// * .03, 
+					12,
+					TE_EXPLFLAG_NONE | TE_EXPLFLAG_NOSOUND,
+					m_DmgRadius,
+					0.0 );
+			}
+
+			// Use the thrower's position as the reported position
+			Vector vecReported = GetAbsOrigin();
+		
+			CTakeDamageInfo info( this, this, vec3_origin, GetAbsOrigin(), 40.0, DMG_NO | DMG_BLAST, 0, &vecReported );
+
+			RadiusDamage( info, GetAbsOrigin(), 300.0f, CLASS_NONE, NULL );
+
+			UTIL_DecalTrace( &pTrace, "Scorch" );
+#endif
+			//BB: only unfreeze if it is not intermission
+			if (!HL2MPRules()->IsIntermission())
+			{
+				RemoveFlag(FL_FROZEN);
+				RemoveEFlags(EFL_BOT_FROZEN);
+			}
+			
 			RemoveEffects(EF_NODRAW);
 
 			RemoveSolidFlags( FSOLID_NOT_SOLID );
@@ -2491,7 +2564,9 @@ void CHL2MP_Player::VampireCheckResurrect()
 				EmitSound( "Resurrect.Finish" );
 			}
 		}
-		
+
+		RemoveAllDecals();
+
 		KO = false;
 		pl.deadflag = false;
 		timeofdeath = -1.0f;
@@ -2990,9 +3065,7 @@ void CHL2MP_Player::DoStatusThink()
 			RemoveStatus(COVEN_STATUS_STUN);
 			RemoveFlag(FL_FROZEN);
 		}
-		else
-			AddFlag(FL_FROZEN);
-
+		HandleStatus(COVEN_STATUS_STUN);
 	}
 
 	//SLOW (actual slow handled in ComputeSpeed in HL2Player)
@@ -3001,8 +3074,21 @@ void CHL2MP_Player::DoStatusThink()
 		if (gpGlobals->curtime > GetStatusTime(COVEN_STATUS_SLOW))
 		{
 			RemoveStatus(COVEN_STATUS_SLOW);
+			ComputeSpeed();
 		}
-		ComputeSpeed();
+		HandleStatus(COVEN_STATUS_SLOW);
+	}
+
+	//WEAKNESS
+	if (HasStatus(COVEN_STATUS_WEAKNESS))
+	{
+		if (gpGlobals->curtime > GetStatusTime(COVEN_STATUS_WEAKNESS))
+		{
+			CovenClassInfo_t *classInfo = GetCovenClassData(covenClassID);
+			GiveStrength(classInfo->flStrength * GetStatusMagnitude(COVEN_STATUS_WEAKNESS) * 0.01f);
+			RemoveStatus(COVEN_STATUS_WEAKNESS);
+		}
+		HandleStatus(COVEN_STATUS_WEAKNESS);
 	}
 
 	//BLOODLUST
@@ -3038,8 +3124,11 @@ void CHL2MP_Player::DoStatusThink()
 	{
 		if (gpGlobals->curtime > GetStatusTime(COVEN_STATUS_BATTLEYELL))
 		{
+			CovenClassInfo_t *classInfo = GetCovenClassData(covenClassID);
+			GiveStrength(-(GetStatusMagnitude(COVEN_STATUS_BATTLEYELL) * 0.01f * classInfo->flStrength));
 			RemoveStatus(COVEN_STATUS_BATTLEYELL);
 		}
+		HandleStatus(COVEN_STATUS_BATTLEYELL);
 	}
 
 	//SHEERWILL
@@ -3047,13 +3136,15 @@ void CHL2MP_Player::DoStatusThink()
 	{
 		if (gpGlobals->curtime > GetStatusTime(COVEN_STATUS_STATBOOST))
 		{
-			ResetStats();
-			SetHealth(min(GetHealth(), GetMaxHealth()));
-			float maxcharge = GetIntellect() * sv_coven_mana_per_int.GetFloat();
-			if (SuitPower_GetCurrentPercentage() > maxcharge)
-				SuitPower_SetCharge(maxcharge);
+			CovenClassInfo_t *classInfo = GetCovenClassData(covenClassID);
+			float magnitude = GetStatusMagnitude(COVEN_STATUS_STATBOOST) * 0.01f;
+			GiveStrength(-(magnitude * classInfo->flStrength));
+			GiveConstitution(-(magnitude * classInfo->flConstitution), false);
+			GiveIntellect(-(magnitude * classInfo->flIntellect), false);
+			SuitPower_Charge(0.0f);
 			RemoveStatus(COVEN_STATUS_STATBOOST);
 		}
+		HandleStatus(COVEN_STATUS_STATBOOST);
 	}
 
 	//BERSERK
@@ -3061,13 +3152,11 @@ void CHL2MP_Player::DoStatusThink()
 	{
 		if (gpGlobals->curtime > GetStatusTime(COVEN_STATUS_BERSERK))
 		{
-			int oldmax = GetMaxHealth();
-			ResetVitals();
-			//dont kill us!!!
-			int hp = max(GetHealth()-(oldmax-GetMaxHealth()),1);
-			SetHealth(hp);
 			RemoveStatus(COVEN_STATUS_BERSERK);
+			ResetMaxHealth();
+			SetHealth(min(GetMaxHealth(), GetHealth()));
 		}
+		HandleStatus(COVEN_STATUS_BERSERK);
 	}
 }
 
@@ -3762,14 +3851,14 @@ CON_COMMAND(testprobe, "test probe")
 
 void GoToNode(CHL2MP_Player *pPlayer, int node)
 {
-	if (HL2MPRules()->botnet[node] != NULL)
+	if (HL2MPRules()->pBotNet[node] != NULL)
 	{
-		int c = HL2MPRules()->botnet[node]->connectors.Count();
-		pPlayer->SetLocalOrigin(HL2MPRules()->botnet[node]->location);
-		Msg("At node %d. %d connectors: ", HL2MPRules()->botnet[node]->ID, c);
+		int c = HL2MPRules()->pBotNet[node]->connectors.Count();
+		pPlayer->SetLocalOrigin(HL2MPRules()->pBotNet[node]->location);
+		Msg("At node %d. %d connectors: ", HL2MPRules()->pBotNet[node]->ID, c);
 		for (int j = 0; j < c; j++)
 		{
-			Msg("%d,", HL2MPRules()->botnet[node]->connectors[j]);
+			Msg("%d,", HL2MPRules()->pBotNet[node]->connectors[j]);
 		}
 		Msg("\n");
 		pPlayer->coven_debug_nodeloc = node;
@@ -3830,16 +3919,29 @@ CON_COMMAND(prev_node, "Go to previous node")
 	int temp = pPlayer->coven_debug_prevnode;
 	pPlayer->coven_debug_prevnode = pPlayer->coven_debug_nodeloc;
 	pPlayer->coven_debug_nodeloc = temp;
-	pPlayer->SetLocalOrigin(HL2MPRules()->botnet[temp]->location);
-	int c = HL2MPRules()->botnet[pPlayer->coven_debug_nodeloc]->connectors.Count();
-	Msg("At node %d. %d connectors: ", HL2MPRules()->botnet[pPlayer->coven_debug_nodeloc]->ID, c);
+	pPlayer->SetLocalOrigin(HL2MPRules()->pBotNet[temp]->location);
+	int c = HL2MPRules()->pBotNet[pPlayer->coven_debug_nodeloc]->connectors.Count();
+	Msg("At node %d. %d connectors: ", HL2MPRules()->pBotNet[pPlayer->coven_debug_nodeloc]->ID, c);
 	for (int j = 0; j < c; j++)
 	{
-		Msg("%d,", HL2MPRules()->botnet[pPlayer->coven_debug_nodeloc]->connectors[j]);
+		Msg("%d,", HL2MPRules()->pBotNet[pPlayer->coven_debug_nodeloc]->connectors[j]);
 	}
 	Msg("\n");
 }
 
+CON_COMMAND(give_buff, "Grant a buff <id> <mag> <duration>")
+{
+	CHL2MP_Player *pPlayer = ToHL2MPPlayer(UTIL_GetCommandClient());
+	if (!pPlayer)
+		return;
+	if (args.ArgC() != 4)
+		return;
+	int buff = atoi(args[1]);
+	int magnitude = atoi(args[2]);
+	float duration = atof(args[3]);
+	Msg("Giving status: %d %d %f\n", buff, magnitude, duration);
+	pPlayer->AddStatus((CovenStatus_t)buff, magnitude, gpGlobals->curtime + duration, true);
+}
 
 CON_COMMAND(go_to_node, "Go to a node <id>")
 {
@@ -4034,16 +4136,16 @@ CON_COMMAND(selectbotnode, "Select BOT or Node")
 			float curLength = MAX_TRACE_LENGTH;
 			for (int i = 0; i < HL2MPRules()->bot_node_count; i++)
 			{
-				if (HL2MPRules()->botnet[i] != NULL)
+				if (HL2MPRules()->pBotNet[i] != NULL)
 				{
-					HL2MPRules()->botnet[i]->bSelected = false;
+					HL2MPRules()->pBotNet[i]->bSelected = false;
 					if (currentNode == 0)
 					{
 						currentNode = i;
 					}
 					else
 					{
-						float tLength = (HL2MPRules()->botnet[i]->location - tr.endpos).Length();
+						float tLength = (HL2MPRules()->pBotNet[i]->location - tr.endpos).Length();
 						if (tLength < curLength)
 						{
 							currentNode = i;
@@ -4052,9 +4154,9 @@ CON_COMMAND(selectbotnode, "Select BOT or Node")
 					}
 				}
 			}
-			if (HL2MPRules()->botnet[currentNode] != NULL)
+			if (HL2MPRules()->pBotNet[currentNode] != NULL)
 			{
-				HL2MPRules()->botnet[currentNode]->bSelected = true;
+				HL2MPRules()->pBotNet[currentNode]->bSelected = true;
 			}
 		}
 	}
@@ -4085,7 +4187,7 @@ void CHL2MP_Player::EnergyHandler()
 
 	if (HasAbility(COVEN_ABILITY_HASTE) && SuitPower_GetCurrentPercentage() <= 0.0f)
 	{
-		RemoveStatus(COVEN_STATUS_SPRINT);
+		RemoveStatus(COVEN_STATUS_HASTE);
 		ComputeSpeed();
 		SetCooldown(0, gpGlobals->curtime + 3.0f);
 		SuitPower_ResetDrain();
@@ -4099,22 +4201,19 @@ void CHL2MP_Player::EnergyHandler()
 int CHL2MP_Player::OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo )
 {
 	int ret = BaseClass::OnTakeDamage_Alive(inputInfo);
-	
-	//UN-PHASE
-	if (m_iHealth <= 0 && gorephased)
-		DoGorePhase(0);
 
-	//UN-BERSERK
-	if (m_iHealth <= 0 && HasStatus(COVEN_STATUS_BERSERK))
+	//BB: this is vampires only... pre KO, pre death.
+	if (m_iHealth <= 0)
 	{
-		RemoveStatus(COVEN_STATUS_BERSERK);
-		ResetVitals();
-	}
+		//UN-PHASE
+		if (gorephased)
+			DoGorePhase(0);
 
-	//UN-DODGE
-	if (m_iHealth <= 0 && HasStatus(COVEN_STATUS_DODGE))
-	{
-		UnDodge();
+		//UN-DODGE
+		if (HasStatus(COVEN_STATUS_DODGE))
+			UnDodge();
+
+		ResetCovenStatus();
 	}
 
 	//BLOODLUST
@@ -4135,6 +4234,25 @@ void CHL2MP_Player::Extinguish()
 	m_pFlame = NULL;
 	RemoveStatus(COVEN_STATUS_HOLYWATER);
 	BaseClass::Extinguish(); //FL_ONFIRE ALREADY REMOVED...
+}
+
+bool CHL2MP_Player::CovenStatusDamageHandle(CTakeDamageInfo &info, int iDmgType, CovenStatus_t iStatus)
+{
+	if (info.GetDamageType() & iDmgType)
+	{
+		int bits = info.GetDamageType() & ~iDmgType;
+		float duration = info.GetBaseDamage();
+		int magnitude = info.GetAmmoType();
+		AddStatus(iStatus, magnitude, gpGlobals->curtime + duration, true);
+		info.SetDamageType(bits);
+		//Reset damage
+		float damn = info.GetDamage();
+		info.SetDamage(FLT_MAX);
+		info.CopyDamageToBaseDamage();
+		info.SetDamage(damn);
+		return true;
+	}
+	return false;
 }
 
 int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
@@ -4164,48 +4282,15 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 	{
 		int bits = inputInfoAdjust.GetDamageType() & ~DMG_STUN;
 		float duration = inputInfoAdjust.GetAmmoType() * 0.01f;
-		if (HasStatus(COVEN_STATUS_STUN))
-		{
-			SetStatusTime(COVEN_STATUS_STUN, GetStatusTime(COVEN_STATUS_STUN) + duration);
-		}
-		else
-		{
-			AddStatus(COVEN_STATUS_STUN, 1, gpGlobals->curtime + duration);
-		}
+		AddStatus(COVEN_STATUS_STUN, 1, gpGlobals->curtime + duration, true);
 		inputInfoAdjust.SetDamageType(bits);
 	}
 
-	//Slow Damage
-	if (inputInfoAdjust.GetDamageType() & DMG_SLOW)
-	{
-		int bits = inputInfoAdjust.GetDamageType() & ~DMG_SLOW;
-		float duration = inputInfoAdjust.GetAmmoType() * 0.01f;
-		int magnitude = inputInfoAdjust.GetBaseDamage();
-		if (HasStatus(COVEN_STATUS_SLOW))
-		{
-			float oldTime = GetStatusTime(COVEN_STATUS_SLOW);
-			int oldMagnitude = GetStatusMagnitude(COVEN_STATUS_SLOW);
-			if (magnitude <= oldMagnitude)
-			{
-				SetStatusTime(COVEN_STATUS_SLOW, oldTime + duration * magnitude / oldMagnitude);
-			}
-			else //greater than
-			{
-				SetStatusMagnitude(COVEN_STATUS_SLOW, magnitude);
-				SetStatusTime(COVEN_STATUS_SLOW, gpGlobals->curtime + duration + (oldTime - gpGlobals->curtime) * oldMagnitude / magnitude);
-			}
-		}
-		else
-		{
-			AddStatus(COVEN_STATUS_SLOW, magnitude, gpGlobals->curtime + duration);
-		}
-		inputInfoAdjust.SetDamageType(bits);
-		//Reset damage
-		float damn = inputInfoAdjust.GetDamage();
-		inputInfoAdjust.SetDamage(FLT_MAX);
-		inputInfoAdjust.CopyDamageToBaseDamage();
-		inputInfoAdjust.SetDamage(damn);
-	}
+	//BB: only one packaged damage type is possible...
+	//Weakness Damage
+	if (!CovenStatusDamageHandle(inputInfoAdjust, DMG_WEAKNESS, COVEN_STATUS_WEAKNESS))
+		//Slow Damage
+		CovenStatusDamageHandle(inputInfoAdjust, DMG_SLOW, COVEN_STATUS_SLOW);
 
 	if (GetTeamNumber() == COVEN_TEAMID_SLAYERS && HasStatus(COVEN_STATUS_HOLYWATER))
 	{
@@ -4244,21 +4329,23 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 		inputInfoAdjust.SetDamage(inputInfoAdjust.GetDamage()*(1.0f+diff*COVEN_DAMAGE_PER_LEVEL_ADJUST));
 	}*/
 
-	//BB: handle damage boost
-	if (inputInfo.GetAttacker() && inputInfo.GetAttacker()->IsPlayer() && ((CHL2_Player *)inputInfo.GetAttacker())->HasStatus(COVEN_STATUS_BATTLEYELL))
-	{
-		inputInfoAdjust.SetDamage(inputInfoAdjust.GetDamage()*(1.0f + 0.01f*((CHL2_Player *)inputInfo.GetAttacker())->GetStatusMagnitude(COVEN_STATUS_BATTLEYELL)));
-	}
-	
 	gamestats->Event_PlayerDamage( this, inputInfoAdjust );
 
-	if (HasStatus(COVEN_STATUS_GUTCHECK) && inputInfoAdjust.GetDamageType() & DMG_CLUB && inputInfo.GetAttacker() && inputInfo.GetAttacker()->IsPlayer())
+	//BB: handle strength calc & gutcheck
+	if (inputInfoAdjust.GetDamageType() & DMG_CLUB && inputInfo.GetAttacker() && inputInfo.GetAttacker()->IsPlayer() && inputInfo.GetAttacker() != this)
 	{
-		CovenAbilityInfo_t *abilityInfo = GetCovenAbilityData(COVEN_ABILITY_GUTCHECK);
-		RemoveStatus(COVEN_STATUS_GUTCHECK);
-		SetCooldown(AbilityKey(COVEN_ABILITY_GUTCHECK), gpGlobals->curtime + abilityInfo->flCooldown);
-		EmitSound(abilityInfo->aSounds[ABILITY_SND_START]);
-		inputInfoAdjust.SetDamage(0.0f);
+		if (HasStatus(COVEN_STATUS_GUTCHECK))
+		{
+			CovenAbilityInfo_t *abilityInfo = GetCovenAbilityData(COVEN_ABILITY_GUTCHECK);
+			RemoveStatus(COVEN_STATUS_GUTCHECK);
+			SetCooldown(AbilityKey(COVEN_ABILITY_GUTCHECK), gpGlobals->curtime + abilityInfo->flCooldown);
+			EmitSound(abilityInfo->aSounds[ABILITY_SND_START]);
+			inputInfoAdjust.SetDamage(0.0f);
+		}
+		else
+		{
+			inputInfoAdjust.SetDamage((1.0f - GetStrength() / 60.0f) * inputInfoAdjust.GetDamage());
+		}
 	}
 	if (HasAbility(COVEN_ABILITY_MASOCHIST) && !(inputInfoAdjust.GetDamageType() & DMG_NO))
 	{

@@ -60,7 +60,7 @@ public:
 	DECLARE_SERVERCLASS();
 	DECLARE_DATADESC();
 
-	virtual bool LevelUp(int lvls, bool bBoostStats, bool bSound, bool bAutoLevel, bool bResetHP, bool bEffect);
+	virtual bool LevelUp(int lvls, bool bBoostStats = false, bool bSound = false, bool bAutoLevel = false, bool bResetHP = false, bool bEffect = false);
 	int XPForKill(CHL2MP_Player *pAttacker);
 
 	virtual void DestroyAllBuildings(void);
@@ -76,6 +76,7 @@ public:
 	virtual void CreateViewModel( int viewmodelindex = 0 );
 	virtual bool BecomeRagdollOnClient( const Vector &force );
 	virtual void Event_Killed( const CTakeDamageInfo &info );
+	bool		CovenStatusDamageHandle(CTakeDamageInfo &info, int iDmgType, CovenStatus_t iStatus); //BB: handle packaged damage effects like SLOW and WEAKNESS
 	virtual int OnTakeDamage( const CTakeDamageInfo &inputInfo );
 	virtual int OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo );
 	virtual bool WantsLagCompensationOnEntity( const CBasePlayer *pPlayer, const CUserCmd *pCmd, const CBitVec<MAX_EDICTS> *pEntityTransmitBits ) const;
@@ -180,10 +181,14 @@ public:
 	void UnDodge();
 
 	//BB: slayer helper functions
+	void Pushback(const Vector *direction, float flMagnitude);
 	void UnleashSoul();
+	void DashHandler();
+	void Dash(int iAbilityNum);
+	void DoInnerLight(int iAbilityNum);
 	//void SlayerLightHandler(); This is handled higher up now.
 	void EnergyHandler();
-	bool ToggleSprint(int iAbilityNum);
+	bool ToggleHaste(int iAbilityNum);
 	void RevengeCheck();
 	void GenerateBandage(int lev);
 	bool BuildTurret(int iAbilityNum);
@@ -224,6 +229,9 @@ public:
 	CUtlVector<CItem *> medkits;
 
 	Vector lock_ts;
+	Vector lock_dash;
+	float lock_vel;
+	float lock_vel_rate;
 
 	//BB: coven energies
 	//int coven_detonate_power;
@@ -240,6 +248,7 @@ public:
 	//float coven_timer_gcheck;
 	float coven_timer_soul;
 	float coven_timer_holywater;
+	float coven_timer_dash;
 
 #ifdef COVEN_DEVELOPER_MODE
 	int coven_debug_nodeloc;

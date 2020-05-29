@@ -2467,7 +2467,7 @@ bool CGameMovement::CheckJumpButton( void )
 
 	//BB: prevent speed skating...
 	float speed = sqrt(mv->m_vecVelocity[0]*mv->m_vecVelocity[0] + mv->m_vecVelocity[1]*mv->m_vecVelocity[1]);
-	if (speed > 380.0f)//320... allow a little
+	if (speed > COVEN_ABS_MAX_VELOCITY)//320... allow a little
 	{
 		VectorScale(mv->m_vecVelocity, 380.0f/speed, mv->m_vecVelocity);
 	}
@@ -2679,6 +2679,7 @@ int CGameMovement::TryPlayerMove( Vector *pFirstDest, trace_t *pFirstTrace )
 		if (pm.fraction == 1)
 		{
 			 break;		// moved the entire distance
+
 		}
 
 		// Save entity that blocked us (since fraction was < 1.0)
@@ -2738,6 +2739,7 @@ int CGameMovement::TryPlayerMove( Vector *pFirstDest, trace_t *pFirstTrace )
 				}
 				else
 				{
+					//BB: comment this out for wall sticking!
 					ClipVelocity( original_velocity, planes[i], new_velocity, 1.0 + sv_bounce.GetFloat() * (1 - player->m_surfaceFriction) );
 				}
 			}
@@ -2770,7 +2772,7 @@ int CGameMovement::TryPlayerMove( Vector *pFirstDest, trace_t *pFirstTrace )
 			if (i != numplanes)
 			{	// go along this plane
 				// pmove.velocity is set in clipping call, no need to set again.
-				;  
+				;
 			}
 			else
 			{	// go along the crease

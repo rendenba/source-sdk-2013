@@ -69,11 +69,14 @@ ConVar sv_coven_xp_diffkill("sv_coven_xp_diffkill", "2", FCVAR_GAMEDLL | FCVAR_N
 ConVar sv_coven_xp_cappersec("sv_coven_xp_cappersec", "1.0", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_coven_pts_cappersec("sv_coven_pts_cappersec", "0.75", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_coven_pts_cts("sv_coven_pts_cts", "125", FCVAR_GAMEDLL | FCVAR_NOTIFY );
-ConVar sv_coven_pts_item("sv_coven_pts_item", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY );
+ConVar sv_coven_pts_item("sv_coven_pts_item", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY);
+ConVar sv_coven_xp_item("sv_coven_xp_item", "10.0", FCVAR_GAMEDLL | FCVAR_NOTIFY);
 ConVar sv_coven_cts_returntime("sv_coven_cts_returntime", "16", FCVAR_GAMEDLL | FCVAR_NOTIFY);
 ConVar sv_coven_manachargerate("sv_coven_manachargerate", "5.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Intellect / X per second.");
 ConVar sv_coven_max_stealth_velocity("sv_coven_max_stealth_velocity", "150.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Lower boundary for stealth invisibility.");
 ConVar sv_coven_min_stealth_velocity("sv_coven_min_stealth_velocity", "280.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Minimum stealth velocity.");
+ConVar sv_coven_dash_bump("sv_coven_dash_bump", "1000.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Dash fling magnitude.");
+ConVar sv_coven_light_bump("sv_coven_light_bump", "600.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Inner light fling magnitude.");
 
 extern ConVar mp_chattime;
 
@@ -532,7 +535,7 @@ void CHL2MPRules::GiveItemXP(int team, float overridexp)
 			/*float basexp = ((avg-1.0f)*COVEN_XP_INCREASE_PER_LEVEL+COVEN_MAX_XP_PER_LEVEL)/20.0f;
 			float calcxp = basexp*(1.0f+avg-pPlayer->covenLevelCounter);
 			float xp = max(calcxp,basexp);*/
-			float xp = COVEN_XP_PER_ITEM;
+			float xp = sv_coven_xp_item.GetFloat();
 			if (overridexp > 0.0f)
 				xp = overridexp;
 			pPlayer->GiveXP(xp);
@@ -1742,7 +1745,8 @@ int CHL2MPRules::PlayerRelationship( CBaseEntity *pPlayer, CBaseEntity *pTarget 
 #ifndef CLIENT_DLL
 	// half life multiplay has a simple concept of Player Relationships.
 	// you are either on another player's team, or you are not.
-	if ( !pPlayer || !pTarget || !pTarget->IsPlayer() || IsTeamplay() == false )
+	//BB: we need to remove the IsPlayer() check because turrets are not players!
+	if ( !pPlayer || !pTarget || IsTeamplay() == false )
 		return GR_NOTTEAMMATE;
 
 	if ( (*GetTeamID(pPlayer) != '\0') && (*GetTeamID(pTarget) != '\0') && !stricmp( GetTeamID(pPlayer), GetTeamID(pTarget) ) )

@@ -182,10 +182,10 @@ public:
 	void GiveStrength(float s);
 	void SetStrength(float s);
 	float GetStrength();
-	void GiveConstitution(float c);
+	void GiveConstitution(float c, bool bRecalcHealth = true);
 	void SetConstitution(float c);
 	float GetConstitution();
-	void GiveIntellect(float i);
+	void GiveIntellect(float i, bool bRecalcEnergy = true);
 	void SetIntellect(float i);
 	float GetIntellect();
 	int GetXPCap();
@@ -339,12 +339,15 @@ public:
 	float GetStatusTime(CovenStatus_t iStatusNum);
 	void SetStatusMagnitude(CovenStatus_t iStatusNum, int iMagnitude);
 	int GetStatusMagnitude(CovenStatus_t iStatusNum);
-	void AddStatus(CovenStatus_t iStatusNum, int iMagnitude = -1, float flDuration = -1.0f);
+	void AddStatus(CovenStatus_t iStatusNum, int iMagnitude = -1, float flTime = -1.0f, bool bSafeAdd = false, bool bCumulative = true);
 	void RemoveStatus(CovenStatus_t iStatusNum);
 	inline bool HasStatus(CovenStatus_t iStatusNum) { return (covenStatusEffects & (1 << iStatusNum)) > 0; };
+	bool HasHandledStatus(CovenStatus_t iStatusNum, int iMagnitude);
+	void HandleStatus(CovenStatus_t iStatusNum);
 	int AbilityKey(CovenAbility_t iAbility, unsigned int *key = NULL);
 	bool HasAbility(CovenAbility_t iAbility);
 	void ResetStats(void);
+	void ResetMaxHealth(void);
 	void ResetVitals(void);
 	void TriggerGCD(void);
 	void EmitLocalSound(const char *soundname);
@@ -372,6 +375,7 @@ private:
 	//  the player and not to other players.
 	CNetworkVarEmbedded( CHL2PlayerLocalData, m_HL2Local );
 	CNetworkVarEmbedded( CCovenBuilderLocalData, m_CovenBuilderLocal );
+	int					m_iHandledEffect[COVEN_STATUS_COUNT];
 
 	float				m_flTimeAllSuitDevicesOff;
 

@@ -86,9 +86,9 @@ float CWeaponStake::GetDamageForActivity( Activity hitActivity )
 
 	CHL2MP_Player *pHLPlayer = (CHL2MP_Player *)pPlayer;
 
-	float baseDMG = 5.0f + pHLPlayer->GetStrength() * 0.5f;
+	float baseDMG = 8.0f + pHLPlayer->GetStrength();
 
-	return baseDMG + random->RandomInt(0,10);
+	return baseDMG + random->RandomInt(0, 25);
 }
 
 //-----------------------------------------------------------------------------
@@ -227,12 +227,17 @@ void CWeaponStake::Drop( const Vector &vecVelocity )
 
 float CWeaponStake::GetRange( void )
 {
-	return	STAKE_RANGE;	
+	return	STAKE_RANGE;
 }
 
 float CWeaponStake::GetFireRate( void )
 {
-	return	STAKE_REFIRE;	
+	CHL2MP_Player *pOwner = ToHL2MPPlayer(GetOwner());
+
+	if (pOwner && pOwner->HasStatus(COVEN_STATUS_HASTE))
+		return (1.0f - 0.01f * pOwner->GetStatusMagnitude(COVEN_STATUS_HASTE)) * STAKE_REFIRE;
+
+	return	STAKE_REFIRE;
 }
 
 

@@ -44,6 +44,7 @@ CBaseViewModel::CBaseViewModel()
 	m_EntClientFlags |= ENTCLIENTFLAG_ALWAYS_INTERPOLATE;
 #endif
 	SetRenderColor( 255, 255, 255, 255 );
+	SetRenderMode(kRenderNormal);
 
 	// View model of this weapon
 	m_sVMName			= NULL_STRING;		

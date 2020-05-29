@@ -10,15 +10,13 @@
 #pragma once
 #endif
 
-//#define DEBUG_BOTS
-//#define DEBUG_BOTS_VISUAL
-
 #define BOT_NODE_TOLERANCE 20.0f
 
 // If iTeam or iClass is -1, then a team or class is randomly chosen.
 CBasePlayer *BotPutInServer( bool bFrozen, CovenTeamID_t iTeam );
 void BotRemove( CHL2MP_Player *pBot );
 void Bot_Think( CHL2MP_Player *pBot );
+void Bot_Reached_Node( CHL2MP_Player *pBot, const Vector *objLoc );
 void Set_Bot_Base_Velocity( CHL2MP_Player *pBot );
 bool Bot_Right_Team( CHL2MP_Player *pBot );
 float Bot_Velocity(CHL2MP_Player *pBot);

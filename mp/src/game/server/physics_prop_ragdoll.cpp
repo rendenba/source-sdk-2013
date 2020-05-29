@@ -24,6 +24,8 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+ConVar sv_coven_hp_per_ragdoll("sv_coven_hp_per_ragdoll", "80.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "HP allowed per player to feed upon.");
+
 //-----------------------------------------------------------------------------
 // Forward declarations
 //-----------------------------------------------------------------------------
@@ -219,12 +221,12 @@ void CRagdollProp::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE 
 		return;
 	CHL2MP_Player *pPlayer = dynamic_cast<CHL2MP_Player *>(pActivator);
 	int index = pPlayer->GetClientIndex();
-	if (feedhp[index] >= COVEN_HP_PER_RAGDOLL)
+	if (feedhp[index] >= sv_coven_hp_per_ragdoll.GetFloat())
 		return;
 
 	if (pPlayer->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
 	{
-		if (feedhp[index] <= COVEN_HP_PER_RAGDOLL)
+		if (feedhp[index] <= sv_coven_hp_per_ragdoll.GetFloat())
 		{
 			float temp = pPlayer->Feed();
 			feedhp[index] += temp;

@@ -94,7 +94,7 @@ float CWeaponCrowbar::GetDamageForActivity( Activity hitActivity )
 
 	float baseDMG = 5.0f + pHLPlayer->GetStrength();
 
-	return baseDMG + random->RandomInt(0,20);
+	return baseDMG + random->RandomInt(0, 20);
 }
 
 //-----------------------------------------------------------------------------
@@ -283,12 +283,17 @@ void CWeaponCrowbar::Drop( const Vector &vecVelocity )
 
 float CWeaponCrowbar::GetRange( void )
 {
-	return	CROWBAR_RANGE;	
+	return	CROWBAR_RANGE;
 }
 
 float CWeaponCrowbar::GetFireRate( void )
 {
-	return	CROWBAR_REFIRE;	
+	CHL2MP_Player *pOwner = ToHL2MPPlayer(GetOwner());
+
+	if (pOwner && pOwner->HasStatus(COVEN_STATUS_HASTE))
+		return (1.0f - 0.01f * pOwner->GetStatusMagnitude(COVEN_STATUS_HASTE)) * CROWBAR_REFIRE;
+
+	return	CROWBAR_REFIRE;
 }
 
 

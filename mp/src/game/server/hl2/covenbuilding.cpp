@@ -15,6 +15,9 @@ extern short	g_sModelIndexSmoke;			// (in combatweapon.cpp) holds the index for 
 
 LINK_ENTITY_TO_CLASS(coven_building, CCovenBuilding);
 
+IMPLEMENT_SERVERCLASS_ST(CCovenBuilding, DT_CovenBuilding)
+END_SEND_TABLE()
+
 BEGIN_DATADESC(CCovenBuilding)
 
 DEFINE_OUTPUT(m_OnUsed, "OnUsed"),
@@ -26,6 +29,8 @@ DEFINE_OUTPUT(m_OnPhysGunDrop, "OnPhysGunDrop"),
 DEFINE_INPUTFUNC(FIELD_VOID, "Kill", InputKill),
 
 END_DATADESC()
+
+
 
 
 CCovenBuilding::CCovenBuilding()
@@ -94,11 +99,15 @@ void CCovenBuilding::Spawn(void)
 		}
 	}
 
+	m_bGoneToSleep = false;
+
 	ComputeExtents();
 	
 	SetThink(&CCovenBuilding::BuildingThink);
 
 	SetNextThink(gpGlobals->curtime + 0.1f);
+
+	SetCollisionGroup(COLLISION_GROUP_PLAYER);
 }
 
 //-----------------------------------------------------------------------------
@@ -228,6 +237,16 @@ void CCovenBuilding::NotifyOwner(void)
 
 bool CCovenBuilding::PreThink(void)
 {
+	if (!m_bGoneToSleep)
+	{
+		IPhysicsObject *pObj = VPhysicsGetObject();
+		if (pObj && pObj->IsAsleep())
+		{
+			m_bGoneToSleep = true;
+			pObj->EnableMotion(false);
+		}
+	}
+
 	StudioFrameAdvance();
 	DispatchAnimEvents(this);
 	NotifyOwner();
@@ -496,6 +515,28 @@ void CCovenBuilding::Activate(void)
 	BaseClass::Activate();
 }
 
+void CCovenBuilding::WakeUp(void)
+{
+	m_bGoneToSleep = false;
+	IPhysicsObject *pObj = VPhysicsGetObject();
+	if (pObj)
+		pObj->EnableMotion(true);
+}
+
+void CCovenBuilding::VPhysicsCollision(int index, gamevcollisionevent_t *pEvent)
+{
+	int otherIndex = !index;
+	CBaseEntity *pHitEntity = pEvent->pEntities[otherIndex];
+	if (pHitEntity && pHitEntity->IsPlayer())
+	{
+		CHL2_Player *pPlayer = ToHL2Player(pHitEntity);
+		if (pPlayer && (pPlayer->GetTeamNumber() != GetTeamNumber() || mOwner == pPlayer))
+			WakeUp();
+	}
+
+	BaseClass::VPhysicsCollision(index, pEvent);
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 // Input  : *pActivator - 
@@ -507,6 +548,9 @@ void CCovenBuilding::Use(CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE
 {
 	if (!IsDoneBuilding())
 		return;
+
+	if (m_bGoneToSleep)
+		WakeUp();
 
 	CBasePlayer *pPlayer = ToBasePlayer(pActivator);
 
@@ -542,7 +586,7 @@ int CCovenBuilding::OnTakeDamage(const CTakeDamageInfo &info)
 	CHL2_Player *pAttacker = ToHL2Player(info.GetAttacker());
 	if (pAttacker)
 	{
-		if (info.GetDamageType() & DMG_SHOCK)
+		if (info.GetDamageType() & DMG_SHOCK && GetTeamNumber() == pAttacker->GetTeamNumber())
 		{
 			int hp = 0;
 			int xp = 0;
@@ -573,6 +617,9 @@ int CCovenBuilding::OnTakeDamage(const CTakeDamageInfo &info)
 			return info.GetDamage();
 		}
 	}
+
+	if (m_bGoneToSleep)
+		WakeUp();
 
 	return BaseClass::OnTakeDamage(info);
 }
@@ -643,6 +690,18 @@ void CCovenBuilding::SetActivityAndSequence(Activity NewActivity, int iSequence)
 		// Not available try to get default anim
 		ResetSequence(0);
 	}
+}
+
+void CCovenBuilding::LockController(void)
+{
+	if (m_pMotionController != NULL)
+		m_pMotionController->Lock();
+}
+
+void CCovenBuilding::UnlockController(void)
+{
+	if (m_pMotionController != NULL)
+		m_pMotionController->Unlock();
 }
 
 //-----------------------------------------------------------------------------
@@ -853,6 +912,16 @@ void CCovenBuildingTipController::Activate(void)
 	}
 }
 
+void CCovenBuildingTipController::Lock(void)
+{
+	m_angularLimit = 250.0f;
+}
+
+void CCovenBuildingTipController::Unlock(void)
+{
+	m_angularLimit = 25.0f;
+}
+
 
 //-----------------------------------------------------------------------------
 // Purpose: Actual simulation for tip controller
@@ -905,6 +974,7 @@ IMotionEvent::simresult_e CCovenBuildingTipController::Simulate(IPhysicsMotionCo
 		angular *= invDeltaTime;
 		return SIM_LOCAL_ACCELERATION;
 	}
+
 	angular = ComputeRotSpeedToAlignAxes(m_localTestAxis, currentLocalTargetAxis, angVel, 1.0, invDeltaTime * invDeltaTime, flAngularLimit * invDeltaTime);
 
 	return SIM_LOCAL_ACCELERATION;

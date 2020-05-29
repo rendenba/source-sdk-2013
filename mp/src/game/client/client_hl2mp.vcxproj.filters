@@ -1949,6 +1949,9 @@
     <ClInclude Include="..\shared\coven_parse.h">
       <Filter>Game Shared Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="c_covenbuilding.h">
+      <Filter>Source Files\HL2 DLL</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="mp3player.cpp">
@@ -3558,6 +3561,9 @@
     </ClCompile>
     <ClCompile Include="..\shared\coven_parse.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="c_covenbuilding.cpp">
+      <Filter>Source Files\HL2 DLL</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

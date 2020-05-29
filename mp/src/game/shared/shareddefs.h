@@ -396,6 +396,8 @@ enum PLAYER_ANIM
 
 //BB: CovenDefs
 //#define COVEN_DEVELOPER_MODE
+//#define DEBUG_BOTS
+//#define DEBUG_BOTS_VISUAL
 
 typedef enum
 {
@@ -424,14 +426,9 @@ static const char *sTeamNames[] =
 //#define COVEN_XP_ITEM_SCALE 8.0f
 #define COVEN_XP_INCREASE_PER_LEVEL 50 //32
 //#define COVEN_XP_PER_KILL 20
-#define COVEN_XP_PER_ITEM 10
 //#define COVEN_XP_LEVEL_DIFF_MULT 5
-//#define COVEN_XP_CAP_PERSEC 0.25f
 #define COVEN_XP_ASSIST_RADIUS 600.0f
-#define COVEN_HP_PER_RAGDOLL 80.0f
-
-//#define COVEN_HP_PER_CON 4
-//#define COVEN_MANA_PER_INT 10.0f
+#define COVEN_ABS_MAX_VELOCITY 380.0f //used for jump velocity calcs
 
 #define COVEN_DAMAGE_PER_LEVEL_ADJUST 0.1f
 
@@ -489,7 +486,7 @@ typedef enum
 {
 	COVEN_STATUS_CAPPOINT,
 	COVEN_STATUS_LEVELUP,
-	COVEN_STATUS_SPRINT,
+	COVEN_STATUS_HASTE,
 	COVEN_STATUS_BATTLEYELL,
 	COVEN_STATUS_STATBOOST,
 	COVEN_STATUS_BERSERK,
@@ -502,6 +499,7 @@ typedef enum
 	COVEN_STATUS_PHASE,
 	COVEN_STATUS_HAS_CTS,
 	COVEN_STATUS_DODGE,
+	COVEN_STATUS_WEAKNESS,
 	COVEN_STATUS_COUNT
 } CovenStatus_t;
 
@@ -529,6 +527,8 @@ typedef enum
 	COVEN_ABILITY_BUILDDISPENSER,
 	COVEN_ABILITY_TRIPMINE,
 	COVEN_ABILITY_DARKWILL,
+	COVEN_ABILITY_DASH,
+	COVEN_ABILITY_INNERLIGHT,
 	COVEN_ABILITY_COUNT
 } CovenAbility_t;
 
@@ -561,6 +561,7 @@ typedef enum
 #define DMG_NERVEGAS					(1 << 16)	// nerve toxins, very bad
 #define DMG_POISON						(1 << 17)	// blood poisoning - heals over time like drowning damage
 #define DMG_RADIATION					(1 << 18)	// radiation exposure
+#define DMG_WEAKNESS					(1 << 18)	// COVEN WEAKNESS
 #define DMG_DROWNRECOVER				(1 << 19)	// drowning recovery
 #define DMG_ACID						(1 << 20)	// toxic chemicals or acid burns
 #define DMG_SLOWBURN					(1 << 21)	// in an oven

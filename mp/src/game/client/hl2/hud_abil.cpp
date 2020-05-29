@@ -231,9 +231,9 @@ float CHudAbils::DrawAbility(int iAbilityNum, float y, float wide, float inset, 
 	{
 		wchar_t *tempString = g_pVGuiLocalize->Find(info->szPrintName);
 		if (tempString)
-			DrawTextTitle(0, y, wide, wide - inset, tempString, teatime > 0.0f && !info->bPassive);
+			DrawTextTitle(0, y, wide, wide - inset, tempString, !info->bPassive && (teatime > 0.0f || pPlayer->m_HL2Local.m_flSuitPower < info->flCost));
 		else
-			DrawTextTitle(0, y, wide, wide - inset, L"MISSING_DATA", teatime > 0.0f && !info->bPassive);
+			DrawTextTitle(0, y, wide, wide - inset, L"MISSING_DATA", !info->bPassive && (teatime > 0.0f || pPlayer->m_HL2Local.m_flSuitPower < info->flCost));
 	}
 	return y + wide - minset;
 }

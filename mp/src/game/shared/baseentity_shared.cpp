@@ -1610,8 +1610,9 @@ void CBaseEntity::FireBullets( const FireBulletsInfo_t &info )
 	
 	bool bDoServerEffects = true;
 
+	//BB: a simple fix... we will force server side effects for buildings.
 #if defined( HL2MP ) && defined( GAME_DLL )
-	bDoServerEffects = false;
+	bDoServerEffects = IsABuilding();
 #endif
 
 #if defined( GAME_DLL )

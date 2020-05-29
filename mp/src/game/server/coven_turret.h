@@ -69,8 +69,8 @@ class CSprite;
 //-----------------------------------------------------------------------------
 class CCoven_Turret : public CCovenBuilding
 {
-	DECLARE_CLASS(CCoven_Turret, CCovenBuilding);
 public:
+	DECLARE_CLASS(CCoven_Turret, CCovenBuilding);
 
 	CCoven_Turret(void);
 

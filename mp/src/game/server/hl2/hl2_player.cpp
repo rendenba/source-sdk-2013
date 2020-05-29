@@ -414,6 +414,7 @@ CHL2_Player::CHL2_Player()
 	m_flArmorReductionTime = 0.0f;
 	m_iArmorReductionFrom = 0;
 	Q_memset(m_covenabilities, 0, sizeof(m_covenabilities));
+	Q_memset(m_iHandledEffect, 0, sizeof(m_iHandledEffect));
 }
 
 int CHL2_Player::GetTotalXP()
@@ -473,6 +474,7 @@ void CHL2_Player::ResetCovenStatus()
 	for (int i = 0; i < m_HL2Local.covenCooldownTimers.Count(); i++)
 		m_HL2Local.covenCooldownTimers.Set(i, 0);
 	m_HL2Local.covenGCD = 0.0f;
+	Q_memset(m_iHandledEffect, 0, sizeof(m_iHandledEffect));
 }
 
 
@@ -492,13 +494,91 @@ bool CHL2_Player::IsInCooldown(int iAbilityNum)
 	return gpGlobals->curtime < m_HL2Local.covenGCD || (val > 0.0f && gpGlobals->curtime < val);
 }
 
-void CHL2_Player::AddStatus(CovenStatus_t iStatusNum, int iMagnitude, float flTime)
+//bSafeAdd indicates whether to additively check things, or to just flat reset things.
+//bCumulative indicates whether an equal magnitude condition should accumulate or just reset
+void CHL2_Player::AddStatus(CovenStatus_t iStatusNum, int iMagnitude, float flTime, bool bSafeAdd, bool bCumulative)
 {
-	covenStatusEffects |= (1 << iStatusNum);
+	if (bSafeAdd && HasStatus(iStatusNum))
+	{
+		float oldMagnitude = GetStatusMagnitude(iStatusNum);
+		float oldTime = GetStatusTime(iStatusNum);
+		if (iMagnitude <= oldMagnitude)
+		{
+			if (iMagnitude < oldMagnitude || bCumulative)
+				flTime = oldTime + (flTime - gpGlobals->curtime) * iMagnitude / oldMagnitude;
+			iMagnitude = -1;
+		}
+		else //greater than
+		{
+			flTime = flTime + (oldTime - gpGlobals->curtime) * oldMagnitude / iMagnitude;
+		}
+	}
 	if (iMagnitude >= 0)
 		SetStatusMagnitude(iStatusNum, iMagnitude);
 	if (flTime >= 0.0f)
 		SetStatusTime(iStatusNum, flTime);
+	covenStatusEffects |= (1 << iStatusNum);
+}
+
+bool CHL2_Player::HasHandledStatus(CovenStatus_t iStatusNum, int iMagnitude)
+{
+	return m_iHandledEffect[iStatusNum] >= iMagnitude;
+}
+
+void CHL2_Player::HandleStatus(CovenStatus_t iStatusNum)
+{
+	if (!HasHandledStatus(iStatusNum, GetStatusMagnitude(iStatusNum)))
+	{
+		switch (iStatusNum)
+		{
+			case COVEN_STATUS_STATBOOST:
+			{
+				CovenClassInfo_t *classInfo = GetCovenClassData(covenClassID);
+				float magnitude = 0.01f * (GetStatusMagnitude(iStatusNum) - m_iHandledEffect[iStatusNum]);
+				float stradd = magnitude * classInfo->flStrength;
+				float inteladd = magnitude * classInfo->flIntellect;
+				float conadd = magnitude * classInfo->flConstitution;
+				GiveConstitution(conadd);
+				GiveStrength(stradd);
+				GiveIntellect(inteladd);
+				break;
+			}
+			case COVEN_STATUS_BERSERK:
+			{
+				int oldmax = GetMaxHealth();
+				ResetMaxHealth();
+				SetHealth(GetHealth() + (GetMaxHealth() - oldmax));
+				break;
+			}
+			case COVEN_STATUS_STUN:
+			{
+				AddFlag(FL_FROZEN);
+				break;
+			}
+			case COVEN_STATUS_BATTLEYELL:
+			{
+				CovenClassInfo_t *classInfo = GetCovenClassData(covenClassID);
+				GiveStrength(classInfo->flStrength * (GetStatusMagnitude(iStatusNum) - m_iHandledEffect[iStatusNum]) * 0.01f);
+				break;
+			}
+			case COVEN_STATUS_SLOW:
+			{
+				ComputeSpeed();
+				break;
+			}
+			case COVEN_STATUS_WEAKNESS:
+			{
+				CovenClassInfo_t *classInfo = GetCovenClassData(covenClassID);
+				GiveStrength(-(classInfo->flStrength * (GetStatusMagnitude(iStatusNum) - m_iHandledEffect[iStatusNum]) * 0.01f));
+				break;
+			}
+			default:
+			{
+				break;
+			}
+		}
+		m_iHandledEffect[iStatusNum] = GetStatusMagnitude(iStatusNum);
+	}
 }
 
 void CHL2_Player::RemoveStatus(CovenStatus_t iStatusNum)
@@ -506,6 +586,7 @@ void CHL2_Player::RemoveStatus(CovenStatus_t iStatusNum)
 	covenStatusEffects &= covenStatusEffects & ~(1 << iStatusNum);
 	SetStatusMagnitude(iStatusNum, 0);
 	SetStatusTime(iStatusNum, 0.0f);
+	m_iHandledEffect[iStatusNum] = 0;
 }
 
 bool CHL2_Player::HasAbility(CovenAbility_t iAbility)
@@ -587,9 +668,15 @@ void CHL2_Player::ResetStats(void)
 	SetIntellect(info->flIntellect);
 }
 
+void CHL2_Player::ResetMaxHealth(void)
+{
+	SetMaxHealth(ceil(m_HL2Local.covenConstitutionCounter * sv_coven_hp_per_con.GetFloat()) * (1.0f + 0.01f * GetStatusMagnitude(COVEN_STATUS_BERSERK)));
+}
+
 void CHL2_Player::ResetVitals(void)
 {
-	SetMaxHealth(ceil(m_HL2Local.covenConstitutionCounter * sv_coven_hp_per_con.GetFloat()));
+	ResetMaxHealth();
+	SetHealth(min(GetHealth(), GetMaxHealth()));
 }
 
 void CHL2_Player::TriggerGCD(void)
@@ -665,11 +752,12 @@ void CHL2_Player::SetConstitution(float c)
 	ResetVitals();
 }
 
-void CHL2_Player::GiveConstitution(float c)
+void CHL2_Player::GiveConstitution(float c, bool bRecalcHealth)
 {
 	m_HL2Local.covenConstitutionCounter += c;
-	ResetVitals();
-	SetHealth(min(GetHealth() + ceil(c * sv_coven_hp_per_con.GetFloat()), GetMaxHealth()));
+	ResetMaxHealth();
+	if (bRecalcHealth)
+		SetHealth(GetHealth() + ceil(c * sv_coven_hp_per_con.GetFloat()));
 }
 
 float CHL2_Player::GetConstitution()
@@ -677,15 +765,17 @@ float CHL2_Player::GetConstitution()
 	return m_HL2Local.covenConstitutionCounter;
 }
 
-void CHL2_Player::GiveIntellect(float i)
+void CHL2_Player::GiveIntellect(float i, bool bRecalcEnergy)
 {
 	m_HL2Local.covenIntellectCounter += i;
-	SuitPower_Charge(i * sv_coven_mana_per_int.GetFloat());
+	if (bRecalcEnergy)
+		SuitPower_Charge(i * sv_coven_mana_per_int.GetFloat());
 }
 
 void CHL2_Player::SetIntellect(float i)
 {
 	m_HL2Local.covenIntellectCounter = i;
+	SuitPower_SetCharge(i * sv_coven_mana_per_int.GetFloat());
 }
 
 float CHL2_Player::GetIntellect()
@@ -1450,6 +1540,8 @@ void CHL2_Player::Spawn(void)
 
 	BaseClass::Spawn();
 
+	ResetStats();
+
 	//
 	// Our player movement speed is set once here. This will override the cl_xxxx
 	// cvars unless they are set to be lower than this.
@@ -1609,28 +1701,21 @@ void CHL2_Player::ComputeSpeed( void )
 	CovenClassInfo_t *info = GetCovenClassData(covenClassID);
 	speed = info->flBaseSpeed;
 
-	if (HasStatus(COVEN_STATUS_SLOW))
-		speed *= 1.0f - GetStatusMagnitude(COVEN_STATUS_SLOW)*0.01f;
-
-	if (HasStatus(COVEN_STATUS_SPRINT))
-	{
-		speed *= (1.0f + 0.01f*GetStatusMagnitude(COVEN_STATUS_SPRINT));
-		//CBaseCombatWeapon *pActiveWeapon = GetActiveWeapon();
-		//if (GetViewModel())
-		//	GetViewModel()->SetPlaybackRate(3.0f*GetStatusMagnitude(COVEN_BUFF_SPRINT));
-	}
-	/*else
-	{
-		//CBaseCombatWeapon *pActiveWeapon = GetActiveWeapon();
-		if (GetViewModel())
-			GetViewModel()->SetPlaybackRate(1.0f);
-	}*/
+	float factor = 1.0f;
 
 	if (gorephased)
-		speed *= 1.5f;
+		factor += 0.5f;
 
+	if (HasStatus(COVEN_STATUS_SLOW))
+		factor -= GetStatusMagnitude(COVEN_STATUS_SLOW) * 0.01f;
+
+	if (HasStatus(COVEN_STATUS_HASTE))
+		factor += 0.01f * GetStatusMagnitude(COVEN_STATUS_HASTE);
+	
 	if (HasStatus(COVEN_STATUS_MASOCHIST))
-		speed *= 1.0f + 0.01f*GetStatusMagnitude(COVEN_STATUS_MASOCHIST);
+		factor += 0.01f * GetStatusMagnitude(COVEN_STATUS_MASOCHIST);
+
+	speed *= factor;
 
 	SetMaxSpeed( speed );
 }

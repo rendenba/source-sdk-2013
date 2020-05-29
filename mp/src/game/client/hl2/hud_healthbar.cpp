@@ -93,15 +93,17 @@ bool CHudHealthBar::ShouldDraw()
 void CHudHealthBar::OnThink( void )
 {
 	int newHealth = 0;
+	int newMaxHealth = 0;
 	C_BaseHLPlayer *pPlayer = (C_BaseHLPlayer *)C_BasePlayer::GetLocalPlayer();
 	if ( !pPlayer )
 		return;
 
-		// Never below zero
-		newHealth = MAX( pPlayer->GetHealth(), 0 );
+	// Never below zero
+	newHealth = MAX( pPlayer->GetHealth(), 0 );
+	newMaxHealth = MAX(pPlayer->GetMaxHealth(), 0);
 
 	// Only update if we've changed suit power
-	if ( newHealth == m_iHealth )
+	if ( newHealth == m_iHealth && newMaxHealth == m_iMaxHealth )
 		return;
 
 	/*if ( currentXP >= 100.0f && m_XP < 100.0f )
@@ -117,7 +119,7 @@ void CHudHealthBar::OnThink( void )
 
 
 	m_iHealth = newHealth;
-	m_iMaxHealth = MAX(pPlayer->GetMaxHealth(), 0);
+	m_iMaxHealth = newMaxHealth;
 }
 
 void CHudHealthBar::PaintBackground()
