@@ -24,10 +24,8 @@
 void ClientPutInServer( edict_t *pEdict, const char *playername );
 void Bot_Think( CHL2MP_Player *pBot );
 
-#if (defined(DEBUG_BOTS) || defined(DEBUG_BOTS_VISUAL))
-//Debug visualization
-ConVar	bot_debug("bot_debug", "2");
-#endif
+ConVar bot_debug("bot_debug", "2", 0, "Selected entindex bot to debug.");
+ConVar bot_debug_visual("bot_debug_visual", "0", 0, "Debug coven bots visually.");
 
 //BB: BOTS!
 //#ifdef DEBUG
@@ -789,12 +787,15 @@ void FindNearestNode( CHL2MP_Player *pBot )
 					{
 						trace_t trace;
 						UTIL_TraceLine(pBot->EyePosition(), temp->location + Vector(0, 0, 16), MASK_SOLID, pBot, COLLISION_GROUP_PLAYER, &trace);
-#ifdef DEBUG_BOTS_VISUAL
-						if (bot_debug.GetInt() == pBot->entindex())
+						/*BOTS_DEBUG_VISUAL*****************************************************************************/
+						if (bot_debug_visual.GetInt() > 0)
 						{
-							NDebugOverlay::Line(pBot->EyePosition(), temp->location + Vector(0, 0, 16), 255, 255, 0, false, 1.5f);
+							if (bot_debug.GetInt() == pBot->entindex())
+							{
+								NDebugOverlay::Line(pBot->EyePosition(), temp->location + Vector(0, 0, 16), 255, 255, 0, false, 1.5f);
+							}
 						}
-#endif
+						/***********************************************************************************************/
 						if (trace.fraction == 1.0f)
 						{
 #ifdef DEBUG_BOTS
@@ -971,15 +972,12 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot)
 	}
 	if (pBot->HasAbility(COVEN_ABILITY_SHEERWILL))
 	{
-		if (botdata->bCombat)
+		if (pBot->GetStatusTime(COVEN_STATUS_STATBOOST) - gpGlobals->curtime < 5.0f)
 		{
-			if (!pBot->HasStatus(COVEN_STATUS_STATBOOST))
+			int abilityNum = pBot->AbilityKey(COVEN_ABILITY_SHEERWILL, &key);
+			if (!pBot->IsInCooldown(abilityNum))
 			{
-				int abilityNum = pBot->AbilityKey(COVEN_ABILITY_SHEERWILL, &key);
-				if (!pBot->IsInCooldown(abilityNum))
-				{
-					buttons |= key;
-				}
+				buttons |= key;
 			}
 		}
 	}
@@ -1003,7 +1001,7 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot)
 		{
 			int abilityNum = pBot->AbilityKey(COVEN_ABILITY_INNERLIGHT, &key);
 			CovenAbilityInfo_t *info = GetCovenAbilityData(COVEN_ABILITY_INNERLIGHT);
-			if (!pBot->IsInCooldown(abilityNum) && botdata->m_flLastCombatDist < info->flRange)
+			if (!pBot->IsInCooldown(abilityNum) && botdata->m_flLastCombatDist < info->flRange * 0.9f)
 			{
 				CBaseCombatCharacter *pEnemy = BotGetEnemy(pBot);
 				if (pEnemy && pEnemy->IsPlayer() && pEnemy->IsAlive() && !pEnemy->KO)
@@ -1013,15 +1011,12 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot)
 	}
 	if (pBot->HasAbility(COVEN_ABILITY_DARKWILL))
 	{
-		if (botdata->bCombat)
+		if (pBot->GetStatusTime(COVEN_STATUS_STATBOOST) - gpGlobals->curtime < 5.0f)
 		{
-			if (!pBot->HasStatus(COVEN_STATUS_STATBOOST))
+			int abilityNum = pBot->AbilityKey(COVEN_ABILITY_DARKWILL, &key);
+			if (!pBot->IsInCooldown(abilityNum))
 			{
-				int abilityNum = pBot->AbilityKey(COVEN_ABILITY_DARKWILL, &key);
-				if (!pBot->IsInCooldown(abilityNum))
-				{
-					buttons |= key;
-				}
+				buttons |= key;
 			}
 		}
 	}
@@ -1568,13 +1563,16 @@ void Bot_Think( CHL2MP_Player *pBot )
 				else
 					GetLost(pBot, false, true);
 			}
-#ifdef DEBUG_BOTS_VISUAL
-			if (pRules->pBotNet[botdata->m_targetNode] != NULL && bot_debug.GetInt() == pBot->entindex())
+			/*BOTS_DEBUG_VISUAL*****************************************************************************/
+			if (bot_debug_visual.GetInt() > 0)
 			{
-				NDebugOverlay::SweptBox(pRules->pBotNet[botdata->m_targetNode]->location, pRules->pBotNet[botdata->m_targetNode]->location + Vector(0, 0, 72), Vector(0, -16, -16), Vector(0, 16, 16), QAngle(90, 0, 0), 0, 255, 255, 50, 0.05f);
-				NDebugOverlay::Sphere(pRules->pBotNet[botdata->m_targetNode]->location, QAngle(0, 0, 0), BOT_NODE_TOLERANCE, 255, 0, 0, 0, false, 0.05f);
+				if (pRules->pBotNet[botdata->m_targetNode] != NULL && bot_debug.GetInt() == pBot->entindex())
+				{
+					NDebugOverlay::SweptBox(pRules->pBotNet[botdata->m_targetNode]->location, pRules->pBotNet[botdata->m_targetNode]->location + Vector(0, 0, 72), Vector(0, -16, -16), Vector(0, 16, 16), QAngle(90, 0, 0), 0, 255, 255, 50, 0.05f);
+					NDebugOverlay::Sphere(pRules->pBotNet[botdata->m_targetNode]->location, QAngle(0, 0, 0), BOT_NODE_TOLERANCE, 255, 0, 0, 0, false, 0.05f);
+				}
 			}
-#endif
+			/***********************************************************************************************/
 		}
 	}
 
@@ -1768,14 +1766,19 @@ void Bot_Think( CHL2MP_Player *pBot )
 						vecEnd = vecSrc + forward * 32.0f; //10
 
 						//UTIL_TraceLine(vecSrc, vecEnd, MASK_PLAYERSOLID, pBot, COLLISION_GROUP_PLAYER, &trace);
-#ifdef DEBUG_BOTS_VISUAL
-						if (bot_debug.GetInt() == pBot->entindex())
+
+						/*BOTS_DEBUG_VISUAL*****************************************************************************/
+						if (bot_debug_visual.GetInt() > 0)
 						{
-							//NDebugOverlay::Line(vecSrc, vecEnd, 255, 0, 0, false, 1.0f);
-							//NDebugOverlay::BoxDirection(vecSrc, VEC_HULL_MIN_SCALED(pBot), VEC_HULL_MAX_SCALED(pBot), forward, 255, 0, 0, 50, 1.0f);
-							NDebugOverlay::SweptBox(vecSrc, vecEnd, VEC_HULL_MIN_SCALED(pBot), VEC_HULL_MAX_SCALED(pBot), botdata->objectiveAngle, 255, 0, 0, 150, 10.0f);
+							if (bot_debug.GetInt() == pBot->entindex())
+							{
+								//NDebugOverlay::Line(vecSrc, vecEnd, 255, 0, 0, false, 1.0f);
+								//NDebugOverlay::BoxDirection(vecSrc, VEC_HULL_MIN_SCALED(pBot), VEC_HULL_MAX_SCALED(pBot), forward, 255, 0, 0, 50, 1.0f);
+								NDebugOverlay::SweptBox(vecSrc, vecEnd, VEC_HULL_MIN_SCALED(pBot), VEC_HULL_MAX_SCALED(pBot), botdata->objectiveAngle, 255, 0, 0, 150, 10.0f);
+							}
 						}
-#endif
+						/***********************************************************************************************/
+
 						UTIL_TraceHull(vecSrc, vecEnd, VEC_HULL_MIN_SCALED(pBot), VEC_HULL_MAX_SCALED(pBot), MASK_PLAYERSOLID, pBot, COLLISION_GROUP_PLAYER, &trace);
 
 						if (trace.fraction == 1.0)

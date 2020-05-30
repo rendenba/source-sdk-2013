@@ -55,9 +55,7 @@ struct BotNode_t
 	int ID;
 	CUtlVector<int> connectors;
 	Vector location;
-#ifdef DEBUG_BOTS_VISUAL
 	bool bSelected;
-#endif
 };
 
 class HL2MPViewVectors : public CViewVectors
@@ -155,11 +153,11 @@ public:
 	void RestartGame();
 	void RestartRound();
 	void FreezeAll(bool unfreeze = false);
-	float GetSlayerRespawnTime();
+	float GetRespawnTime(CovenTeamID_t iTeam);
 	float AverageLevel(int team, int &n);
 
-	float covenSlayerRespawnTime;
 	CovenGamestate_t covenGameState;
+	CovenGameMode_t covenGameMode;
 	float covenGameStateTimer;
 	float covenFlashTimer;
 	bool botnameUsed[2][14];

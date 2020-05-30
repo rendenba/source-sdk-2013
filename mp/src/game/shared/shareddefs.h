@@ -395,9 +395,18 @@ enum PLAYER_ANIM
 #define AUTOAIM_SCALE_DIRECT_ONLY	0.0f
 
 //BB: CovenDefs
+/*********************************************************************************************************************/
 //#define COVEN_DEVELOPER_MODE
 //#define DEBUG_BOTS
-//#define DEBUG_BOTS_VISUAL
+
+typedef enum
+{
+	COVEN_GAMEMODE_NONE,
+	COVEN_GAMEMODE_ROUNDS,
+	COVEN_GAMEMODE_CAPPOINT,
+	COVEN_GAMEMODE_COVEN,
+	COVEN_GAMEMODE_MAX
+} CovenGameMode_t;
 
 typedef enum
 {
@@ -416,10 +425,6 @@ static const char *sTeamNames[] =
 	"Slayers",
 	"Vampires",
 };
-
-#define COVEN_RESPAWNTIME_BASE 5.0f
-#define COVEN_RESPAWNTIME_SLAYERS_MULT 1.2f
-#define COVEN_RESPAWNTIME_VAMPIRES_MULT 0.8f
 
 #define COVEN_MAX_LEVEL 12
 #define COVEN_MAX_XP_PER_LEVEL 100
@@ -531,6 +536,8 @@ typedef enum
 	COVEN_ABILITY_INNERLIGHT,
 	COVEN_ABILITY_COUNT
 } CovenAbility_t;
+
+/*********************************************************************************************************************/
 
 // instant damage
 

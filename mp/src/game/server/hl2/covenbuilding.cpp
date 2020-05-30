@@ -329,9 +329,10 @@ void CCovenBuilding::SelfDestructThink(void)
 		m_flPingTime = gpGlobals->curtime;
 		
 	}
-	float heightZ = m_flBottom + (m_flTop - m_flBottom) * 0.7f;
+	float heightZ = m_flBottom + (m_flTop - m_flBottom) * 0.5f;
 
-	Spark(heightZ, 2, 3);
+	//BB: TODO: this isn't quite right for tipped turrets...
+	Spark(random->RandomFloat(heightZ, m_flTop), 2, 3);
 
 	// If we're done, explode
 	if (gpGlobals->curtime > m_flDestructTime)

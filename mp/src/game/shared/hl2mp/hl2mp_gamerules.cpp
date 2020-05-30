@@ -52,18 +52,18 @@ ConVar sv_report_client_settings("sv_report_client_settings", "0", FCVAR_GAMEDLL
 #if defined(COVEN_DEVELOPER_MODE)
 ConVar sv_coven_minplayers("sv_coven_minplayers", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY );//3
 ConVar sv_coven_freezetime("sv_coven_freezetime", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY );//5
-ConVar sv_coven_usexpitems("sv_coven_usexpitems", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_coven_usects("sv_coven_usects", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_coven_warmuptime("sv_coven_warmuptime", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY );//10
 #else
 ConVar sv_coven_minplayers("sv_coven_minplayers", "4", FCVAR_GAMEDLL | FCVAR_NOTIFY );//3
 ConVar sv_coven_freezetime("sv_coven_freezetime", "5", FCVAR_GAMEDLL | FCVAR_NOTIFY );//5
-ConVar sv_coven_usexpitems("sv_coven_usexpitems", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_coven_usects("sv_coven_usects", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_coven_warmuptime("sv_coven_warmuptime", "20", FCVAR_GAMEDLL | FCVAR_NOTIFY );//10
 #endif
 
-ConVar sv_coven_xp_basekill("sv_coven_xp_basekill", "20", FCVAR_GAMEDLL | FCVAR_NOTIFY );
+ConVar sv_coven_usedynamicspawns("sv_coven_usedynamicspawns", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY);
+ConVar sv_coven_usexpitems("sv_coven_usexpitems", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY);
+ConVar sv_coven_xp_basekill("sv_coven_xp_basekill", "20", FCVAR_GAMEDLL | FCVAR_NOTIFY);
 ConVar sv_coven_xp_inckill("sv_coven_xp_inckill", "2", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_coven_xp_diffkill("sv_coven_xp_diffkill", "2", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_coven_xp_cappersec("sv_coven_xp_cappersec", "1.0", FCVAR_GAMEDLL | FCVAR_NOTIFY );
@@ -77,11 +77,14 @@ ConVar sv_coven_max_stealth_velocity("sv_coven_max_stealth_velocity", "150.0", F
 ConVar sv_coven_min_stealth_velocity("sv_coven_min_stealth_velocity", "280.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Minimum stealth velocity.");
 ConVar sv_coven_dash_bump("sv_coven_dash_bump", "1000.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Dash fling magnitude.");
 ConVar sv_coven_light_bump("sv_coven_light_bump", "600.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Inner light fling magnitude.");
+ConVar sv_coven_respawn_slayer_base("sv_coven_respawn_slayer_base", "5.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Base slayer respawn time.");
+ConVar sv_coven_respawn_vampire_base("sv_coven_respawn_vampire_base", "10.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Base vampire respawn time.");
 
 extern ConVar mp_chattime;
+extern ConVar bot_debug_visual;
 
-extern CBaseEntity	 *g_pLastCombineSpawn;
-extern CBaseEntity	 *g_pLastRebelSpawn;
+extern CBaseEntity	 *g_pLastSlayerSpawn;
+extern CBaseEntity	 *g_pLastVampireSpawn;
 
 #define WEAPON_MAX_DISTANCE_FROM_SPAWN 64
 
@@ -165,6 +168,8 @@ static const char *s_PreserveEnts[] =
 	"info_player_deathmatch",
 	"info_player_combine",
 	"info_player_rebel",
+	"info_player_slayer",
+	"info_player_vampire",
 	"info_map_parameters",
 	"keyframe_rope",
 	"move_rope",
@@ -267,12 +272,10 @@ CHL2MPRules::CHL2MPRules()
 	last_verified_cap_point = 0;
 	scoreTimer = 0.0f;
 
+	covenGameMode = COVEN_GAMEMODE_NONE;
 	covenGameState = COVEN_GAMESTATE_UNDEFINED;
 	covenGameStateTimer = 0.0f;
 	covenFlashTimer = 0.0f;
-
-	covenSlayerRespawnTime = 0.0f;
-
 #endif
 }
 
@@ -296,20 +299,18 @@ float CHL2MPRules::AverageLevel(int team, int &n)
 	return ret;
 }
 
-float CHL2MPRules::GetSlayerRespawnTime()
+float CHL2MPRules::GetRespawnTime(CovenTeamID_t iTeam)
 {
 	float ret = 0.0f;
 #ifndef CLIENT_DLL
-	int n = 0;
-	if (gpGlobals->curtime > covenSlayerRespawnTime)
-		covenSlayerRespawnTime = 0.0f;
-
-	if (covenSlayerRespawnTime > 0.0f)
-		return covenSlayerRespawnTime;
-	else
+	if (iTeam == COVEN_TEAMID_SLAYERS)
 	{
-		ret = gpGlobals->curtime + COVEN_RESPAWNTIME_BASE + COVEN_RESPAWNTIME_SLAYERS_MULT*AverageLevel(COVEN_TEAMID_SLAYERS, n);
-		covenSlayerRespawnTime = ret;
+		ret = (ceil(gpGlobals->curtime / sv_coven_respawn_slayer_base.GetFloat()) + 1) * sv_coven_respawn_slayer_base.GetFloat();
+	}
+	else if (iTeam == COVEN_TEAMID_VAMPIRES)
+	{
+		//No wave spawns
+		ret = gpGlobals->curtime + sv_coven_respawn_vampire_base.GetFloat();
 	}
 #endif
 	return ret;
@@ -370,9 +371,7 @@ bool CHL2MPRules::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBa
 			UTIL_StringToVector(locs, u);
 			BotNode_t *node;
 			node = new BotNode_t;
-#ifdef DEBUG_BOTS_VISUAL
 			node->bSelected = false;
-#endif
 			node->ID = id;
 			node->location = Vector(locs[0], locs[1], locs[2]);
 			buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
@@ -631,9 +630,7 @@ bool CHL2MPRules::LoadCowFile(IBaseFileSystem *filesystem, const char *resourceN
 #ifdef COVEN_DEVELOPER_MODE
 				Msg("botnode: %d - %f %f %f\n", node->ID, locs[0], locs[1], locs[2]);
 #endif
-#ifdef DEBUG_BOTS_VISUAL
 				node->bSelected = false;
-#endif
 				KeyValues *pConnectors = sub->FindKey("connectors");
 				if (pConnectors)
 				{
@@ -709,6 +706,24 @@ bool CHL2MPRules::LoadCowFile(IBaseFileSystem *filesystem, const char *resourceN
 				}
 			}
 		}
+		if (sv_coven_usedynamicspawns.GetInt() > 0)
+		{
+			KeyValues *pSpawnPoints = pCowData->FindKey("SpawnPoints");
+			if (pSpawnPoints)
+			{
+				for (KeyValues *sub = pSpawnPoints->GetFirstSubKey(); sub != NULL; sub = sub->GetNextKey())
+				{
+					float locs[3];
+					UTIL_StringToVector(locs, sub->GetString("location", "0 0 0"));
+					char temp[MAX_COVEN_STRING];
+					Q_snprintf(temp, sizeof(temp), "info_player_%s", sub->GetName());
+					CBaseEntity *pSpawn = CreateEntityByName(temp);
+					pSpawn->SetLocalOrigin(Vector(locs[0], locs[1], locs[2]));
+					UTIL_StringToVector(locs, sub->GetString("angles", "0 0 0"));
+					pSpawn->SetLocalAngles(QAngle(locs[0], locs[1], locs[2]));
+				}
+			}
+		}
 		KeyValues *pCapPoints = pCowData->FindKey("CapPoints");
 		if (pCapPoints)
 		{
@@ -735,18 +750,19 @@ bool CHL2MPRules::LoadCowFile(IBaseFileSystem *filesystem, const char *resourceN
 				}
 			}
 		}
-		KeyValues *pXPItems = pCowData->FindKey("XPItems");
-		if (pXPItems)
+		if (sv_coven_usexpitems.GetInt() > 0)
 		{
-#ifdef COVEN_DEVELOPER_MODE
-			Msg("XP Items:\n");
-#endif
-			for (KeyValues *sub = pXPItems->GetFirstSubKey(); sub != NULL; sub = sub->GetNextKey())
+			KeyValues *pXPItems = pCowData->FindKey("XPItems");
+			if (pXPItems)
 			{
-				float locs[3];
-				UTIL_StringToVector(locs, sub->GetString((const char *)NULL, "0 0 0"));
-				if (sv_coven_usexpitems.GetInt() > 0)
+#ifdef COVEN_DEVELOPER_MODE
+				Msg("XP Items:\n");
+#endif
+				for (KeyValues *sub = pXPItems->GetFirstSubKey(); sub != NULL; sub = sub->GetNextKey())
 				{
+					float locs[3];
+					UTIL_StringToVector(locs, sub->GetString((const char *)NULL, "0 0 0"));
+
 					char temp[MAX_COVEN_STRING];
 					Q_snprintf(temp, sizeof(temp), "item_xp_%s", sub->GetName());
 					CBaseEntity *ent = CreateEntityByName(temp);
@@ -803,8 +819,8 @@ void CHL2MPRules::CreateStandardEntities( void )
 
 	BaseClass::CreateStandardEntities();
 
-	g_pLastCombineSpawn = NULL;
-	g_pLastRebelSpawn = NULL;
+	g_pLastSlayerSpawn = NULL;
+	g_pLastVampireSpawn = NULL;
 
 #ifdef DBGFLAG_ASSERT
 	CBaseEntity *pEnt = 
@@ -1176,8 +1192,9 @@ void CHL2MPRules::Think( void )
 			}
 		}
 	}
-#ifdef DEBUG_BOTS_VISUAL
-	if (cowsloaded)
+
+	/*BOTS_DEBUG_VISUAL*****************************************************************************/
+	if (bot_debug_visual.GetInt() > 0 && cowsloaded)
 	{
 		for (int i = 0; i < bot_node_count; i++)
 		{
@@ -1197,8 +1214,22 @@ void CHL2MPRules::Think( void )
 					NDebugOverlay::Cross3D(pBotNet[i]->location, -Vector(2, 2, 2), Vector(2, 2, 2), 255, 0, 255, false, 0.05f);
 			}
 		}
+		CBaseEntity *pCur = gEntList.FirstEnt();
+		while (pCur)
+		{
+			if (!Q_stricmp(pCur->GetClassname(), "info_player_slayer") || !Q_stricmp(pCur->GetClassname(), "info_player_vampire"))
+			{
+				Vector vecStart = pCur->GetAbsOrigin();
+				Vector forward;
+				AngleVectors(pCur->GetAbsAngles(), &forward);
+				NDebugOverlay::SweptBox(vecStart, vecStart + Vector(0, 0, 72), Vector(0, -16, -16), Vector(0, 16, 16), QAngle(90, 0, 0), 255, 255, 255, 50, 0.05f);
+				NDebugOverlay::HorzArrow(vecStart, vecStart + 32.0f * forward, 3.5f, 255, 255, 255, 255, false, 0.05f);
+			}
+
+			pCur = gEntList.NextEnt(pCur);
+		}
 	}
-#endif
+	/***********************************************************************************************/
 
 	//BB: game over stuff... TODO: combine with player stuff above for efficiencies?
 	if ( g_fGameOver )   // someone else quit the game already
