@@ -78,6 +78,7 @@ IMPLEMENT_SERVERCLASS_ST( CFlare, DT_Flare )
 	SendPropInt( SENDINFO( m_bLight ), 1, SPROP_UNSIGNED ),
 	SendPropInt( SENDINFO( m_bSmoke ), 1, SPROP_UNSIGNED ),
 	SendPropInt( SENDINFO( m_bPropFlare ), 1, SPROP_UNSIGNED ),
+	SendPropInt( SENDINFO( m_iFlareType ), 2, SPROP_UNSIGNED ),
 END_SEND_TABLE()
 
 CFlare *CFlare::activeFlares = NULL;
@@ -92,9 +93,9 @@ Class_T CFlare::Classify( void )
 	return CLASS_FLARE; 
 }
 
-CBaseEntity *CreateFlare( Vector vOrigin, QAngle Angles, CBaseEntity *pOwner, float flDuration )
+CBaseEntity *CreateFlare( Vector vOrigin, QAngle Angles, CBaseEntity *pOwner, float flDuration, CovenFlareType_t iFlareType = COVEN_FLARE_TYPE_DEFAULT )
 {
-	CFlare *pFlare = CFlare::Create( vOrigin, Angles, pOwner, flDuration );
+	CFlare *pFlare = CFlare::Create( vOrigin, Angles, pOwner, flDuration, iFlareType );
 
 	if ( pFlare )
 	{
@@ -259,7 +260,7 @@ void CFlare::StartBurnSound( void )
 //			*pOwner - 
 // Output : CFlare
 //-----------------------------------------------------------------------------
-CFlare *CFlare::Create( Vector vecOrigin, QAngle vecAngles, CBaseEntity *pOwner, float lifetime )
+CFlare *CFlare::Create( Vector vecOrigin, QAngle vecAngles, CBaseEntity *pOwner, float lifetime, CovenFlareType_t iFlareType )
 {
 	CFlare *pFlare = (CFlare *) CreateEntityByName( "env_flare" );
 
@@ -289,6 +290,8 @@ CFlare *CFlare::Create( Vector vecOrigin, QAngle vecAngles, CBaseEntity *pOwner,
 
 	pFlare->SetOwnerEntity( pOwner );
 	pFlare->m_pOwner	= pOwner;
+
+	pFlare->m_iFlareType = iFlareType;
 
 	return pFlare;
 }

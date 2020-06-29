@@ -63,33 +63,34 @@ public:
 	virtual bool LevelUp(int lvls, bool bBoostStats = false, bool bSound = false, bool bAutoLevel = false, bool bResetHP = false, bool bEffect = false);
 	int XPForKill(CHL2MP_Player *pAttacker);
 
-	virtual void DestroyAllBuildings(void);
-	virtual void Precache( void );
-	virtual void Spawn( void );
-	virtual void PostThink( void );
-	virtual void PreThink( void );
-	virtual void PlayerDeathThink( void );
-	virtual void SetAnimation( PLAYER_ANIM playerAnim );
-	virtual bool HandleCommand_JoinTeam( int team );
-	virtual bool HandleCommand_SelectClass( int select );
-	virtual bool ClientCommand( const CCommand &args );
-	virtual void CreateViewModel( int viewmodelindex = 0 );
-	virtual bool BecomeRagdollOnClient( const Vector &force );
-	virtual void Event_Killed( const CTakeDamageInfo &info );
-	bool		CovenStatusDamageHandle(CTakeDamageInfo &info, int iDmgType, CovenStatus_t iStatus); //BB: handle packaged damage effects like SLOW and WEAKNESS
-	virtual int OnTakeDamage( const CTakeDamageInfo &inputInfo );
-	virtual int OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo );
-	virtual bool WantsLagCompensationOnEntity( const CBasePlayer *pPlayer, const CUserCmd *pCmd, const CBitVec<MAX_EDICTS> *pEntityTransmitBits ) const;
-	virtual void FireBullets ( const FireBulletsInfo_t &info );
-	virtual bool Weapon_Switch( CBaseCombatWeapon *pWeapon, int viewmodelindex = 0);
-	virtual bool BumpWeapon( CBaseCombatWeapon *pWeapon );
-	virtual void ChangeTeam( int iTeam );
-	virtual void PickupObject ( CBaseEntity *pObject, bool bLimitMassAndSize );
-	virtual void PlayStepSound( Vector &vecOrigin, surfacedata_t *psurface, float fvol, bool force );
-	virtual void Weapon_Drop( CBaseCombatWeapon *pWeapon, const Vector *pvecTarget = NULL, const Vector *pVelocity = NULL );
-	virtual void UpdateOnRemove( void );
-	virtual void DeathSound( const CTakeDamageInfo &info );
-	float Feed();
+	virtual void	DestroyAllBuildings(void);
+	virtual void	Precache( void );
+	virtual void	Spawn( void );
+	virtual void	PostThink( void );
+	virtual void	PreThink( void );
+	virtual void	PlayerDeathThink( void );
+	virtual void	SetAnimation( PLAYER_ANIM playerAnim );
+	virtual bool	HandleCommand_JoinTeam( int team );
+	virtual bool	HandleCommand_SelectClass( int select );
+	virtual bool	ClientCommand( const CCommand &args );
+	virtual void	CreateViewModel( int viewmodelindex = 0 );
+	virtual bool	BecomeRagdollOnClient( const Vector &force );
+	virtual void	Event_Killed( const CTakeDamageInfo &info );
+	bool			DropItem(void);
+	bool			CovenStatusDamageHandle(CTakeDamageInfo &info, int iDmgType, CovenStatus_t iStatus); //BB: handle packaged damage effects like SLOW and WEAKNESS
+	virtual int		OnTakeDamage( const CTakeDamageInfo &inputInfo );
+	virtual int		OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo );
+	virtual bool	WantsLagCompensationOnEntity( const CBasePlayer *pPlayer, const CUserCmd *pCmd, const CBitVec<MAX_EDICTS> *pEntityTransmitBits ) const;
+	virtual void	FireBullets ( const FireBulletsInfo_t &info );
+	virtual bool	Weapon_Switch( CBaseCombatWeapon *pWeapon, int viewmodelindex = 0);
+	virtual bool	BumpWeapon( CBaseCombatWeapon *pWeapon );
+	virtual void	ChangeTeam( int iTeam );
+	virtual void	PickupObject ( CBaseEntity *pObject, bool bLimitMassAndSize );
+	virtual void	PlayStepSound( Vector &vecOrigin, surfacedata_t *psurface, float fvol, bool force );
+	virtual void	Weapon_Drop( CBaseCombatWeapon *pWeapon, const Vector *pvecTarget = NULL, const Vector *pVelocity = NULL );
+	virtual void	UpdateOnRemove( void );
+	virtual void	DeathSound( const CTakeDamageInfo &info );
+	float			Feed();
 	virtual CBaseEntity* EntSelectSpawnPoint( void );
 		
 	int FlashlightIsOn( void );
@@ -227,6 +228,7 @@ public:
 	float solidcooldown;
 
 	CUtlVector<CItem *> medkits;
+	CHandle<CItem> hCarriedItem;
 
 	Vector lock_ts;
 	Vector lock_dash;

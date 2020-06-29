@@ -31,13 +31,6 @@ C_BaseCombatCharacter::C_BaseCombatCharacter()
 	{
 		m_iAmmo.Set( i, 0 );
 	}
-
-#ifdef GLOWS_ENABLE
-	m_pGlowEffect = NULL;
-	m_bGlowEnabled = false;
-	m_bOldGlowEnabled = false;
-	m_bClientSideGlowEnabled = false;
-#endif // GLOWS_ENABLE
 }
 
 void C_BaseCombatCharacter::AddEntity(void)
@@ -195,9 +188,6 @@ void C_BaseCombatCharacter::CreateObjectiveCircle()
 //-----------------------------------------------------------------------------
 C_BaseCombatCharacter::~C_BaseCombatCharacter()
 {
-#ifdef GLOWS_ENABLE
-	DestroyGlowEffect();
-#endif // GLOWS_ENABLE
 }
 
 /*
@@ -210,56 +200,11 @@ int	C_BaseCombatCharacter::GetAmmoCount( char *szName ) const
 }
 */
 
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-void C_BaseCombatCharacter::OnPreDataChanged( DataUpdateType_t updateType )
-{
-	BaseClass::OnPreDataChanged( updateType );
-
-#ifdef GLOWS_ENABLE
-	m_bOldGlowEnabled = m_bGlowEnabled;
-#endif // GLOWS_ENABLE
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-void C_BaseCombatCharacter::OnDataChanged( DataUpdateType_t updateType )
-{
-	BaseClass::OnDataChanged( updateType );
-
-#ifdef GLOWS_ENABLE
-	if ( m_bOldGlowEnabled != m_bGlowEnabled )
-	{
-		UpdateGlowEffect();
-	}
-#endif // GLOWS_ENABLE
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: Overload our muzzle flash and send it to any actively held weapon
-//-----------------------------------------------------------------------------
-void C_BaseCombatCharacter::DoMuzzleFlash()
-{
-	// Our weapon takes our muzzle flash command
-	C_BaseCombatWeapon *pWeapon = GetActiveWeapon();
-	if ( pWeapon )
-	{
-		pWeapon->DoMuzzleFlash();
-		//NOTENOTE: We do not chain to the base here
-	}
-	else
-	{
-		BaseClass::DoMuzzleFlash();
-	}
-}
-
 #ifdef GLOWS_ENABLE
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void C_BaseCombatCharacter::GetGlowEffectColor( float *r, float *g, float *b )
+void C_BaseCombatCharacter::GetGlowEffectColor(float *r, float *g, float *b)
 {
 	if (GetCovenStatusEffects() & (1 << COVEN_STATUS_HAS_CTS))
 	{
@@ -280,71 +225,25 @@ void C_BaseCombatCharacter::GetGlowEffectColor( float *r, float *g, float *b )
 		*b = 0.76f;
 	}
 }
-
-void C_BaseCombatCharacter::ForceGlowEffect( void )
-{
-	if ( m_pGlowEffect )
-	{
-		DestroyGlowEffect();
-	}
-
-	//m_bGlowEnabled = true;
-
-	float r, g, b;
-	GetGlowEffectColor( &r, &g, &b );
-
-	m_pGlowEffect = new CGlowObject( this, Vector( r, g, b ), 1.0, true, true );
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-/*
-void C_BaseCombatCharacter::EnableGlowEffect( float r, float g, float b )
-{
-	// destroy the existing effect
-	if ( m_pGlowEffect )
-	{
-		DestroyGlowEffect();
-	}
-
-	m_pGlowEffect = new CGlowObject( this, Vector( r, g, b ), 1.0, true );
-}
-*/
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-void C_BaseCombatCharacter::UpdateGlowEffect( void )
-{
-	// destroy the existing effect
-	if ( m_pGlowEffect )
-	{
-		DestroyGlowEffect();
-	}
-
-	// create a new effect
-	if ( m_bGlowEnabled || m_bClientSideGlowEnabled )
-	{
-		float r, g, b;
-		GetGlowEffectColor( &r, &g, &b );
-
-		m_pGlowEffect = new CGlowObject( this, Vector( r, g, b ), 1.0, true, true );
-	}
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-void C_BaseCombatCharacter::DestroyGlowEffect( void )
-{
-	if ( m_pGlowEffect )
-	{
-		delete m_pGlowEffect;
-		m_pGlowEffect = NULL;
-	}
-}
 #endif // GLOWS_ENABLE
+
+//-----------------------------------------------------------------------------
+// Purpose: Overload our muzzle flash and send it to any actively held weapon
+//-----------------------------------------------------------------------------
+void C_BaseCombatCharacter::DoMuzzleFlash()
+{
+	// Our weapon takes our muzzle flash command
+	C_BaseCombatWeapon *pWeapon = GetActiveWeapon();
+	if ( pWeapon )
+	{
+		pWeapon->DoMuzzleFlash();
+		//NOTENOTE: We do not chain to the base here
+	}
+	else
+	{
+		BaseClass::DoMuzzleFlash();
+	}
+}
 
 IMPLEMENT_CLIENTCLASS(C_BaseCombatCharacter, DT_BaseCombatCharacter, CBaseCombatCharacter);
 
@@ -358,10 +257,6 @@ BEGIN_RECV_TABLE(C_BaseCombatCharacter, DT_BaseCombatCharacter)
 	RecvPropDataTable( "bcc_localdata", 0, 0, &REFERENCE_RECV_TABLE(DT_BCCLocalPlayerExclusive) ),
 	RecvPropEHandle( RECVINFO( m_hActiveWeapon ) ),
 	RecvPropArray3( RECVINFO_ARRAY(m_hMyWeapons), RecvPropEHandle( RECVINFO( m_hMyWeapons[0] ) ) ),
-#ifdef GLOWS_ENABLE
-	RecvPropBool( RECVINFO( m_bGlowEnabled ) ),
-#endif // GLOWS_ENABLE
-
 #ifdef INVASION_CLIENT_DLL
 	RecvPropInt( RECVINFO( m_iPowerups ) ),
 #endif

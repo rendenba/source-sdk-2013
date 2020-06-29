@@ -30,7 +30,7 @@ public:
 	{
 	}
 
-	int RegisterGlowObject( C_BaseEntity *pEntity, const Vector &vGlowColor, float flGlowAlpha, bool bRenderWhenOccluded, bool bRenderWhenUnoccluded, int nSplitScreenSlot )
+	int RegisterGlowObject( C_BaseEntity *pEntity, const Vector &vGlowColor, float flGlowAlpha, bool bRenderWhenOccluded, bool bRenderWhenUnoccluded, int nSplitScreenSlot, bool bDynamicAlpha, bool bTeamOnly, float flViewDistance = FLT_MAX)
 	{
 		int nIndex;
 		if ( m_nFirstFreeSlot == GlowObjectDefinition_t::END_OF_FREE_LIST )
@@ -46,6 +46,10 @@ public:
 		m_GlowObjectDefinitions[nIndex].m_hEntity = pEntity;
 		m_GlowObjectDefinitions[nIndex].m_vGlowColor = vGlowColor;
 		m_GlowObjectDefinitions[nIndex].m_flGlowAlpha = flGlowAlpha;
+		m_GlowObjectDefinitions[nIndex].m_bDynamicAlpha = bDynamicAlpha;
+		m_GlowObjectDefinitions[nIndex].m_flViewDistance = flViewDistance;
+		m_GlowObjectDefinitions[nIndex].m_bShow = true;
+		m_GlowObjectDefinitions[nIndex].m_bTeamOnly = bTeamOnly;
 		m_GlowObjectDefinitions[nIndex].m_bRenderWhenOccluded = bRenderWhenOccluded;
 		m_GlowObjectDefinitions[nIndex].m_bRenderWhenUnoccluded = bRenderWhenUnoccluded;
 		m_GlowObjectDefinitions[nIndex].m_nSplitScreenSlot = nSplitScreenSlot;
@@ -114,6 +118,7 @@ public:
 	}
 
 	void RenderGlowEffects( const CViewSetup *pSetup, int nSplitScreenSlot );
+	void UpdateGlowEffectsVisibility(void);
 
 private:
 
@@ -128,7 +133,8 @@ private:
 				   ( m_nSplitScreenSlot == GLOW_FOR_ALL_SPLIT_SCREEN_SLOTS || m_nSplitScreenSlot == nSlot ) && 
 				   ( m_bRenderWhenOccluded || m_bRenderWhenUnoccluded ) && 
 				   m_hEntity->ShouldDraw() && 
-				   !m_hEntity->IsDormant();
+				   !m_hEntity->IsDormant() &&
+				   m_bShow;
 		}
 
 		bool IsUnused() const { return m_nNextFreeSlot != GlowObjectDefinition_t::ENTRY_IN_USE; }
@@ -137,6 +143,13 @@ private:
 		EHANDLE m_hEntity;
 		Vector m_vGlowColor;
 		float m_flGlowAlpha;
+
+		float m_flViewDistance;
+		bool m_bShow;
+		float m_flPulse;
+		bool m_bPulsed;
+		bool m_bTeamOnly;
+		bool m_bDynamicAlpha;
 
 		bool m_bRenderWhenOccluded;
 		bool m_bRenderWhenUnoccluded;
@@ -159,9 +172,9 @@ extern CGlowObjectManager g_GlowObjectManager;
 class CGlowObject
 {
 public:
-	CGlowObject( C_BaseEntity *pEntity, const Vector &vGlowColor = Vector( 1.0f, 1.0f, 1.0f ), float flGlowAlpha = 1.0f, bool bRenderWhenOccluded = false, bool bRenderWhenUnoccluded = false, int nSplitScreenSlot = GLOW_FOR_ALL_SPLIT_SCREEN_SLOTS )
+	CGlowObject( C_BaseEntity *pEntity, const Vector &vGlowColor = Vector( 1.0f, 1.0f, 1.0f ), float flGlowAlpha = 1.0f, bool bRenderWhenOccluded = false, bool bRenderWhenUnoccluded = false, int nSplitScreenSlot = GLOW_FOR_ALL_SPLIT_SCREEN_SLOTS, bool bDynamicAlpha = false, bool bTeamOnly = false, float flViewDistance = FLT_MAX )
 	{
-		m_nGlowObjectHandle = g_GlowObjectManager.RegisterGlowObject( pEntity, vGlowColor, flGlowAlpha, bRenderWhenOccluded, bRenderWhenUnoccluded, nSplitScreenSlot );
+		m_nGlowObjectHandle = g_GlowObjectManager.RegisterGlowObject( pEntity, vGlowColor, flGlowAlpha, bRenderWhenOccluded, bRenderWhenUnoccluded, nSplitScreenSlot, bDynamicAlpha, bTeamOnly, flViewDistance );
 	}
 
 	~CGlowObject()

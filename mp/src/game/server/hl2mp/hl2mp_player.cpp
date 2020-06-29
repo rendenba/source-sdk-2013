@@ -30,6 +30,7 @@
 #include "coven_parse.h"
 
 #include "grenade_tripmine.h"
+#include "coven_apc.h"
 
 #include "prop_soul.h"
 
@@ -62,6 +63,7 @@ extern ConVar sv_coven_xp_basekill;
 extern ConVar sv_coven_xp_inckill;
 extern ConVar sv_coven_xp_diffkill;
 extern ConVar sv_coven_cts_returntime;
+extern ConVar sv_coven_gas_returntime;
 extern ConVar sv_coven_hp_per_con;
 extern ConVar sv_coven_mana_per_int;
 extern ConVar sv_coven_max_stealth_velocity;
@@ -200,6 +202,7 @@ CHL2MP_Player::CHL2MP_Player() : m_PlayerAnimState( this )
 	Q_memset(covenLoadouts, 0, sizeof(covenLoadouts));
 	Q_memset(covenLevelsSpent, 0, sizeof(covenLevelsSpent));
 	
+	hCarriedItem = NULL;
 //	UseClientSideAnimation();
 }
 
@@ -482,7 +485,6 @@ bool CHL2MP_Player::BuildTurret(int iAbilityNum)
 	}
 	CBaseEntity *ent;
 	ent = CreateEntityByName("coven_turret");
-	ent->Precache();
 	UTIL_TraceLine(vecSrc, vecSrc - Vector(0, 0, 72), MASK_SHOT, this, COLLISION_GROUP_NONE, &tr);
 	vecSrc.z = tr.endpos.z + 2.0f;
 	((CCoven_Turret *)ent)->mOwner = this;
@@ -929,23 +931,30 @@ void CHL2MP_Player::DoInnerLight(int iAbilityNum)
 	SetCooldown(iAbilityNum, gpGlobals->curtime + info->flCooldown);
 	Vector vecReported = GetLocalOrigin();
 	CTakeDamageInfo dmg(this, this, vec3_origin, GetAbsOrigin(), info->flCost * random->RandomFloat(0.6f, 2.2f), DMG_GENERIC, 0, &vecReported);
+	AddStatusHW(info->flDrain);
 	for (int i = 1; i <= gpGlobals->maxClients; i++)
 	{
 		CHL2MP_Player *pPlayer = (CHL2MP_Player *)UTIL_PlayerByIndex(i);
-		if (pPlayer && pPlayer->GetTeamNumber() != GetTeamNumber() && pPlayer->IsAlive() && !pPlayer->KO)
+		if (pPlayer && pPlayer->IsAlive() && !pPlayer->KO)
 		{
 			Vector dir = pPlayer->GetLocalOrigin() - GetLocalOrigin();
 			if (VectorNormalize(dir) > info->flRange)
 				continue;
-
 			trace_t tr;
-			UTIL_TraceLine(GetLocalOrigin(), pPlayer->GetLocalOrigin(), MASK_SHOT, this, COLLISION_GROUP_PLAYER, &tr);
+			UTIL_TraceLine(EyePosition(), pPlayer->GetPlayerMidPoint(), MASK_SHOT, this, COLLISION_GROUP_PLAYER, &tr);
 			if (tr.m_pEnt && tr.m_pEnt == pPlayer)
 			{
-				dir.z = 0.2f;
-				pPlayer->Pushback(&dir, sv_coven_light_bump.GetFloat());
-				pPlayer->AddStatus(COVEN_STATUS_WEAKNESS, info->iMagnitude, gpGlobals->curtime + info->flDuration, true);
-				pPlayer->TakeDamage(dmg);
+				if (pPlayer->GetTeamNumber() == GetTeamNumber())
+				{
+					pPlayer->AddStatusHW(info->flDrain);
+				}
+				else
+				{
+					dir.z = 0.2f;
+					pPlayer->Pushback(&dir, sv_coven_light_bump.GetFloat());
+					pPlayer->AddStatus(COVEN_STATUS_WEAKNESS, info->iMagnitude, gpGlobals->curtime + info->flDuration, true);
+					pPlayer->TakeDamage(dmg);
+				}
 			}
 		}
 	}
@@ -958,7 +967,8 @@ void CHL2MP_Player::DoInnerLight(int iAbilityNum)
 	CDisablePredictionFiltering disabler;
 #endif
 
-	UTIL_ScreenShake(GetAbsOrigin(), 20.0f, 150.0, 1.0, 1250.0f, SHAKE_START);
+	//BB: no screen shake for now...
+	//UTIL_ScreenShake(GetAbsOrigin(), 20.0f, 150.0, 1.0, 1250.0f, SHAKE_START);
 
 	CBroadcastRecipientFilter filter2;
 
@@ -1351,6 +1361,7 @@ void CHL2MP_Player::Precache( void )
 	s_nExplosionTexture = PrecacheModel( "sprites/lgtning.vmt" );
 
 	PrecacheModel ( "sprites/glow01.vmt" );
+	PrecacheModel("models/props_junk/flare.mdl");
 
 	UTIL_PrecacheOther("grenade_hh");
 	UTIL_PrecacheOther("npc_turret_floor");
@@ -1360,6 +1371,7 @@ void CHL2MP_Player::Precache( void )
 	UTIL_PrecacheOther( "item_xp_slayers" );
 	UTIL_PrecacheOther( "item_xp_vampires" );
 	UTIL_PrecacheOther( "item_cts" );
+	UTIL_PrecacheOther( "coven_turret" );
 
 	//Precache Citizen models
 	int nHeads = ARRAYSIZE( g_ppszRandomCitizenModels );
@@ -1534,7 +1546,7 @@ void CHL2MP_Player::PickDefaultSpawnTeam( void )
 //-----------------------------------------------------------------------------
 void CHL2MP_Player::Spawn(void)
 {
-	if (covenRespawnTimer > 0.0f && gpGlobals->curtime < covenRespawnTimer)
+	if (covenRespawnTimer < 0.0f || gpGlobals->curtime < covenRespawnTimer || HL2MPRules()->covenGameState == COVEN_GAMESTATE_GAME_OVER)
 		return;
 
 	covenRespawnTimer = -1.0f;
@@ -1682,6 +1694,8 @@ void CHL2MP_Player::Spawn(void)
 #ifdef COVEN_DEVELOPER_MODE
 	Msg("Spawn location: %f %f %f\n", GetAbsOrigin().x, GetAbsOrigin().y, GetAbsOrigin().z);
 #endif
+	//BB: lets try to stop the burning...
+	EmitSound("General.StopBurning");
 }
 
 void CHL2MP_Player::PickupObject( CBaseEntity *pObject, bool bLimitMassAndSize )
@@ -2106,16 +2120,20 @@ void CHL2MP_Player::PreThink( void )
 	SetLocalAngles( vOldAngles );
 
 	//BB: CTS logic
-	if (HL2MPRules()->cts_inplay && HasStatus(COVEN_STATUS_HAS_CTS))
+	if (HL2MPRules()->covenCTSStatus > COVEN_CTS_STATUS_UNDEFINED && HasStatus(COVEN_STATUS_HAS_CTS))
 	{
 		if ((HL2MPRules()->cts_zone-GetLocalOrigin()).Length() < HL2MPRules()->cts_zone_radius)
 		{
 			RemoveStatus(COVEN_STATUS_HAS_CTS);
+			RemoveGlowEffect();
 			HL2MPRules()->AddScore(COVEN_TEAMID_SLAYERS, sv_coven_pts_cts.GetInt());
 			HL2MPRules()->GiveItemXP(COVEN_TEAMID_SLAYERS, sv_coven_xp_basekill.GetInt()+sv_coven_xp_inckill.GetInt()*(covenLevelCounter-1));
 			EmitSound( "ItemBattery.Touch" );
 
-			HL2MPRules()->SpawnCTS = gpGlobals->curtime + 5.0f;
+			HL2MPRules()->covenCTSStatus = COVEN_CTS_STATUS_HOME;
+			hCarriedItem->Materialize();
+			hCarriedItem = NULL;
+
 			const char *killer_weapon_name = "cap_cts_slay";
 			IGameEvent *event = gameeventmanager->CreateEvent( "player_death" );
 			if( event )
@@ -2131,7 +2149,7 @@ void CHL2MP_Player::PreThink( void )
 	}
 
 	//BB: cap point logic
-	if (gpGlobals->curtime > lastCapPointTime) //no spectators allowed
+	if (HL2MPRules()->num_cap_points > 0 && gpGlobals->curtime > lastCapPointTime) //no spectators allowed
 	{
 		CHL2MPRules *pRules = HL2MPRules();
 		Vector tVec;
@@ -2309,6 +2327,18 @@ void CHL2MP_Player::Touch(CBaseEntity *pOther)
 			CovenAbilityInfo_t *abilityInfo = GetCovenAbilityData(COVEN_ABILITY_DASH);
 			pPlayer->AddStatus(COVEN_STATUS_SLOW, abilityInfo->flDrain, gpGlobals->curtime + abilityInfo->flDuration, true, false); //BB: we have to be careful here... multiple touch can get out of hand.
 			pPlayer->EmitSound(abilityInfo->aSounds[ABILITY_SND_STOP]);
+		}
+	}
+	//BB: HACK! HACK! HACK! I am tired of APCs running over players.
+	if (FClassnameIs(pOther, "coven_prop_physics"))
+	{
+		if (HL2MPRules()->pAPC->IsRunning())
+		{
+			Vector temp = GetLocalOrigin() - pOther->GetLocalOrigin();
+			float dist = VectorNormalize(temp);
+			//BB: TODO: fix this... bots dont seem to make touch events here appropriately!
+			Pushback(&temp, 125.0f);
+			TakeDamage(CTakeDamageInfo(this, this, vec3_origin, GetAbsOrigin(), (dist < 100.0f ? 1.5f : 0.25f), DMG_GENERIC));
 		}
 	}
 	BaseClass::Touch(pOther);
@@ -3039,18 +3069,13 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 		State_Transition( STATE_OBSERVER_MODE );
 	}
 
-	if ( bKill == true )
+	if (bKill == true)
 	{
 		CommitSuicide();
 		covenClassID = 0;
-
-		if (coven_ignore_respawns.GetInt() == 0 && covenLevelCounter > 0)
-		{
-			covenRespawnTimer = HL2MPRules()->GetRespawnTime((CovenTeamID_t)GetTeamNumber());
-		}
-		else
-			covenRespawnTimer = gpGlobals->curtime;
 	}
+	else
+		covenRespawnTimer = 0.0f;
 }
 
 void CHL2MP_Player::GutcheckThink()
@@ -3243,7 +3268,6 @@ bool CHL2MP_Player::HandleCommand_SelectClass( int select )
 		State_Transition(STATE_ACTIVE);
 	}
 
-
 	DestroyAllBuildings();
 	ResetAbilities();
 	Spawn();
@@ -3295,7 +3319,6 @@ bool CHL2MP_Player::HandleCommand_JoinTeam( int team )
 			m_fNextSuicideTime = gpGlobals->curtime;	// allow the suicide to work
 
 			CommitSuicide();
-			covenRespawnTimer = -1.0f;
 
 			// add 1 to frags to balance out the 1 subtracted for killing yourself
 			IncrementFragCount( 1 );
@@ -3394,9 +3417,9 @@ bool CHL2MP_Player::ClientCommand( const CCommand &args )
 	{
 		return true;
 	}
-	else if ( FStrEq( args[0], "drop_supplies" ) )
+	else if ( FStrEq( args[0], "drop_item" ) )
 	{
-		if (HL2MPRules()->cts_inplay && HasStatus(COVEN_STATUS_HAS_CTS))
+		if (hCarriedItem != NULL)
 		{
 			Vector forward, forwardvel, pos;
 			forwardvel = GetAbsVelocity();
@@ -3408,24 +3431,27 @@ bool CHL2MP_Player::ClientCommand( const CCommand &args )
 			trace_t tr;
 			if (forwardvel.Length() > 0)
 			{
-				pos = GetAbsOrigin()-forwardvel*64+Vector(0,0,32);
+				pos = GetAbsOrigin() - forwardvel * 64 + Vector(0, 0, 32);
 			}
 			else
 			{
-				pos = GetAbsOrigin()+forward*64+Vector(0,0,32);
+				pos = GetAbsOrigin() + forward * 64 + Vector(0, 0, 32);
 			}
 			UTIL_TraceLine(GetAbsOrigin(), pos, MASK_SOLID, this, COLLISION_GROUP_PLAYER, &tr);
 			//drop it... if theres room
 			if (!tr.DidHit())
 			{
-				RemoveStatus(COVEN_STATUS_HAS_CTS);
-				CBaseEntity *mysupplies = CreateEntityByName( "item_cts" );
-				mysupplies->SetAbsOrigin(pos);
-				mysupplies->SetLocalAngles(QAngle(random->RandomInt(0,180), random->RandomInt(0,90), random->RandomInt(0,180)));
-				mysupplies->AddSpawnFlags( SF_NORESPAWN );
-				mysupplies->Spawn();
-				HL2MPRules()->thects = mysupplies;
-				HL2MPRules()->cts_return_timer = gpGlobals->curtime + sv_coven_cts_returntime.GetFloat();
+				if (FClassnameIs(hCarriedItem, "item_cts"))
+				{
+					RemoveStatus(COVEN_STATUS_HAS_CTS);
+					HL2MPRules()->covenCTSStatus = COVEN_CTS_STATUS_DROPPED;
+					RemoveGlowEffect();
+				}
+				else
+					RemoveStatus(COVEN_STATUS_HAS_GAS);
+				
+				hCarriedItem->CarriedRespawn(pos);
+				hCarriedItem = NULL;
 			}
 		}
 		return true;
@@ -3680,6 +3706,24 @@ void CHL2MP_Player::GiveTeamXPCentered(int team, int xp, CBasePlayer *ignore)
 	}*/
 }
 
+bool CHL2MP_Player::DropItem(void)
+{
+	if (hCarriedItem != NULL)
+	{
+		hCarriedItem->CarriedRespawn(EyePosition());
+		if (FClassnameIs(hCarriedItem, "item_gas"))
+			hCarriedItem->m_flNextResetCheckTime = gpGlobals->curtime + sv_coven_gas_returntime.GetFloat();
+		else if (FClassnameIs(hCarriedItem, "item_cts"))
+		{
+			hCarriedItem->m_flNextResetCheckTime = gpGlobals->curtime + sv_coven_cts_returntime.GetFloat();
+			HL2MPRules()->covenCTSStatus = COVEN_CTS_STATUS_DROPPED;
+		}
+		hCarriedItem = NULL;
+		return true;
+	}
+	return false;
+}
+
 void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 {
 	if (coven_ignore_respawns.GetInt() == 0)
@@ -3696,17 +3740,9 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 	}
 	RevengeCheck();
 
-	if (HL2MPRules()->cts_inplay && HasStatus(COVEN_STATUS_HAS_CTS))
-	{
-		CBaseEntity *ent = CreateEntityByName( "item_cts" );
-		ent->SetLocalOrigin(EyePosition());
-		ent->SetLocalAngles(QAngle(random->RandomInt(0,180), random->RandomInt(0,90), random->RandomInt(0,180)));
-		ent->Spawn();
-		ent->AddSpawnFlags(SF_NORESPAWN);
-		HL2MPRules()->thects = ent;
-		HL2MPRules()->cts_return_timer = gpGlobals->curtime + sv_coven_cts_returntime.GetFloat();
-	}
+	DropItem();
 
+	RemoveGlowEffect();
 	SetRenderColorA(255.0f);
 	if (GetActiveWeapon())
 	{
@@ -3743,16 +3779,16 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 
 	if (pAttacker)
 	{
-		//CTeam *team = GetGlobalTeam( pAttacker->GetTeamNumber() );
-		int iScoreToAdd = 1;
+		if (HL2MPRules()->covenActiveGameMode != COVEN_GAMEMODE_ROUNDS)
+		{
+			CTeam *team = GetGlobalTeam(pAttacker->GetTeamNumber());
+			int iScoreToAdd = 1;
 
-		if ( pAttacker == this )
-		{
-			iScoreToAdd = -1;
-		}
-		else
-		{
-			//team->AddScore( iScoreToAdd );
+			if (pAttacker == this)
+			{
+				iScoreToAdd = 0;
+			}
+			team->AddScore(iScoreToAdd);
 		}
 
 		//BB: this generates the taunt for slayers staking vampires...
@@ -3817,6 +3853,82 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 }
 
 #ifdef COVEN_DEVELOPER_MODE
+CON_COMMAND(test, "test")
+{
+	CHL2MP_Player *pPlayer = ToHL2MPPlayer(UTIL_GetCommandClient());
+	if (!pPlayer)
+		return;
+	
+	Vector forward;
+	AngleVectors(pPlayer->EyeAngles(), &forward);
+
+	/*CBaseEntity *pEnt = CreateEntityByName("env_flare");
+	pEnt->SetAbsOrigin(pPlayer->GetAbsOrigin() + 200.0f * forward + Vector(0, 0, 69));
+	pEnt->SetAbsAngles(pPlayer->GetAbsAngles());
+	pEnt->Spawn();*/
+
+	CHandle<CPhysicsProp>	m_hFlare;
+	m_hFlare = static_cast<CPhysicsProp *>(CreateEntityByName("prop_physics"));
+	if (m_hFlare != NULL)
+	{
+		// Set the model
+		// Set the parent attachment
+		//m_hFlare->SetParent(pPlayer);
+		//m_hFlare->SetParentAttachment("SetParentAttachment", pEvent->options, false);
+		Vector location = pPlayer->EyePosition();
+		QAngle orientation = pPlayer->GetAbsAngles();
+		char buf[512];
+		// Pass in standard key values
+		Q_snprintf(buf, sizeof(buf), "%.10f %.10f %.10f", location.x, location.y, location.z);
+		m_hFlare->KeyValue("origin", buf);
+		Q_snprintf(buf, sizeof(buf), "%.10f %.10f %.10f", orientation.x, orientation.y, orientation.z);
+		m_hFlare->KeyValue("angles", buf);
+		m_hFlare->KeyValue("model", "models/props_junk/flare.mdl");
+		m_hFlare->KeyValue("fademindist", "-1");
+		m_hFlare->KeyValue("fademaxdist", "0");
+		m_hFlare->KeyValue("fadescale", "1");
+		m_hFlare->KeyValue("inertiaScale", "1.0");
+		m_hFlare->KeyValue("physdamagescale", "0.1");
+		m_hFlare->Precache();
+		m_hFlare->SetCollisionGroup(COLLISION_GROUP_PLAYER);
+		m_hFlare->Spawn();
+		m_hFlare->Activate();
+	}
+	
+	
+	
+	m_hFlare->CreateFlare(30.0f);
+	// Detach
+	m_hFlare->SetParent(NULL);
+	//m_hFlare->RemoveInteraction(PROPINTER_PHYSGUN_CREATE_FLARE);
+
+	// Disable collisions between the NPC and the flare
+	PhysDisableEntityCollisions(pPlayer, m_hFlare);
+
+	// TODO: Find the velocity of the attachment point, at this time, in the animation cycle
+
+	// Construct a toss velocity
+	Vector vecToss;
+	AngleVectors(pPlayer->EyeAngles(), &vecToss);
+	VectorNormalize(vecToss);
+	vecToss *= random->RandomFloat(64.0f, 72.0f);
+	vecToss[2] += 164.0f;
+
+	// Throw it
+	IPhysicsObject *pObj = m_hFlare->VPhysicsGetObject();
+	pObj->ApplyForceCenter(vecToss);
+	pObj->SetMass(0.001f);
+	//m_hFlare->SetGravity(0.000001f);
+
+	// Forget about the flare at this point
+	m_hFlare = NULL;
+
+	/*((CCoven_APC *)pEnt)->SetMaxSpeed(3.0f);
+	((CCoven_APC *)pEnt)->SetFuelUp(5000);
+	((CCoven_APC *)pEnt)->SetGoal(4);*/
+
+}
+
 CON_COMMAND(testprobe, "test probe")
 {
 	CHL2MP_Player *pPlayer = ToHL2MPPlayer( UTIL_GetCommandClient() );
@@ -4006,6 +4118,9 @@ CON_COMMAND(location, "print current location")
 	ClientPrint( pPlayer, HUD_PRINTCONSOLE, szReturnString );
 	QAngle temp2 = pPlayer->EyeAngles();
 	Q_snprintf(szReturnString, sizeof(szReturnString), "Eye angles: \"%f %f %f\"\n", temp2.x, temp2.y, temp2.z);
+	ClientPrint(pPlayer, HUD_PRINTCONSOLE, szReturnString);
+	AngleVectors(temp2, &temp);
+	Q_snprintf(szReturnString, sizeof(szReturnString), "Eye vector: \"%f %f %f\"\n", temp.x, temp.y, temp.z);
 	ClientPrint(pPlayer, HUD_PRINTCONSOLE, szReturnString);
 }
 
@@ -4313,12 +4428,6 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 
 	if (GetTeamNumber() == COVEN_TEAMID_SLAYERS && HasStatus(COVEN_STATUS_HOLYWATER))
 	{
-		float temp = floor(0.2f * inputInfoAdjust.GetDamage());
-		int mag = GetStatusMagnitude(COVEN_STATUS_HOLYWATER);
-		if (temp > mag)
-		{
-			temp = mag;
-		}
 		//moved this only fall damage
 		/*
 		flIntegerDamage -= temp;
@@ -4326,6 +4435,12 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 		*/
 		if (inputInfoAdjust.GetDamageType() == DMG_FALL)
 		{
+			int mag = GetStatusMagnitude(COVEN_STATUS_HOLYWATER);
+			float temp = floor((0.2f + 0.1f * mag / 50.0f) * inputInfoAdjust.GetDamage());
+			if (temp > mag)
+			{
+				temp = mag;
+			}
 			//holyhealtotal -= 30;
 			inputInfoAdjust.SetDamage(inputInfoAdjust.GetDamage() - temp);
 			int newtot = mag-temp;
@@ -4335,7 +4450,11 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 				RemoveStatus(COVEN_STATUS_HOLYWATER);
 				coven_timer_holywater = -1.0f;
 			}
-			SetStatusMagnitude(COVEN_STATUS_HOLYWATER, newtot);
+			else
+			{
+				SetStatusMagnitude(COVEN_STATUS_HOLYWATER, newtot);
+				SetStatusTime(COVEN_STATUS_HOLYWATER, GetStatusTime(COVEN_STATUS_HOLYWATER) - temp);
+			}
 		}
 	}
 

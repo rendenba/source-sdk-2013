@@ -28,7 +28,7 @@ DECLARE_HUDELEMENT( CHudTeamScore );
 
 #define TEAMSCORE_INIT -1
 
-extern ConVar fraglimit;
+extern ConVar sv_coven_capture_fraglimit;
 
 //-----------------------------------------------------------------------------
 // Purpose: Constructor
@@ -87,6 +87,9 @@ bool CHudTeamScore::ShouldDraw()
 	if ( !pPlayer )
 		return false;
 
+	if (HL2MPRules()->num_cap_points == 0)
+		return false;
+
 	C_Team *team = GetGlobalTeam( COVEN_TEAMID_SLAYERS );
 	int sscore = team->Get_Score();
 	team = GetGlobalTeam( COVEN_TEAMID_VAMPIRES );
@@ -107,6 +110,8 @@ void CHudTeamScore::OnThink( void )
 {
 	C_BaseHLPlayer *pPlayer = (C_BaseHLPlayer *)C_BasePlayer::GetLocalPlayer();
 	if ( !pPlayer )
+		return;
+	if (HL2MPRules()->num_cap_points == 0)
 		return;
 
 	C_Team *team = GetGlobalTeam( COVEN_TEAMID_SLAYERS );
@@ -160,7 +165,7 @@ void CHudTeamScore::Paint()
 	c = GameResources()->GetTeamColor( COVEN_TEAMID_SLAYERS );
 	// get bar chunks
 	int chunkCount = m_flBarWidth / (m_flBarChunkWidth + m_flBarChunkGap) / 2;
-	int enabledChunks = (int)((float)chunkCount * (m_TeamSScore * 1.0f/(fraglimit.GetFloat())) + 0.5f );
+	int enabledChunks = (int)((float)chunkCount * (m_TeamSScore * 1.0f / (sv_coven_capture_fraglimit.GetFloat())) + 0.5f);
 
 	// draw the suit power bar
 	surface()->DrawSetColor( c );
@@ -197,7 +202,7 @@ void CHudTeamScore::Paint()
 
 	c = GameResources()->GetTeamColor( COVEN_TEAMID_VAMPIRES );
 	// get bar chunks
-	enabledChunks = (int)((float)chunkCount * (m_TeamVScore * 1.0f/(fraglimit.GetFloat())) + 0.5f );
+	enabledChunks = (int)((float)chunkCount * (m_TeamVScore * 1.0f / (sv_coven_capture_fraglimit.GetFloat())) + 0.5f);
 
 	// draw the suit power bar
 	surface()->DrawSetColor( c );

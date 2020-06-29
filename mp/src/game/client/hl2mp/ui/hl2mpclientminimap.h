@@ -86,8 +86,6 @@ private:
 	char text_names[COVEN_MAX_CAP_POINTS][MAX_PLAYER_NAME_LENGTH];
 	Vector2D cts;
 	Vector2D cts_zone;
-	Vector cts_origin;
-	bool usingCTS;
 	int			m_iDesiredHeight;
 	IViewPort	*m_pViewPort;
 	ButtonCode_t m_nCloseKey;

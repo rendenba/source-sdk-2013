@@ -244,7 +244,7 @@ void CHudAuras::Paint()
 			surface()->DrawSetColor(blk);
 			int size = 0;
 			float timer = 0.0f;
-			if (info->bShowTimer)
+			if (info->bShowTimer || iStatus == COVEN_STATUS_HOLYWATER)//SPECIAL CASE!
 			{
 				timer = pPlayer->m_HL2Local.covenStatusTimers[iStatus] - gpGlobals->curtime;
 				if (timer < 4.2f && timer > 0.5f)
@@ -277,7 +277,7 @@ void CHudAuras::Paint()
 			int offsety = inset - size;
 			surface()->DrawTexturedRect(x + offsetx, offsety, x + offsetx + picheight + 2 * size, offsety + picheight + 2 * size);
 
-			if (info->bShowTimer)
+			if (info->bShowTimer || iStatus == COVEN_STATUS_HOLYWATER)//SPECIAL CASE!
 				if (timer > 0.0f)
 					DrawCircleSegment(x + offsetx, offsety, picheight + 2 * size, picheight + 2 * size, 1.0f - timer / max_duration[iStatus], true);
 
@@ -346,6 +346,8 @@ void CHudAuras::OnThink()
 			if (timer > max_duration[iStatus])
 				max_duration[iStatus] = timer;
 		}
+		else
+			max_duration[iStatus] = 0.0f;
 	}
 
 	if (iNumActiveAuras == 0)

@@ -26,6 +26,9 @@
 #include "ragdoll_shared.h"
 #include "tier0/threadtools.h"
 #include "datacache/idatacache.h"
+#ifdef GLOWS_ENABLE
+#include "glow_outline_effect.h"
+#endif // GLOWS_ENABLE
 
 #define LIPSYNC_POSEPARAM_NAME "mouth"
 #define NUM_HITBOX_FIRES	10
@@ -113,7 +116,7 @@ public:
 	virtual void	Simulate();	
 	virtual void	Release();	
 
-	float            m_floatCloakFactor;
+	float			m_floatCloakFactor;
 
 	float	GetAnimTimeInterval( void ) const;
 
@@ -449,7 +452,21 @@ public:
 	virtual bool					IsViewModel() const;
 	virtual void					UpdateOnRemove( void );
 
+#ifdef GLOWS_ENABLE
+	CGlowObject			*GetGlowObject(void){ return m_pGlowEffect; }
+	virtual void		GetGlowEffectColor(float *r, float *g, float *b, float *a);
+	//	void				EnableGlowEffect( float r, float g, float b );
+
+	void				SetClientSideGlowEnabled(bool bEnabled){ m_bClientSideGlowEnabled = bEnabled; UpdateGlowEffect(); }
+	bool				IsClientSideGlowEnabled(void){ return m_bClientSideGlowEnabled; }
+#endif // GLOWS_ENABLE
+
 protected:
+#ifdef GLOWS_ENABLE	
+	virtual void		UpdateGlowEffect(void);
+	virtual void		ForceGlowEffect(const color32 &clr, bool bRenderWhenOccluded = false, bool bRenderWhenUnoccluded = false, float flViewDistance = FLT_MAX);
+	virtual void		DestroyGlowEffect(void);
+#endif // GLOWS_ENABLE
 	// View models scale their attachment positions to account for FOV. To get the unmodified
 	// attachment position (like if you're rendering something else during the view model's DrawModel call),
 	// use TransformViewModelAttachmentToWorld.
@@ -481,6 +498,17 @@ private:
 	void							UpdateRelevantInterpolatedVars();
 	void							AddBaseAnimatingInterpolatedVars();
 	void							RemoveBaseAnimatingInterpolatedVars();
+#ifdef GLOWS_ENABLE
+	bool				m_bClientSideGlowEnabled;	// client-side only value used for spectator
+	bool				m_bGlowEnabled;				// networked value
+	float				m_flGlowDist;				// networked value
+	int					m_iGlowFlags;				// networked value
+	bool				m_bOldGlowEnabled;
+	int					m_iOldGlowFlags;
+	CGlowObject			*m_pGlowEffect;
+	color32				m_clrOldGlowColor;
+	CNetworkColor32(m_clrGlowColor);
+#endif // GLOWS_ENABLE
 
 public:
 	CRagdoll						*m_pRagdoll;

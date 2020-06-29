@@ -85,15 +85,12 @@ bool CHudXP::ShouldDraw()
 //-----------------------------------------------------------------------------
 void CHudXP::OnThink( void )
 {
-	int currentXP = 0;
 	C_BaseHLPlayer *pPlayer = (C_BaseHLPlayer *)C_BasePlayer::GetLocalPlayer();
 	if ( !pPlayer )
 		return;
 
-	currentXP = pPlayer->m_HL2Local.covenXPCounter;
-
 	// Only update if we've changed suit power
-	if ( currentXP == m_XP )
+	if (pPlayer->m_HL2Local.covenXPCounter == m_XP)
 		return;
 
 	/*if ( currentXP >= 100.0f && m_XP < 100.0f )
@@ -108,7 +105,7 @@ void CHudXP::OnThink( void )
 	}*/
 
 
-	m_XP = currentXP;
+	m_XP = pPlayer->m_HL2Local.covenXPCounter;
 }
 
 void CHudXP::PaintBackground()

@@ -358,54 +358,49 @@ void CHL2MPClientMiniMapDialog::PaintBackground()
 
 	surface()->DrawTexturedRect( 10, 10, wide-10, tall-10 );
 
-	surface()->DrawSetTexture( m_nGrayDot );
-	for (int i = 0; i < mapspots.Size(); i++)
+	if (HL2MPRules()->num_cap_points > 0)
 	{
-		if (HL2MPRules()->cap_point_state[i] == COVEN_TEAMID_SLAYERS)
-			surface()->DrawSetTexture( m_nBlueDot );
-		else if (HL2MPRules()->cap_point_state[i] == COVEN_TEAMID_VAMPIRES)
-			surface()->DrawSetTexture( m_nRedDot );
-		else
-			surface()->DrawSetTexture( m_nGrayDot );
-		surface()->DrawTexturedRect( mapspots[i].x, mapspots[i].y, mapspots[i].x+32, mapspots[i].y+32 );
+		surface()->DrawSetTexture(m_nGrayDot);
+		for (int i = 0; i < mapspots.Size(); i++)
+		{
+			if (HL2MPRules()->cap_point_state[i] == COVEN_TEAMID_SLAYERS)
+				surface()->DrawSetTexture(m_nBlueDot);
+			else if (HL2MPRules()->cap_point_state[i] == COVEN_TEAMID_VAMPIRES)
+				surface()->DrawSetTexture(m_nRedDot);
+			else
+				surface()->DrawSetTexture(m_nGrayDot);
+			surface()->DrawTexturedRect(mapspots[i].x, mapspots[i].y, mapspots[i].x + 32, mapspots[i].y + 32);
+		}
+
+		for (int j = 0; j < textspots.Size(); j++)
+		{
+			Color c;
+			if (HL2MPRules()->cap_point_state[j] == COVEN_TEAMID_SLAYERS)
+				c = GameResources()->GetTeamColor(COVEN_TEAMID_SLAYERS);
+			else if (HL2MPRules()->cap_point_state[j] == COVEN_TEAMID_VAMPIRES)
+				c = GameResources()->GetTeamColor(COVEN_TEAMID_VAMPIRES);
+			else
+				c = Color(120, 120, 120, 250);
+			surface()->DrawSetTextColor(c);
+			surface()->DrawSetTextPos(textspots[j].x, textspots[j].y);
+			wchar_t sIDString[MAX_PLAYER_NAME_LENGTH];
+			sIDString[0] = 0;
+			g_pVGuiLocalize->ConvertANSIToUnicode(text_names[j], sIDString, sizeof(sIDString));
+			surface()->DrawSetTextFont(m_hTextFont);
+			surface()->DrawPrintText(sIDString, wcslen(sIDString));
+		}
 	}
 
-	for (int j = 0; j < textspots.Size(); j++)
-	{
-		Color c;
-		if (HL2MPRules()->cap_point_state[j] == COVEN_TEAMID_SLAYERS)
-			c = GameResources()->GetTeamColor( COVEN_TEAMID_SLAYERS );
-		else if (HL2MPRules()->cap_point_state[j] == COVEN_TEAMID_VAMPIRES)
-			c = GameResources()->GetTeamColor( COVEN_TEAMID_VAMPIRES );
-		else
-			c = Color(120,120,120,250);
-		surface()->DrawSetTextColor(c);
-		surface()->DrawSetTextPos( textspots[j].x, textspots[j].y );
-		wchar_t sIDString[ MAX_PLAYER_NAME_LENGTH ];
-		sIDString[0] = 0;
-		g_pVGuiLocalize->ConvertANSIToUnicode( text_names[j],  sIDString, sizeof(sIDString) );
-		surface()->DrawSetTextFont(m_hTextFont);
-		surface()->DrawPrintText( sIDString, wcslen(sIDString) );
-	}
-
-	if (usingCTS)
+	if (HL2MPRules()->covenCTSStatus > COVEN_CTS_STATUS_UNDEFINED)
 	{
 		surface()->DrawSetTexture( m_nGoldStar );
-		if (HL2MPRules()->cts_net.Get() == NULL && HL2MPRules()->SpawnCTS > 0.0f)
-		{
-			//CTS IS RETURNING HOME AWAITING RESPAWN
-		}
-		else if (HL2MPRules()->cts_net.Get() == NULL)
+		if (HL2MPRules()->covenCTSStatus == COVEN_CTS_STATUS_CARRIED)
 		{
 			surface()->DrawTexturedRect(cts_zone.x, cts_zone.y, cts_zone.x+32, cts_zone.y+32 );
 		}
-		else if ((HL2MPRules()->cts_net.Get()->GetLocalOrigin()-cts_origin).Length() < 200)
+		else if (HL2MPRules()->covenCTSStatus == COVEN_CTS_STATUS_HOME)
 		{
 			surface()->DrawTexturedRect(cts.x, cts.y, cts.x+32, cts.y+32 );
-		}
-		else
-		{
-			//CTS IS LOST SOMEWHERE
 		}
 	}
 }
@@ -613,7 +608,6 @@ bool CHL2MPClientMiniMapDialog::LoadFromBuffer( char const *resourceName, CUtlBu
 		}
 		else if (Q_strcmp(s,"cts") == 0)
 		{
-			usingCTS = true;
 			int x,y;
 			buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
 			const char *u = temparray;
@@ -622,11 +616,6 @@ bool CHL2MPClientMiniMapDialog::LoadFromBuffer( char const *resourceName, CUtlBu
 			const char *v = temparray;
 			UTIL_StringToIntArray(&y, 1, v);
 			cts = Vector2D(x,y);
-			buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
-			const char *t = temparray;
-			float locs[3];
-			UTIL_StringToVector(locs, t);
-			cts_origin = Vector(locs[0], locs[1], locs[2]);
 		}
 		else if (Q_strcmp(s,"ctszone") == 0)
 		{
@@ -693,14 +682,8 @@ bool CHL2MPClientMiniMapDialog::LoadDotFile(IBaseFileSystem *filesystem, const c
 		KeyValues *pCTS = pMapData->FindKey("cts");
 		if (pCTS)
 		{
-			usingCTS = true;
 			cts.x = pCTS->GetInt("x");
 			cts.y = pCTS->GetInt("y");
-			float locs[3];
-			UTIL_StringToVector(locs, pCTS->GetString("origin", "0 0 0"));
-			cts_origin.x = locs[0];
-			cts_origin.y = locs[1];
-			cts_origin.z = locs[2];
 			KeyValues *zone = pCTS->FindKey("ctszone");
 			if (zone)
 			{
@@ -719,7 +702,6 @@ void CHL2MPClientMiniMapDialog::FireGameEvent( IGameEvent *event )
 
 	if ( Q_strcmp(type, "game_newmap") == 0 )
 	{
-		usingCTS = false;
 		mapspots.RemoveAll();
 		textspots.RemoveAll();
 		Q_snprintf( mapname, sizeof( mapname ), "maps/%s", event->GetString("mapname") );

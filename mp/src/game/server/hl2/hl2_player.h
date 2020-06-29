@@ -340,6 +340,7 @@ public:
 	void SetStatusMagnitude(CovenStatus_t iStatusNum, int iMagnitude);
 	int GetStatusMagnitude(CovenStatus_t iStatusNum);
 	void AddStatus(CovenStatus_t iStatusNum, int iMagnitude = -1, float flTime = -1.0f, bool bSafeAdd = false, bool bCumulative = true);
+	void AddStatusHW(int iAmount);
 	void RemoveStatus(CovenStatus_t iStatusNum);
 	inline bool HasStatus(CovenStatus_t iStatusNum) { return (covenStatusEffects & (1 << iStatusNum)) > 0; };
 	bool HasHandledStatus(CovenStatus_t iStatusNum, int iMagnitude);

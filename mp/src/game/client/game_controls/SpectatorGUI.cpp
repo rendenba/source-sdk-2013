@@ -40,6 +40,7 @@
 #include <imapoverview.h>
 #include <shareddefs.h>
 #include <igameresources.h>
+#include "hl2mp_gamerules.h"
 
 #ifdef TF_CLIENT_DLL
 #include "tf_gamerules.h"
@@ -733,8 +734,22 @@ void CSpectatorGUI::UpdateTimer()
 
 	float timer = pPlayer->covenRespawnTimer;
 	
-	if (timer < 0.0f)
-		V_swprintf_safe ( szText, L"Spectating");
+	if (timer <= 0.0f)
+	{
+		CHL2MPRules *pRules = HL2MPRules();
+		if (pRules && pRules->flRoundTimer > 0.0f)
+		{
+			float flTime = max(ceil(pRules->flRoundTimer - gpGlobals->curtime), 0);
+			int iMinutes = flTime / 60;
+			int iSeconds = flTime - iMinutes * 60;
+			if (iSeconds < 10)
+				V_swprintf_safe(szText, L"%d:0%d", iMinutes, iSeconds);
+			else
+				V_swprintf_safe(szText, L"%d:%d", iMinutes, iSeconds);
+		}
+		else
+			V_swprintf_safe(szText, L"Spectating");
+	}
 	else
 	{
 		timer -= gpGlobals->curtime;

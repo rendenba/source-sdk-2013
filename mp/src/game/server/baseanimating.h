@@ -158,12 +158,29 @@ public:
 	bool	HasPoseParameter( int iSequence, const char *szName );
 	bool	HasPoseParameter( int iSequence, int iParameter );
 	float	EdgeLimitPoseParameter( int iParameter, float flValue, float flBase = 0.0f );
+	virtual void		UpdateOnRemove(void);
+
+#ifdef GLOWS_ENABLE
+	// Glows
+	void				AddGlowEffect(bool bRenderOccluded, bool bRenderUnoccluded, bool bDynamicAlpha, bool bUseTeamColors = false, bool bTeamOnly = false, float flViewDistance = FLT_MAX);
+	virtual void		SetGlowEffectColor(byte r, byte g, byte b, byte a);
+	void				RemoveGlowEffect(void);
+	bool				IsGlowEffectActive(void);
+#endif // GLOWS_ENABLE
 
 protected:
 	// The modus operandi for pose parameters is that you should not use the const char * version of the functions
 	// in general code -- it causes many many string comparisons, which is slower than you think. Better is to 
 	// save off your pose parameters in member variables in your derivation of this function:
 	virtual void	PopulatePoseParameters( void );
+
+#ifdef GLOWS_ENABLE
+protected:
+	CNetworkVar(bool, m_bGlowEnabled);
+	CNetworkVar(float, m_flGlowDist);
+	CNetworkVar(int, m_iGlowFlags);
+	CNetworkColor32(m_clrGlowColor);
+#endif // GLOWS_ENABLE
 
 
 public:

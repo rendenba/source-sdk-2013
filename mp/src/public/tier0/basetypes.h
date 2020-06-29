@@ -247,6 +247,11 @@ inline bool color32::operator!=( const color32 &other ) const
 	return r != other.r || g != other.g || b != other.b || a != other.a;
 }
 
+inline bool IsEmptyColor(const color32 &color)
+{
+	return color.r == 0 && color.g == 0 && color.b == 0 && color.a == 0;
+}
+
 struct colorVec
 {
 	unsigned r, g, b, a;

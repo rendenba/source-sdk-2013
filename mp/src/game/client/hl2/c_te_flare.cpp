@@ -20,6 +20,7 @@
 //Precahce the effects
 CLIENTEFFECT_REGISTER_BEGIN( PrecacheEffectFlares )
 CLIENTEFFECT_MATERIAL( "effects/redflare" )
+CLIENTEFFECT_MATERIAL( "effects/blueflare1" )
 CLIENTEFFECT_MATERIAL( "effects/yellowflare" )
 CLIENTEFFECT_MATERIAL( "effects/yellowflare_noz" )
 CLIENTEFFECT_REGISTER_END()
@@ -44,7 +45,7 @@ public:
 	bool	m_bSmoke;
 	bool	m_bPropFlare;
 	pixelvis_handle_t m_queryHandle;
-
+	CovenFlareType_t m_iFlareType;
 
 private:
 	C_Flare( const C_Flare & );
@@ -61,6 +62,7 @@ IMPLEMENT_CLIENTCLASS_DT( C_Flare, DT_Flare, CFlare )
 	RecvPropInt( RECVINFO( m_bLight ) ),
 	RecvPropInt( RECVINFO( m_bSmoke ) ),
 	RecvPropInt( RECVINFO( m_bPropFlare ) ),
+	RecvPropInt( RECVINFO( m_iFlareType ) ),
 END_RECV_TABLE()
 
 //-----------------------------------------------------------------------------
@@ -75,6 +77,8 @@ C_Flare::C_Flare() : CSimpleEmitter( "C_Flare" )
 	m_bLight		= true;
 	m_bSmoke		= true;
 	m_bPropFlare	= false;
+
+	m_iFlareType = COVEN_FLARE_TYPE_DEFAULT;
 
 	SetDynamicallyAllocated( false );
 	m_queryHandle = 0;
@@ -112,7 +116,7 @@ void C_Flare::OnDataChanged( DataUpdateType_t updateType )
 		SetSortOrigin( GetAbsOrigin() );
 		if ( m_bSmoke )
 		{
-			m_teSmokeSpawn.Init( 8 );
+			m_teSmokeSpawn.Init( 24 ); //8
 		}
 	}
 
@@ -126,8 +130,15 @@ void C_Flare::RestoreResources( void )
 {
 	if ( m_pParticle[0] == NULL )
 	{
-		m_pParticle[0] = (SimpleParticle *) AddParticle( sizeof( SimpleParticle ), GetPMaterial( "effects/redflare" ), GetAbsOrigin() );
-		
+		if (m_iFlareType == COVEN_FLARE_TYPE_BLUE)
+			m_pParticle[0] = (SimpleParticle *)AddParticle(sizeof(SimpleParticle), GetPMaterial("effects/blueflare1"), GetAbsOrigin());
+		else if (m_iFlareType == COVEN_FLARE_TYPE_YELLOW)
+			m_pParticle[0] = (SimpleParticle *)AddParticle(sizeof(SimpleParticle), GetPMaterial("effects/yellowflare"), GetAbsOrigin());
+		else if (m_iFlareType == COVEN_FLARE_TYPE_GREEN)
+			m_pParticle[0] = (SimpleParticle *)AddParticle(sizeof(SimpleParticle), GetPMaterial("effects/blueflare1"), GetAbsOrigin());
+		else
+			m_pParticle[0] = (SimpleParticle *)AddParticle(sizeof(SimpleParticle), GetPMaterial("effects/redflare"), GetAbsOrigin());
+
 		if ( m_pParticle[0] != NULL )
 		{
 			m_pParticle[0]->m_uchColor[0] = m_pParticle[0]->m_uchColor[1] = m_pParticle[0]->m_uchColor[2] = 0;
@@ -279,17 +290,44 @@ void C_Flare::Update( float timeDelta )
 
 				//Raise the light a little bit away from the flare so it lights it up better.
 				dl->origin	= effect_origin + Vector( 0, 0, 4 );
-				dl->color.r = 255;
 				dl->die		= gpGlobals->curtime + 0.1f;
 
 				dl->radius	= baseScale * random->RandomFloat( 245.0f, 256.0f );
-				dl->color.g = dl->color.b = random->RandomInt( 95, 128 );
-		
-				dlight_t *el= effects->CL_AllocElight( index );
+
+				dlight_t *el = effects->CL_AllocElight(index);
+
+				if (m_iFlareType == COVEN_FLARE_TYPE_BLUE)
+				{
+					dl->color.b = 255;
+					dl->color.g = dl->color.r = random->RandomInt(95, 128);
+					el->color.b = 255;
+					el->color.g = dl->color.r = random->RandomInt(95, 128);
+				}
+				else if (m_iFlareType == COVEN_FLARE_TYPE_YELLOW)
+				{
+					dl->color.r = dl->color.g = 255;
+					dl->color.b = random->RandomInt(95, 128);
+					el->color.r = el->color.g = 255;
+					dl->color.b = random->RandomInt(95, 128);
+				}
+				else if (m_iFlareType == COVEN_FLARE_TYPE_GREEN)
+				{
+					dl->color.g = 255;
+					dl->color.b = dl->color.r = random->RandomInt(95, 128);
+					el->color.g = 255;
+					el->color.b = dl->color.r = random->RandomInt(95, 128);
+				}
+				else
+				{
+					dl->color.r = 255;
+					dl->color.g = dl->color.b = random->RandomInt(95, 128);
+					el->color.r = 255;
+					el->color.g = dl->color.b = random->RandomInt(95, 128);
+				}
+
 
 				el->origin	= effect_origin;
-				el->color.r = 255;
-				el->color.g = dl->color.b = random->RandomInt( 95, 128 );
+				
 				el->radius	= baseScale * random->RandomFloat( 260.0f, 290.0f );
 				el->die		= gpGlobals->curtime + 0.1f;
 			}
@@ -326,9 +364,30 @@ void C_Flare::Update( float timeDelta )
 
 			if ( m_bPropFlare )
 			{
-				sParticle->m_uchColor[0]	= 255;
-				sParticle->m_uchColor[1]	= 100;
-				sParticle->m_uchColor[2]	= 100;
+				if (m_iFlareType == COVEN_FLARE_TYPE_BLUE)
+				{
+					sParticle->m_uchColor[0] = 100;
+					sParticle->m_uchColor[1] = 100;
+					sParticle->m_uchColor[2] = 255;
+				}
+				else if (m_iFlareType == COVEN_FLARE_TYPE_YELLOW)
+				{
+					sParticle->m_uchColor[0] = 255;
+					sParticle->m_uchColor[1] = 200;
+					sParticle->m_uchColor[2] = 100;
+				}
+				else if (m_iFlareType == COVEN_FLARE_TYPE_GREEN)
+				{
+					sParticle->m_uchColor[0] = 100;
+					sParticle->m_uchColor[1] = 255;
+					sParticle->m_uchColor[2] = 200;
+				}
+				else
+				{
+					sParticle->m_uchColor[0] = 255;
+					sParticle->m_uchColor[1] = 100;
+					sParticle->m_uchColor[2] = 100;
+				}
 			}
 			else
 			{

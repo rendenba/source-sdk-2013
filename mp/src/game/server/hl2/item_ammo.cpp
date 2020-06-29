@@ -88,28 +88,56 @@ public:
 	}
 	void Precache( void )
 	{
-		PrecacheScriptSound( "ItemBattery.Touch" );
 		PrecacheModel ("models/weapons/w_suitcase_passenger.mdl");
 	}
 	bool MyTouch( CBasePlayer *pPlayer )
 	{
-		if (pPlayer->IsAlive() && pPlayer->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
-		{
-			if ( g_pGameRules->ItemShouldRespawn( this ) == GR_ITEM_RESPAWN_NO )
-			{
-				UTIL_Remove(this);
-				HL2MPRules()->thects = NULL;
-				HL2MPRules()->cts_return_timer = 0.0f;
-			}
-			((CHL2_Player *)pPlayer)->AddStatus(COVEN_STATUS_HAS_CTS);
-			pPlayer->AddGlowEffect();
-			pPlayer->EmitSound( "ItemBattery.Touch" );
-			return true;
-		}
-		return false;
+		CHL2_Player *pHL2Player = ToHL2Player(pPlayer);
+		pHL2Player->AddStatus(COVEN_STATUS_HAS_CTS);
+		pPlayer->AddGlowEffect(true, true, false);
+		pPlayer->EmitSound("BaseCombatCharacter.AmmoPickup");
+		HL2MPRules()->covenCTSStatus = COVEN_CTS_STATUS_CARRIED;
+		return true;
 	}
 };
 LINK_ENTITY_TO_CLASS(item_cts, CItem_CTS);
+
+class CItem_Gas : public CItem
+{
+public:
+	DECLARE_CLASS(CItem_Gas, CItem);
+
+	void Spawn(void)
+	{
+		Precache();
+		SetModel("models/props_junk/gascan001a.mdl");
+		BaseClass::Spawn();
+		SetTransmitState(FL_EDICT_ALWAYS);
+	}
+	void Precache(void)
+	{
+		PrecacheModel("models/props_junk/gascan001a.mdl");
+	}
+	bool MyTouch(CBasePlayer *pPlayer)
+	{
+		CHL2_Player *pHL2Player = ToHL2Player(pPlayer);
+		pHL2Player->AddStatus(COVEN_STATUS_HAS_GAS);
+		pPlayer->EmitSound("BaseCombatCharacter.AmmoPickup");
+		return true;
+	}
+	void UpdateOnRemove()
+	{
+		CHL2MPRules *pRules = HL2MPRules();
+		if (pRules)
+		{
+			int index = pRules->hGasCans.Find(this);
+			if (index > -1)
+				pRules->hGasCans[index] = NULL;
+		}
+		BaseClass::UpdateOnRemove();
+	}
+};
+LINK_ENTITY_TO_CLASS(item_gas, CItem_Gas);
 
 class CItem_SlayerXPItem : public CItem
 {
@@ -120,6 +148,7 @@ public:
 	{ 
 		Precache( );
 		SetModel( "models/items/boxsrounds.mdl");
+		ChangeTeam(COVEN_TEAMID_SLAYERS);
 		BaseClass::Spawn( );
 	}
 	void Precache( void )
@@ -129,32 +158,23 @@ public:
 	}
 	bool MyTouch( CBasePlayer *pPlayer )
 	{
-		if (pPlayer->IsAlive() && pPlayer->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+		CHL2MP_Player *HL2Player = ToHL2MPPlayer(pPlayer);
+		HL2MPRules()->AddScore(COVEN_TEAMID_SLAYERS, sv_coven_pts_item.GetInt());
+		HL2MPRules()->GiveItemXP(COVEN_TEAMID_SLAYERS);
+		if (HL2Player)
 		{
-			CHL2MP_Player *hl2Player = ToHL2MPPlayer(pPlayer);
-			if ( g_pGameRules->ItemShouldRespawn( this ) == GR_ITEM_RESPAWN_NO )
+			CovenClassInfo_t *info = GetCovenClassData(HL2Player->covenClassID);
+			for (int i = 0; i < info->szWeapons.Count(); i++)
 			{
-				UTIL_Remove(this);	
+				FileWeaponInfo_t *weapInfo = GetFileWeaponInfoFromHandle(LookupWeaponInfoSlot(info->szWeapons[i]));
+				weapInfo->iAmmoType;
+				pPlayer->GiveAmmo(GetAmmoDef()->MaxCarry(weapInfo->iAmmoType)* 0.3f, weapInfo->iAmmoType, false);
 			}
-			HL2MPRules()->AddScore(COVEN_TEAMID_SLAYERS, sv_coven_pts_item.GetInt());
-			//BB: old method
-			//HL2MPRules()->GiveItemXP(COVEN_TEAMID_SLAYERS);
-			if (hl2Player)
-			{
-				//BB: TODO: this sucks... is there any way to improve this?
-				for (int i = 0; i < pPlayer->WeaponCount(); i++)
-				{
-					CBaseCombatWeapon *pWeap = pPlayer->GetWeapon(i);
-					if (pWeap && pWeap->UsesPrimaryAmmo())
-						pPlayer->GiveAmmo(GetAmmoDef()->MaxCarry(pWeap->GetPrimaryAmmoType()) * 0.3f, pWeap->m_iPrimaryAmmoType, false);
-				}
-				if (hl2Player->IsBuilderClass())
-					hl2Player->SuitPower_Charge(50.0f);
-			}
-			pPlayer->EmitSound( "ItemBattery.Touch" );
-			return true;
+			if (HL2Player->IsBuilderClass())
+				HL2Player->SuitPower_Charge(50.0f);
 		}
-		return false;
+		pPlayer->EmitSound( "ItemBattery.Touch" );
+		return true;
 	}
 };
 LINK_ENTITY_TO_CLASS(item_xp_slayers, CItem_SlayerXPItem);
@@ -168,6 +188,7 @@ public:
 	{ 
 		Precache( );
 		SetModel( "models/items/combine_rifle_ammo01.mdl");
+		ChangeTeam(COVEN_TEAMID_VAMPIRES);
 		BaseClass::Spawn( );
 	}
 	void Precache( void )
@@ -177,18 +198,10 @@ public:
 	}
 	bool MyTouch( CBasePlayer *pPlayer )
 	{
-		if (pPlayer->IsAlive() && pPlayer->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
-		{
-			if ( g_pGameRules->ItemShouldRespawn( this ) == GR_ITEM_RESPAWN_NO )
-			{
-				UTIL_Remove(this);	
-			}
-			HL2MPRules()->AddScore(COVEN_TEAMID_VAMPIRES, sv_coven_pts_item.GetInt());
-			HL2MPRules()->GiveItemXP(COVEN_TEAMID_VAMPIRES);
-			pPlayer->EmitSound( "ItemBattery.Touch" );
-			return true;
-		}
-		return false;
+		HL2MPRules()->AddScore(COVEN_TEAMID_VAMPIRES, sv_coven_pts_item.GetInt());
+		HL2MPRules()->GiveItemXP(COVEN_TEAMID_VAMPIRES);
+		pPlayer->EmitSound( "ItemBattery.Touch" );
+		return true;
 	}
 };
 LINK_ENTITY_TO_CLASS(item_xp_vampires, CItem_VampireXPItem);

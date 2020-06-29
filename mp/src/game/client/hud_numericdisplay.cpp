@@ -108,14 +108,17 @@ void CHudNumericDisplay::PaintNumbers(HFont font, int xpos, int ypos, int value)
 {
 	surface()->DrawSetTextFont(font);
 	wchar_t unicode[6];
+	wchar_t tLeft[6];
+	wchar_t tRight[6];
+	int iMinutes = 0, iSeconds = 0;
 	if ( !m_bIsTime )
 	{
 		V_snwprintf(unicode, ARRAYSIZE(unicode), L"%d", value);
 	}
 	else
 	{
-		int iMinutes = value / 60;
-		int iSeconds = value - iMinutes * 60;
+		iMinutes = value / 60;
+		iSeconds = value - iMinutes * 60;
 #ifdef PORTAL
 		// portal uses a normal font for numbers so we need the seperate to be a renderable ':' char
 		if ( iSeconds < 10 )
@@ -123,26 +126,59 @@ void CHudNumericDisplay::PaintNumbers(HFont font, int xpos, int ypos, int value)
 		else
 			V_snwprintf( unicode, ARRAYSIZE(unicode), L"%d:%d", iMinutes, iSeconds );		
 #else
-		if ( iSeconds < 10 )
-			V_snwprintf( unicode, ARRAYSIZE(unicode), L"%d`0%d", iMinutes, iSeconds );
+#if 0
+		if (iSeconds < 10)
+			V_snwprintf(unicode, ARRAYSIZE(unicode), L"%d`0%d", iMinutes, iSeconds);
 		else
-			V_snwprintf( unicode, ARRAYSIZE(unicode), L"%d`%d", iMinutes, iSeconds );
+			V_snwprintf(unicode, ARRAYSIZE(unicode), L"%d`%d", iMinutes, iSeconds);
+#else
+		V_snwprintf(tLeft, ARRAYSIZE(tLeft), L"%d", iMinutes);
+
+		if ( iSeconds < 10 )
+			V_snwprintf(tRight, ARRAYSIZE(tRight), L"0%d", iSeconds);
+		else
+			V_snwprintf(tRight, ARRAYSIZE(tRight), L"%d", iSeconds);
+#endif
 #endif
 	}
 
 	// adjust the position to take into account 3 characters
 	int charWidth = surface()->GetCharacterWidth(font, '0');
-	if (value < 100 && m_bIndent)
+	if (m_bIndent)
 	{
-		xpos += charWidth;
+		if (m_bIsTime)
+		{
+			if (iMinutes < 10)
+			{
+				xpos += charWidth;
+			}
+		}
+		else
+		{
+			if (value < 100)
+			{
+				xpos += charWidth;
+			}
+			if (value < 10)
+			{
+				xpos += charWidth;
+			}
+		}
 	}
-	if (value < 10 && m_bIndent)
-	{
-		xpos += charWidth;
-	}
-
 	surface()->DrawSetTextPos(xpos, ypos);
-	surface()->DrawUnicodeString( unicode );
+	if (m_bIsTime)
+	{
+		surface()->DrawUnicodeString(tLeft);
+		if (font == m_hNumberFont)
+			surface()->DrawSetTextFont(m_hNumberFontFix);
+		else
+			surface()->DrawSetTextFont(m_hNumberGlowFontFix);
+		surface()->DrawUnicodeString(L":");
+		surface()->DrawSetTextFont(font);
+		surface()->DrawUnicodeString(tRight);
+	}
+	else
+		surface()->DrawUnicodeString( unicode );
 }
 
 //-----------------------------------------------------------------------------

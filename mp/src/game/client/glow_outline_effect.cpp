@@ -81,6 +81,73 @@ static void SetRenderTargetAndViewPort( ITexture *rt, int w, int h )
 	pRenderContext->Viewport(0,0,w,h);
 }
 
+void CGlowObjectManager::UpdateGlowEffectsVisibility(void)
+{
+	for (int i = 0; i < m_GlowObjectDefinitions.Count(); ++i)
+	{
+		if (m_GlowObjectDefinitions[i].IsUnused())
+			continue;
+
+		C_BasePlayer *pPlayer = CBasePlayer::GetLocalPlayer();
+		if (pPlayer && m_GlowObjectDefinitions[i].m_hEntity)
+		{
+			if (!m_GlowObjectDefinitions[i].m_bTeamOnly || (m_GlowObjectDefinitions[i].m_bTeamOnly && m_GlowObjectDefinitions[i].m_hEntity->GetTeamNumber() == pPlayer->GetTeamNumber()))
+			{
+				trace_t tr;
+				Vector dt = m_GlowObjectDefinitions[i].m_hEntity->EyePosition();
+				UTIL_TraceLine(pPlayer->EyePosition(), dt, MASK_SOLID, pPlayer, COLLISION_GROUP_NONE, &tr);
+				bool bTraceCheck = tr.DidHitNonWorldEntity() && m_GlowObjectDefinitions[i].m_hEntity == tr.m_pEnt;
+
+				if (m_GlowObjectDefinitions[i].m_flViewDistance != FLT_MAX)
+				{
+					float flDistance = (pPlayer->GetAbsOrigin() - m_GlowObjectDefinitions[i].m_hEntity->GetAbsOrigin()).Length();
+					if (flDistance > m_GlowObjectDefinitions[i].m_flViewDistance)
+						m_GlowObjectDefinitions[i].m_bShow = false;
+					else
+					{
+						if (m_GlowObjectDefinitions[i].m_bDynamicAlpha)
+						{
+							if (bTraceCheck && m_GlowObjectDefinitions[i].m_bRenderWhenUnoccluded)
+							{
+								if (m_GlowObjectDefinitions[i].m_flGlowAlpha > 0.6f)
+								{
+									if (m_GlowObjectDefinitions[i].m_bPulsed)
+										m_GlowObjectDefinitions[i].m_flPulse = -gpGlobals->frametime / 2.0f;
+									else
+										m_GlowObjectDefinitions[i].m_flPulse = -gpGlobals->frametime * 3.0f;
+								}
+								else if (m_GlowObjectDefinitions[i].m_flGlowAlpha < 0.3f || m_GlowObjectDefinitions[i].m_flPulse == 0.0f)
+								{
+									m_GlowObjectDefinitions[i].m_bPulsed = true;
+									m_GlowObjectDefinitions[i].m_flPulse = gpGlobals->frametime / 2.0f;
+								}
+								m_GlowObjectDefinitions[i].m_flGlowAlpha += m_GlowObjectDefinitions[i].m_flPulse;
+							}
+							else
+							{
+								m_GlowObjectDefinitions[i].m_bPulsed = false;
+								if (m_GlowObjectDefinitions[i].m_bRenderWhenOccluded)
+									m_GlowObjectDefinitions[i].m_flGlowAlpha = min(1.0f, 1.3f - flDistance / m_GlowObjectDefinitions[i].m_flViewDistance);
+								else
+									m_GlowObjectDefinitions[i].m_flGlowAlpha = 0.29f;
+							}
+							m_GlowObjectDefinitions[i].m_bShow = (bTraceCheck && m_GlowObjectDefinitions[i].m_bRenderWhenUnoccluded) || (!bTraceCheck && m_GlowObjectDefinitions[i].m_bRenderWhenOccluded);
+						}
+						else
+							m_GlowObjectDefinitions[i].m_bShow = (bTraceCheck && m_GlowObjectDefinitions[i].m_bRenderWhenUnoccluded) || (!bTraceCheck && m_GlowObjectDefinitions[i].m_bRenderWhenOccluded);
+					}
+				}
+				else
+				{
+					m_GlowObjectDefinitions[i].m_bShow = (bTraceCheck && m_GlowObjectDefinitions[i].m_bRenderWhenUnoccluded) || (!bTraceCheck && m_GlowObjectDefinitions[i].m_bRenderWhenOccluded);
+				}
+			}
+			else
+				m_GlowObjectDefinitions[i].m_bShow = false;
+		}
+	}
+}
+
 void CGlowObjectManager::RenderGlowModels( const CViewSetup *pSetup, int nSplitScreenSlot, CMatRenderContextPtr &pRenderContext )
 {
 	//==========================================================================================//
@@ -110,7 +177,7 @@ void CGlowObjectManager::RenderGlowModels( const CViewSetup *pSetup, int nSplitS
 	pMatGlowColor = materials->FindMaterial( "dev/glow_color", TEXTURE_GROUP_OTHER, true );
 	g_pStudioRender->ForcedMaterialOverride( pMatGlowColor );
 
-	ShaderStencilState_t stencilState;
+	/*ShaderStencilState_t stencilState;
 	stencilState.m_bEnable = false;
 	stencilState.m_nReferenceValue = 0;
 	stencilState.m_nTestMask = 0xFF;
@@ -118,8 +185,8 @@ void CGlowObjectManager::RenderGlowModels( const CViewSetup *pSetup, int nSplitS
 	stencilState.m_PassOp = STENCILOPERATION_KEEP;
 	stencilState.m_FailOp = STENCILOPERATION_KEEP;
 	stencilState.m_ZFailOp = STENCILOPERATION_KEEP;
+	stencilState.SetStencilState(pRenderContext);*/
 
-	stencilState.SetStencilState( pRenderContext );
 
 	//==================//
 	// Draw the objects //
@@ -128,6 +195,14 @@ void CGlowObjectManager::RenderGlowModels( const CViewSetup *pSetup, int nSplitS
 	{
 		if ( m_GlowObjectDefinitions[i].IsUnused() || !m_GlowObjectDefinitions[i].ShouldDraw( nSplitScreenSlot ) )
 			continue;
+
+		if (m_GlowObjectDefinitions[i].m_flViewDistance != FLT_MAX)
+		{
+			C_BasePlayer *pPlayer = CBasePlayer::GetLocalPlayer();
+			if (pPlayer && m_GlowObjectDefinitions[i].m_hEntity)
+				if ((pPlayer->GetAbsOrigin() - m_GlowObjectDefinitions[i].m_hEntity->GetAbsOrigin()).Length() > m_GlowObjectDefinitions[i].m_flViewDistance)
+					continue;
+		}
 
 		render->SetBlend( m_GlowObjectDefinitions[i].m_flGlowAlpha );
 		Vector vGlowColor = m_GlowObjectDefinitions[i].m_vGlowColor * m_GlowObjectDefinitions[i].m_flGlowAlpha;
@@ -176,59 +251,25 @@ void CGlowObjectManager::ApplyEntityGlowEffects( const CViewSetup *pSetup, int n
 		if ( m_GlowObjectDefinitions[i].IsUnused() || !m_GlowObjectDefinitions[i].ShouldDraw( nSplitScreenSlot ) )
 			continue;
 
-		if ( m_GlowObjectDefinitions[i].m_bRenderWhenOccluded || m_GlowObjectDefinitions[i].m_bRenderWhenUnoccluded )
+		if (m_GlowObjectDefinitions[i].m_bRenderWhenOccluded || m_GlowObjectDefinitions[i].m_bRenderWhenUnoccluded)
 		{
-			if ( m_GlowObjectDefinitions[i].m_bRenderWhenOccluded && m_GlowObjectDefinitions[i].m_bRenderWhenUnoccluded )
-			{
-				ShaderStencilState_t stencilState;
-				stencilState.m_bEnable = true;
-				stencilState.m_nReferenceValue = 1;
-				stencilState.m_CompareFunc = STENCILCOMPARISONFUNCTION_ALWAYS;
-				stencilState.m_PassOp = STENCILOPERATION_REPLACE;
-				stencilState.m_FailOp = STENCILOPERATION_KEEP;
-				stencilState.m_ZFailOp = STENCILOPERATION_REPLACE;
+			ShaderStencilState_t stencilState;
+			stencilState.m_bEnable = true;
+			stencilState.m_nReferenceValue = 1;
+			stencilState.m_CompareFunc = STENCILCOMPARISONFUNCTION_ALWAYS;
+			stencilState.m_PassOp = STENCILOPERATION_REPLACE;
+			stencilState.m_FailOp = STENCILOPERATION_KEEP;
+			stencilState.m_ZFailOp = STENCILOPERATION_REPLACE;
 
-				stencilState.SetStencilState( pRenderContext );
+			stencilState.SetStencilState(pRenderContext);
 
-				m_GlowObjectDefinitions[i].DrawModel();
-			}
-			else if ( m_GlowObjectDefinitions[i].m_bRenderWhenOccluded )
-			{
-				ShaderStencilState_t stencilState;
-				stencilState.m_bEnable = true;
-				stencilState.m_nReferenceValue = 1;
-				stencilState.m_CompareFunc = STENCILCOMPARISONFUNCTION_ALWAYS;
-				stencilState.m_PassOp = STENCILOPERATION_KEEP;
-				stencilState.m_FailOp = STENCILOPERATION_KEEP;
-				stencilState.m_ZFailOp = STENCILOPERATION_REPLACE;
-
-				stencilState.SetStencilState( pRenderContext );
-
-				m_GlowObjectDefinitions[i].DrawModel();
-			}
-			else if ( m_GlowObjectDefinitions[i].m_bRenderWhenUnoccluded )
-			{
-				ShaderStencilState_t stencilState;
-				stencilState.m_bEnable = true;
-				stencilState.m_nReferenceValue = 2;
-				stencilState.m_nTestMask = 0x1;
-				stencilState.m_nWriteMask = 0x3;
-				stencilState.m_CompareFunc = STENCILCOMPARISONFUNCTION_EQUAL;
-				stencilState.m_PassOp = STENCILOPERATION_INCRSAT;
-				stencilState.m_FailOp = STENCILOPERATION_KEEP;
-				stencilState.m_ZFailOp = STENCILOPERATION_REPLACE;
-
-				stencilState.SetStencilState( pRenderContext );
-
-				m_GlowObjectDefinitions[i].DrawModel();
-			}
+			m_GlowObjectDefinitions[i].DrawModel();
 		}
-
 		iNumGlowObjects++;
 	}
 
 	// Need to do a 2nd pass to warm stencil for objects which are rendered only when occluded
-	for ( int i = 0; i < m_GlowObjectDefinitions.Count(); ++ i )
+	/*for ( int i = 0; i < m_GlowObjectDefinitions.Count(); ++ i )
 	{
 		if ( m_GlowObjectDefinitions[i].IsUnused() || !m_GlowObjectDefinitions[i].ShouldDraw( nSplitScreenSlot ) )
 			continue;
@@ -246,7 +287,7 @@ void CGlowObjectManager::ApplyEntityGlowEffects( const CViewSetup *pSetup, int n
 
 			m_GlowObjectDefinitions[i].DrawModel();
 		}
-	}
+	}*/
 
 	pRenderContext->OverrideDepthEnable( false, false );
 	render->SetBlend( flSavedBlend );

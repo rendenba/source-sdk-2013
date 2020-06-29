@@ -37,7 +37,7 @@ public:
 	static CFlare *	GetActiveFlares( void );
 	CFlare *		GetNextFlare( void ) const { return m_pNextFlare; }
 
-	static CFlare *Create( Vector vecOrigin, QAngle vecAngles, CBaseEntity *pOwner, float lifetime );
+	static CFlare *Create( Vector vecOrigin, QAngle vecAngles, CBaseEntity *pOwner, float lifetime, CovenFlareType_t iFlareType = COVEN_FLARE_TYPE_DEFAULT );
 
 	virtual unsigned int PhysicsSolidMaskForEntity( void ) const;
 
@@ -79,6 +79,7 @@ public:
 	CNetworkVar( bool, m_bLight );
 	CNetworkVar( bool, m_bSmoke );
 	CNetworkVar( bool, m_bPropFlare );
+	CNetworkVar(CovenFlareType_t, m_iFlareType);
 
 	bool		m_bInActiveList;
 	CFlare *	m_pNextFlare;

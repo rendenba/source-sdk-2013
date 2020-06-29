@@ -195,9 +195,9 @@ public:
 	virtual AngularImpulse	PhysGunLaunchAngularImpulse();
 	virtual	CBasePlayer *HasPhysicsAttacker( float dt );
 
-#ifdef HL2_EPISODIC
-	void CreateFlare( float flLifetime );
-#endif //HL2_EPISODIC
+//#ifdef HL2_EPISODIC
+	void CreateFlare( float flLifetime, CovenFlareType_t iFlareType = COVEN_FLARE_TYPE_DEFAULT );
+//#endif //HL2_EPISODIC
 
 protected:
 	void SetPhysicsAttacker( CBasePlayer *pEntity, float flTime );

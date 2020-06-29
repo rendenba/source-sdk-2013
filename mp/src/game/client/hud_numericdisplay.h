@@ -58,6 +58,8 @@ protected:
 
 	CPanelAnimationVar( vgui::HFont, m_hNumberFont, "NumberFont", "HudNumbers" );
 	CPanelAnimationVar( vgui::HFont, m_hNumberGlowFont, "NumberGlowFont", "HudNumbersGlow" );
+	CPanelAnimationVar( vgui::HFont, m_hNumberFontFix, "NumberFontFix", "HudNumbersFix" );
+	CPanelAnimationVar( vgui::HFont, m_hNumberGlowFontFix, "NumberGlowFontFix", "HudNumbersGlowFix" );
 	CPanelAnimationVar( vgui::HFont, m_hSmallNumberFont, "SmallNumberFont", "HudNumbersSmall" );
 	CPanelAnimationVar( vgui::HFont, m_hTextFont, "TextFont", "Default" );
 

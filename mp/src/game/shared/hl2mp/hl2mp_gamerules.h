@@ -26,6 +26,7 @@
 #include "physics_prop_ragdoll.h"
 #include "filesystem.h"
 #include "utlbuffer.h"
+#include "coven_apc.h"
 #endif
 
 #define VEC_CROUCH_TRACE_MIN	HL2MPRules()->GetHL2MPViewVectors()->m_vCrouchTraceMin
@@ -55,7 +56,15 @@ struct BotNode_t
 	int ID;
 	CUtlVector<int> connectors;
 	Vector location;
-	bool bSelected;
+	bool bSelected; //used for debugging/visuals
+};
+
+struct APCNode_t
+{
+	int ID;
+	Vector location;
+	bool bCheckpoint;
+	float flTimer;
 };
 
 class HL2MPViewVectors : public CViewVectors
@@ -149,26 +158,36 @@ public:
 
 	float GetMapRemainingTime();
 	void CleanUpMap();
+	void RemoveEntity(const char *szClassName);
 	void CheckRestartGame();
 	void RestartGame();
-	void RestartRound();
+	void RestartRound(bool bFullReset = false);
 	void FreezeAll(bool unfreeze = false);
 	float GetRespawnTime(CovenTeamID_t iTeam);
 	float AverageLevel(int team, int &n);
 
 	CovenGamestate_t covenGameState;
-	CovenGameMode_t covenGameMode;
-	float covenGameStateTimer;
+	CovenGameMode_t covenActiveGameMode;
+	float flCovenGameStateTimer;
 	float covenFlashTimer;
 	bool botnameUsed[2][14];
 
-	CBaseEntity *thects;
+	CBaseEntity *pCTS;
+	CUtlVector<APCNode_t *> hAPCNet;
 
 #ifndef CLIENT_DLL
+	CCoven_APC *pAPC;
+	CUtlVector<CBaseEntity *> hGasCans; //for bot speed
+
+	void	CreateAPCFlare(int iIndex);
+	void	ReachedCheckpoint(int iIndex);
+
 	virtual Vector VecItemRespawnSpot( CItem *pItem );
 	virtual QAngle VecItemRespawnAngles( CItem *pItem );
 	virtual float	FlItemRespawnTime( CItem *pItem );
 	virtual bool	CanHavePlayerItem( CBasePlayer *pPlayer, CBaseCombatWeapon *pItem );
+	virtual bool	CanHaveItem(CBasePlayer *pPlayer, CItem *pItem);
+	virtual int		ItemShouldRespawn(CItem *pItem);
 	virtual bool FShouldSwitchWeapon( CBasePlayer *pPlayer, CBaseCombatWeapon *pWeapon );
 
 	void	AddLevelDesignerPlacedObject( CBaseEntity *pEntity );
@@ -205,19 +224,15 @@ public:
 
 	virtual bool IsConnectedUserInfoChangeAllowed( CBasePlayer *pPlayer );
 
+	CNetworkVar( float,  flRoundTimer);
 	CNetworkVar( int, num_cap_points );
 	CNetworkArray( int, cap_point_status, COVEN_MAX_CAP_POINTS );
 	CNetworkArray( Vector, cap_point_coords, COVEN_MAX_CAP_POINTS );
 	CNetworkArray( int, cap_point_state, COVEN_MAX_CAP_POINTS );
 
-	bool cts_inplay;
+	CNetworkVar( CovenCTSStatus_t, covenCTSStatus);
 	Vector cts_zone;
-	Vector cts_position;
 	int cts_zone_radius;
-	float cts_return_timer;
-	CNetworkVar(float,SpawnCTS);
-
-	CNetworkVar (EHANDLE, cts_net);
 	
 private:
 	

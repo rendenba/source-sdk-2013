@@ -520,6 +520,22 @@ void CHL2_Player::AddStatus(CovenStatus_t iStatusNum, int iMagnitude, float flTi
 	covenStatusEffects |= (1 << iStatusNum);
 }
 
+//this is a special case!
+void CHL2_Player::AddStatusHW(int iAmount)
+{
+	float flTime = 0.0f;
+	int magnitude = GetStatusMagnitude(COVEN_STATUS_HOLYWATER) + iAmount;
+	for (int i = ceil(magnitude / 50.0f); i > 0; i--)
+	{
+		int num = ceil((magnitude - (50 * (i - 1))) / (float)i);
+		flTime += num;
+		magnitude -= num * i;
+	}
+	SetStatusMagnitude(COVEN_STATUS_HOLYWATER, GetStatusMagnitude(COVEN_STATUS_HOLYWATER) + iAmount);
+	SetStatusTime(COVEN_STATUS_HOLYWATER, gpGlobals->curtime + flTime);
+	covenStatusEffects |= (1 << COVEN_STATUS_HOLYWATER);
+}
+
 bool CHL2_Player::HasHandledStatus(CovenStatus_t iStatusNum, int iMagnitude)
 {
 	return m_iHandledEffect[iStatusNum] >= iMagnitude;

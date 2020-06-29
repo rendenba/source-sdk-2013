@@ -95,7 +95,7 @@ BEGIN_DATADESC( CItem )
 
 	// Function Pointers
 	DEFINE_ENTITYFUNC( ItemTouch ),
-	DEFINE_THINKFUNC( Materialize ),
+	DEFINE_THINKFUNC( MaterializeThink ),
 	DEFINE_THINKFUNC( ComeToRest ),
 
 #if defined( HL2MP ) || defined( TF_DLL )
@@ -440,14 +440,20 @@ void CItem::ItemTouch( CBaseEntity *pOther )
 
 		// player grabbed the item. 
 		g_pGameRules->PlayerGotItem( pPlayer, this );
-		if ( g_pGameRules->ItemShouldRespawn( this ) == GR_ITEM_RESPAWN_YES )
+		int iShouldRespawn = g_pGameRules->ItemShouldRespawn(this);
+		if (iShouldRespawn == GR_ITEM_RESPAWN_YES)
 		{
 			Respawn(); 
+		}
+		else if (iShouldRespawn == GR_ITEM_RESPAWN_CARRIED)
+		{
+			CHL2MP_Player *HL2Player = ToHL2MPPlayer(pPlayer);
+			HL2Player->hCarriedItem = this;
+			StartCarry();
 		}
 		else
 		{
 			UTIL_Remove( this );
-
 #ifdef HL2MP
 			HL2MPRules()->RemoveLevelDesignerPlacedObject( this );
 #endif
@@ -457,6 +463,36 @@ void CItem::ItemTouch( CBaseEntity *pOther )
 	{
 		UTIL_Remove( this );
 	}
+}
+
+CBaseEntity* CItem::StartCarry()
+{
+	SetTouch(NULL);
+	AddEffects(EF_NODRAW);
+
+	VPhysicsDestroyObject();
+
+	SetMoveType(MOVETYPE_NONE);
+	SetSolid(SOLID_BBOX);
+	AddSolidFlags(FSOLID_TRIGGER);
+
+	UTIL_SetOrigin(this, g_pGameRules->VecItemRespawnSpot(this));// blip to whereever you should respawn.
+	SetAbsAngles(g_pGameRules->VecItemRespawnAngles(this));// set the angles.
+
+	UTIL_DropToFloor(this, MASK_SOLID);
+
+	RemoveAllDecals(); //remove any decals
+
+	return this;
+}
+
+CBaseEntity* CItem::CarriedRespawn(const Vector &position)
+{
+	UTIL_SetOrigin(this, position);
+	SetAbsAngles(QAngle(random->RandomInt(0, 180), random->RandomInt(0, 90), random->RandomInt(0, 180)));
+	Materialize(true);
+	m_flNextResetCheckTime = 0.0f;
+	return this;
 }
 
 CBaseEntity* CItem::Respawn( void )
@@ -479,25 +515,33 @@ CBaseEntity* CItem::Respawn( void )
 
 	RemoveAllDecals(); //remove any decals
 
-	SetThink ( &CItem::Materialize );
+	SetThink ( &CItem::MaterializeThink );
 	SetNextThink( gpGlobals->curtime + g_pGameRules->FlItemRespawnTime( this ) );
 	return this;
 }
 
-void CItem::Materialize( void )
+void CItem::MaterializeThink(void)
+{
+	Materialize();
+}
+
+void CItem::Materialize(bool bSuppressSound)
 {
 	CreateItemVPhysicsObject();
 
 	if ( IsEffectActive( EF_NODRAW ) )
 	{
 		// changing from invisible state to visible.
-
+		
+		if (!bSuppressSound)
+		{
 #ifdef HL2MP
-		EmitSound( "AlyxEmp.Charge" );
+			EmitSound("AlyxEmp.Charge");
 #else
-		EmitSound( "Item.Materialize" );
+			EmitSound( "Item.Materialize" );
 #endif
-		RemoveEffects( EF_NODRAW );
+		}
+		RemoveEffects(EF_NODRAW);
 		DoMuzzleFlash();
 	}
 

@@ -1841,6 +1841,9 @@
     <ClInclude Include="..\shared\coven_parse.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="coven_apc.h">
+      <Filter>Source Files\HL2 DLL</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="gamedll_replay.cpp">
@@ -3597,6 +3600,9 @@
     </ClCompile>
     <ClCompile Include="..\shared\coven_parse.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="coven_apc.cpp">
+      <Filter>Source Files\HL2 DLL</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

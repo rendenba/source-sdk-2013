@@ -79,12 +79,12 @@ ConVar func_breakdmg_explosive( "func_breakdmg_explosive", "1.25" );
 
 ConVar sv_turbophysics( "sv_turbophysics", "0", FCVAR_REPLICATED, "Turns on turbo physics" );
 
-#ifdef HL2_EPISODIC
+//#ifdef HL2_EPISODIC
 	#define PROP_FLARE_LIFETIME 30.0f
 	#define PROP_FLARE_IGNITE_SUBSTRACT 5.0f
-	CBaseEntity *CreateFlare( Vector vOrigin, QAngle Angles, CBaseEntity *pOwner, float flDuration );
+	CBaseEntity *CreateFlare( Vector vOrigin, QAngle Angles, CBaseEntity *pOwner, float flDuration, CovenFlareType_t iFlareType );
 	void KillFlare( CBaseEntity *pOwnerEntity, CBaseEntity *pEntity, float flKillTime );
-#endif
+//#endif
 
 
 //-----------------------------------------------------------------------------
@@ -1472,14 +1472,14 @@ void CBreakableProp::OnPhysGunPickup( CBasePlayer *pPhysGunUser, PhysGunPickup_t
 }
 
 
-#ifdef HL2_EPISODIC
+//#ifdef HL2_EPISODIC
 //-----------------------------------------------------------------------------
 // Purpose: Create a flare at the attachment point
 //-----------------------------------------------------------------------------
-void CBreakableProp::CreateFlare( float flLifetime )
+void CBreakableProp::CreateFlare( float flLifetime, CovenFlareType_t iFlareType )
 {
 	// Create the flare
-	CBaseEntity *pFlare = ::CreateFlare( GetAbsOrigin(), GetAbsAngles(), this, flLifetime );
+	CBaseEntity *pFlare = ::CreateFlare( GetAbsOrigin(), GetAbsAngles(), this, flLifetime, iFlareType );
 	if ( pFlare )
 	{
 		int iAttachment = LookupAttachment( "fuse" );
@@ -1501,12 +1501,14 @@ void CBreakableProp::CreateFlare( float flLifetime )
 
 		m_nSkin = 1;
 
-		AddEntityToDarknessCheck( pFlare );
+		//AddEntityToDarknessCheck( pFlare );
 
 		AddEffects( EF_NOSHADOW );
+		//BB: hacky AF, but this fixes the look of the flare...
+		SetModel("models/weapons/flare.mdl");
 	}
 }
-#endif // HL2_EPISODIC
+//#endif // HL2_EPISODIC
 
 //-----------------------------------------------------------------------------
 // Purpose: 

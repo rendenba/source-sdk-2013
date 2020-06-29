@@ -53,8 +53,11 @@ public:
 	unsigned int PhysicsSolidMaskForEntity( void ) const;
 
 	virtual CBaseEntity* Respawn( void );
+	virtual CBaseEntity* CarriedRespawn(const Vector &position);
+	virtual CBaseEntity* StartCarry(void);
 	virtual void ItemTouch( CBaseEntity *pOther );
-	virtual void Materialize( void );
+	virtual void Materialize(bool bSuppressSound = false);
+	virtual void MaterializeThink( void );
 	virtual bool MyTouch( CBasePlayer *pPlayer ) { return false; };
 
 	// Become touchable when we are at rest

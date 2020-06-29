@@ -97,7 +97,8 @@ static const char *pCovenStatusEffects[COVEN_STATUS_COUNT] =
 	"phase",
 	"has_cts",
 	"dodge",
-	"weakness"
+	"weakness",
+	"has_gas"
 };
 
 static CUtlMap<unsigned int, CovenClassInfo_t *> m_CovenClassInfoDatabase;

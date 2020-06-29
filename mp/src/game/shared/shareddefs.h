@@ -408,14 +408,49 @@ typedef enum
 	COVEN_GAMEMODE_MAX
 } CovenGameMode_t;
 
+inline CovenGameMode_t &operator--(CovenGameMode_t &gm, int)  { return gm = CovenGameMode_t(gm - 1); }
+
 typedef enum
 {
 	COVEN_GAMESTATE_UNDEFINED,
 	COVEN_GAMESTATE_WARMUP,
 	COVEN_GAMESTATE_FREEZE,
 	COVEN_GAMESTATE_PLAY,
+	COVEN_GAMESTATE_ROUND_OVER,
+	COVEN_GAMESTATE_GAME_OVER,
 	COVEN_GAMESTATE_MAX
 } CovenGamestate_t;
+
+inline CovenGamestate_t &operator++(CovenGamestate_t &gs, int)  { return gs = CovenGamestate_t(gs + 1); }
+
+typedef enum
+{
+	COVEN_CTS_STATUS_UNDEFINED,
+	COVEN_CTS_STATUS_EXISTS,
+	COVEN_CTS_STATUS_HOME,
+	COVEN_CTS_STATUS_CARRIED,
+	COVEN_CTS_STATUS_DROPPED,
+	COVEN_CTS_STATUS_MAX
+} CovenCTSStatus_t;
+
+typedef enum
+{
+	COVEN_FLARE_TYPE_DEFAULT, //RED
+	COVEN_FLARE_TYPE_BLUE,
+	COVEN_FLARE_TYPE_YELLOW,
+	COVEN_FLARE_TYPE_GREEN,
+	COVEN_FLARE_TYPE_MAX
+} CovenFlareType_t;
+
+typedef enum
+{
+	GLOW_OUTLINE_RENDER_OCCLUDED,
+	GLOW_OUTLINE_RENDER_UNOCCLUDED,
+	GLOW_OUTLINE_DYNAMIC_ALPHA,
+	GLOW_OUTLINE_TEAM_ONLY,
+	GLOW_OUTLINE_USE_TEAM_COLORS,
+	GLOW_OUTLINE_EFFECT_MAX
+} GlowOutlineEffect_t;
 
 // NOTE: the indices here must match TEAM_TERRORIST, TEAM_CT, TEAM_SPECTATOR, etc.
 static const char *sTeamNames[] =
@@ -505,6 +540,7 @@ typedef enum
 	COVEN_STATUS_HAS_CTS,
 	COVEN_STATUS_DODGE,
 	COVEN_STATUS_WEAKNESS,
+	COVEN_STATUS_HAS_GAS,
 	COVEN_STATUS_COUNT
 } CovenStatus_t;
 

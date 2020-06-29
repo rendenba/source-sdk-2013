@@ -206,6 +206,12 @@ IMPLEMENT_CLIENTCLASS_DT(C_BaseAnimating, DT_BaseAnimating, CBaseAnimating)
 	RecvPropFloat( RECVINFO( m_fadeMinDist ) ), 
 	RecvPropFloat( RECVINFO( m_fadeMaxDist ) ), 
 	RecvPropFloat( RECVINFO( m_flFadeScale ) ), 
+#ifdef GLOWS_ENABLE
+	RecvPropBool(RECVINFO(m_bGlowEnabled)),
+	RecvPropFloat(RECVINFO(m_flGlowDist)),
+	RecvPropInt(RECVINFO(m_iGlowFlags)),
+	RecvPropInt(RECVINFO(m_clrGlowColor)),
+#endif // GLOWS_ENABLE
 
 END_RECV_TABLE()
 
@@ -744,6 +750,15 @@ C_BaseAnimating::C_BaseAnimating() :
 	Q_memset(&m_mouth, 0, sizeof(m_mouth));
 	m_flCycle = 0;
 	m_flOldCycle = 0;
+#ifdef GLOWS_ENABLE
+	m_pGlowEffect = NULL;
+	m_bGlowEnabled = false;
+	m_bOldGlowEnabled = false;
+	m_bClientSideGlowEnabled = false;
+	m_iGlowFlags = 0;
+	m_iOldGlowFlags = 0;
+	m_clrGlowColor.Init(0, 0, 0);
+#endif // GLOWS_ENABLE
 }
 
 //-----------------------------------------------------------------------------
@@ -784,7 +799,120 @@ C_BaseAnimating::~C_BaseAnimating()
 		m_pAttachedTo->RemoveBoneAttachment( this );
 		m_pAttachedTo = NULL;
 	}
+#ifdef GLOWS_ENABLE
+	DestroyGlowEffect();
+#endif // GLOWS_ENABLE
 }
+
+#ifdef GLOWS_ENABLE
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void C_BaseAnimating::GetGlowEffectColor(float *r, float *g, float *b, float *a)
+{
+	if (IsEmptyColor(m_clrGlowColor))
+	{
+		if (m_iGlowFlags & (1 << GLOW_OUTLINE_USE_TEAM_COLORS))
+		{
+			if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+			{
+				//T_Red
+				*r = 1.0f;
+				*g = 0.25f;
+				*b = 0.25f;
+			}
+			else
+			{
+				//CT_Blue
+				*r = 0.6f;
+				*g = 0.8f;
+				*b = 1.0f;
+			}
+			*a = 1.0f;
+		}
+		else
+		{
+			*r = 1.0f;
+			*g = 1.0f;
+			*b = 0.0f;
+			*a = 1.0f;
+		}
+	}
+	else
+	{
+		*r = m_clrGlowColor.GetR() / 255.0f;
+		*g = m_clrGlowColor.GetG() / 255.0f;
+		*b = m_clrGlowColor.GetB() / 255.0f;
+		*a = m_clrGlowColor.GetA() / 255.0f;
+	}
+}
+
+void C_BaseAnimating::ForceGlowEffect(const color32 &clr, bool bRenderWhenOccluded, bool bRenderWhenUnoccluded, float flViewDistance)
+{
+	if (m_pGlowEffect)
+	{
+		DestroyGlowEffect();
+	}
+
+	//m_bGlowEnabled = true;
+
+	m_pGlowEffect = new CGlowObject(this, Vector(clr.r / 255.0f, clr.g / 255.0f, clr.b / 255.0f), clr.a / 255.0f, bRenderWhenOccluded, bRenderWhenUnoccluded, -1, flViewDistance);
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+/*
+void C_BaseCombatCharacter::EnableGlowEffect( float r, float g, float b )
+{
+// destroy the existing effect
+if ( m_pGlowEffect )
+{
+DestroyGlowEffect();
+}
+
+m_pGlowEffect = new CGlowObject( this, Vector( r, g, b ), 1.0, true );
+}
+*/
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void C_BaseAnimating::UpdateGlowEffect(void)
+{
+	// destroy the existing effect
+	if (m_pGlowEffect)
+	{
+		DestroyGlowEffect();
+	}
+
+	// create a new effect
+	if (m_bGlowEnabled || m_bClientSideGlowEnabled)
+	{
+		float r, g, b, a;
+		GetGlowEffectColor(&r, &g, &b, &a);
+
+		m_pGlowEffect = new CGlowObject(this, Vector(r, g, b), a,	m_iGlowFlags & (1 << GLOW_OUTLINE_RENDER_OCCLUDED),
+																	m_iGlowFlags & (1 << GLOW_OUTLINE_RENDER_UNOCCLUDED),
+																	-1,
+																	m_iGlowFlags & (1 << GLOW_OUTLINE_DYNAMIC_ALPHA),
+																	m_iGlowFlags & (1 << GLOW_OUTLINE_TEAM_ONLY),
+																	m_flGlowDist);
+	}
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void C_BaseAnimating::DestroyGlowEffect(void)
+{
+	if (m_pGlowEffect)
+	{
+		delete m_pGlowEffect;
+		m_pGlowEffect = NULL;
+	}
+}
+#endif // GLOWS_ENABLE
 
 bool C_BaseAnimating::UsesPowerOfTwoFrameBufferTexture( void )
 {
@@ -4573,6 +4701,11 @@ void C_BaseAnimating::OnPreDataChanged( DataUpdateType_t updateType )
 	BaseClass::OnPreDataChanged( updateType );
 
 	m_bLastClientSideFrameReset = m_bClientSideFrameReset;
+#ifdef GLOWS_ENABLE
+	m_bOldGlowEnabled = m_bGlowEnabled;
+	m_iOldGlowFlags = m_iGlowFlags;
+	m_clrOldGlowColor = m_clrGlowColor;
+#endif // GLOWS_ENABLE
 }
 
 bool C_BaseAnimating::ForceSetupBonesAtTime( matrix3x4_t *pBonesOut, float flTime )
@@ -4801,8 +4934,6 @@ void C_BaseAnimating::OnDataChanged( DataUpdateType_t updateType )
 		m_nRestoreSequence = -1;
 	}
 
-
-
 	bool modelchanged = false;
 
 	// UNDONE: The base class does this as well.  So this is kind of ugly
@@ -4871,6 +5002,13 @@ void C_BaseAnimating::OnDataChanged( DataUpdateType_t updateType )
 		delete m_pRagdollInfo;
 		m_pRagdollInfo = NULL;
 	}
+
+#ifdef GLOWS_ENABLE
+	if (m_bOldGlowEnabled != m_bGlowEnabled || m_iOldGlowFlags != m_iGlowFlags || m_clrOldGlowColor != m_clrGlowColor)
+	{
+		UpdateGlowEffect();
+	}
+#endif // GLOWS_ENABLE
 }
 
 //-----------------------------------------------------------------------------

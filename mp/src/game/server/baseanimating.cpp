@@ -263,6 +263,12 @@ IMPLEMENT_SERVERCLASS_ST(CBaseAnimating, DT_BaseAnimating)
 	SendPropFloat( SENDINFO( m_fadeMinDist ), 0, SPROP_NOSCALE ),
 	SendPropFloat( SENDINFO( m_fadeMaxDist ), 0, SPROP_NOSCALE ),
 	SendPropFloat( SENDINFO( m_flFadeScale ), 0, SPROP_NOSCALE ),
+#ifdef GLOWS_ENABLE
+	SendPropBool(SENDINFO(m_bGlowEnabled)),
+	SendPropFloat(SENDINFO(m_flGlowDist), 11, SPROP_ROUNDDOWN),
+	SendPropInt(SENDINFO(m_iGlowFlags), GLOW_OUTLINE_EFFECT_MAX, SPROP_UNSIGNED),
+	SendPropInt(SENDINFO(m_clrGlowColor), 32, SPROP_UNSIGNED),
+#endif // GLOWS_ENABLE
 
 END_SEND_TABLE()
 
@@ -293,6 +299,12 @@ CBaseAnimating::CBaseAnimating()
 	m_fBoneCacheFlags = 0;
 	m_floatCloakFactor.Set(0.0f);
 
+#ifdef GLOWS_ENABLE
+	m_bGlowEnabled = false;
+	m_flGlowDist = FLT_MAX;
+	m_iGlowFlags = 0;
+	m_clrGlowColor.Init(0, 0, 0, 0);
+#endif // GLOWS_ENABLE
 }
 
 CBaseAnimating::~CBaseAnimating()
@@ -1521,6 +1533,61 @@ void CBaseAnimating::InitStepHeightAdjust( void )
 	m_flEstIkOffset = 0;
 }
 
+void CBaseAnimating::UpdateOnRemove(void)
+{
+#ifdef GLOWS_ENABLE
+	RemoveGlowEffect();
+#endif // GLOWS_ENABLE
+	BaseClass::UpdateOnRemove();
+}
+
+#ifdef GLOWS_ENABLE
+void CBaseAnimating::SetGlowEffectColor(byte r, byte g, byte b, byte a)
+{
+	m_clrGlowColor.Init(r, g, b, a);
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CBaseAnimating::AddGlowEffect(bool bRenderOccluded, bool bRenderUnoccluded, bool bDynamicAlpha, bool bUseTeamColors, bool bTeamOnly, float flViewDistance)
+{
+	SetTransmitState(FL_EDICT_ALWAYS);
+	m_bGlowEnabled = true;
+	int flags = 0;
+	if (bRenderOccluded)
+		flags |= (1 << GLOW_OUTLINE_RENDER_OCCLUDED);
+	if (bRenderUnoccluded)
+		flags |= (1 << GLOW_OUTLINE_RENDER_UNOCCLUDED);
+	if (bDynamicAlpha)
+		flags |= (1 << GLOW_OUTLINE_DYNAMIC_ALPHA);
+	if (bTeamOnly)
+		flags |= (1 << GLOW_OUTLINE_TEAM_ONLY);
+	if (bUseTeamColors)
+		flags |= (1 << GLOW_OUTLINE_USE_TEAM_COLORS);
+	m_iGlowFlags = flags;
+	m_flGlowDist = flViewDistance;
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+void CBaseAnimating::RemoveGlowEffect(void)
+{
+	SetTransmitState(FL_EDICT_PVSCHECK);
+	m_bGlowEnabled = false;
+	m_iGlowFlags = 0;
+	m_clrGlowColor.Init(0, 0, 0, 0);
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+bool CBaseAnimating::IsGlowEffectActive(void)
+{
+	return m_bGlowEnabled;
+}
+#endif // GLOWS_ENABLE
 
 //-----------------------------------------------------------------------------
 // Purpose: Interpolates client IK floor position and drops entity down so that the feet will reach

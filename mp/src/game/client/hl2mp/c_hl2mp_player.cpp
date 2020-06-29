@@ -231,34 +231,30 @@ void C_HL2MP_Player::ClientThink( void )
 	//BB: do a local think
 	if (CBasePlayer::GetLocalPlayer() == this)
 	{
-		C_BaseEntity *bcase = HL2MPRules()->cts_net.Get();
-		if (bcase && !bGlowCase)
-		{
-			bGlowCase = true;
-			g_GlowObjectManager.RegisterGlowObject(bcase, Vector(1.0f, 1.0f, 0.0f), 1.0f, true, true, -1);
-		}
-		else if (bcase == NULL)
-			bGlowCase = false;
+		g_GlowObjectManager.UpdateGlowEffectsVisibility();
 	}
 
 	//BB: non-local think
-	if (GetTeamNumber() == CBasePlayer::GetLocalPlayer()->GetTeamNumber())
+	if (CBasePlayer::GetLocalPlayer()->GetTeamNumber() == COVEN_TEAMID_SPECTATOR || GetTeamNumber() == CBasePlayer::GetLocalPlayer()->GetTeamNumber())
 	{
-		if (m_floatCloakFactor > 0.0f && (CBasePlayer::GetLocalPlayer()->EyePosition()-EyePosition()).Length() < 250)
+		if (m_floatCloakFactor > 0.0f)
 		{
-			trace_t tr;
-			Vector dt = EyePosition();
-			UTIL_TraceLine(CBasePlayer::GetLocalPlayer()->EyePosition(), dt, MASK_SOLID, CBasePlayer::GetLocalPlayer(), COLLISION_GROUP_PLAYER, &tr);
-			bool tracecheck = false;
-			if (tr.DidHitNonWorldEntity() && tr.m_pEnt->IsPlayer() && this == tr.m_pEnt)
-				tracecheck = true;
-			if (tracecheck)
-				ForceGlowEffect();
-			else
-				UpdateGlowEffect();
+			if (!IsClientSideGlowEnabled())
+			{
+				SetClientSideGlowEnabled(true);
+				color32 clr;
+				clr.b = clr.r = 0;
+				clr.g = clr.a = 255;
+				if (CBasePlayer::GetLocalPlayer()->GetTeamNumber() == COVEN_TEAMID_SPECTATOR)
+				{
+					clr.r = 255;
+					clr.g = 0;
+				}
+				ForceGlowEffect(clr, false, true, 250.0f);
+			}
 		}
-		else
-			UpdateGlowEffect();
+		else if (IsClientSideGlowEnabled())
+			SetClientSideGlowEnabled(false);
 	}
 
 	bool bFoundViewTarget = false;
@@ -299,6 +295,8 @@ void C_HL2MP_Player::ClientThink( void )
 	}
 
 	UpdateIDTarget();
+
+	BaseClass::ClientThink();
 }
 
 //-----------------------------------------------------------------------------
