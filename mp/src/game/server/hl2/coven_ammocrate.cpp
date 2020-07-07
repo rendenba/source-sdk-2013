@@ -22,6 +22,7 @@ END_DATADESC()
 void CCoven_AmmoCrate::Spawn(void)
 {
 	BaseClass::Spawn();
+	m_BuildingType = BUILDING_AMMOCRATE;
 	SetBodygroup(1, false);
 
 	ResetSequence(LookupSequence("Idle"));
@@ -29,7 +30,8 @@ void CCoven_AmmoCrate::Spawn(void)
 	m_flCloseTime = 0.0f;
 
 	m_iMetal = 0;
-	m_iMaxMetal = 400;
+	CovenBuildingInfo_t *bldgInfo = GetCovenBuildingData(m_BuildingType);
+	m_iMaxMetal = bldgInfo->iAmmo1[m_iLevel];
 	m_flMetalTimer = gpGlobals->curtime + BuildTime();
 	m_iAmmoType = 1;
 }
@@ -39,7 +41,8 @@ void CCoven_AmmoCrate::Spawn(void)
 //-----------------------------------------------------------------------------
 void CCoven_AmmoCrate::Precache(void)
 {
-	SetModelName(AllocPooledString(COVEN_CRATE_MODELNAME));
+	CovenBuildingInfo_t *bldgInfo = GetCovenBuildingData(BUILDING_AMMOCRATE);
+	SetModelName(AllocPooledString(bldgInfo->szModelName));
 
 	PrecacheScriptSound("AmmoCrate.Open");
 	PrecacheScriptSound("AmmoCrate.Close");
@@ -101,9 +104,21 @@ void CCoven_AmmoCrate::OnBuildingComplete(void)
 	BaseClass::OnBuildingComplete();
 }
 
+bool CCoven_AmmoCrate::CheckLevel(void)
+{
+	if (BaseClass::CheckLevel())
+	{
+		CovenBuildingInfo_t *bldgInfo = GetCovenBuildingData(m_BuildingType);
+		m_iMaxMetal = bldgInfo->iAmmo1[m_iLevel];
+		return true;
+	}
+	return false;
+}
+
 void CCoven_AmmoCrate::AddMetal(void)
 {
-	m_iMetal = min(m_iMetal + 40 + 10 * m_iLevel, m_iMaxMetal);
+	CovenBuildingInfo_t *bldgInfo = GetCovenBuildingData(m_BuildingType);
+	m_iMetal = min(m_iMetal + bldgInfo->iAmmo2[m_iLevel], m_iMaxMetal);
 }
 
 int CCoven_AmmoCrate::GetMetal(int have)
@@ -111,8 +126,9 @@ int CCoven_AmmoCrate::GetMetal(int have)
 	if (HasSpawnFlags(SF_COVEN_CRATE_INFINITE))
 		return 200 - have;
 
+	CovenBuildingInfo_t *bldgInfo = GetCovenBuildingData(m_BuildingType);
 	int need = 200 - have;
-	int metal = min(min(m_iMetal, 50 + 20 * m_iLevel), need);
+	int metal = min(min(m_iMetal, bldgInfo->iAmmo3[m_iLevel]), need);
 	m_iMetal -= metal;
 	return metal;
 }

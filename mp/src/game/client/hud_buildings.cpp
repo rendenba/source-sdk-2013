@@ -10,6 +10,7 @@
 #include <vgui/ISurface.h>
 #include <vgui/ILocalize.h>
 #include "c_basehlplayer.h"
+#include "coven_parse.h"
 
 #include "tier0/memdbgon.h" 
 
@@ -191,7 +192,8 @@ void CHudBuildings::Paint()
 		surface()->DrawSetTextFont(m_hTextFontNumerals);
 		surface()->DrawSetTextPos(xpos2, ypos - yfontoffset2);
 		surface()->DrawUnicodeString(wLevel);
-		if (actualLevel < 3)
+		CovenBuildingInfo_t *bldgInfo = GetCovenBuildingData(BUILDING_TURRET);
+		if (actualLevel < bldgInfo->iMaxLevel)
 			PaintBarStatContinuous(barXpos, ypos, pPlayer->m_CovenBuilderLocal.m_iTurretXP, pPlayer->m_CovenBuilderLocal.m_iTurretMaxXP, barWidth, barHeight, blue);
 	}
 	else if (pPlayer->m_CovenBuilderLocal.m_iDispenserHP > 0 && m_iType == 2)
@@ -217,7 +219,8 @@ void CHudBuildings::Paint()
 		surface()->DrawSetTextFont(m_hTextFontNumerals);
 		surface()->DrawSetTextPos(xpos2, ypos - yfontoffset2);
 		surface()->DrawUnicodeString(wLevel);
-		if (actualLevel < 3)
+		CovenBuildingInfo_t *bldgInfo = GetCovenBuildingData(BUILDING_AMMOCRATE);
+		if (actualLevel < bldgInfo->iMaxLevel)
 			PaintBarStatContinuous(barXpos, ypos, pPlayer->m_CovenBuilderLocal.m_iDispenserXP, pPlayer->m_CovenBuilderLocal.m_iDispenserMaxXP, barWidth, barHeight, blue);
 	}
 }

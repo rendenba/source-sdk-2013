@@ -3,6 +3,7 @@
 #include "vphysics/constraints.h"
 #include "coven_apc.h"
 #include "hl2mp_gamerules.h"
+#include "covenlib.h"
 
 extern ConVar bot_debug_visual;
 
@@ -14,45 +15,6 @@ float CCoven_APC::m_flWheelDiameter = 64.6f;
 float CCoven_APC::m_flWheelRadius = CCoven_APC::m_flWheelDiameter / 2.0f;
 float CCoven_APC::m_flWheelBase = (CCoven_APC::wheelOffset[0] - CCoven_APC::wheelOffset[1]).Length2D();
 float CCoven_APC::m_flWheelTrack = (CCoven_APC::wheelOffset[0] - CCoven_APC::wheelOffset[2]).Length2D();
-
-void VectorRotate2DPoint(const Vector &in, const Vector &point, float angle, Vector *out, bool bRadians = false)
-{
-	if (out)
-	{
-		if (!bRadians)
-			angle = M_PI * angle / 180.0f;
-		float cs;
-		float sn;
-		SinCos(angle, &sn, &cs);
-
-		float translated_x = in.x - point.x;
-		float translated_y = in.y - point.y;
-
-		float result_x = translated_x * cs - translated_y * sn;
-		float result_y = translated_x * sn + translated_y * cs;
-
-		result_x += point.x;
-		result_y += point.y;
-
-		(*out).x = result_x;
-		(*out).y = result_y;
-	}
-}
-
-void VectorRotate2D(const Vector &in, float angle, Vector *out, bool bRadians = false)
-{
-	if (out)
-	{
-		if (!bRadians)
-			angle = M_PI * angle / 180.0f;
-		float cs;
-		float sn;
-		SinCos(angle, &sn, &cs);
-
-		(*out).x = in.x * cs - in.y * sn;
-		(*out).y = in.x * sn + in.y * cs;
-	}
-}
 
 LINK_ENTITY_TO_CLASS(coven_prop_physics, CCoven_APCProp);
 

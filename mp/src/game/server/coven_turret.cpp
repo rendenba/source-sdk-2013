@@ -135,7 +135,8 @@ void CCoven_Turret::Precache(void)
 	//const char *pModelName = STRING(GetModelName());
 	//pModelName = (pModelName && pModelName[0] != '\0') ? pModelName : COVEN_TURRET_MODEL;
 	//PrecacheModel(pModelName);
-	SetModelName(AllocPooledString(COVEN_TURRET_MODEL));
+	CovenBuildingInfo_t *bldgInfo = GetCovenBuildingData(BUILDING_TURRET);
+	SetModelName(AllocPooledString(bldgInfo->szModelName));
 	PrecacheModel(COVEN_TURRET_GLOW_SPRITE);
 	PrecacheModel(LASER_BEAM_SPRITE);
 	m_nHaloSprite = PrecacheModel(LASER_BEAM_SPRITE);
@@ -176,8 +177,10 @@ void CCoven_Turret::Spawn(void)
 {
 	Precache();
 
+	m_BuildingType = BUILDING_TURRET;
+	CovenBuildingInfo_t *bldgInfo = GetCovenBuildingData(m_BuildingType);
 	const char *pModelName = STRING(GetModelName());
-	SetModel((pModelName && pModelName[0] != '\0') ? pModelName : COVEN_TURRET_MODEL);
+	SetModel((pModelName && pModelName[0] != '\0') ? pModelName : bldgInfo->szModelName);
 
 	// If we're a citizen turret, we use a different skin
 	if (IsCitizenTurret())
@@ -207,10 +210,8 @@ void CCoven_Turret::Spawn(void)
 	SetViewOffset(EyeOffset(ACT_IDLE));
 	m_flFieldOfView = 0.2f; // 78 degrees
 
-	m_iHealth = 100;
-	m_iMaxHealth = 100;
-	m_iAmmo = m_iMaxAmmo = 100;
-	m_iEnergy = m_iMaxEnergy = 100;
+	m_iAmmo = m_iMaxAmmo = bldgInfo->iAmmo1[m_iLevel];
+	m_iEnergy = m_iMaxEnergy = bldgInfo->iAmmo2[m_iLevel];
 
 	AddEFlags(EFL_NO_DISSOLVE);
 
@@ -1529,12 +1530,11 @@ bool CCoven_Turret::CheckLevel(void)
 {
 	if (BaseClass::CheckLevel())
 	{
-		m_iMaxAmmo += 40;
+		CovenBuildingInfo_t *bldgInfo = GetCovenBuildingData(m_BuildingType);
+		m_iMaxAmmo = bldgInfo->iAmmo1[m_iLevel];
 		m_iAmmo = m_iMaxAmmo;
-		m_iMaxEnergy += 50;
+		m_iMaxEnergy = bldgInfo->iAmmo2[m_iLevel];
 		m_iEnergy = m_iMaxEnergy;
-		m_iMaxHealth += 10;
-		m_iHealth = m_iMaxHealth;
 		return true;
 	}
 	return false;
@@ -1558,6 +1558,7 @@ int CCoven_Turret::OnTakeDamage(const CTakeDamageInfo &info)
 			CHL2MP_Player *pAttacker = (CHL2MP_Player *)info.GetAttacker();
 			if (pAttacker)
 			{
+				CovenBuildingInfo_t *bldgInfo = GetCovenBuildingData(m_BuildingType);
 				int hp = 0;
 				int ammo = 0;
 				int energy = 0;
@@ -1567,9 +1568,9 @@ int CCoven_Turret::OnTakeDamage(const CTakeDamageInfo &info)
 				energy = min(25, m_iMaxEnergy - m_iEnergy);
 				if (hp == 0 || (ammo + energy) == 0)
 				{
-					int maxXP = 225;
-					if (m_iLevel >= 1)
-						maxXP = 200;
+					int maxXP = m_iMaxXP + 25;
+					if (m_iLevel >= (bldgInfo->iMaxLevel - 2))
+						maxXP = m_iMaxXP;
 					xp = min(25, maxXP - m_iXP);
 				}
 

@@ -75,6 +75,8 @@ CBaseCombatWeapon::CBaseCombatWeapon()
 
 	m_bReloadsSingly	= false;
 
+	m_bActivateWhenAtRest = false;
+
 	// Defaults to zero
 	m_nViewModelIndex	= 0;
 
@@ -2645,6 +2647,8 @@ IMPLEMENT_NETWORKCLASS_ALIASED( BaseCombatWeapon, DT_BaseCombatWeapon )
 // Purpose: Save Data for Base Weapon object
 //-----------------------------------------------------------------------------// 
 BEGIN_DATADESC( CBaseCombatWeapon )
+
+	DEFINE_KEYFIELD(m_bActivateWhenAtRest, FIELD_BOOLEAN, "RestActivate"),
 
 	DEFINE_FIELD( m_flNextPrimaryAttack, FIELD_TIME ),
 	DEFINE_FIELD( m_flNextSecondaryAttack, FIELD_TIME ),

@@ -174,6 +174,11 @@ void Class_Precache(void)
 	PrecacheClasses(filesystem);
 }
 
+void Building_Precache(void)
+{
+	PrecacheBuildings(filesystem);
+}
+
 void C_World::Precache( void )
 {
 	// UNDONE: Make most of these things server systems or precache_registers
@@ -190,6 +195,7 @@ void C_World::Precache( void )
 	Abil_Precache();
 	Class_Precache();
 	Status_Precache();
+	Building_Precache();
 
 	// Call all registered precachers.
 	CPrecacheRegister::Precache();

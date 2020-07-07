@@ -228,10 +228,6 @@ void CHudAuras::Paint()
 	int thiswidth = 0;
 	int margin = UTIL_ComputeStringWidth(m_hTextFont, "0");
 
-	int teamnum = 0;
-	if (pPlayer->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
-		teamnum = 1;
-
 	for (int i = 0; i < COVEN_STATUS_COUNT; i++)
 	{
 		CovenStatus_t iStatus = (CovenStatus_t)i;
@@ -240,11 +236,25 @@ void CHudAuras::Paint()
 			thiswidth = maxpicwidth;
 			CovenStatusEffectInfo_t *info = GetCovenStatusEffectData(iStatus);
 			Color blk(0, 0, 0, 250);
-			surface()->DrawSetTextColor(Color(120, 120, 120, 250));
+			Color red(180, 0, 0, 250);
+			Color gray(120, 120, 120, 250);
+			if ((info->iFlags & EFFECT_FLAG_SPLIT_DEF) > 0)
+			{
+				if (info->bIsDebuff && pPlayer->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+					surface()->DrawSetTextColor(red);
+				else if (info->bAltIsDebuff && pPlayer->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+					surface()->DrawSetTextColor(red);
+				else
+					surface()->DrawSetTextColor(gray);
+			}
+			else if (info->bIsDebuff)
+				surface()->DrawSetTextColor(red);
+			else
+				surface()->DrawSetTextColor(gray);
 			surface()->DrawSetColor(blk);
 			int size = 0;
-			float timer = 0.0f;
-			if (info->bShowTimer || iStatus == COVEN_STATUS_HOLYWATER)//SPECIAL CASE!
+			float timer = -1.0f;
+			if (info->iShowTimer == SHOW_ALWAYS || info->iShowTimer == pPlayer->GetTeamNumber() || ((info->iFlags & EFFECT_FLAG_MAG_AS_TIMER) > 0))//SPECIAL CASE!
 			{
 				timer = pPlayer->m_HL2Local.covenStatusTimers[iStatus] - gpGlobals->curtime;
 				if (timer < 4.2f && timer > 0.5f)
@@ -262,7 +272,16 @@ void CHudAuras::Paint()
 			}
 			if (cl_coven_statuseffecttitles.GetInt() > 0)
 			{
-				wchar_t *tempString = g_pVGuiLocalize->Find(info->szPrintName);
+				wchar_t *tempString = NULL;
+				if ((info->iFlags & EFFECT_FLAG_SPLIT_DEF) > 0)
+				{
+					if (pPlayer->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+						tempString = g_pVGuiLocalize->Find(info->szPrintName);
+					else
+						tempString = g_pVGuiLocalize->Find(info->szAltPrintName);
+				}
+				else
+					tempString = g_pVGuiLocalize->Find(info->szPrintName);
 				if (tempString)
 				{
 					int strwidth = UTIL_ComputeStringWidth(m_hTextFont, tempString);
@@ -272,23 +291,31 @@ void CHudAuras::Paint()
 					DrawBlipText(x + thiswidth / 2.0f - width / 2.0f, picheight + inset + surface()->GetFontTall(m_hTextFont), tempString, strwidth, margin);
 				}
 			}
-			surface()->DrawSetTexture(info->statusIcon->textureId);
+			if ((info->iFlags & EFFECT_FLAG_SPLIT_DEF) > 0)
+			{
+				if (pPlayer->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+					surface()->DrawSetTexture(info->statusIcon->textureId);
+				else
+					surface()->DrawSetTexture(info->altStatusIcon->textureId);
+			}
+			else
+				surface()->DrawSetTexture(info->statusIcon->textureId);
 			int offsetx = inset - size + (thiswidth - maxpicwidth) / 2.0f;
 			int offsety = inset - size;
 			surface()->DrawTexturedRect(x + offsetx, offsety, x + offsetx + picheight + 2 * size, offsety + picheight + 2 * size);
 
-			if (info->bShowTimer || iStatus == COVEN_STATUS_HOLYWATER)//SPECIAL CASE!
-				if (timer > 0.0f)
+			if (info->iShowTimer == SHOW_ALWAYS || info->iShowTimer == pPlayer->GetTeamNumber() || ((info->iFlags & EFFECT_FLAG_MAG_AS_TIMER) > 0))//SPECIAL CASE!
+				if (timer >= 0.0f)
 					DrawCircleSegment(x + offsetx, offsety, picheight + 2 * size, picheight + 2 * size, 1.0f - timer / max_duration[iStatus], true);
 
-			if (info->bShowMagnitude)
+			if (info->iShowMagnitude == SHOW_ALWAYS || info->iShowMagnitude == pPlayer->GetTeamNumber())
 			{
 				wchar_t uc_text[4];
 				swprintf(uc_text, sizeof(uc_text), L"%d", pPlayer->m_HL2Local.covenStatusMagnitude[iStatus]);
 				int width = UTIL_ComputeStringWidth(m_hTextFont, L"100");
-				DrawBlipText(x + picheight - width, 0, uc_text, width, margin);
+				DrawBlipText(x + picheight + (thiswidth - maxpicwidth) / 2.0f - width, 0, uc_text, width, margin);
 			}
-			if (info->bShowTimer)
+			if (info->iShowTimer == SHOW_ALWAYS || info->iShowTimer == pPlayer->GetTeamNumber())
 			{
 				wchar_t uc_text[8];
 				if (timer > 60.0f)
@@ -298,7 +325,7 @@ void CHudAuras::Paint()
 				else
 					swprintf(uc_text, sizeof(uc_text), L"%.1f", timer);
 				int width = UTIL_ComputeStringWidth(m_hTextFont, L"100.0");
-				DrawBlipText(x + picheight - width, picheight, uc_text, width, margin);
+				DrawBlipText(x + picheight + (thiswidth - maxpicwidth) / 2.0f - width, picheight, uc_text, width, margin);
 			}
 			
 			x += thiswidth;

@@ -545,7 +545,7 @@ ConVarRef suitcharger( "sk_suitcharger" );
 					}
 				}
 			}
-			else if ( pCheck->GetWeight() > iBestWeight && pCheck != pCurrentWeapon )// don't reselect the weapon we're trying to get rid of
+			else if (pCheck->GetWeight() > iBestWeight && pCheck != pCurrentWeapon)// don't reselect the weapon we're trying to get rid of
 			{
 				//Msg( "Considering %s\n", STRING( pCheck->GetClassname() );
 				// we keep updating the 'best' weapon just in case we can't find a weapon of the same weight
@@ -559,7 +559,7 @@ ConVarRef suitcharger( "sk_suitcharger" );
 				}
 			}
 		}
-
+		//Msg("%d %d %s\n", iCurrentWeight, pBest->GetWeight(), pBest->GetClassname());
 		// if we make it here, we've checked all the weapons and found no useable 
 		// weapon in the same catagory as the current weapon. 
 		

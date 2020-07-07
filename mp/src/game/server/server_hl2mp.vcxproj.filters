@@ -1844,6 +1844,21 @@
     <ClInclude Include="coven_apc.h">
       <Filter>Source Files\HL2 DLL</Filter>
     </ClInclude>
+    <ClInclude Include="..\shared\purchaseitem_shared.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hl2\coven_supplydepot.h">
+      <Filter>Source Files\HL2 DLL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\shared\covenlib.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
+    <ClInclude Include="hl2\item_itemcrate.h">
+      <Filter>Source Files\HL2 DLL</Filter>
+    </ClInclude>
+    <ClInclude Include="..\shared\hl2mp\weapon_frag.h">
+      <Filter>Source Files\HL2MP\Weapons</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="gamedll_replay.cpp">
@@ -3603,6 +3618,21 @@
     </ClCompile>
     <ClCompile Include="coven_apc.cpp">
       <Filter>Source Files\HL2 DLL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\shared\hl2mp\weapon_holywater.cpp">
+      <Filter>Source Files\HL2MP\Weapons</Filter>
+    </ClCompile>
+    <ClCompile Include="hl2\purchaseitem.cpp">
+      <Filter>Source Files\HL2 DLL</Filter>
+    </ClCompile>
+    <ClCompile Include="hl2\coven_supplydepot.cpp">
+      <Filter>Source Files\HL2 DLL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\shared\covenlib.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\shared\hl2mp\weapon_stunfrag.cpp">
+      <Filter>Source Files\HL2MP\Weapons</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

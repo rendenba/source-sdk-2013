@@ -28,6 +28,9 @@
 #include "coven_turret.h"
 #include "covenbuilding.h"
 #include "coven_parse.h"
+#include "coven_supplydepot.h"
+#include "item_itemcrate.h"
+#include "weapon_frag.h"
 
 #include "grenade_tripmine.h"
 #include "coven_apc.h"
@@ -71,6 +74,8 @@ extern ConVar sv_coven_min_stealth_velocity;
 extern ConVar sv_coven_dash_bump;
 extern ConVar sv_coven_light_bump;
 extern ConVar sv_coven_usedynamicspawns;
+extern ConVar sv_coven_xp_slayerstart;
+extern ConVar sv_coven_dropboxtime;
 
 #define HL2MP_COMMAND_MAX_RATE 0.3
 
@@ -154,6 +159,36 @@ CON_COMMAND( chooseclass, "Opens a menu for class choose" )
 	{
 		pPlayer->ShowViewPortPanel( "class2", true, NULL );
 	}
+}
+
+CON_COMMAND(buy, "Buy an item")
+{
+	CHL2MP_Player *pPlayer = ToHL2MPPlayer(UTIL_GetCommandClient());
+	if (!pPlayer)
+		return;
+
+	if (!pPlayer->IsAlive() || pPlayer->KO)
+		return;
+
+	if (args.ArgC() != 2 || pPlayer->GetTeamNumber() != COVEN_TEAMID_SLAYERS)
+		return;
+
+	int item = atoi(args[1]);
+	if (item > COVEN_ITEM_NONE && item < COVEN_ITEM_COUNT)
+		HL2MPRules()->PurchaseCovenItem((CovenItemID_t)item, pPlayer);
+}
+
+CON_COMMAND(item, "Use an item")
+{
+	CHL2MP_Player *pPlayer = ToHL2MPPlayer(UTIL_GetCommandClient());
+	if (!pPlayer)
+		return;
+
+	if (!pPlayer->IsAlive() || pPlayer->KO)
+		return;
+
+	if (args.ArgC() != 2 || pPlayer->GetTeamNumber() != COVEN_TEAMID_SLAYERS)
+		return;
 }
 
 //BB: we are not using level menus anymore
@@ -305,6 +340,33 @@ CHL2MP_Player::~CHL2MP_Player( void )
 		}
 	}
 }*/
+
+bool CHL2MP_Player::HasDroppableItems(void)
+{
+	return GetTeamNumber() == COVEN_TEAMID_SLAYERS && ((Weapon_OwnsThisType("weapon_frag") && GetAmmoCount("grenade") > 0) || (Weapon_OwnsThisType("weapon_stunfrag") && GetAmmoCount("stungrenade") > 0) || (Weapon_OwnsThisType("weapon_holywater") && GetAmmoCount("holywater") > 0));
+}
+
+bool CHL2MP_Player::CreateDeathBox(void)
+{
+	if (HasDroppableItems())
+	{
+		CItem_ItemCrate *pEnt = static_cast<CItem_ItemCrate *>(CreateEntityByName("item_item_crate"));
+		pEnt->KeyValue("CrateType", "1");
+		if (Weapon_OwnsThisType("weapon_frag") && GetAmmoCount("grenade") > 0)
+			pEnt->AddCovenItem(COVEN_ITEM_GRENADE, GetAmmoCount("grenade"));
+		if (Weapon_OwnsThisType("weapon_stunfrag") && GetAmmoCount("stungrenade") > 0)
+			pEnt->AddCovenItem(COVEN_ITEM_STUN_GRENADE, GetAmmoCount("stungrenade"));
+		if (Weapon_OwnsThisType("weapon_holywater") && GetAmmoCount("holywater") > 0)
+			pEnt->AddCovenItem(COVEN_ITEM_HOLYWATER, GetAmmoCount("holywater"));
+		pEnt->SetAbsAngles(QAngle(random->RandomInt(0, 180), random->RandomInt(0, 90), random->RandomInt(0, 180)));
+		pEnt->SetAbsOrigin(EyePosition());
+		pEnt->Spawn();
+		pEnt->ChangeTeam(GetTeamNumber());
+		pEnt->m_flLifetime = gpGlobals->curtime + sv_coven_dropboxtime.GetFloat();
+		return true;
+	}
+	return false;
+}
 
 void CHL2MP_Player::UnleashSoul()
 {
@@ -931,7 +993,7 @@ void CHL2MP_Player::DoInnerLight(int iAbilityNum)
 	SetCooldown(iAbilityNum, gpGlobals->curtime + info->flCooldown);
 	Vector vecReported = GetLocalOrigin();
 	CTakeDamageInfo dmg(this, this, vec3_origin, GetAbsOrigin(), info->flCost * random->RandomFloat(0.6f, 2.2f), DMG_GENERIC, 0, &vecReported);
-	AddStatusHW(info->flDrain);
+	AddStatusMagDur(COVEN_STATUS_INNERLIGHT, info->flDrain);
 	for (int i = 1; i <= gpGlobals->maxClients; i++)
 	{
 		CHL2MP_Player *pPlayer = (CHL2MP_Player *)UTIL_PlayerByIndex(i);
@@ -946,7 +1008,7 @@ void CHL2MP_Player::DoInnerLight(int iAbilityNum)
 			{
 				if (pPlayer->GetTeamNumber() == GetTeamNumber())
 				{
-					pPlayer->AddStatusHW(info->flDrain);
+					pPlayer->AddStatusMagDur(COVEN_STATUS_INNERLIGHT, info->flDrain);
 				}
 				else
 				{
@@ -1372,6 +1434,7 @@ void CHL2MP_Player::Precache( void )
 	UTIL_PrecacheOther( "item_xp_vampires" );
 	UTIL_PrecacheOther( "item_cts" );
 	UTIL_PrecacheOther( "coven_turret" );
+	UTIL_PrecacheOther( "coven_supplydepot" );
 
 	//Precache Citizen models
 	int nHeads = ARRAYSIZE( g_ppszRandomCitizenModels );
@@ -1555,7 +1618,10 @@ void CHL2MP_Player::Spawn(void)
 
 	//BB: Reset bot pathing on spawn
 	if (IsBot())
+	{
 		GetLost(this, true, true);
+		BotRespawn(this);
+	}
 
 	if (KO && myServerRagdoll)
 		UTIL_Remove(myServerRagdoll);
@@ -1690,6 +1756,7 @@ void CHL2MP_Player::Spawn(void)
 	coven_timer_soul = -1.0f;
 	coven_timer_light = 0.0f;
 	coven_timer_holywater = -1.0f;
+	coven_timer_innerlight = -1.0f;
 	coven_timer_dash = -1.0f;
 #ifdef COVEN_DEVELOPER_MODE
 	Msg("Spawn location: %f %f %f\n", GetAbsOrigin().x, GetAbsOrigin().y, GetAbsOrigin().z);
@@ -3000,11 +3067,19 @@ bool CHL2MP_Player::BumpWeapon( CBaseCombatWeapon *pWeapon )
 	if ( bOwnsWeaponAlready == true ) 
 	{
 		//If we have room for the ammo, then "take" the weapon too.
+		//BB: NO!
 		 if ( Weapon_EquipAmmoOnly( pWeapon ) )
 		 {
+			 // Only remove me if I have no ammo left
+			 if (pWeapon->HasPrimaryAmmo())
+				 return false;
+
 			 pWeapon->CheckRespawn();
 
-			 UTIL_Remove( pWeapon );
+			 if (pWeapon->ActivateAtRest())
+				 HL2MPRules()->RemoveLevelDesignerPlacedObject(pWeapon);
+
+			 UTIL_Remove(pWeapon);
 			 return true;
 		 }
 		 else
@@ -3049,6 +3124,20 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 	if (iTeam != GetTeamNumber())
 		DestroyAllBuildings();
 
+	if (bKill == true)
+	{
+		CommitSuicide();
+		covenClassID = 0;
+	}
+
+	if (iTeam == COVEN_TEAMID_SLAYERS && GetTeamNumber() != COVEN_TEAMID_SLAYERS)
+		SetXP(sv_coven_xp_slayerstart.GetFloat());
+	else if (iTeam == COVEN_TEAMID_VAMPIRES && GetTeamNumber() != COVEN_TEAMID_VAMPIRES)
+		SetXP(0.0f);
+
+	if (GetTeamNumber() < COVEN_TEAMID_SLAYERS)
+		covenRespawnTimer = 0.0f;
+
 	BaseClass::ChangeTeam( iTeam );
 
 	m_flNextTeamChangeTime = gpGlobals->curtime + TEAM_CHANGE_INTERVAL;
@@ -3068,14 +3157,6 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 
 		State_Transition( STATE_OBSERVER_MODE );
 	}
-
-	if (bKill == true)
-	{
-		CommitSuicide();
-		covenClassID = 0;
-	}
-	else
-		covenRespawnTimer = 0.0f;
 }
 
 void CHL2MP_Player::GutcheckThink()
@@ -3211,8 +3292,10 @@ void CHL2MP_Player::SlayerHolywaterThink()
 	//HOLYWATER
 	if (IsAlive() && HasStatus(COVEN_STATUS_HOLYWATER) && gpGlobals->curtime > coven_timer_holywater)
 	{
+		CovenStatusEffectInfo_t *effectInfo = GetCovenStatusEffectData(COVEN_STATUS_HOLYWATER);
+		float divisor = max(effectInfo->flDataVariables[0], 1.0f);
 		int mag = GetStatusMagnitude(COVEN_STATUS_HOLYWATER);
-		float temp = ceil(mag/50.0f);
+		float temp = ceil(mag / divisor);
 		int newtot = mag-temp;
 		if (newtot <= 0)
 		{
@@ -3224,6 +3307,25 @@ void CHL2MP_Player::SlayerHolywaterThink()
 			coven_timer_holywater = gpGlobals->curtime + 1.0f;
 		SetStatusMagnitude(COVEN_STATUS_HOLYWATER, newtot);
 		TakeHealth(temp, DMG_GENERIC);
+	}
+
+	//INNERLIGHT
+	if (IsAlive() && HasStatus(COVEN_STATUS_INNERLIGHT) && gpGlobals->curtime > coven_timer_innerlight)
+	{
+		CovenStatusEffectInfo_t *effectInfo = GetCovenStatusEffectData(COVEN_STATUS_INNERLIGHT);
+		float divisor = max(effectInfo->flDataVariables[0], 1.0f);
+		int mag = GetStatusMagnitude(COVEN_STATUS_INNERLIGHT);
+		float temp = ceil(mag / divisor);
+		int newtot = mag - temp;
+		if (newtot <= 0)
+		{
+			newtot = 0;
+			coven_timer_innerlight = -1.0f;
+			RemoveStatus(COVEN_STATUS_INNERLIGHT);
+		}
+		else
+			coven_timer_innerlight = gpGlobals->curtime + 1.0f;
+		SetStatusMagnitude(COVEN_STATUS_INNERLIGHT, newtot);
 	}
 }
 
@@ -3256,8 +3358,8 @@ bool CHL2MP_Player::HandleCommand_SelectClass( int select )
 
 	if (!IsDead())
 	{
-		RemoveAllItems( true );
 		CommitSuicide();
+		RemoveAllItems(true);
 		// add 1 to frags to balance out the 1 subtracted for killing yourself
 		IncrementFragCount( 1 );
 		IncrementDeathCount(-1);
@@ -3270,6 +3372,8 @@ bool CHL2MP_Player::HandleCommand_SelectClass( int select )
 
 	DestroyAllBuildings();
 	ResetAbilities();
+	if (covenRespawnTimer < 0.0f)
+		covenRespawnTimer = HL2MPRules()->GetRespawnTime((CovenTeamID_t)GetTeamNumber());
 	Spawn();
 
 	return true;
@@ -3630,19 +3734,29 @@ void CHL2MP_Player::Weapon_Drop( CBaseCombatWeapon *pWeapon, const Vector *pvecT
 	//Drop a grenade if it's primed.
 	if ( GetActiveWeapon() )
 	{
-		CBaseCombatWeapon *pGrenade = Weapon_OwnsThisType("weapon_frag");
+		CWeaponFrag *pGrenade = static_cast<CWeaponFrag *>(Weapon_OwnsThisType("weapon_frag"));
 
 		if ( GetActiveWeapon() == pGrenade )
 		{
-			if ( ( m_nButtons & IN_ATTACK ) || (m_nButtons & IN_ATTACK2) )
+			if ( (( m_nButtons & IN_ATTACK ) || (m_nButtons & IN_ATTACK2)) && pGrenade->IsPrimed() )
 			{
 				DropPrimedFragGrenade( this, pGrenade );
-				return;
+			}
+		}
+
+		pGrenade = static_cast<CWeaponFrag *>(Weapon_OwnsThisType("weapon_stunfrag"));
+
+		if (GetActiveWeapon() == pGrenade)
+		{
+			if (((m_nButtons & IN_ATTACK) || (m_nButtons & IN_ATTACK2)) && pGrenade->IsPrimed())
+			{
+				DropPrimedFragGrenade(this, pGrenade);
 			}
 		}
 	}
 
-	BaseClass::Weapon_Drop( pWeapon, pvecTarget, pVelocity );
+	//BB: do not drop weapons...
+	//BaseClass::Weapon_Drop(pWeapon, pvecTarget, pVelocity);
 }
 
 
@@ -3741,6 +3855,8 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 	RevengeCheck();
 
 	DropItem();
+
+	CreateDeathBox();
 
 	RemoveGlowEffect();
 	SetRenderColorA(255.0f);
@@ -3859,74 +3975,23 @@ CON_COMMAND(test, "test")
 	if (!pPlayer)
 		return;
 	
-	Vector forward;
-	AngleVectors(pPlayer->EyeAngles(), &forward);
-
-	/*CBaseEntity *pEnt = CreateEntityByName("env_flare");
-	pEnt->SetAbsOrigin(pPlayer->GetAbsOrigin() + 200.0f * forward + Vector(0, 0, 69));
-	pEnt->SetAbsAngles(pPlayer->GetAbsAngles());
-	pEnt->Spawn();*/
-
-	CHandle<CPhysicsProp>	m_hFlare;
-	m_hFlare = static_cast<CPhysicsProp *>(CreateEntityByName("prop_physics"));
-	if (m_hFlare != NULL)
+	trace_t	tr;
+	QAngle angle = pPlayer->EyeAngles();
+	Vector forward, right, up;
+	AngleVectors(angle, &forward, &right, &up);
+	UTIL_TraceLine(pPlayer->EyePosition(), pPlayer->EyePosition() + forward * 256, MASK_PLAYERSOLID, pPlayer, COLLISION_GROUP_NONE, &tr);
+	if (tr.fraction < 1.0)
 	{
-		// Set the model
-		// Set the parent attachment
-		//m_hFlare->SetParent(pPlayer);
-		//m_hFlare->SetParentAttachment("SetParentAttachment", pEvent->options, false);
-		Vector location = pPlayer->EyePosition();
-		QAngle orientation = pPlayer->GetAbsAngles();
-		char buf[512];
-		// Pass in standard key values
-		Q_snprintf(buf, sizeof(buf), "%.10f %.10f %.10f", location.x, location.y, location.z);
-		m_hFlare->KeyValue("origin", buf);
-		Q_snprintf(buf, sizeof(buf), "%.10f %.10f %.10f", orientation.x, orientation.y, orientation.z);
-		m_hFlare->KeyValue("angles", buf);
-		m_hFlare->KeyValue("model", "models/props_junk/flare.mdl");
-		m_hFlare->KeyValue("fademindist", "-1");
-		m_hFlare->KeyValue("fademaxdist", "0");
-		m_hFlare->KeyValue("fadescale", "1");
-		m_hFlare->KeyValue("inertiaScale", "1.0");
-		m_hFlare->KeyValue("physdamagescale", "0.1");
-		m_hFlare->Precache();
-		m_hFlare->SetCollisionGroup(COLLISION_GROUP_PLAYER);
-		m_hFlare->Spawn();
-		m_hFlare->Activate();
+		if (tr.DidHitWorld())
+		{
+			CCoven_SupplyDepot *pEnt = static_cast<CCoven_SupplyDepot *>(CreateEntityByName("coven_supplydepot"));
+			pEnt->SetAbsOrigin(tr.endpos + Vector(0, 0, 0));
+			pEnt->SetAbsAngles(QAngle(0, angle.y - 90, 0));
+			pEnt->iDepotType = COVEN_SUPPLYDEPOT_TYPE_TWO;
+			pEnt->Spawn();
+			pEnt->ChangeTeam(COVEN_TEAMID_SLAYERS);
+		}
 	}
-	
-	
-	
-	m_hFlare->CreateFlare(30.0f);
-	// Detach
-	m_hFlare->SetParent(NULL);
-	//m_hFlare->RemoveInteraction(PROPINTER_PHYSGUN_CREATE_FLARE);
-
-	// Disable collisions between the NPC and the flare
-	PhysDisableEntityCollisions(pPlayer, m_hFlare);
-
-	// TODO: Find the velocity of the attachment point, at this time, in the animation cycle
-
-	// Construct a toss velocity
-	Vector vecToss;
-	AngleVectors(pPlayer->EyeAngles(), &vecToss);
-	VectorNormalize(vecToss);
-	vecToss *= random->RandomFloat(64.0f, 72.0f);
-	vecToss[2] += 164.0f;
-
-	// Throw it
-	IPhysicsObject *pObj = m_hFlare->VPhysicsGetObject();
-	pObj->ApplyForceCenter(vecToss);
-	pObj->SetMass(0.001f);
-	//m_hFlare->SetGravity(0.000001f);
-
-	// Forget about the flare at this point
-	m_hFlare = NULL;
-
-	/*((CCoven_APC *)pEnt)->SetMaxSpeed(3.0f);
-	((CCoven_APC *)pEnt)->SetFuelUp(5000);
-	((CCoven_APC *)pEnt)->SetGoal(4);*/
-
 }
 
 CON_COMMAND(testprobe, "test probe")
@@ -4194,6 +4259,7 @@ CON_COMMAND(tracert, "Trace hit")
 			NDebugOverlay::Text(tr.endpos + Vector(0, 0, 8), sTemp2, false, duration);
 			Q_snprintf(sTemp2, sizeof(sTemp2), "%.2f %.2f %.2f", abs(tr.endpos.x - pPlayer->store_loc.x), abs(tr.endpos.y - pPlayer->store_loc.y), abs(tr.endpos.z - pPlayer->store_loc.z));
 			NDebugOverlay::Text(pPlayer->store_loc + Vector(0, 0, 8), sTemp2, false, duration);
+			Msg("%f %f %f\n", tr.endpos.x - pPlayer->store_loc.x, tr.endpos.y - pPlayer->store_loc.y, tr.endpos.z - pPlayer->store_loc.z);
 		}
 		NDebugOverlay::Cross3D(tr.endpos, -Vector(2, 2, 2), Vector(2, 2, 2), 255, 255, 255, false, duration);
 		Q_snprintf(sTemp, sizeof(sTemp), "%s%.2f %.2f %.2f", sTemp, tr.endpos.x, tr.endpos.y, tr.endpos.z);
@@ -4370,6 +4436,60 @@ void CHL2MP_Player::Extinguish()
 	BaseClass::Extinguish(); //FL_ONFIRE ALREADY REMOVED...
 }
 
+bool CHL2MP_Player::PurchaseCovenItem(CovenItemID_t iItemType)
+{
+	int cost = HL2MPRules()->CovenItemCost(iItemType);
+	if (cost > GetXP())
+		return false;
+
+	switch (iItemType)
+	{
+		case COVEN_ITEM_GRENADE:
+		{
+			if (Weapon_OwnsThisType("weapon_frag"))
+			{
+				if (CBasePlayer::GiveAmmo(1, "grenade") == 0)
+					return false;
+			}
+			else
+				GiveNamedItem("weapon_frag");
+			break;
+		}
+		case COVEN_ITEM_STUN_GRENADE:
+		{
+			if (Weapon_OwnsThisType("weapon_stunfrag"))
+			{
+				if (CBasePlayer::GiveAmmo(1, "stungrenade") == 0)
+					return false;
+			}
+			else
+				GiveNamedItem("weapon_stunfrag");
+			break;
+		}
+		case COVEN_ITEM_HOLYWATER:
+		{
+			if (Weapon_OwnsThisType("weapon_holywater"))
+			{
+				if (CBasePlayer::GiveAmmo(1, "holywater") == 0)
+					return false;
+			}
+			else
+				GiveNamedItem("weapon_holywater");
+			break;
+		}
+		case COVEN_ITEM_STIMPACK:
+		{
+			return false;
+		}
+		case COVEN_ITEM_MEDKIT:
+		{
+			return false;
+		}
+	}
+	RemoveXP(cost);
+	return true;
+}
+
 bool CHL2MP_Player::CovenStatusDamageHandle(CTakeDamageInfo &info, int iDmgType, CovenStatus_t iStatus)
 {
 	if (info.GetDamageType() & iDmgType)
@@ -4411,11 +4531,24 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 			inputInfoAdjust.SetDamage(0.0f);
 	}
 
+	//INNERLIGHT
+	if (HasStatus(COVEN_STATUS_INNERLIGHT) && inputInfo.GetAttacker() && inputInfo.GetAttacker()->IsPlayer() && inputInfo.GetAttacker() != this)
+	{
+		inputInfo.GetAttacker()->TakeDamage(CTakeDamageInfo(this, this, vec3_origin, vec3_origin, GetStatusMagnitude(COVEN_STATUS_INNERLIGHT), DMG_GENERIC));
+		RemoveStatus(COVEN_STATUS_INNERLIGHT);
+		coven_timer_innerlight = -1.0f;
+	}
+
 	//Stun Damage
+	//Direct damage indicates a flat duration, otherwise it is treated as a max possible damage
 	if (inputInfoAdjust.GetDamageType() & DMG_STUN)
 	{
-		int bits = inputInfoAdjust.GetDamageType() & ~DMG_STUN;
-		float duration = inputInfoAdjust.GetAmmoType() * 0.01f;
+		int bits = inputInfoAdjust.GetDamageType() & ~DMG_STUN & ~DMG_DIRECT;
+		float duration = 0.0f;
+		if (inputInfoAdjust.GetDamageType() & DMG_DIRECT)
+			duration = inputInfoAdjust.GetAmmoType() * 0.01f;
+		else
+			duration = inputInfoAdjust.GetDamage() / inputInfoAdjust.GetAmmoType();
 		AddStatus(COVEN_STATUS_STUN, 1, gpGlobals->curtime + duration, true);
 		inputInfoAdjust.SetDamageType(bits);
 	}
@@ -4435,8 +4568,10 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 		*/
 		if (inputInfoAdjust.GetDamageType() == DMG_FALL)
 		{
+			CovenStatusEffectInfo_t *effectInfo = GetCovenStatusEffectData(COVEN_STATUS_HOLYWATER);
+			float divisor = max(effectInfo->flDataVariables[0], 1.0f);
 			int mag = GetStatusMagnitude(COVEN_STATUS_HOLYWATER);
-			float temp = floor((0.2f + 0.1f * mag / 50.0f) * inputInfoAdjust.GetDamage());
+			float temp = floor((0.2f + 0.1f * mag / divisor) * inputInfoAdjust.GetDamage());
 			if (temp > mag)
 			{
 				temp = mag;
@@ -4522,8 +4657,7 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 		if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
 		{
 			//startup the healing aura...
-			int mag = min(GetStatusMagnitude(COVEN_STATUS_HOLYWATER) + inputInfo.GetDamage() / 5.0f * 30.0f, 150);//50.0f 40
-			AddStatus(COVEN_STATUS_HOLYWATER, mag);
+			AddStatusMagDur(COVEN_STATUS_HOLYWATER, inputInfo.GetDamage() / 5.0f * 30.0f);
 			coven_timer_holywater = gpGlobals->curtime + 1.0f;
 			//insta heal component
 			//TakeHealth(inputInfo.GetDamage()/5.0f*20.0f, DMG_GENERIC);
@@ -4538,7 +4672,7 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 				if (m_pFlame)
 				{
 					m_pFlame->creator = (CBasePlayer *)inputInfo.GetInflictor();
-					m_pFlame->SetLifetime( max(inputInfo.GetDamage()/5.0f*8.0f,1.0f) );//15.0f 10
+					m_pFlame->SetLifetime(max(inputInfo.GetDamage() / 5.0f*8.0f, 1.0f));//15.0f 10
 					AddFlag( FL_ONFIRE );
 
 					SetEffectEntity( m_pFlame );
@@ -4674,7 +4808,7 @@ CBaseEntity* CHL2MP_Player::EntSelectSpawnPoint( void )
 		for ( CEntitySphereQuery sphere( pSpot->GetAbsOrigin(), 128 ); (ent = sphere.GetCurrentEntity()) != NULL; sphere.NextEntity() )
 		{
 			// if ent is a client, kill em (unless they are ourselves)
-			if ( ent->IsPlayer() && !(ent->edict() == player) )
+			if ( (ent->IsPlayer() && !(ent->edict() == player)) || ent->IsABuilding() )
 				ent->TakeDamage( CTakeDamageInfo( GetContainingEntity(INDEXENT(0)), GetContainingEntity(INDEXENT(0)), 300, DMG_GENERIC ) );
 		}
 	}

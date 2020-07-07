@@ -98,17 +98,34 @@ static const char *pCovenStatusEffects[COVEN_STATUS_COUNT] =
 	"has_cts",
 	"dodge",
 	"weakness",
-	"has_gas"
+	"has_gas",
+	"innerlight"
+};
+
+//BB: this must be in the same order as shareddefs
+static const char *pBuildingTypes[BUILDING_TYPE_COUNT] =
+{
+	"None",
+	"ammocrate",
+	"turret",
+	"supplydepot",
+	"purchase_item",
+	"purchase_grenade",
+	"purchase_stungrenade",
+	"purchase_holywater",
+	"purchase_stimpack",
+	"purchase_medkit"
 };
 
 static CUtlMap<unsigned int, CovenClassInfo_t *> m_CovenClassInfoDatabase;
 static CUtlVector<CovenAbilityInfo_t *> m_CovenAbilityInfoDatabase;
 static CUtlVector<CovenStatusEffectInfo_t *> m_CovenStatusEffectInfoDatabase;
+static CUtlVector<CovenBuildingInfo_t *> m_CovenBuildingInfoDatabase;
 
 static CovenClassInfo_t gNullCovenClassInfo;
 static CovenAbilityInfo_t gNullCovenAbilityInfo;
 static CovenStatusEffectInfo_t gNullCovenStatusEffectInfo;
-
+static CovenBuildingInfo_t gNullCovenBuildingInfo;
 
 CovenClassInfo_t::CovenClassInfo_t()
 {
@@ -161,13 +178,32 @@ CovenStatusEffectInfo_t::CovenStatusEffectInfo_t()
 
 	szName[0] = 0;
 	szPrintName[0] = 0;
+	szAltPrintName[0] = 0;
 
-	bShowMagnitude = false;
-	bShowTimer = false;
+	bIsDebuff = false;
+	bAltIsDebuff = false;
+	iShowMagnitude = SHOW_NEVER;
+	iShowTimer = SHOW_NEVER;
 	iFlags = 0;
 
 	iSpriteCount = 0;
 	statusIcon = 0;
+	altStatusIcon = 0;
+}
+
+CovenBuildingInfo_t::CovenBuildingInfo_t()
+{
+	bParsedScript = false;
+	bLoadedHudElements = false;
+
+	szName[0] = 0;
+	szPrintName[0] = 0;
+	szModelName[0] = 0;
+
+	iFlags = 0;
+	iMaxLevel = 0;
+	iHealths.AddToTail(150);
+	iXPs.AddToTail(200);
 }
 
 void CovenClassInfo_t::Parse(KeyValues *pKeyValuesData)
@@ -314,8 +350,19 @@ void CovenStatusEffectInfo_t::Parse(KeyValues *pKeyValuesData)
 	bParsedScript = true;
 
 	Q_strncpy(szPrintName, pKeyValuesData->GetString("printname", COVEN_PRINTNAME_MISSING), MAX_COVEN_STRING);
-	bShowMagnitude = (pKeyValuesData->GetInt("showmagnitude", 0) != 0) ? true : false;
-	bShowTimer = (pKeyValuesData->GetInt("showtimer", 0) != 0) ? true : false;
+	Q_strncpy(szAltPrintName, pKeyValuesData->GetString("altprintname", COVEN_PRINTNAME_MISSING), MAX_COVEN_STRING);
+	bIsDebuff = (pKeyValuesData->GetInt("debuff", 0) != 0) ? true : false;
+	bAltIsDebuff = (pKeyValuesData->GetInt("altdebuff", 0) != 0) ? true : false;
+	iShowMagnitude = (StatusEffectShow_t)pKeyValuesData->GetInt("showmagnitude", 0);
+	iShowTimer = (StatusEffectShow_t)pKeyValuesData->GetInt("showtimer", 0);
+	KeyValues *pVariables = pKeyValuesData->FindKey("variables");
+	if (pVariables)
+	{
+		for (KeyValues *sub = pVariables->GetFirstSubKey(); sub != NULL; sub = sub->GetNextKey())
+		{
+			flDataVariables.AddToTail(sub->GetFloat());
+		}
+	}
 
 	// LAME old way to specify item flags.
 	// Weapon scripts should use the flag names.
@@ -333,6 +380,58 @@ void CovenStatusEffectInfo_t::Parse(KeyValues *pKeyValuesData)
 			iFlags |= g_ItemFlags[i].m_iFlagValue;
 		}
 	}*/
+}
+
+void CovenBuildingInfo_t::Parse(KeyValues *pKeyValuesData)
+{
+	// Okay, we tried at least once to look this up...
+	bParsedScript = true;
+
+	Q_strncpy(szPrintName, pKeyValuesData->GetString("printname", COVEN_PRINTNAME_MISSING), MAX_COVEN_STRING);
+	iMaxLevel = pKeyValuesData->GetInt("maxlevel");
+	Q_strncpy(szModelName, pKeyValuesData->GetString("modelname"), MAX_COVEN_STRING);
+	KeyValues *pHealthInfo = pKeyValuesData->FindKey("health");
+	if (pHealthInfo)
+	{
+		iHealths.Purge();
+		for (KeyValues *sub = pHealthInfo->GetFirstSubKey(); sub != NULL; sub = sub->GetNextKey())
+		{
+			iHealths.AddToTail(sub->GetInt());
+		}
+	}
+	KeyValues *pXPInfo = pKeyValuesData->FindKey("xp");
+	if (pXPInfo)
+	{
+		iXPs.Purge();
+		for (KeyValues *sub = pXPInfo->GetFirstSubKey(); sub != NULL; sub = sub->GetNextKey())
+		{
+			iXPs.AddToTail(sub->GetInt());
+		}
+	}
+	KeyValues *pAmmo1Info = pKeyValuesData->FindKey("ammo1");
+	if (pAmmo1Info)
+	{
+		for (KeyValues *sub = pAmmo1Info->GetFirstSubKey(); sub != NULL; sub = sub->GetNextKey())
+		{
+			iAmmo1.AddToTail(sub->GetInt());
+		}
+	}
+	KeyValues *pAmmo2Info = pKeyValuesData->FindKey("ammo2");
+	if (pAmmo2Info)
+	{
+		for (KeyValues *sub = pAmmo2Info->GetFirstSubKey(); sub != NULL; sub = sub->GetNextKey())
+		{
+			iAmmo2.AddToTail(sub->GetInt());
+		}
+	}
+	KeyValues *pAmmo3Info = pKeyValuesData->FindKey("ammo3");
+	if (pAmmo3Info)
+	{
+		for (KeyValues *sub = pAmmo3Info->GetFirstSubKey(); sub != NULL; sub = sub->GetNextKey())
+		{
+			iAmmo3.AddToTail(sub->GetInt());
+		}
+	}
 }
 
 void PrecacheClasses(IFileSystem *filesystem)
@@ -399,12 +498,12 @@ void PrecacheStatusEffects(IFileSystem *filesystem)
 	{
 		char tempfile[MAX_PATH];
 		Q_snprintf(tempfile, sizeof(tempfile), "scripts/statuseffects/%s.txt", pCovenStatusEffects[i]);
-		KeyValues *ability = new KeyValues("statuseffectdata");
-		if (ability->LoadFromFile(filesystem, tempfile, "GAME"))
+		KeyValues *effect = new KeyValues("statuseffectdata");
+		if (effect->LoadFromFile(filesystem, tempfile, "GAME"))
 		{
 			CovenStatusEffectInfo_t *info = new CovenStatusEffectInfo_t();
 			Q_snprintf(info->szName, sizeof(info->szName), pCovenStatusEffects[i]);
-			info->Parse(ability);
+			info->Parse(effect);
 			m_CovenStatusEffectInfoDatabase.AddToTail(info);
 #ifdef CLIENT_DLL
 			LoadStatusEffectSprites(info);
@@ -414,6 +513,29 @@ void PrecacheStatusEffects(IFileSystem *filesystem)
 		{
 			Warning("Error loading status effect file: %s!\n", tempfile);
 			m_CovenStatusEffectInfoDatabase.AddToTail(&gNullCovenStatusEffectInfo);
+		}
+	}
+}
+
+void PrecacheBuildings(IFileSystem *filesystem)
+{
+	m_CovenBuildingInfoDatabase.AddToTail(&gNullCovenBuildingInfo);
+	for (int i = 1; i < BUILDING_TYPE_COUNT; i++)
+	{
+		char tempfile[MAX_PATH];
+		Q_snprintf(tempfile, sizeof(tempfile), "scripts/buildings/%s.txt", pBuildingTypes[i]);
+		KeyValues *building = new KeyValues("buildingdata");
+		if (building->LoadFromFile(filesystem, tempfile, "GAME"))
+		{
+			CovenBuildingInfo_t *info = new CovenBuildingInfo_t();
+			Q_snprintf(info->szName, sizeof(info->szName), pBuildingTypes[i]);
+			info->Parse(building);
+			m_CovenBuildingInfoDatabase.AddToTail(info);
+		}
+		else
+		{
+			Warning("Error loading building file: %s!\n", tempfile);
+			m_CovenBuildingInfoDatabase.AddToTail(&gNullCovenBuildingInfo);
 		}
 	}
 }
@@ -479,6 +601,11 @@ void LoadStatusEffectSprites(CovenStatusEffectInfo_t *info)
 	{
 		info->statusIcon = gHUD.AddUnsearchableHudIconToList(*p);
 	}
+	p = FindHudTextureInDict(tempList, "altstatuseffecttexture");
+	if (p)
+	{
+		info->altStatusIcon = gHUD.AddUnsearchableHudIconToList(*p);
+	}
 
 	FreeHudTextureList(tempList);
 }
@@ -506,4 +633,9 @@ CovenAbilityInfo_t *GetCovenAbilityData(CovenAbility_t iAbility)
 CovenStatusEffectInfo_t *GetCovenStatusEffectData(CovenStatus_t iStatus)
 {
 	return m_CovenStatusEffectInfoDatabase[iStatus];
+}
+
+CovenBuildingInfo_t *GetCovenBuildingData(BuildingType_t iBuildingType)
+{
+	return m_CovenBuildingInfoDatabase[iBuildingType];
 }

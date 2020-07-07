@@ -174,6 +174,12 @@ void CBaseGrenade::Explode( trace_t *pTrace, int bitsDamageType )
 	
 	CTakeDamageInfo info( this, m_hThrower, GetBlastForce(), GetAbsOrigin(), m_flDamage, bitsDamageType, 0, &vecReported );
 
+	if (m_type == GRENADE_TYPE_STUN)
+	{
+		info.SetDamageType(bitsDamageType | DMG_STUN);
+		info.SetAmmoType(m_flDamage / 5.0f);
+	}
+
 	RadiusDamage( info, GetAbsOrigin(), m_DmgRadius, CLASS_NONE, NULL );
 
 	UTIL_DecalTrace( pTrace, "Scorch" );

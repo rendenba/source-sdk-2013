@@ -34,6 +34,9 @@
 	#include "hl2mp_gameinterface.h"
 	#include "hl2mp_cvars.h"
 	#include "coven_ammocrate.h"
+	#include "coven_supplydepot.h"
+	#include "item_itemcrate.h"
+	#include "covenlib.h"
 
 //BB: BOTS!
 //#ifdef DEBUG	
@@ -44,8 +47,9 @@ extern void respawn(CBaseEntity *pEdict, bool fCopyCorpse);
 
 extern bool FindInList( const char **pStrings, const char *pToFind );
 
-ConVar sv_hl2mp_weapon_respawn_time( "sv_hl2mp_weapon_respawn_time", "20", FCVAR_GAMEDLL | FCVAR_NOTIFY );
+ConVar sv_hl2mp_weapon_respawn_time( "sv_hl2mp_weapon_respawn_time", "30", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_hl2mp_item_respawn_time( "sv_hl2mp_item_respawn_time", "30", FCVAR_GAMEDLL | FCVAR_NOTIFY );
+ConVar sv_hl2mp_item_refresh_time( "sv_hl2mp_item_refresh_time", "10", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_report_client_settings("sv_report_client_settings", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 
 //BB: Coven ConVars
@@ -54,11 +58,13 @@ ConVar sv_coven_minplayers("sv_coven_minplayers", "0", FCVAR_GAMEDLL | FCVAR_NOT
 ConVar sv_coven_freezetime("sv_coven_freezetime", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY );//5
 ConVar sv_coven_usects("sv_coven_usects", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_coven_warmuptime("sv_coven_warmuptime", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY );//10
+ConVar sv_coven_xp_slayerstart("sv_coven_xp_slayerstart", "50.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Slayer starting money.");
 #else
 ConVar sv_coven_minplayers("sv_coven_minplayers", "4", FCVAR_GAMEDLL | FCVAR_NOTIFY );//3
 ConVar sv_coven_freezetime("sv_coven_freezetime", "5", FCVAR_GAMEDLL | FCVAR_NOTIFY );//5
 ConVar sv_coven_usects("sv_coven_usects", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_coven_warmuptime("sv_coven_warmuptime", "20", FCVAR_GAMEDLL | FCVAR_NOTIFY );//10
+ConVar sv_coven_xp_slayerstart("sv_coven_xp_slayerstart", "10.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Slayer starting money.");
 #endif
 ConVar sv_coven_roundtime("sv_coven_roundtime", "120", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Round time limit in seconds.");
 
@@ -82,6 +88,8 @@ ConVar sv_coven_dash_bump("sv_coven_dash_bump", "1000.0", FCVAR_GAMEDLL | FCVAR_
 ConVar sv_coven_light_bump("sv_coven_light_bump", "600.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Inner light fling magnitude.");
 ConVar sv_coven_respawn_slayer_base("sv_coven_respawn_slayer_base", "5.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Base slayer respawn time.");
 ConVar sv_coven_respawn_vampire_base("sv_coven_respawn_vampire_base", "10.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Base vampire respawn time.");
+ConVar sv_coven_item_respawn_time("sv_coven_item_respawn_time", "30", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Dropped item respawn time.");
+ConVar sv_coven_dropboxtime("sv_coven_dropboxtime", "60.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Dropped item existance time.");
 
 extern ConVar mp_chattime;
 extern ConVar bot_debug_visual;
@@ -95,13 +103,19 @@ static char temparray[256];
 
 #endif
 
-ConVar sv_coven_capture_fraglimit("sv_coven_capture_fraglimit", "1600", FCVAR_GAMEDLL | FCVAR_NOTIFY | FCVAR_REPLICATED, "Capture point fraglimit.");
-ConVar sv_coven_fraglimit("sv_coven_fraglimit", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY | FCVAR_REPLICATED, "Coven mode fraglimit.");
-ConVar sv_coven_round_fraglimit("sv_coven_round_fraglimit", "12", FCVAR_GAMEDLL | FCVAR_NOTIFY | FCVAR_REPLICATED, "Round mode fraglimit.");
-ConVar sv_coven_mana_per_int("sv_coven_mana_per_int", "10.0", FCVAR_GAMEDLL | FCVAR_NOTIFY | FCVAR_REPLICATED);
-ConVar sv_coven_gcd("sv_coven_gcd", "1.5", FCVAR_GAMEDLL | FCVAR_NOTIFY | FCVAR_REPLICATED);
-ConVar sv_coven_hp_per_con("sv_coven_hp_per_con", "4.0", FCVAR_GAMEDLL | FCVAR_NOTIFY | FCVAR_REPLICATED);
-ConVar sv_coven_alarm_time("sv_coven_alarm_time", "60.0", FCVAR_GAMEDLL | FCVAR_NOTIFY | FCVAR_REPLICATED, "APC alarm timer.");
+ConVar sv_coven_capture_fraglimit("sv_coven_capture_fraglimit", "1600", FCVAR_NOTIFY | FCVAR_REPLICATED, "Capture point fraglimit.");
+ConVar sv_coven_fraglimit("sv_coven_fraglimit", "0", FCVAR_NOTIFY | FCVAR_REPLICATED, "Coven mode fraglimit.");
+ConVar sv_coven_round_fraglimit("sv_coven_round_fraglimit", "12", FCVAR_NOTIFY | FCVAR_REPLICATED, "Round mode fraglimit.");
+ConVar sv_coven_mana_per_int("sv_coven_mana_per_int", "10.0", FCVAR_NOTIFY | FCVAR_REPLICATED);
+ConVar sv_coven_gcd("sv_coven_gcd", "1.5", FCVAR_NOTIFY | FCVAR_REPLICATED);
+ConVar sv_coven_hp_per_con("sv_coven_hp_per_con", "4.0", FCVAR_NOTIFY | FCVAR_REPLICATED);
+ConVar sv_coven_alarm_time("sv_coven_alarm_time", "60.0", FCVAR_NOTIFY | FCVAR_REPLICATED, "APC alarm timer.");
+
+ConVar sv_coven_cost_grenade("sv_coven_cost_grenade", "8", FCVAR_NOTIFY | FCVAR_REPLICATED, "Frag grenade cost.");
+ConVar sv_coven_cost_stungrenade("sv_coven_cost_stungrenade", "12", FCVAR_NOTIFY | FCVAR_REPLICATED, "Stun grenade cost.");
+ConVar sv_coven_cost_holywater("sv_coven_cost_holywater", "10", FCVAR_NOTIFY | FCVAR_REPLICATED, "Holywater grenade cost.");
+ConVar sv_coven_cost_medkit("sv_coven_cost_medkit", "12", FCVAR_NOTIFY | FCVAR_REPLICATED, "Medkit cost.");
+ConVar sv_coven_cost_stimpack("sv_coven_cost_stimpack", "8", FCVAR_NOTIFY | FCVAR_REPLICATED, "Stimpack cost.");
 
 REGISTER_GAMERULES_CLASS( CHL2MPRules );
 
@@ -196,9 +210,16 @@ static const char *s_PreserveEnts[] =
 	"coven_apc",
 	"coven_apc_part",
 	"coven_prop_physics",
+	"coven_supplydepot",
+	"npc_depot_grenade",
+	"npc_depot_holywater",
+	"npc_depot_stungrenade",
+	"npc_depot_stimpack",
+	"npc_depot_medkit",
 	"", // END Marker
 };
 //BB: TODO: item_ammo_crate might need to come off this list once they are actually baked into maps...
+
 static const char *s_CovenEnts[] =
 {
 	"item_gas",
@@ -317,6 +338,56 @@ float CHL2MPRules::AverageLevel(int team, int &n)
 		ret = ret / n;
 #endif
 	return ret;
+}
+
+int CHL2MPRules::CovenItemCost(BuildingType_t iBuildingType)
+{
+	return CovenItemCost((CovenItemID_t) (iBuildingType - 4));
+}
+
+int CHL2MPRules::CovenItemCost(CovenItemID_t iItemType)
+{
+	switch (iItemType)
+	{
+		case COVEN_ITEM_GRENADE:
+			return sv_coven_cost_grenade.GetInt();
+		case COVEN_ITEM_STUN_GRENADE:
+			return sv_coven_cost_stungrenade.GetInt();
+		case COVEN_ITEM_HOLYWATER:
+			return sv_coven_cost_holywater.GetInt();
+		case COVEN_ITEM_STIMPACK:
+			return sv_coven_cost_stimpack.GetInt();
+		case COVEN_ITEM_MEDKIT:
+			return sv_coven_cost_medkit.GetInt();
+	}
+	return -1;
+}
+
+bool CHL2MPRules::IsInBuyZone(CBasePlayer *pPlayer)
+{
+#ifndef CLIENT_DLL
+	Vector origin = pPlayer->GetAbsOrigin();
+	for (int i = 0; i < m_hBuyZones.Count(); i++)
+		if (LocationIsBetween(origin, m_hBuyZones[i]->low, m_hBuyZones[i]->high))
+			return true;
+#endif
+	return false;
+}
+
+bool CHL2MPRules::PurchaseCovenItem(CovenItemID_t iItemType, CBasePlayer *pPlayer)
+{
+#ifndef CLIENT_DLL
+	CHL2MP_Player *pHL2Player = ToHL2MPPlayer(pPlayer);
+	if (pHL2Player)
+	{
+		int cost = CovenItemCost(iItemType);
+		if (cost >= 0 && pHL2Player->GetXP() >= cost && IsInBuyZone(pPlayer))
+		{
+			return pHL2Player->PurchaseCovenItem(iItemType);
+		}
+	}
+#endif
+	return false;
 }
 
 float CHL2MPRules::GetRespawnTime(CovenTeamID_t iTeam)
@@ -640,6 +711,54 @@ bool CHL2MPRules::LoadCowFile(IBaseFileSystem *filesystem, const char *resourceN
 		{
 			if (covenActiveGameMode > COVEN_GAMEMODE_NONE)
 			{
+				KeyValues *pBuyZones = pCowData->FindKey("BuyZones");
+				if (pBuyZones)
+				{
+#ifdef COVEN_DEVELOPER_MODE
+					Msg("Buy Zones:\n");
+#endif
+					for (KeyValues *pBuyZone = pBuyZones->GetFirstSubKey(); pBuyZone != NULL; pBuyZone = pBuyZone->GetNextKey())
+					{
+						KeyValues *sub = pBuyZone->GetFirstSubKey();
+						if (sub)
+						{
+							float locs[3];
+							UTIL_StringToVector(locs, sub->GetString((const char *)NULL, "0 0 0"));
+							sub = sub->GetNextKey();
+							if (sub)
+							{
+								float locs2[3];
+								UTIL_StringToVector(locs2, sub->GetString((const char *)NULL, "0 0 0"));
+								CovenBuyZone_s *bz = new CovenBuyZone_s();
+								bz->low.Init(locs[0], locs[1], locs[2]);
+								bz->high.Init(locs2[0], locs2[1], locs2[2]);
+								OrderVectors(bz->low, bz->high);
+								m_hBuyZones.AddToTail(bz);
+							}
+						}
+					}
+				}
+				KeyValues *pSlayerTables = pCowData->FindKey("SlayerTables");
+				if (pSlayerTables)
+				{
+#ifdef COVEN_DEVELOPER_MODE
+					Msg("Slayer Tables:\n");
+#endif
+					for (KeyValues *sub = pSlayerTables->GetFirstSubKey(); sub != NULL; sub = sub->GetNextKey())
+					{
+						float locs[3];
+						UTIL_StringToVector(locs, sub->GetString("location", "0 0 0"));
+#ifdef COVEN_DEVELOPER_MODE
+						Msg("table: %f %f %f\n", locs[0], locs[1], locs[2]);
+#endif
+						CCoven_SupplyDepot *pEnt = static_cast<CCoven_SupplyDepot *>(CreateEntityByName("coven_supplydepot"));
+						pEnt->SetAbsOrigin(Vector(locs[0], locs[1], locs[2]));
+						UTIL_StringToVector(locs, sub->GetString("angles", "0 0 0"));
+						pEnt->SetAbsAngles(QAngle(locs[0], locs[1], locs[2]));
+						pEnt->iDepotType = (CovenSupplyDepotType_t)sub->GetInt("type", 0);
+						pEnt->Spawn();
+					}
+				}
 				KeyValues *pBotNetKV = pCowData->FindKey("BotNet");
 				if (pBotNetKV)
 				{
@@ -1086,15 +1205,13 @@ void CHL2MPRules::RestartRound(bool bFullReset)
 			continue;
 
 		if (bFullReset)
-		{
 			pPlayer->ResetScores();
+
+		if (pPlayer->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
 			pPlayer->SetXP(0.0f);
-		}
 		else
-		{
-			if (pPlayer->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
-				pPlayer->SetXP(0.0f);
-		}
+			pPlayer->SetXP(sv_coven_xp_slayerstart.GetFloat());
+
 		pPlayer->RemoveAllItems(true);
 		pPlayer->covenLevelCounter = 0;
 		pPlayer->covenRespawnTimer = 0.0f;
@@ -1679,6 +1796,11 @@ CWeaponHL2MPBase* IsManagedObjectAWeapon( CBaseEntity *pObject )
 	return dynamic_cast< CWeaponHL2MPBase*>( pObject );
 }
 
+CItem_ItemCrate* IsManagedObjectAnItemCrate(CBaseEntity *pObject)
+{
+	return dynamic_cast< CItem_ItemCrate*>(pObject);
+}
+
 bool GetObjectsOriginalParameters( CBaseEntity *pObject, Vector &vOriginalOrigin, QAngle &vOriginalAngles )
 {
 	if ( CItem *pItem = IsManagedObjectAnItem( pObject ) )
@@ -1688,8 +1810,11 @@ bool GetObjectsOriginalParameters( CBaseEntity *pObject, Vector &vOriginalOrigin
 		
 		vOriginalOrigin = pItem->GetOriginalSpawnOrigin();
 		vOriginalAngles = pItem->GetOriginalSpawnAngles();
-
-		pItem->m_flNextResetCheckTime = gpGlobals->curtime + sv_hl2mp_item_respawn_time.GetFloat();
+		
+		if (FClassnameIs(pItem, "item_gas") || FClassnameIs(pItem, "item_cts"))
+			pItem->m_flNextResetCheckTime = gpGlobals->curtime + sv_coven_item_respawn_time.GetFloat();
+		else
+			pItem->m_flNextResetCheckTime = gpGlobals->curtime + sv_hl2mp_item_refresh_time.GetFloat();
 		return true;
 	}
 	else if ( CWeaponHL2MPBase *pWeapon = IsManagedObjectAWeapon( pObject )) 
@@ -1700,7 +1825,18 @@ bool GetObjectsOriginalParameters( CBaseEntity *pObject, Vector &vOriginalOrigin
 		vOriginalOrigin = pWeapon->GetOriginalSpawnOrigin();
 		vOriginalAngles = pWeapon->GetOriginalSpawnAngles();
 
-		pWeapon->m_flNextResetCheckTime = gpGlobals->curtime + sv_hl2mp_weapon_respawn_time.GetFloat();
+		pWeapon->m_flNextResetCheckTime = gpGlobals->curtime + sv_hl2mp_item_refresh_time.GetFloat();
+		return true;
+	}
+	else if (CItem_ItemCrate *pItemCrate = IsManagedObjectAnItemCrate(pObject))
+	{
+		if (pItemCrate->m_flNextResetCheckTime > gpGlobals->curtime)
+			return false;
+
+		vOriginalOrigin = pItemCrate->GetOriginalSpawnOrigin();
+		vOriginalAngles = pItemCrate->GetOriginalSpawnAngles();
+
+		pItemCrate->m_flNextResetCheckTime = gpGlobals->curtime + sv_hl2mp_item_refresh_time.GetFloat();
 		return true;
 	}
 
@@ -1869,6 +2005,9 @@ bool CHL2MPRules::CanHavePlayerItem( CBasePlayer *pPlayer, CBaseCombatWeapon *pI
 		if ( pPlayer->Weapon_OwnsThisType( pItem->GetClassname(), pItem->GetSubType() ) )
 			 return false;
 	}
+
+	if (pPlayer->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+		return FClassnameIs(pItem, "weapon_crowbar");
 
 	return BaseClass::CanHavePlayerItem( pPlayer, pItem );
 }
@@ -2146,6 +2285,11 @@ void CHL2MPRules::Precache( void )
 {
 	CBaseEntity::PrecacheScriptSound( "AlyxEmp.Charge" );
 	UTIL_PrecacheOther("env_flare");
+	UTIL_PrecacheOther("coven_supplydepot");
+	PrecacheAbilities(filesystem);
+	PrecacheClasses(filesystem);
+	PrecacheStatusEffects(filesystem);
+	PrecacheBuildings(filesystem);
 #ifndef CLIENT_DLL
 	if (!cowsloaded)
 	{
@@ -2167,8 +2311,6 @@ void CHL2MPRules::Precache( void )
 		}
 		cowsloaded = true;
 	}
-	PrecacheAbilities(filesystem);
-	PrecacheClasses(filesystem);
 #endif
 }
 
@@ -2240,7 +2382,9 @@ CAmmoDef *GetAmmoDef()
 		def.AddAmmoType("RPG_Round",		DMG_BURN,					TRACER_NONE,			0,			0,			3,			0,							0 );
 		def.AddAmmoType("SMG1_Grenade",		DMG_BURN,					TRACER_NONE,			0,			0,			3,			0,							0 );
 		def.AddAmmoType("Grenade",			DMG_BURN,					TRACER_NONE,			0,			0,			5,			0,							0 );
+		def.AddAmmoType("stungrenade",		DMG_BURN,					TRACER_NONE,			0,			0,			5,			0,							0 );
 		def.AddAmmoType("slam",				DMG_BURN,					TRACER_NONE,			0,			0,			5,			0,							0 );
+		def.AddAmmoType("holywater",		DMG_BURN,					TRACER_NONE,			0,			0,			5,			0,							0 );
 	}
 
 	return &def;

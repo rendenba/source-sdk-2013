@@ -520,20 +520,22 @@ void CHL2_Player::AddStatus(CovenStatus_t iStatusNum, int iMagnitude, float flTi
 	covenStatusEffects |= (1 << iStatusNum);
 }
 
-//this is a special case!
-void CHL2_Player::AddStatusHW(int iAmount)
+//this is a special case! Magnitude is duration!
+void CHL2_Player::AddStatusMagDur(CovenStatus_t iStatusNum, int iAmount)
 {
+	CovenStatusEffectInfo_t *effectInfo = GetCovenStatusEffectData(iStatusNum);
+	float divisor = max(effectInfo->flDataVariables[0], 1.0f);
 	float flTime = 0.0f;
-	int magnitude = GetStatusMagnitude(COVEN_STATUS_HOLYWATER) + iAmount;
-	for (int i = ceil(magnitude / 50.0f); i > 0; i--)
+	int magnitude = GetStatusMagnitude(iStatusNum) + iAmount;
+	for (int i = ceil(magnitude / divisor); i > 0; i--)
 	{
-		int num = ceil((magnitude - (50 * (i - 1))) / (float)i);
+		int num = ceil((magnitude - (divisor * (i - 1))) / (float)i);
 		flTime += num;
 		magnitude -= num * i;
 	}
-	SetStatusMagnitude(COVEN_STATUS_HOLYWATER, GetStatusMagnitude(COVEN_STATUS_HOLYWATER) + iAmount);
-	SetStatusTime(COVEN_STATUS_HOLYWATER, gpGlobals->curtime + flTime);
-	covenStatusEffects |= (1 << COVEN_STATUS_HOLYWATER);
+	SetStatusMagnitude(iStatusNum, GetStatusMagnitude(iStatusNum) + iAmount);
+	SetStatusTime(iStatusNum, gpGlobals->curtime + flTime);
+	covenStatusEffects |= (1 << iStatusNum);
 }
 
 bool CHL2_Player::HasHandledStatus(CovenStatus_t iStatusNum, int iMagnitude)
@@ -700,7 +702,24 @@ void CHL2_Player::TriggerGCD(void)
 	m_HL2Local.covenGCD = gpGlobals->curtime + sv_coven_gcd.GetFloat();
 }
 
-bool CHL2_Player::GiveXP(float XP)
+//Still positive for removal!
+void CHL2_Player::RemoveXP(float XP, bool bScale)
+{
+	int iXP = 0;
+	xp_part -= XP;
+	if (xp_part < 0.0f)
+	{
+		iXP = ceil(-xp_part);
+		xp_part += iXP;
+	}
+	if (bScale)
+		iXP *= coven_xp_scale.GetInt();
+	m_HL2Local.covenXPCounter = max(m_HL2Local.covenXPCounter - iXP, 0);
+	totalXP = max(totalXP - iXP, 0);
+	//BB: TODO: deleveling?
+}
+
+bool CHL2_Player::GiveXP(float XP, bool bScale)
 {
 	int iXP = 0;
 	xp_part += XP;
@@ -709,7 +728,8 @@ bool CHL2_Player::GiveXP(float XP)
 		iXP = floor(xp_part);
 		xp_part -= iXP;
 	}
-	iXP *= coven_xp_scale.GetInt();
+	if (bScale)
+		iXP *= coven_xp_scale.GetInt();
 	m_HL2Local.covenXPCounter += iXP;
 	totalXP += iXP;
 	int xpcap = GetXPCap();
@@ -3162,13 +3182,16 @@ int CHL2_Player::GiveAmmo( int nCount, int nAmmoIndex, bool bSuppressSound)
 	// If I was dry on ammo for my best weapon and justed picked up ammo for it,
 	// autoswitch to my best weapon now.
 	//
+
+	//BB: I can't believe this never functioned correctly....
 	if (bCheckAutoSwitch)
 	{
 		CBaseCombatWeapon *pWeapon = g_pGameRules->GetNextBestWeapon(this, GetActiveWeapon());
 
 		if ( pWeapon && pWeapon->GetPrimaryAmmoType() == nAmmoIndex )
 		{
-			SwitchToNextBestWeapon(GetActiveWeapon());
+			if (pWeapon->GetWeight() > GetActiveWeapon()->GetWeight())
+				SwitchToNextBestWeapon(GetActiveWeapon());
 		}
 	}
 

@@ -96,8 +96,9 @@ CWeaponHL2MPBase::CWeaponHL2MPBase()
 {
 	SetPredictionEligible( true );
 	AddSolidFlags( FSOLID_TRIGGER ); // Nothing collides with these but it gets touches.
-
+	m_vOriginalSpawnOrigin = vec3_origin;
 	m_flNextResetCheckTime = 0.0f;
+	m_flLifetime = 0.0f;
 }
 
 
@@ -166,6 +167,12 @@ void CWeaponHL2MPBase::Spawn()
 	SetCollisionGroup( COLLISION_GROUP_WEAPON );
 }
 
+void CWeaponHL2MPBase::UpdateOnRemove(void)
+{
+	HL2MPRules()->RemoveLevelDesignerPlacedObject(this);
+	BaseClass::UpdateOnRemove();
+}
+
 void CWeaponHL2MPBase::Materialize( void )
 {
 	if ( IsEffectActive( EF_NODRAW ) )
@@ -183,11 +190,19 @@ void CWeaponHL2MPBase::Materialize( void )
 		SetMoveType( MOVETYPE_VPHYSICS );
 
 		HL2MPRules()->AddLevelDesignerPlacedObject( this );
+
+		if ( GetOriginalSpawnOrigin() == vec3_origin )
+		{
+			m_vOriginalSpawnOrigin = GetAbsOrigin();
+			m_vOriginalSpawnAngles = GetAbsAngles();
+		}
 	}
 
-	if ( HasSpawnFlags( SF_NORESPAWN ) == false )
+	if (m_bActivateWhenAtRest)
 	{
-		if ( GetOriginalSpawnOrigin() == vec3_origin )
+		HL2MPRules()->AddLevelDesignerPlacedObject(this);
+
+		if (GetOriginalSpawnOrigin() == vec3_origin)
 		{
 			m_vOriginalSpawnOrigin = GetAbsOrigin();
 			m_vOriginalSpawnAngles = GetAbsAngles();
@@ -197,6 +212,11 @@ void CWeaponHL2MPBase::Materialize( void )
 	SetPickupTouch();
 
 	SetThink (NULL);
+	if (m_flLifetime > 0.0f)
+	{
+		SetThink(&CWeaponHL2MPBase::SUB_FadeOut);
+		SetNextThink(m_flLifetime);
+	}
 }
 
 int CWeaponHL2MPBase::ObjectCaps()
@@ -222,7 +242,7 @@ void CWeaponHL2MPBase::FallInit( void )
 	}
 	else
 	{
-		if ( !VPhysicsInitNormal( SOLID_BBOX, GetSolidFlags() | FSOLID_TRIGGER, false ) )
+		if (!VPhysicsInitNormal(SOLID_BBOX, GetSolidFlags() | FSOLID_TRIGGER, false))
 		{
 			SetMoveType( MOVETYPE_NONE );
 			SetSolid( SOLID_BBOX );

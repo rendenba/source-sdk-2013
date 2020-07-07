@@ -121,8 +121,12 @@ typedef struct
 	int				m_WantedTeam;
 	int				m_WantedClass;
 
+	float			m_flRespawnTime;
+	bool			m_bIsPurchasingItems;
+	bool			m_bHasNotPurchasedItems;
+
 	int				m_lastPlayerCheck; //index
-	BuildingType	m_lastBuildingChecked;
+	BuildingType_t	m_lastBuildingChecked;
 	CHandle<CBaseCombatCharacter> pCombatTarget;
 	bool			bCombat;
 	bool			bForceCombat;
@@ -349,6 +353,9 @@ CBasePlayer *BotPutInServer(bool bFrozen, CovenTeamID_t iTeam)
 		g_BotData[pPlayer->entindex() - 1].m_vCombatLKP.Init();
 		g_BotData[pPlayer->entindex() - 1].m_vObjectiveLKP.Init();
 		g_BotData[pPlayer->entindex() - 1].m_pOverridePos = NULL;
+		g_BotData[pPlayer->entindex() - 1].m_flRespawnTime = 0.0f;
+		g_BotData[pPlayer->entindex() - 1].m_bIsPurchasingItems = false;
+		g_BotData[pPlayer->entindex() - 1].m_bHasNotPurchasedItems = true;
 
 		Set_Bot_Base_Velocity(pPlayer);
 
@@ -792,6 +799,18 @@ unsigned int WeaponCheck(CHL2MP_Player *pBot)
 	return 0;
 }
 
+void BotRespawn(CHL2MP_Player *pBot)
+{
+	botdata_t *botdata = &g_BotData[ENTINDEX(pBot->edict()) - 1];
+
+	botdata->m_flRespawnTime = gpGlobals->curtime;
+	if (pBot->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+	{
+		botdata->m_bHasNotPurchasedItems = true;
+		botdata->m_bIsPurchasingItems = random->RandomInt(0, 9) < 7; //70% chance to purchase items
+	}
+}
+
 void HealthCheck(CHL2MP_Player *pBot)
 {
 	if (pBot->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
@@ -801,6 +820,22 @@ void HealthCheck(CHL2MP_Player *pBot)
 	else //Slayers
 	{
 
+	}
+}
+
+void PurchaseCheck(CHL2MP_Player *pBot)
+{
+	if (pBot->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+	{
+		botdata_t *botdata = &g_BotData[ENTINDEX(pBot->edict()) - 1];
+		if (botdata->m_bIsPurchasingItems && botdata->m_bHasNotPurchasedItems)
+		{
+			CovenItemID_t item = (CovenItemID_t)random->RandomInt(COVEN_ITEM_GRENADE, COVEN_ITEM_HOLYWATER);
+			if (pBot->PurchaseCovenItem(item))
+				botdata->m_bHasNotPurchasedItems = random->RandomInt(0, 9) < 7; //70% chance to keep purchasing
+			else
+				botdata->m_bHasNotPurchasedItems = false;
+		}
 	}
 }
 
@@ -1174,7 +1209,7 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot)
 		else
 		{
 			int abilityNum = pBot->AbilityKey(COVEN_ABILITY_INNERLIGHT, &key);
-			if (!pBot->IsInCooldown(abilityNum) && pBot->GetHealth() < pBot->GetMaxHealth() && pBot->GetStatusMagnitude(COVEN_STATUS_HOLYWATER) < 6)
+			if (!pBot->IsInCooldown(abilityNum) && pBot->GetStatusMagnitude(COVEN_STATUS_INNERLIGHT) < 2)
 				buttons |= key;
 		}
 	}
@@ -1635,6 +1670,9 @@ void Bot_Think( CHL2MP_Player *pBot )
 	}
 
 	unsigned int buttons = 0;
+
+	//Purchase Check
+	PurchaseCheck(pBot);
 
 	//Combat Check
 	PlayerCheck(pBot);

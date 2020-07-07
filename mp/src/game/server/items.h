@@ -80,8 +80,10 @@ public:
 	virtual bool	ItemCanBeTouchedByPlayer( CBasePlayer *pPlayer );
 
 #if defined( HL2MP ) || defined( TF_DLL )
+	void	UpdateOnRemove(void);
 	void	FallThink( void );
 	float  m_flNextResetCheckTime;
+	float	m_flLifetime;
 #endif
 
 	DECLARE_DATADESC();

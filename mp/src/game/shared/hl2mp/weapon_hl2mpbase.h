@@ -45,6 +45,7 @@ public:
 
 		void Materialize( void );
 		virtual	int	ObjectCaps( void );
+		void UpdateOnRemove(void);
 	#endif
 
 	// All predicted weapons need to implement and return true
@@ -77,9 +78,12 @@ public:
 
 	float		m_flPrevAnimTime;
 	float  m_flNextResetCheckTime;
+	float	m_flLifetime;
 
 	Vector	GetOriginalSpawnOrigin( void ) { return m_vOriginalSpawnOrigin;	}
 	QAngle	GetOriginalSpawnAngles( void ) { return m_vOriginalSpawnAngles;	}
+	void	SetOriginalSpawnOrigin(const Vector& origin) { m_vOriginalSpawnOrigin = origin; }
+	void	SetOriginalSpawnAngles(const QAngle& angles) { m_vOriginalSpawnAngles = angles; }
 
 private:
 

@@ -23,7 +23,7 @@ float Bot_Velocity(CHL2MP_Player *pBot);
 void FindNearestNode( CHL2MP_Player *pBot );
 void PlayerCheck( CHL2MP_Player *pBot );
 void GetLost( CHL2MP_Player *pBot, bool iZ = false, bool visCheck = false );
-
+void BotRespawn( CHL2MP_Player *pBot );
 void Bot_Combat_Check( CHL2MP_Player *pBot, CBaseEntity *pAtk );
 
 #endif // BOT_BASE_H

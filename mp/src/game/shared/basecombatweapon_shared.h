@@ -447,6 +447,7 @@ public:
 
 	bool					IsRemoveable() { return m_bRemoveable; }
 	void					SetRemoveable( bool bRemoveable ) { m_bRemoveable = bRemoveable; }
+	bool					ActivateAtRest() { return m_bActivateWhenAtRest; }
 	
 	// Returns bits for	weapon conditions
 	virtual bool			WeaponLOSCondition( const Vector &ownerPos, const Vector &targetPos, bool bSetConditions );	
@@ -552,6 +553,8 @@ private:
 	CNetworkVar( CBaseCombatCharacterHandle, m_hOwner );				// Player carrying this weapon
 
 protected:
+	bool					m_bActivateWhenAtRest;
+
 #if defined ( TF_CLIENT_DLL ) || defined ( TF_DLL )
 	// Regulate crit frequency to reduce client-side seed hacking
 	void					AddToCritBucket( float flAmount );

@@ -18,13 +18,6 @@
 
 class CCovenBuildingTipController;
 
-enum BuildingType
-{
-	BUILDING_DEFAULT,
-	BUILDING_AMMOCRATE,
-	BUILDING_TURRET
-};
-
 class CCovenBuilding : public CBaseCombatCharacter, public CDefaultPlayerPickupVPhysics
 {
 public:
@@ -93,12 +86,12 @@ public:
 	CHandle<CHL2_Player>	mOwner;
 	int m_iLevel;
 	int m_iXP;
-	const int m_iMaxXP = 200;
+	int m_iMaxXP;
 
 	virtual float	MaxTipControllerVelocity() { return 300.0f * 300.0f; };
 	virtual float	MaxTipControllerAngularVelocity() { return 90.0f * 90.0f; };
 
-	virtual BuildingType MyType() const { return BUILDING_DEFAULT; };
+	virtual BuildingType_t MyType() const { return m_BuildingType; };
 
 private:
 	CHandle<CCovenBuildingTipController>	m_pMotionController;
@@ -115,6 +108,7 @@ private:
 
 protected:
 
+	CNetworkVar(BuildingType_t, m_BuildingType);
 	float	m_flBuildTime;
 	float	m_flDestructTime;
 	bool	m_bSelfDestructing;	// Going to blow up

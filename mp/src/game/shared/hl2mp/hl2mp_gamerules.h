@@ -166,6 +166,11 @@ public:
 	float GetRespawnTime(CovenTeamID_t iTeam);
 	float AverageLevel(int team, int &n);
 
+	int		CovenItemCost(CovenItemID_t iItemType);
+	int		CovenItemCost(BuildingType_t iBuildingType);
+	bool	PurchaseCovenItem(CovenItemID_t iItemType, CBasePlayer *pPlayer);
+	bool	IsInBuyZone(CBasePlayer *pPlayer);
+
 	CovenGamestate_t covenGameState;
 	CovenGameMode_t covenActiveGameMode;
 	float flCovenGameStateTimer;
@@ -244,6 +249,7 @@ private:
 	bool m_bCompleteReset;
 	bool m_bAwaitingReadyRestart;
 	bool m_bHeardAllPlayersReady;
+	CUtlVector<CovenBuyZone_s *> m_hBuyZones;
 
 #ifndef CLIENT_DLL
 	bool m_bChangelevelDone;

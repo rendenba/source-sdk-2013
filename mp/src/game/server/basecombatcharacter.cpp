@@ -1677,8 +1677,7 @@ void CBaseCombatCharacter::Event_Killed( const CTakeDamageInfo &info )
 	CBaseCombatWeapon *pDroppedWeapon = m_hActiveWeapon.Get();
 
 	// Drop any weapon that I own
-	//BB: do not drop weapons...
-	/*if ( VPhysicsGetObject() )
+	if ( VPhysicsGetObject() )
 	{
 		Vector weaponForce = forceVector * VPhysicsGetObject()->GetInvMass();
 		Weapon_Drop( m_hActiveWeapon, NULL, &weaponForce );
@@ -1686,7 +1685,7 @@ void CBaseCombatCharacter::Event_Killed( const CTakeDamageInfo &info )
 	else
 	{
 		Weapon_Drop( m_hActiveWeapon );
-	}*/
+	}
 	
 	// if flagged to drop a health kit
 	if (HasSpawnFlags(SF_NPC_DROP_HEALTHKIT))
@@ -2178,7 +2177,10 @@ void CBaseCombatCharacter::Weapon_Equip( CBaseCombatWeapon *pWeapon )
 		}
 		else
 #endif // HL2_DLL
-		GiveAmmo(pWeapon->GetDefaultClip1(), pWeapon->m_iPrimaryAmmoType); 
+		if (pWeapon->GetPrimaryAmmoCount() <= 0)
+			GiveAmmo(pWeapon->GetDefaultClip1(), pWeapon->m_iPrimaryAmmoType);
+		else
+			GiveAmmo(pWeapon->GetPrimaryAmmoCount(), pWeapon->m_iPrimaryAmmoType);
 	}
 	// If default ammo given is greater than clip
 	// size, fill clips and give extra ammo
@@ -2194,7 +2196,10 @@ void CBaseCombatCharacter::Weapon_Equip( CBaseCombatWeapon *pWeapon )
 	// If gun doesn't use clips, just give ammo
 	if (pWeapon->GetMaxClip2() == -1)
 	{
-		GiveAmmo(pWeapon->GetDefaultClip2(), pWeapon->m_iSecondaryAmmoType); 
+		if (pWeapon->GetSecondaryAmmoCount() <= 0)
+			GiveAmmo(pWeapon->GetDefaultClip2(), pWeapon->m_iSecondaryAmmoType);
+		else
+			GiveAmmo(pWeapon->GetSecondaryAmmoCount(), pWeapon->m_iSecondaryAmmoType);
 	}
 	// If default ammo given is greater than clip
 	// size, fill clips and give extra ammo

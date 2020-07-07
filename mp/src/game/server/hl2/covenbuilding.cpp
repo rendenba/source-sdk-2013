@@ -8,6 +8,7 @@
 #include "props.h"
 #include "beam_flags.h"
 #include "te_effect_dispatch.h"
+#include "coven_parse.h"
 
 extern short	g_sModelIndexFireball;		// (in combatweapon.cpp) holds the index for the fireball 
 extern short	g_sModelIndexWExplosion;	// (in combatweapon.cpp) holds the index for the underwater explosion
@@ -16,6 +17,7 @@ extern short	g_sModelIndexSmoke;			// (in combatweapon.cpp) holds the index for 
 LINK_ENTITY_TO_CLASS(coven_building, CCovenBuilding);
 
 IMPLEMENT_SERVERCLASS_ST(CCovenBuilding, DT_CovenBuilding)
+	SendPropInt(SENDINFO(m_BuildingType), 4, SPROP_UNSIGNED),
 END_SEND_TABLE()
 
 BEGIN_DATADESC(CCovenBuilding)
@@ -39,6 +41,7 @@ CCovenBuilding::CCovenBuilding()
 	m_pMotionController = NULL;
 	m_bEnabled = m_bSelfDestructing = false;
 	m_flTop = m_flBottom = m_flDestructTime = m_flPingTime = 0.0f;
+	m_BuildingType = BUILDING_DEFAULT;
 }
 
 //-----------------------------------------------------------------------------
@@ -67,8 +70,11 @@ void CCovenBuilding::Spawn(void)
 
 	m_flPlayerDropTime = gpGlobals->curtime + 4.0f;
 
-	m_iHealth = 150;
-	m_iMaxHealth = 150;
+	CovenBuildingInfo_t *info = GetCovenBuildingData(m_BuildingType);
+
+	m_iHealth = info->iHealths[0];
+	m_iMaxHealth = info->iHealths[0];
+	m_iMaxXP = info->iXPs[0];
 
 	m_takedamage = DAMAGE_YES;
 	//m_takedamage = DAMAGE_EVENTS_ONLY;
@@ -147,20 +153,18 @@ void CCovenBuilding::InputKill(inputdata_t &data)
 
 bool CCovenBuilding::CheckLevel(void)
 {
+	CovenBuildingInfo_t *info = GetCovenBuildingData(m_BuildingType);
 	bool retVal = false;
-	if (m_iXP >= m_iMaxXP && m_iLevel < 1)
+	if (m_iXP >= m_iMaxXP)
 	{
 		m_iLevel++;
-		m_iMaxHealth += 30;
+		m_iMaxHealth = info->iHealths[m_iLevel];
 		m_iHealth = m_iMaxHealth;
-		m_iXP -= 200;
-		retVal = true;
-	}
-	else if (m_iXP >= m_iMaxXP && m_iLevel < 2)
-	{
-		m_iLevel++;
-		m_iMaxHealth += 40;
-		m_iHealth = m_iMaxHealth;
+		if (m_iLevel < (info->iMaxLevel - 1))
+		{
+			m_iXP -= m_iMaxXP;
+			m_iMaxXP = info->iXPs[m_iLevel];
+		}
 		retVal = true;
 	}
 
@@ -589,12 +593,13 @@ int CCovenBuilding::OnTakeDamage(const CTakeDamageInfo &info)
 	{
 		if (info.GetDamageType() & DMG_SHOCK && GetTeamNumber() == pAttacker->GetTeamNumber())
 		{
+			CovenBuildingInfo_t *bldgInfo = GetCovenBuildingData(m_BuildingType);
 			int hp = 0;
 			int xp = 0;
 			hp = min(25, ceil((m_iMaxHealth - m_iHealth) / 3.0f));
-			int maxXP = 225;
-			if (m_iLevel >= 1)
-				maxXP = 200;
+			int maxXP = m_iMaxXP + 25;
+			if (m_iLevel >= (bldgInfo->iMaxLevel - 2))
+				maxXP = m_iMaxXP;
 			xp = min(25, maxXP - m_iXP);
 
 			int total = min(hp + xp, pAttacker->SuitPower_GetCurrentPercentage());

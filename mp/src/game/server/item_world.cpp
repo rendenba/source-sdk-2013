@@ -88,7 +88,7 @@ void CWorldItem::Spawn( void )
 
 BEGIN_DATADESC( CItem )
 
-	DEFINE_FIELD( m_bActivateWhenAtRest,	 FIELD_BOOLEAN ),
+	DEFINE_KEYFIELD(m_bActivateWhenAtRest, FIELD_BOOLEAN, "RestActivate"),
 	DEFINE_FIELD( m_vOriginalSpawnOrigin, FIELD_POSITION_VECTOR ),
 	DEFINE_FIELD( m_vOriginalSpawnAngles, FIELD_VECTOR ),
 	DEFINE_PHYSPTR( m_pConstraint ),
@@ -116,6 +116,7 @@ END_DATADESC()
 CItem::CItem()
 {
 	m_bActivateWhenAtRest = false;
+	m_vOriginalSpawnOrigin = vec3_origin;
 	creator = NULL;
 }
 
@@ -155,6 +156,8 @@ void CItem::Spawn( void )
 		UTIL_Remove( this );
 		return;
 	}
+
+	m_flLifetime = 0.0f;
 
 	SetMoveType( MOVETYPE_FLYGRAVITY );
 	SetSolid( SOLID_BBOX );
@@ -275,6 +278,12 @@ void CItem::ComeToRest( void )
 
 #if defined( HL2MP ) || defined( TF_DLL )
 
+void CItem::UpdateOnRemove(void)
+{
+	HL2MPRules()->RemoveLevelDesignerPlacedObject(this);
+	BaseClass::UpdateOnRemove();
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: Items that have just spawned run this think to catch them when 
 //			they hit the ground. Once we're sure that the object is grounded, 
@@ -299,10 +308,25 @@ void CItem::FallThink ( void )
 
 	if ( shouldMaterialize )
 	{
+		if (m_bActivateWhenAtRest)
+		{
+			AddSolidFlags(FSOLID_TRIGGER);
+			m_bActivateWhenAtRest = false;
+		}
+
 		SetThink ( NULL );
 
-		m_vOriginalSpawnOrigin = GetAbsOrigin();
-		m_vOriginalSpawnAngles = GetAbsAngles();
+		if (m_flLifetime > 0.0f)
+		{
+			SetThink(&CItem::SUB_FadeOut);
+			SetNextThink(m_flLifetime);
+		}
+
+		if (GetOriginalSpawnOrigin() == vec3_origin)
+		{
+			m_vOriginalSpawnOrigin = GetAbsOrigin();
+			m_vOriginalSpawnAngles = GetAbsAngles();
+		}
 
 		HL2MPRules()->AddLevelDesignerPlacedObject( this );
 	}

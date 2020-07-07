@@ -5,9 +5,10 @@
 //=============================================================================//
 
 #include "cbase.h"
-#include "props.h"
-#include "items.h"
+#include "item_itemcrate.h"
 #include "item_dynamic_resupply.h"
+#include "hl2mp_gamerules.h"
+#include "weapon_hl2mpbase.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -18,57 +19,9 @@ const char *pszItemCrateModelName[] =
 	"models/items/item_beacon_crate.mdl",
 };
 
-//-----------------------------------------------------------------------------
-// A breakable crate that drops items
-//-----------------------------------------------------------------------------
-class CItem_ItemCrate : public CPhysicsProp
-{
-public:
-	DECLARE_CLASS( CItem_ItemCrate, CPhysicsProp );
-	DECLARE_DATADESC();
-
-	void Precache( void );
-	void Spawn( void );
-
-	virtual int	ObjectCaps() { return BaseClass::ObjectCaps() | FCAP_WCEDIT_POSITION; };
-
-	virtual int		OnTakeDamage( const CTakeDamageInfo &info );
-
-	void InputKill( inputdata_t &data );
-
-	virtual void VPhysicsCollision( int index, gamevcollisionevent_t *pEvent );
-	virtual void OnPhysGunPickup( CBasePlayer *pPhysGunUser, PhysGunPickup_t reason );
-
-protected:
-	virtual void OnBreak( const Vector &vecVelocity, const AngularImpulse &angVel, CBaseEntity *pBreaker );
-
-private:
-	// Crate types. Add more!
-	enum CrateType_t
-	{
-		CRATE_SPECIFIC_ITEM = 0,
-		CRATE_TYPE_COUNT,
-	};
-
-	enum CrateAppearance_t
-	{
-		CRATE_APPEARANCE_DEFAULT = 0,
-		CRATE_APPEARANCE_RADAR_BEACON,
-	};
-
-private:
-	CrateType_t			m_CrateType;
-	string_t			m_strItemClass;
-	int					m_nItemCount;
-	string_t			m_strAlternateMaster;
-	CrateAppearance_t	m_CrateAppearance;
-
-	COutputEvent m_OnCacheInteraction;
-};
-
-
 LINK_ENTITY_TO_CLASS(item_item_crate, CItem_ItemCrate);
 
+extern ConVar sv_coven_dropboxtime;
 
 //-----------------------------------------------------------------------------
 // Save/load: 
@@ -106,6 +59,52 @@ void CItem_ItemCrate::Precache( void )
 	}
 }
 
+void CItem_ItemCrate::AddCovenItem(CovenItemID_t iItemType, int iCount)
+{
+	CovenItemCollection *collect = new CovenItemCollection();
+	collect->iItemType = iItemType;
+	collect->iCount = iCount;
+	m_CovenItems.AddToTail(collect);
+	m_nItemCount = m_CovenItems.Count();
+}
+
+void CItem_ItemCrate::FallThink(void)
+{
+	SetNextThink(gpGlobals->curtime + 0.1f);
+
+	bool shouldMaterialize = false;
+	IPhysicsObject *pPhysics = VPhysicsGetObject();
+	if (pPhysics)
+	{
+		shouldMaterialize = pPhysics->IsAsleep();
+	}
+	else
+	{
+		shouldMaterialize = (GetFlags() & FL_ONGROUND) ? true : false;
+	}
+
+	if (shouldMaterialize)
+	{
+		SetThink(NULL);
+
+		m_vOriginalSpawnOrigin = GetAbsOrigin();
+		m_vOriginalSpawnAngles = GetAbsAngles();
+
+		if (m_flLifetime > 0.0f)
+		{
+			SetThink(&CItem_ItemCrate::SUB_FadeOut);
+			SetNextThink(m_flLifetime);
+		}
+		HL2MPRules()->AddLevelDesignerPlacedObject(this);
+	}
+}
+
+void CItem_ItemCrate::UpdateOnRemove()
+{
+	HL2MPRules()->RemoveLevelDesignerPlacedObject(this);
+	BaseClass::UpdateOnRemove();
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
@@ -117,10 +116,12 @@ void CItem_ItemCrate::Spawn( void )
 		return;
 	}
 
+	m_flLifetime = 0.0f;
+
 	DisableAutoFade();
 	SetModelName( AllocPooledString( pszItemCrateModelName[m_CrateAppearance] ) );
 
-	if ( NULL_STRING == m_strItemClass )
+	if ( (NULL_STRING == m_strItemClass && m_CrateType == CRATE_SPECIFIC_ITEM) || (m_CrateType == CRATE_COVEN && m_CovenItems.Count() == 0))
 	{
 		Warning( "CItem_ItemCrate(%i):  CRATE_SPECIFIC_ITEM with NULL ItemClass string (deleted)!!!\n", entindex() );
 		UTIL_Remove( this );
@@ -131,6 +132,9 @@ void CItem_ItemCrate::Spawn( void )
 	SetModel( pszItemCrateModelName[m_CrateAppearance] );
 	AddEFlags( EFL_NO_ROTORWASH_PUSH );
 	BaseClass::Spawn( );
+
+	SetThink(&CItem_ItemCrate::FallThink);
+	SetNextThink(gpGlobals->curtime + 0.1f);
 }
 
 
@@ -154,6 +158,13 @@ int CItem_ItemCrate::OnTakeDamage( const CTakeDamageInfo &info )
 		CTakeDamageInfo dmgInfo = info;
 		dmgInfo.ScaleDamage( 10.0 );
 		return BaseClass::OnTakeDamage( dmgInfo );
+	}
+
+	if (info.GetAttacker() == NULL || (info.GetAttacker()->IsPlayer() && info.GetAttacker()->GetTeamNumber() != GetTeamNumber()))
+	{
+		CTakeDamageInfo dmgInfo = info;
+		dmgInfo.SetDamage(0.0f);
+		return BaseClass::OnTakeDamage(dmgInfo);
 	}
 
 	return BaseClass::OnTakeDamage( info );
@@ -195,7 +206,41 @@ void CItem_ItemCrate::OnBreak( const Vector &vecVelocity, const AngularImpulse &
 		switch( m_CrateType )
 		{
 		case CRATE_SPECIFIC_ITEM:
-			pSpawn = CreateEntityByName( STRING(m_strItemClass) );
+			pSpawn = CreateEntityByName(STRING(m_strItemClass));
+			break;
+
+		case CRATE_COVEN:
+			switch (m_CovenItems[i]->iItemType)
+			{
+				case COVEN_ITEM_GRENADE:
+				{
+					pSpawn = CreateEntityByName("weapon_frag");
+					break;
+				}
+				case COVEN_ITEM_STUN_GRENADE:
+				{
+					pSpawn = CreateEntityByName("weapon_stunfrag");
+					break;
+				}
+				case COVEN_ITEM_HOLYWATER:
+				{
+					pSpawn = CreateEntityByName("weapon_holywater");
+					break;
+				}
+				case COVEN_ITEM_STIMPACK:
+				{
+					break;
+				}
+				case COVEN_ITEM_MEDKIT:
+				{
+					break;
+				}
+			}
+			if (pSpawn)
+			{
+				pSpawn->AddSpawnFlags(SF_NORESPAWN);
+				pSpawn->KeyValue("RestActivate", "1");
+			}
 			break;
 
 		default:
@@ -227,13 +272,35 @@ void CItem_ItemCrate::OnBreak( const Vector &vecVelocity, const AngularImpulse &
 
 		// If we're creating an item, it can't be picked up until it comes to rest
 		// But only if it wasn't broken by a vehicle
-		CItem *pItem = dynamic_cast<CItem*>(pSpawn);
+		/*CItem *pItem = dynamic_cast<CItem*>(pSpawn);
 		if ( pItem && !pBreaker->GetServerVehicle())
 		{
 			pItem->ActivateWhenAtRest();
-		}
+		}*/
 
 		pSpawn->Spawn();
+
+		if (m_CrateType == CRATE_COVEN)
+		{
+			CWeaponHL2MPBase *pWeap = dynamic_cast<CWeaponHL2MPBase *>(pSpawn);
+			if (pWeap)
+			{
+				pWeap->SetPrimaryAmmoCount(m_CovenItems[i]->iCount);
+				pWeap->SetOriginalSpawnOrigin(pSpawn->GetAbsOrigin());
+				pWeap->SetOriginalSpawnAngles(pSpawn->GetAbsAngles());
+				pWeap->m_flLifetime = gpGlobals->curtime + sv_coven_dropboxtime.GetFloat();
+			}
+			else
+			{
+				CItem *pItem = dynamic_cast<CItem *>(pSpawn);
+				if (pItem)
+				{
+					pItem->SetOriginalSpawnOrigin(pSpawn->GetAbsOrigin());
+					pItem->SetOriginalSpawnAngles(pSpawn->GetAbsAngles());
+					pItem->m_flLifetime = gpGlobals->curtime + sv_coven_dropboxtime.GetFloat();
+				}
+			}
+		}
 
 		// Avoid missing items drops by a dynamic resupply because they don't think immediately
 		if ( FClassnameIs( pSpawn, "item_dynamic_resupply" ) )
@@ -249,6 +316,9 @@ void CItem_ItemCrate::OnBreak( const Vector &vecVelocity, const AngularImpulse &
 			pSpawn->SetNextThink( gpGlobals->curtime );
 		}
 	}
+
+	if (m_CrateType == CRATE_COVEN)
+		HL2MPRules()->RemoveLevelDesignerPlacedObject(this);
 }
 
 void CItem_ItemCrate::OnPhysGunPickup( CBasePlayer *pPhysGunUser, PhysGunPickup_t reason )

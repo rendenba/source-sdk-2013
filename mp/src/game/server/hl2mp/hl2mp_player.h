@@ -91,7 +91,10 @@ public:
 	virtual void	UpdateOnRemove( void );
 	virtual void	DeathSound( const CTakeDamageInfo &info );
 	float			Feed();
-	virtual CBaseEntity* EntSelectSpawnPoint( void );
+	bool			PurchaseCovenItem(CovenItemID_t iItemType);
+	bool			CreateDeathBox(void);
+	bool			HasDroppableItems(void);
+	virtual CBaseEntity* EntSelectSpawnPoint(void);
 		
 	int FlashlightIsOn( void );
 	void FlashlightTurnOn( void );
@@ -250,6 +253,7 @@ public:
 	//float coven_timer_gcheck;
 	float coven_timer_soul;
 	float coven_timer_holywater;
+	float coven_timer_innerlight;
 	float coven_timer_dash;
 
 #ifdef COVEN_DEVELOPER_MODE

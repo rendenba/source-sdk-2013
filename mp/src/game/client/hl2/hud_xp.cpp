@@ -178,7 +178,12 @@ void CHudXP::Paint()
 	surface()->DrawSetTextFont(m_hTextFont);
 	//draw our value
 	wchar_t szText[ 32 ];
-	V_swprintf_safe(szText, L"%d / %d", m_XP, max);
+
+	if (pPlayer->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+		V_swprintf_safe(szText, L"£ %d / %d", m_XP, max);
+	else
+		V_swprintf_safe(szText, L"%d / %d", m_XP, max);
+
 	int tx = wide/2-UTIL_ComputeStringWidth(m_hTextFont,szText)/2;
 	int ty = tall/2-surface()->GetFontTall(m_hTextFont)/2;
 	surface()->DrawSetTextPos(tx-2, ty+2);

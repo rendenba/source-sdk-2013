@@ -23,20 +23,25 @@
 
 const float GRENADE_COEFFICIENT_OF_RESTITUTION = 0.2f;
 
-ConVar sk_plr_dmg_fraggrenade	( "sk_plr_dmg_fraggrenade","0");
-ConVar sk_npc_dmg_fraggrenade	( "sk_npc_dmg_fraggrenade","0");
-ConVar sk_fraggrenade_radius	( "sk_fraggrenade_radius", "0");
+ConVar sk_plr_dmg_fraggrenade	( "sk_plr_dmg_fraggrenade", "0" );
+ConVar sk_plr_dmg_stungrenade	( "sk_plr_dmg_stungrenade", "0" );
+ConVar sk_npc_dmg_fraggrenade	( "sk_npc_dmg_fraggrenade", "0" );
+ConVar sk_fraggrenade_radius	( "sk_fraggrenade_radius", "0" );
+ConVar sk_stungrenade_radius	( "sk_stungrenade_radius", "150" );
 
-#define GRENADE_MODEL "models/Weapons/w_grenade.mdl"
+#define GRENADE_MODEL		"models/Weapons/w_grenade.mdl"
+#define GRENADE_MODEL_STUN	"models/Weapons/w_stungrenade.mdl"
 
 class CGrenadeFrag : public CBaseGrenade
 {
+public:
 	DECLARE_CLASS( CGrenadeFrag, CBaseGrenade );
 
 #if !defined( CLIENT_DLL )
 	DECLARE_DATADESC();
 #endif
 					
+	CGrenadeFrag(void);
 	~CGrenadeFrag( void );
 
 public:
@@ -45,10 +50,11 @@ public:
 	void	Precache( void );
 	bool	CreateVPhysics( void );
 	void	CreateEffects( void );
-	void	SetTimer( float detonateDelay, float warnDelay );
+	void	SetTimer( float detonateDelay, float warnDelay, float warnAITime = 0.0f, bool bWarned = false, float blipTime = 0.0f );
 	void	SetVelocity( const Vector &velocity, const AngularImpulse &angVelocity );
 	int		OnTakeDamage( const CTakeDamageInfo &inputInfo );
 	void	BlipSound() { EmitSound( "Grenade.Blip" ); }
+	void	SetBlipTime(float flNextBlipTime) { m_flNextBlipTime = flNextBlipTime; }
 	void	DelayThink();
 	void	VPhysicsUpdate( IPhysicsObject *pPhysics );
 	void	OnPhysGunPickup( CBasePlayer *pPhysGunUser, PhysGunPickup_t reason );
@@ -94,6 +100,10 @@ BEGIN_DATADESC( CGrenadeFrag )
 
 END_DATADESC()
 
+CGrenadeFrag::CGrenadeFrag(void)
+{
+	m_flNextBlipTime = 0.0f;
+}
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -110,8 +120,16 @@ void CGrenadeFrag::Spawn( void )
 
 	if( GetOwnerEntity() && GetOwnerEntity()->IsPlayer() )
 	{
-		m_flDamage		= sk_plr_dmg_fraggrenade.GetFloat();
-		m_DmgRadius		= sk_fraggrenade_radius.GetFloat();
+		if (m_type == GRENADE_TYPE_STUN)
+		{
+			m_flDamage = sk_plr_dmg_stungrenade.GetFloat();
+			m_flDamage = sk_stungrenade_radius.GetFloat();
+		}
+		else
+		{
+			m_flDamage = sk_plr_dmg_fraggrenade.GetFloat();
+			m_DmgRadius = sk_fraggrenade_radius.GetFloat();
+		}
 	}
 	else
 	{
@@ -126,8 +144,11 @@ void CGrenadeFrag::Spawn( void )
 	SetCollisionGroup( COLLISION_GROUP_WEAPON );
 	CreateVPhysics();
 
-	BlipSound();
-	m_flNextBlipTime = gpGlobals->curtime + FRAG_GRENADE_BLIP_FREQUENCY;
+	if (m_flNextBlipTime == 0.0f)
+	{
+		BlipSound();
+		m_flNextBlipTime = gpGlobals->curtime + FRAG_GRENADE_BLIP_FREQUENCY;
+	}
 
 	AddSolidFlags( FSOLID_NOT_STANDABLE );
 
@@ -155,7 +176,10 @@ void CGrenadeFrag::OnRestore( void )
 void CGrenadeFrag::CreateEffects( void )
 {
 	// Start up the eye glow
-	m_pMainGlow = CSprite::SpriteCreate( "sprites/redglow1.vmt", GetLocalOrigin(), false );
+	if (m_type == GRENADE_TYPE_STUN)
+		m_pMainGlow = CSprite::SpriteCreate("sprites/blueglow1.vmt", GetLocalOrigin(), false);
+	else
+		m_pMainGlow = CSprite::SpriteCreate("sprites/redglow1.vmt", GetLocalOrigin(), false);
 
 	int	nAttachment = LookupAttachment( "fuse" );
 
@@ -175,7 +199,10 @@ void CGrenadeFrag::CreateEffects( void )
 	{
 		m_pGlowTrail->FollowEntity( this );
 		m_pGlowTrail->SetAttachment( this, nAttachment );
-		m_pGlowTrail->SetTransparency( kRenderTransAdd, 255, 0, 0, 255, kRenderFxNone );
+		if (m_type == GRENADE_TYPE_STUN)
+			m_pGlowTrail->SetTransparency(kRenderTransAdd, 0, 0, 255, 255, kRenderFxNone);
+		else
+			m_pGlowTrail->SetTransparency(kRenderTransAdd, 255, 0, 0, 255, kRenderFxNone);
 		m_pGlowTrail->SetStartWidth( 8.0f );
 		m_pGlowTrail->SetEndWidth( 1.0f );
 		m_pGlowTrail->SetLifeTime( 0.5f );
@@ -276,21 +303,34 @@ void CGrenadeFrag::VPhysicsUpdate( IPhysicsObject *pPhysics )
 void CGrenadeFrag::Precache( void )
 {
 	PrecacheModel( GRENADE_MODEL );
+	PrecacheModel( GRENADE_MODEL_STUN );
 
 	PrecacheScriptSound( "Grenade.Blip" );
 
 	PrecacheModel( "sprites/redglow1.vmt" );
+	PrecacheModel( "sprites/blueglow1.vmt" );
 	PrecacheModel( "sprites/bluelaser1.vmt" );
 
 	BaseClass::Precache();
 }
 
-void CGrenadeFrag::SetTimer( float detonateDelay, float warnDelay )
+void CGrenadeFrag::SetTimer( float detonateDelay, float warnDelay, float warnAITime, bool bWarned, float blipTime )
 {
-	m_flDetonateTime = gpGlobals->curtime + detonateDelay;
-	m_flWarnAITime = gpGlobals->curtime + warnDelay;
-	SetThink( &CGrenadeFrag::DelayThink );
-	SetNextThink( gpGlobals->curtime );
+	if (warnAITime > 0.0f)
+	{
+		m_bHasWarnedAI = bWarned;
+		m_flNextBlipTime = blipTime;
+		m_flDetonateTime = gpGlobals->curtime + detonateDelay;
+		m_flWarnAITime = warnAITime;
+	}
+	else
+	{
+		m_flDetonateTime = gpGlobals->curtime + detonateDelay;
+		m_flWarnAITime = gpGlobals->curtime + warnDelay;
+		
+	}
+	SetThink(&CGrenadeFrag::DelayThink);
+	SetNextThink(gpGlobals->curtime);
 
 	CreateEffects();
 }
@@ -338,7 +378,7 @@ void CGrenadeFrag::DelayThink()
 		m_bHasWarnedAI = true;
 	}
 	
-	if( gpGlobals->curtime > m_flNextBlipTime )
+	if( gpGlobals->curtime >= m_flNextBlipTime )
 	{
 		BlipSound();
 		
@@ -352,7 +392,9 @@ void CGrenadeFrag::DelayThink()
 		}
 	}
 
-	SetNextThink( gpGlobals->curtime + 0.1 );
+	float nextThink = min(m_flNextBlipTime - gpGlobals->curtime, 0.1f);
+
+	SetNextThink( gpGlobals->curtime + nextThink );
 }
 
 void CGrenadeFrag::SetVelocity( const Vector &velocity, const AngularImpulse &angVelocity )
@@ -416,12 +458,18 @@ void CGrenadeFrag::InputSetTimer( inputdata_t &inputdata )
 	SetTimer( inputdata.value.Float(), inputdata.value.Float() - FRAG_GRENADE_WARN_TIME );
 }
 
-CBaseGrenade *Fraggrenade_Create( const Vector &position, const QAngle &angles, const Vector &velocity, const AngularImpulse &angVelocity, CBaseEntity *pOwner, float timer, bool combineSpawned )
+CBaseGrenade *Fraggrenade_Create( const Vector &position, const QAngle &angles, const Vector &velocity, const AngularImpulse &angVelocity, CBaseEntity *pOwner, float timer, bool combineSpawned, GrenadeType_t grenade_type, float flWarnAITime, bool bWarned, float flNextBlipTime )
 {
 	// Don't set the owner here, or the player can't interact with grenades he's thrown
-	CGrenadeFrag *pGrenade = (CGrenadeFrag *)CBaseEntity::Create( "npc_grenade_frag", position, angles, pOwner );
-	
-	pGrenade->SetTimer( timer, timer - FRAG_GRENADE_WARN_TIME );
+	CGrenadeFrag *pGrenade = (CGrenadeFrag *)CBaseEntity::CreateNoSpawn("npc_grenade_frag", position, angles, pOwner);
+	pGrenade->SetBlipTime(flNextBlipTime);
+	DispatchSpawn(pGrenade);
+
+	pGrenade->m_type = grenade_type;
+	if (grenade_type == GRENADE_TYPE_STUN)
+		pGrenade->SetModel(GRENADE_MODEL_STUN);
+
+	pGrenade->SetTimer(timer, timer - FRAG_GRENADE_WARN_TIME, flWarnAITime, bWarned, flNextBlipTime);
 	pGrenade->SetVelocity( velocity, angVelocity );
 	pGrenade->SetThrower( ToBaseCombatCharacter( pOwner ) );
 	pGrenade->m_takedamage = DAMAGE_EVENTS_ONLY;

@@ -30,6 +30,14 @@
 
 class CTakeDamageInfo;
 
+typedef enum
+{
+	GRENADE_TYPE_INVALID,
+	GRENADE_TYPE_FRAG,
+	GRENADE_TYPE_STUN,
+	GRENADE_TYPE_MAX
+} GrenadeType_t;
+
 #if !defined( CLIENT_DLL )
 class CBaseGrenade : public CBaseProjectile, public CDefaultPlayerPickupVPhysics
 #else
@@ -102,6 +110,8 @@ public:
 	CBaseCombatCharacter *GetThrower( void );
 	void				  SetThrower( CBaseCombatCharacter *pThrower );
 	CBaseEntity *GetOriginalThrower() { return m_hOriginalThrower; }
+
+	GrenadeType_t m_type;
 
 #if !defined( CLIENT_DLL )
 	// Allow +USE pickup

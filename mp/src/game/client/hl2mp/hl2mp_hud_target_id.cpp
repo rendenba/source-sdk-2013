@@ -13,6 +13,8 @@
 #include "iclientmode.h"
 #include "vgui/ILocalize.h"
 #include "hl2mp_gamerules.h"
+#include "purchaseitem_shared.h"
+#include "coven_parse.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -42,6 +44,7 @@ private:
 
 	vgui::HFont		m_hFont;
 	int				m_iLastEntIndex;
+	CHandle<C_CovenBuilding> lastItem;
 	float			m_flLastChangeTime;
 };
 
@@ -61,6 +64,7 @@ CTargetID::CTargetID( const char *pElementName ) :
 	m_hFont = g_hFontTrebuchet24;
 	m_flLastChangeTime = 0;
 	m_iLastEntIndex = 0;
+	lastItem = NULL;
 
 	SetHiddenBits( HIDEHUD_MISCSTATUS );
 }
@@ -115,11 +119,18 @@ void CTargetID::Paint()
 
 	// Get our target's ent index
 	int iEntIndex = pPlayer->GetIDTarget();
+
+	if (iEntIndex != m_iLastEntIndex && lastItem != NULL)
+	{
+		lastItem->SetClientSideGlowEnabled(false);
+		lastItem = NULL;
+	}
+
 	// Didn't find one?
 	if ( !iEntIndex )
 	{
 		// Check to see if we should clear our ID
-		if ( m_flLastChangeTime && (gpGlobals->curtime > (m_flLastChangeTime + 0.5)) )
+		if ( m_flLastChangeTime && (gpGlobals->curtime > (m_flLastChangeTime + 0.1f)) )
 		{
 			m_flLastChangeTime = 0;
 			sIDString[0] = 0;
@@ -134,6 +145,7 @@ void CTargetID::Paint()
 	else
 	{
 		m_flLastChangeTime = gpGlobals->curtime;
+		m_iLastEntIndex = iEntIndex;
 	}
 
 	// Is this an entindex sent by the server?
@@ -175,6 +187,40 @@ void CTargetID::Paint()
 				//BB: dont show the % sign in the health... we use HP not %... NOT ANY MORE!
 				_snwprintf( wszHealthText, ARRAYSIZE(wszHealthText) - 1, L"%.0f",  ((float)pPlayer->GetHealth() / (float)pPlayer->GetMaxHealth()*100.0f ) );
 				wszHealthText[ ARRAYSIZE(wszHealthText)-1 ] = '\0';
+			}
+		}
+		else
+		{
+			CBaseEntity *pEnt = cl_entitylist->GetEnt(iEntIndex);
+			if (pEnt != NULL)
+			{
+				C_BasePlayer *pLocalPlayer = C_BasePlayer::GetLocalPlayer();
+				if (pEnt->IsABuilding() && pEnt->GetTeamNumber() == pLocalPlayer->GetTeamNumber())
+				{
+					C_CovenBuilding *bldg = static_cast<C_CovenBuilding *>(pEnt);
+					CovenBuildingInfo_t *info = GetCovenBuildingData(bldg->m_BuildingType);
+					c = GetColorForTargetTeam(pEnt->GetTeamNumber());
+					wchar_t wszBuildingName[MAX_PLAYER_NAME_LENGTH];
+					wchar_t wszCostText[4];
+					V_swprintf_safe(wszCostText, L"???");
+					V_swprintf_safe(wszBuildingName, L"%s", g_pVGuiLocalize->Find(info->szPrintName));
+					int cost = HL2MPRules()->CovenItemCost(bldg->m_BuildingType);
+					if (cost >= 0)
+					{
+						V_swprintf_safe(wszCostText, L"%d", cost);
+						if (!bldg->IsClientSideGlowEnabled())
+						{
+							bldg->SetClientSideGlowEnabled(true);
+							color32 clr;
+							clr.b = clr.r = 0;
+							clr.g = clr.a = 255;
+
+							bldg->ForceGlowEffect(clr, true, true, 750.0f);
+							lastItem = bldg;
+						}
+						g_pVGuiLocalize->ConstructString(sIDString, sizeof(sIDString), g_pVGuiLocalize->Find("#ItemID"), 2, wszBuildingName, wszCostText);
+					}
+				}
 			}
 		}
 

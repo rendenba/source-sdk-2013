@@ -1952,6 +1952,9 @@
     <ClInclude Include="c_covenbuilding.h">
       <Filter>Source Files\HL2 DLL</Filter>
     </ClInclude>
+    <ClInclude Include="..\shared\purchaseitem_shared.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="mp3player.cpp">
@@ -3567,6 +3570,15 @@
     </ClCompile>
     <ClCompile Include="hud_roundtimer.cpp">
       <Filter>Source Files\HL2 DLL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\shared\hl2mp\weapon_holywater.cpp">
+      <Filter>Source Files\HL2MP\Weapons</Filter>
+    </ClCompile>
+    <ClCompile Include="hl2\c_purchaseitem.cpp">
+      <Filter>Source Files\HL2 DLL</Filter>
+    </ClCompile>
+    <ClCompile Include="..\shared\hl2mp\weapon_stunfrag.cpp">
+      <Filter>Source Files\HL2MP\Weapons</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

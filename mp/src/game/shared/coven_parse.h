@@ -9,6 +9,9 @@
 #define MAX_COVEN_STRING	80
 #define COVEN_PRINTNAME_MISSING "!!! Missing Coven printname!"
 
+#define EFFECT_FLAG_MAG_AS_TIMER	(1 << 0)	//shows the timer wipe regardless of timer enabled
+#define EFFECT_FLAG_SPLIT_DEF		(1 << 1)	//split buff (diff name and icon for diff teams)
+
 typedef enum {
 	ABILITY_SND_START,
 	ABILITY_SND_STOP,
@@ -115,6 +118,14 @@ public:
 	// SERVER DLL
 };
 
+typedef enum
+{
+	SHOW_NEVER,
+	SHOW_ALWAYS,
+	SHOW_TEAM_SLAYERS,
+	SHOW_TEAM_VAMPIRES
+} StatusEffectShow_t;
+
 class CovenStatusEffectInfo_t
 {
 public:
@@ -132,21 +143,56 @@ public:
 	// SHARED
 	char					szName[MAX_COVEN_STRING];
 	char					szPrintName[MAX_COVEN_STRING];			// Name for showing in HUD, etc.
+	char					szAltPrintName[MAX_COVEN_STRING];		// Vampire name and other is Slayer Name
 	int						iFlags;									// miscellaneous flags
 
 	// CLIENT DLL
-	bool					bShowMagnitude;
-	bool					bShowTimer;
+	StatusEffectShow_t		iShowMagnitude;
+	StatusEffectShow_t		iShowTimer;
+	bool					bIsDebuff;
+	bool					bAltIsDebuff;
 	// Sprite data, read from the data file
 	int						iSpriteCount;
 	CHudTexture				*statusIcon;
+	CHudTexture				*altStatusIcon;
+	CUtlVector<float>		flDataVariables;
 
+	// SERVER DLL
+};
+
+class CovenBuildingInfo_t
+{
+public:
+	CovenBuildingInfo_t();
+
+	// Each game can override this to get whatever values it wants from the script.
+	virtual void Parse(KeyValues *pKeyValuesData);
+
+public:
+	bool					bParsedScript;
+	bool					bLoadedHudElements;
+
+	// SHARED
+	char					szName[MAX_COVEN_STRING];
+	char					szPrintName[MAX_COVEN_STRING];			// Name for showing in HUD, etc.
+	char					szModelName[MAX_COVEN_STRING];
+	int						iFlags;									// miscellaneous flags
+	int						iMaxLevel;
+	CUtlVector<int>			iHealths;
+	CUtlVector<int>			iXPs;
+	CUtlVector<int>			iCosts;
+	CUtlVector<int>			iAmmo1;
+	CUtlVector<int>			iAmmo2;
+	CUtlVector<int>			iAmmo3;
+	// CLIENT DLL
+	// Sprite data, read from the data file
 	// SERVER DLL
 };
 
 void PrecacheAbilities(IFileSystem *filesystem);
 void PrecacheClasses(IFileSystem *filesystem);
 void PrecacheStatusEffects(IFileSystem *filesystem);
+void PrecacheBuildings(IFileSystem *filesystem);
 
 #ifdef CLIENT_DLL
 void LoadAbilitySprites(CovenAbilityInfo_t *info);
@@ -159,4 +205,6 @@ CovenClassInfo_t			*GetCovenClassData(int iPartialClassNum, int iTeam); //client
 CovenAbilityInfo_t			*GetCovenAbilityData(CovenAbility_t iAbility);
 
 CovenStatusEffectInfo_t		*GetCovenStatusEffectData(CovenStatus_t iStatus);
+
+CovenBuildingInfo_t			*GetCovenBuildingData(BuildingType_t iBuildingType);
 #endif

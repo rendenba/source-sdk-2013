@@ -1,5 +1,6 @@
 #ifndef COVEN_AMMOCRATE_H
 #define COVEN_AMMOCRATE_H
+
 #ifdef _WIN32
 #pragma once
 #endif
@@ -15,7 +16,6 @@
 #include "covenbuilding.h"
 
 #define	COVEN_CRATE_CLOSE_DELAY		1.5f
-#define COVEN_CRATE_MODELNAME		"models/items/ammocrate_smg1.mdl"
 
 #define SF_COVEN_CRATE_INFINITE		(1 << 8)
 
@@ -42,7 +42,7 @@ public:
 	virtual void	OnBuildingComplete(void);
 
 	virtual void	Enable(void);
-	virtual			BuildingType const MyType() { return BUILDING_AMMOCRATE; };
+	virtual bool	CheckLevel(void);
 
 	void		AddMetal(void);
 	int			GetMetal(int have);

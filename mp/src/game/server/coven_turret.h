@@ -48,7 +48,6 @@ enum covenEyeState_t
 
 #define	LASER_BEAM_SPRITE						"sprites/light_glow01.vmt"//"sprites/glow01.vmt"
 
-#define	COVEN_TURRET_MODEL						"models/combine_turrets/floor_turret.mdl"
 #define	COVEN_TURRET_MODEL_CITIZEN				"models/combine_turrets/citizen_turret.mdl"
 #define COVEN_TURRET_GLOW_SPRITE				"sprites/glow1.vmt"
 #define	COVEN_TURRET_RANGE						1200
@@ -101,7 +100,6 @@ public:
 	virtual int				VPhysicsTakeDamage(const CTakeDamageInfo &info);
 	virtual void			OnBuildingComplete(void);
 	virtual bool			CheckLevel(void);
-	virtual BuildingType const	MyType() { return BUILDING_TURRET; };
 	virtual int				GetAmmo(int index);
 	virtual int				GetMaxAmmo(int index);
 

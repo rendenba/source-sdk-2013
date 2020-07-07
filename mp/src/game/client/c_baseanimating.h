@@ -459,12 +459,12 @@ public:
 
 	void				SetClientSideGlowEnabled(bool bEnabled){ m_bClientSideGlowEnabled = bEnabled; UpdateGlowEffect(); }
 	bool				IsClientSideGlowEnabled(void){ return m_bClientSideGlowEnabled; }
+	virtual void		ForceGlowEffect(const color32 &clr, bool bRenderWhenOccluded = false, bool bRenderWhenUnoccluded = false, float flViewDistance = FLT_MAX);
 #endif // GLOWS_ENABLE
 
 protected:
 #ifdef GLOWS_ENABLE	
 	virtual void		UpdateGlowEffect(void);
-	virtual void		ForceGlowEffect(const color32 &clr, bool bRenderWhenOccluded = false, bool bRenderWhenUnoccluded = false, float flViewDistance = FLT_MAX);
 	virtual void		DestroyGlowEffect(void);
 #endif // GLOWS_ENABLE
 	// View models scale their attachment positions to account for FOV. To get the unmodified
