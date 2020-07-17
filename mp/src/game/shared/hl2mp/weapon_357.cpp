@@ -33,6 +33,7 @@ public:
 	CWeapon357( void );
 
 	void	PrimaryAttack( void );
+	bool Reload(void);
 	DECLARE_NETWORKCLASS(); 
 	DECLARE_PREDICTABLE();
 
@@ -85,6 +86,67 @@ CWeapon357::CWeapon357( void )
 	m_bFiresUnderwater	= false;
 }
 
+bool CWeapon357::Reload(void)
+{
+	CBaseCombatCharacter *pOwner = GetOwner();
+	if (!pOwner)
+		return false;
+
+	// If I don't have any spare ammo, I can't reload
+	if (pOwner->GetAmmoCount(m_iPrimaryAmmoType) <= 0)
+		return false;
+
+	bool bReload = false;
+
+	// If you don't have clips, then don't try to reload them.
+	if (UsesClipsForAmmo1())
+	{
+		// need to reload primary clip?
+		int primary = MIN(GetMaxClip1() - m_iClip1, pOwner->GetAmmoCount(m_iPrimaryAmmoType));
+		if (primary != 0)
+		{
+			bReload = true;
+		}
+	}
+
+	if (UsesClipsForAmmo2())
+	{
+		// need to reload secondary clip?
+		int secondary = MIN(GetMaxClip2() - m_iClip2, pOwner->GetAmmoCount(m_iSecondaryAmmoType));
+		if (secondary != 0)
+		{
+			bReload = true;
+		}
+	}
+
+	if (!bReload)
+		return false;
+
+	if (CheckDeferredAction(true))
+		return false;
+
+	// Play reload
+	WeaponSound(RELOAD);
+	SendWeaponAnim(ACT_VM_RELOAD);
+
+	// Play the player's reload animation
+	if (pOwner->IsPlayer())
+	{
+		((CBasePlayer *)pOwner)->SetAnimation(PLAYER_RELOAD);
+	}
+
+	//BB: I simply do not understand the spaghetti calls to setting activities and sequences. This corrects the issue for some reason.
+	float factor = 1.0f;
+	if (ToHL2MPPlayer(pOwner)->HasStatus(COVEN_STATUS_HASTE))
+		factor = 1.0f / (1.0f + (ToHL2MPPlayer(pOwner)->GetStatusMagnitude(COVEN_STATUS_HASTE) * 0.01f));
+
+	m_flNextPrimaryAttack = gpGlobals->curtime + SequenceDuration() * factor;
+
+	m_bInReload = true;
+
+	return true;
+}
+
 //-----------------------------------------------------------------------------
 // Purpose:
 //-----------------------------------------------------------------------------
@@ -102,6 +164,12 @@ void CWeapon357::PrimaryAttack( void )
 		return;
 	}
 
+	//BB: this sucks that PrimaryAttack is redefined without inheritance in every freaking weapon!
+	if (CheckDeferredAction(true))
+		return;
+
+	CHL2MP_Player *pHL2Player = ToHL2MPPlayer(pPlayer);
+
 	if ( m_iClip1 <= 0 )
 	{
 		if ( !m_bFireOnEmpty )
@@ -111,7 +179,7 @@ void CWeapon357::PrimaryAttack( void )
 		else
 		{
 			WeaponSound( EMPTY );
-			m_flNextPrimaryAttack = 0.15;
+			m_flNextPrimaryAttack = 0.15f;
 		}
 
 		return;
@@ -120,10 +188,15 @@ void CWeapon357::PrimaryAttack( void )
 	WeaponSound( SINGLE );
 	pPlayer->DoMuzzleFlash();
 
-	SendWeaponAnim( ACT_VM_PRIMARYATTACK );
-	pPlayer->SetAnimation( PLAYER_ATTACK1 );
+	SendWeaponAnim(ACT_VM_PRIMARYATTACK);
+	pPlayer->SetAnimation(PLAYER_ATTACK1);
 
-	m_flNextPrimaryAttack = gpGlobals->curtime + 0.75;
+
+	if (pHL2Player->HasStatus(COVEN_STATUS_HASTE))
+		m_flNextPrimaryAttack = gpGlobals->curtime + 0.75f - pHL2Player->GetStatusMagnitude(COVEN_STATUS_HASTE) * 0.0075f;
+	else
+		m_flNextPrimaryAttack = gpGlobals->curtime + 0.75f;
+
 	m_flNextSecondaryAttack = gpGlobals->curtime + 0.75;
 
 	m_iClip1--;

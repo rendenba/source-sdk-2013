@@ -110,19 +110,22 @@ public:
 	void Spawn(void)
 	{
 		Precache();
-		SetModel("models/props_junk/gascan001a.mdl");
+		CovenItemInfo_t *info = GetCovenItemData(COVEN_ITEM_GASOLINE);
+		SetModel(info->szModelName);
 		BaseClass::Spawn();
 		SetTransmitState(FL_EDICT_ALWAYS);
 	}
 	void Precache(void)
 	{
-		PrecacheModel("models/props_junk/gascan001a.mdl");
+		CovenItemInfo_t *info = GetCovenItemData(COVEN_ITEM_GASOLINE);
+		PrecacheModel(info->szModelName);
 	}
 	bool MyTouch(CBasePlayer *pPlayer)
 	{
+		CovenItemInfo_t *info = GetCovenItemData(COVEN_ITEM_GASOLINE);
 		CHL2_Player *pHL2Player = ToHL2Player(pPlayer);
 		pHL2Player->AddStatus(COVEN_STATUS_HAS_GAS);
-		pPlayer->EmitSound("BaseCombatCharacter.AmmoPickup");
+		pPlayer->EmitSound(info->aSounds[COVEN_SND_START]);
 		return true;
 	}
 	void UpdateOnRemove()

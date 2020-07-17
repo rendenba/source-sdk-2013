@@ -54,6 +54,7 @@ public:
 	bool				IsSprinting() const { return m_fIsSprinting; }
 	virtual bool		IsBuilderClass(void);
 	bool				HasAbility(CovenAbility_t iAbility);
+	int					CovenItemQuantity(CovenItemID_t iItemType);
 
 	// Input handling
 	virtual bool	CreateMove( float flInputSampleTime, CUserCmd *pCmd );

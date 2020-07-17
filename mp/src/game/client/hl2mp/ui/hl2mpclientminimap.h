@@ -43,14 +43,7 @@ public:
 	// IGameEventListener interface:
 	virtual void FireGameEvent( IGameEvent *event);
 
-
 protected:
-	// scoreboard overrides
-	virtual void InitScoreboardSections();
-	virtual void UpdateTeamInfo();
-	virtual bool GetPlayerScoreInfo(int playerIndex, KeyValues *outPlayerInfo);
-	virtual void UpdatePlayerInfo();
-
 	// vgui overrides for rounded corner background
 	virtual void PaintBackground();
 	virtual void PaintBorder();
@@ -60,15 +53,11 @@ protected:
 
 	// functions to override
 	virtual void OnThink();
-	virtual void AddHeader(); // add the start header of the scoreboard
-	virtual void AddSection(int teamType, int teamNumber); // add a new section header for a team
 	virtual int GetAdditionalHeight() { return 0; }
 
 	float m_fNextUpdateTime;
 
-
 private:
-
 	bool LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBaseFileSystem *pFileSystem, const char *pPathID );
 	bool LoadFromBuffer( char const *resourceName, const char *pBuffer, IBaseFileSystem* pFileSystem, const char *pPathID = NULL );
 	bool LoadDotFile( IBaseFileSystem *filesystem, const char *resourceName, const char *pathID );
@@ -89,20 +78,6 @@ private:
 	int			m_iDesiredHeight;
 	IViewPort	*m_pViewPort;
 	ButtonCode_t m_nCloseKey;
-
-	int GetSectionFromTeamNumber( int teamNumber );
-	enum 
-	{ 
-		CSTRIKE_NAME_WIDTH = 300,
-		CSTRIKE_CLASS_WIDTH = 66,
-		CSTRIKE_SCORE_WIDTH = 40,
-		CSTRIKE_DEATH_WIDTH = 46,
-		CSTRIKE_PING_WIDTH = 46,
-		CSTRIKE_LEVELS_WIDTH = 46,
-		CSTRIKE_STATUS_WIDTH = 40,
-//		CSTRIKE_VOICE_WIDTH = 40, 
-//		CSTRIKE_FRIENDS_WIDTH = 24,
-	};
 
 	// rounded corners
 	Color					 m_bgColor;

@@ -94,6 +94,11 @@ CWeaponFrag::CWeaponFrag( void ) :
 	m_GrenadeType = GRENADE_TYPE_FRAG;
 }
 
+bool CWeaponFrag::CanFire()
+{
+	return !IsPrimed();
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------

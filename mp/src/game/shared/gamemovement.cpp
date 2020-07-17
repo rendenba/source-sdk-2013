@@ -2416,6 +2416,17 @@ bool CGameMovement::CheckJumpButton( void )
 	if ( player->m_Local.m_flDuckJumpTime > 0.0f )
 		return false;
 
+#ifndef CLIENT_DLL
+	CHL2_Player *pHL2Player = ToHL2Player(player);
+	if (pHL2Player && pHL2Player->PerformingDeferredAction())
+#else
+	C_BaseHLPlayer *pHL2Player = dynamic_cast<C_BaseHLPlayer *>(player);
+	if (pHL2Player && pHL2Player->m_HL2Local.covenActionTimer > 0.0f)
+#endif
+	{
+		mv->m_nOldButtons |= IN_JUMP;
+		return false;
+	}
 
 	// In the air now.
     SetGroundEntity( NULL );
@@ -2450,7 +2461,7 @@ bool CGameMovement::CheckJumpButton( void )
 	// Acclerate upward
 	// If we are ducking...
 	float startz = mv->m_vecVelocity[2];
-	if ( (  player->m_Local.m_bDucking ) || (  player->GetFlags() & FL_DUCKING ) )
+	if ((player->m_Local.m_bDucking) || (player->GetFlags() & FL_DUCKING))
 	{
 		// d = 0.5 * g * t^2		- distance traveled with linear accel
 		// t = sqrt(2.0 * 45 / g)	- how long to fall 45 units

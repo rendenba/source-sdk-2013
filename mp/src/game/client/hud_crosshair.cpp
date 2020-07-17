@@ -49,12 +49,13 @@ CHudCrosshair::CHudCrosshair( const char *pElementName ) :
 	SetParent( pParent );
 
 	m_pCrosshair = 0;
+	m_pWeapOld = 0;
 
 	m_clrCrosshair = Color( 0, 0, 0, 0 );
 
 	m_vecCrossHairOffsetAngle.Init();
 
-	SetHiddenBits( HIDEHUD_PLAYERDEAD | HIDEHUD_CROSSHAIR );
+	SetHiddenBits( HIDEHUD_PLAYERDEAD | HIDEHUD_CROSSHAIR | HIDEHUD_SCORES );
 }
 
 CHudCrosshair::~CHudCrosshair()
@@ -92,6 +93,12 @@ bool CHudCrosshair::ShouldDraw( void )
 	C_BaseCombatWeapon *pWeapon = pPlayer->GetActiveWeapon();
 	if ( pWeapon && !pWeapon->ShouldDrawCrosshair() )
 		return false;
+
+	if (m_pWeapOld != pWeapon)
+	{
+		m_pWeapOld = pWeapon;
+		pPlayer->m_bPredictHideHud = false;
+	}
 
 #ifdef PORTAL
 	C_Portal_Player *portalPlayer = ToPortalPlayer(pPlayer);

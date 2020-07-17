@@ -14,6 +14,7 @@
 #include "iviewrender_beams.h"			// flashlight beam
 #include "r_efx.h"
 #include "dlight.h"
+#include "history_resource.h"
 
 // Don't alias here
 #if defined( CHL2MP_Player )
@@ -63,6 +64,8 @@ C_HL2MP_Player::C_HL2MP_Player() : m_PlayerAnimState( this ), m_iv_angEyeAngles(
 	m_blinkTimer.Invalidate();
 
 	m_pFlashlightBeam = NULL;
+
+	Q_memset(m_iItemsOld, 0, sizeof(m_iItemsOld));
 }
 
 C_HL2MP_Player::~C_HL2MP_Player( void )
@@ -532,6 +535,16 @@ void C_HL2MP_Player::NotifyShouldTransmit( ShouldTransmitState_t state )
 	BaseClass::NotifyShouldTransmit( state );
 }
 
+void C_HL2MP_Player::OnPreDataChanged(DataUpdateType_t type)
+{
+	for (int i = 0; i < COVEN_ITEM_COUNT; i++)
+	{
+		m_iItemsOld[i] = m_HL2Local.m_iItems[i];
+	}
+
+	BaseClass::OnPreDataChanged(type);
+}
+
 void C_HL2MP_Player::OnDataChanged( DataUpdateType_t type )
 {
 	BaseClass::OnDataChanged( type );
@@ -539,6 +552,25 @@ void C_HL2MP_Player::OnDataChanged( DataUpdateType_t type )
 	if ( type == DATA_UPDATE_CREATED )
 	{
 		SetNextClientThink( CLIENT_THINK_ALWAYS );
+	}
+
+	// Only care about this for local player
+	if (IsLocalPlayer())
+	{
+		for (int i = 0; i < COVEN_ITEM_COUNT; i++)
+		{
+			if (m_HL2Local.m_iItems[i] > m_iItemsOld[i])
+			{
+				CHudHistoryResource *pHudHR = GET_HUDELEMENT(CHudHistoryResource);
+				if (pHudHR)
+				{
+					pHudHR->AddToHistory(HISTSLOT_ITEM, i, m_HL2Local.m_iItems[i] - m_iItemsOld[i]);
+				}
+			}
+		}
+
+		if ((m_Local.m_iHideHUD & HIDEHUD_SCORES) != 0)
+			m_bPredictHideHud = false;
 	}
 
 	UpdateVisibility();

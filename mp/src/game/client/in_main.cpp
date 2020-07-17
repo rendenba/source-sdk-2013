@@ -140,7 +140,8 @@ static	kbutton_t	in_alt2;
 static	kbutton_t	in_score;
 static	kbutton_t	in_break;
 static	kbutton_t	in_zoom;
-static  kbutton_t   in_grenade1;
+static	kbutton_t	in_item;
+static  kbutton_t   in_grenade;
 static  kbutton_t   in_grenade2;
 static	kbutton_t	in_attack3;
 kbutton_t	in_ducktoggle;
@@ -490,8 +491,6 @@ void IN_GraphDown( const CCommand &args ) {KeyDown(&in_graph, args[1] );}
 void IN_GraphUp( const CCommand &args ) {KeyUp(&in_graph, args[1] );}
 void IN_ZoomDown( const CCommand &args ) {KeyDown(&in_zoom, args[1] );}
 void IN_ZoomUp( const CCommand &args ) {KeyUp(&in_zoom, args[1] );}
-void IN_Grenade1Up( const CCommand &args ) { KeyUp( &in_grenade1, args[1] ); }
-void IN_Grenade1Down( const CCommand &args ) { KeyDown( &in_grenade1, args[1] ); }
 void IN_Grenade2Up( const CCommand &args ) { KeyUp( &in_grenade2, args[1] ); }
 void IN_Grenade2Down( const CCommand &args ) { KeyDown( &in_grenade2, args[1] ); }
 void IN_XboxStub( const CCommand &args ) { /*do nothing*/ }
@@ -614,6 +613,43 @@ void IN_MapUp( const CCommand &args )
 	}
 }
 
+void IN_ItemDown(const CCommand &args)
+{
+	KeyDown(&in_item, args[1]);
+	if (gViewPortInterface)
+	{
+		gViewPortInterface->ShowPanel(PANEL_ITEM, true);
+	}
+}
+
+void IN_ItemUp(const CCommand &args)
+{
+	KeyUp(&in_item, args[1]);
+	if (gViewPortInterface)
+	{
+		gViewPortInterface->ShowPanel(PANEL_ITEM, false);
+		GetClientVoiceMgr()->StopSquelchMode();
+	}
+}
+
+void IN_GrenadeUp(const CCommand &args)
+{
+	KeyUp(&in_grenade, args[1]);
+	if (gViewPortInterface)
+	{
+		gViewPortInterface->ShowPanel(PANEL_GRENADE, false);
+		GetClientVoiceMgr()->StopSquelchMode();
+	}
+}
+
+void IN_GrenadeDown(const CCommand &args)
+{
+	KeyDown(&in_grenade, args[1]);
+	if (gViewPortInterface)
+	{
+		gViewPortInterface->ShowPanel(PANEL_GRENADE, true);
+	}
+}
 
 /*
 ============
@@ -1536,7 +1572,8 @@ int CInput::GetButtonBits( int bResetState )
 	CalcButtonBits( bits, IN_ALT2, s_ClearInputState, &in_alt2, bResetState );
 	CalcButtonBits( bits, IN_SCORE, s_ClearInputState, &in_score, bResetState );
 	CalcButtonBits( bits, IN_ZOOM, s_ClearInputState, &in_zoom, bResetState );
-	CalcButtonBits( bits, IN_GRENADE1, s_ClearInputState, &in_grenade1, bResetState );
+	CalcButtonBits( bits, IN_ITEM, s_ClearInputState, &in_item, bResetState );
+	CalcButtonBits( bits, IN_GRENADE, s_ClearInputState, &in_grenade, bResetState );
 	CalcButtonBits( bits, IN_GRENADE2, s_ClearInputState, &in_grenade2, bResetState );
 	CalcButtonBits( bits, IN_ATTACK3, s_ClearInputState, &in_attack3, bResetState );
 	CalcButtonBits( bits, IN_ABIL1, s_ClearInputState, &in_abil1, bResetState );
@@ -1698,8 +1735,10 @@ static ConCommand force_centerview("force_centerview", IN_CenterView_f);
 static ConCommand joyadvancedupdate("joyadvancedupdate", IN_Joystick_Advanced_f, "", FCVAR_CLIENTCMD_CAN_EXECUTE);
 static ConCommand startzoom("+zoom", IN_ZoomDown);
 static ConCommand endzoom("-zoom", IN_ZoomUp);
-static ConCommand endgrenade1( "-grenade1", IN_Grenade1Up );
-static ConCommand startgrenade1( "+grenade1", IN_Grenade1Down );
+static ConCommand startitem( "+item", IN_ItemDown );
+static ConCommand enditem( "-item", IN_ItemUp );
+static ConCommand endgrenade( "-grenade", IN_GrenadeUp );
+static ConCommand startgrenade( "+grenade", IN_GrenadeDown );
 static ConCommand endgrenade2( "-grenade2", IN_Grenade2Up );
 static ConCommand startgrenade2( "+grenade2", IN_Grenade2Down );
 static ConCommand startattack3("+attack3", IN_Attack3Down);

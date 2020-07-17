@@ -12,6 +12,7 @@
 #include "items.h"
 #include "in_buttons.h"
 #include "engine/IEngineSound.h"
+#include "coven_parse.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -28,8 +29,6 @@ class CHealthKit : public CItem
 public:
 	DECLARE_CLASS( CHealthKit, CItem );
 
-	int level;
-	float delayTimer;
 	void Spawn( void );
 	void Precache( void );
 	bool MyTouch( CBasePlayer *pPlayer );
@@ -45,12 +44,9 @@ PRECACHE_REGISTER(item_healthkit);
 //-----------------------------------------------------------------------------
 void CHealthKit::Spawn( void )
 {
-	level = 1;
-	if (creator)
-		level = ((CHL2MP_Player *)creator)->GetLoadout(1);
-	delayTimer = gpGlobals->curtime + 0.2f;
 	Precache();
-	SetModel( "models/items/healthkit.mdl" );
+	CovenItemInfo_t *info = GetCovenItemData(COVEN_ITEM_MEDKIT);
+	SetModel(info->szModelName);
 
 	BaseClass::Spawn();
 }
@@ -61,9 +57,10 @@ void CHealthKit::Spawn( void )
 //-----------------------------------------------------------------------------
 void CHealthKit::Precache( void )
 {
-	PrecacheModel("models/items/healthkit.mdl");
+	CovenItemInfo_t *info = GetCovenItemData(COVEN_ITEM_MEDKIT);
+	PrecacheModel(info->szModelName);
 
-	PrecacheScriptSound( "HealthKit.Touch" );
+	PrecacheScriptSound(info->aSounds[COVEN_SND_START]);
 }
 
 
@@ -77,43 +74,24 @@ bool CHealthKit::MyTouch( CBasePlayer *pPlayer )
 	//BB: only slayers can pickup health kits now...
 	if (pPlayer && pPlayer->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
 	{
-		if (pPlayer == creator)
+		CHL2MP_Player *pHL2Player = ToHL2MPPlayer(pPlayer);
+		m_iCount -= pHL2Player->GiveCovenItem(COVEN_ITEM_MEDKIT, m_iCount);
+
+		if (m_iCount > 0)
+			return false;
+
+		if ( g_pGameRules->ItemShouldRespawn( this ) )
 		{
-			//IPhysicsObject *pPhysics = VPhysicsGetObject();
-			//if ( pPhysics && !pPhysics->IsAsleep())
-			//if (!(GetFlags() & FL_ONGROUND))
-			if (gpGlobals->curtime < delayTimer)
-			{
-				return false;
-			}
+			Respawn();
 		}
-		if ( pPlayer->TakeHealth( sk_healthvial.GetFloat() * level, DMG_GENERIC ) )
+		else
 		{
-			CSingleUserRecipientFilter user( pPlayer );
-			user.MakeReliable();
-
-			UserMessageBegin( user, "ItemPickup" );
-				WRITE_STRING( GetClassname() );
-			MessageEnd();
-
-			CPASAttenuationFilter filter( pPlayer, "HealthKit.Touch" );
-			EmitSound( filter, pPlayer->entindex(), "HealthKit.Touch" );
-
-			((CHL2MP_Player *)creator)->medkits.FindAndRemove(this);
-
-			if ( g_pGameRules->ItemShouldRespawn( this ) )
-			{
-				Respawn();
-			}
-			else
-			{
+			if (m_iCount <= 0)
 				UTIL_Remove(this);	
-			}
-
-			return true;
 		}
-	}
 
+		return true;
+	}
 	return false;
 }
 
@@ -126,26 +104,21 @@ class CHealthVial : public CItem
 public:
 	DECLARE_CLASS( CHealthVial, CItem );
 
-	int level;
-	float delayTimer;
-
 	void Spawn( void )
 	{
-		level = 1;
-		if (creator)
-			level = ((CHL2MP_Player *)creator)->GetLoadout(1);
-		delayTimer = gpGlobals->curtime + 0.2f;
 		Precache();
-		SetModel( "models/healthvial.mdl" );
+		CovenItemInfo_t *info = GetCovenItemData(COVEN_ITEM_STIMPACK);
+		SetModel(info->szModelName);
 
 		BaseClass::Spawn();
 	}
 
 	void Precache( void )
 	{
-		PrecacheModel("models/healthvial.mdl");
+		CovenItemInfo_t *info = GetCovenItemData(COVEN_ITEM_STIMPACK);
+		PrecacheModel(info->szModelName);
 
-		PrecacheScriptSound( "HealthVial.Touch" );
+		PrecacheScriptSound( info->aSounds[COVEN_SND_START] );
 	}
 
 	bool MyTouch( CBasePlayer *pPlayer )
@@ -153,49 +126,81 @@ public:
 		//BB: only slayers can pickup health kits now...
 		if (pPlayer && pPlayer->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
 		{
-			if (pPlayer == creator)
+			CHL2MP_Player *pHL2Player = ToHL2MPPlayer(pPlayer);
+			m_iCount -= pHL2Player->GiveCovenItem(COVEN_ITEM_STIMPACK, m_iCount);
+
+			if (m_iCount > 0)
+				return false;
+
+			if (g_pGameRules->ItemShouldRespawn(this))
 			{
-				//IPhysicsObject *pPhysics = VPhysicsGetObject();
-				//if (pPhysics && !pPhysics->IsAsleep())
-					//if (!(GetFlags() & FL_ONGROUND))
-				if (gpGlobals->curtime < delayTimer)
-				{
-					return false;
-				}
+				Respawn();
 			}
-			if (pPlayer->TakeHealth(sk_healthvial.GetFloat() * level, DMG_GENERIC))
+			else
 			{
-				CSingleUserRecipientFilter user(pPlayer);
-				user.MakeReliable();
-
-				UserMessageBegin(user, "ItemPickup");
-				WRITE_STRING(GetClassname());
-				MessageEnd();
-
-				CPASAttenuationFilter filter(pPlayer, "HealthVial.Touch");
-				EmitSound(filter, pPlayer->entindex(), "HealthVial.Touch");
-
-				((CHL2MP_Player *)creator)->medkits.FindAndRemove(this);
-
-				if (g_pGameRules->ItemShouldRespawn(this))
-				{
-					Respawn();
-				}
-				else
-				{
+				if (m_iCount <= 0)
 					UTIL_Remove(this);
-				}
-
-				return true;
 			}
-		}
 
+			return true;
+		}
 		return false;
 	}
 };
 
 LINK_ENTITY_TO_CLASS( item_healthvial, CHealthVial );
 PRECACHE_REGISTER( item_healthvial );
+
+class CPills : public CItem
+{
+public:
+	DECLARE_CLASS(CPills, CItem);
+
+	void Spawn(void)
+	{
+		Precache();
+		SetModel("models/items/pillbottle.mdl");
+
+		BaseClass::Spawn();
+	}
+
+	void Precache(void)
+	{
+		CovenItemInfo_t *info = GetCovenItemData(COVEN_ITEM_PILLS);
+		PrecacheModel(info->szModelName);
+
+		PrecacheScriptSound(info->aSounds[COVEN_SND_START]);
+	}
+
+	bool MyTouch(CBasePlayer *pPlayer)
+	{
+		//BB: only slayers can pickup health kits now...
+		if (pPlayer && pPlayer->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+		{
+			CHL2MP_Player *pHL2Player = ToHL2MPPlayer(pPlayer);
+			m_iCount -= pHL2Player->GiveCovenItem(COVEN_ITEM_PILLS, m_iCount);
+
+			if (m_iCount > 0)
+				return false;
+
+			if (g_pGameRules->ItemShouldRespawn(this))
+			{
+				Respawn();
+			}
+			else
+			{
+				if (m_iCount <= 0)
+					UTIL_Remove(this);
+			}
+
+			return true;
+		}
+		return false;
+	}
+};
+
+LINK_ENTITY_TO_CLASS(item_pills, CPills);
+PRECACHE_REGISTER(item_pills);
 
 //-----------------------------------------------------------------------------
 // Wall mounted health kit. Heals the player when used.

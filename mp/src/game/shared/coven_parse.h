@@ -12,13 +12,15 @@
 #define EFFECT_FLAG_MAG_AS_TIMER	(1 << 0)	//shows the timer wipe regardless of timer enabled
 #define EFFECT_FLAG_SPLIT_DEF		(1 << 1)	//split buff (diff name and icon for diff teams)
 
+#define ITEM_FLAG_MOVEMENT_CANCEL	(1 << 0)	//movement cancels the use of item
+
 typedef enum {
-	ABILITY_SND_START,
-	ABILITY_SND_STOP,
+	COVEN_SND_START,
+	COVEN_SND_STOP,
 
 	// Add new shoot sound types here
 
-	NUM_COVEN_ABILITY_SOUND_TYPES,
+	NUM_COVEN_SOUND_TYPES,
 } CovenSound_t;
 
 class KeyValues;
@@ -108,7 +110,7 @@ public:
 	int						iFlags;									// miscellaneous flags
 
 	// Sound blocks
-	char					aSounds[NUM_COVEN_ABILITY_SOUND_TYPES][MAX_COVEN_STRING];
+	char					aSounds[NUM_COVEN_SOUND_TYPES][MAX_COVEN_STRING];
 
 	// CLIENT DLL
 	// Sprite data, read from the data file
@@ -189,14 +191,48 @@ public:
 	// SERVER DLL
 };
 
+class CovenItemInfo_t
+{
+public:
+	CovenItemInfo_t();
+
+	// Each game can override this to get whatever values it wants from the script.
+	virtual void Parse(KeyValues *pKeyValuesData);
+
+public:
+	bool					bParsedScript;
+	bool					bLoadedHudElements;
+
+	// SHARED
+	char					szName[MAX_COVEN_STRING];
+	char					szPrintName[MAX_COVEN_STRING];			// Name for showing in HUD, etc.
+	char					szModelName[MAX_COVEN_STRING];
+	char					szIconName[MAX_COVEN_STRING];			// "Class" name for hud effects
+	int						iFlags;									// miscellaneous flags
+	int						iMagnitude;
+	float					flDuration;
+	int						iCost;
+	float					flUseTime;
+	int						iCarry;
+	float					flMaximum;								// some sort of maximum effect
+	char					aSounds[NUM_COVEN_SOUND_TYPES][MAX_COVEN_STRING];
+	// CLIENT DLL
+	// Sprite data, read from the data file
+	CHudTexture				*hudIcon;
+	CHudTexture				*hudIconOff;
+	// SERVER DLL
+};
+
 void PrecacheAbilities(IFileSystem *filesystem);
 void PrecacheClasses(IFileSystem *filesystem);
 void PrecacheStatusEffects(IFileSystem *filesystem);
 void PrecacheBuildings(IFileSystem *filesystem);
+void PrecacheItems(IFileSystem *filesystem);
 
 #ifdef CLIENT_DLL
 void LoadAbilitySprites(CovenAbilityInfo_t *info);
 void LoadStatusEffectSprites(CovenStatusEffectInfo_t *info);
+void LoadItemSprites(CovenItemInfo_t *info);
 #endif
 
 CovenClassInfo_t			*GetCovenClassData(CovenClassID_t iClass);
@@ -207,4 +243,6 @@ CovenAbilityInfo_t			*GetCovenAbilityData(CovenAbility_t iAbility);
 CovenStatusEffectInfo_t		*GetCovenStatusEffectData(CovenStatus_t iStatus);
 
 CovenBuildingInfo_t			*GetCovenBuildingData(BuildingType_t iBuildingType);
+
+CovenItemInfo_t				*GetCovenItemData(CovenItemID_t iItemType);
 #endif

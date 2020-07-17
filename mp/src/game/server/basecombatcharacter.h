@@ -458,9 +458,6 @@ public:
 private:
 	Hull_t		m_eHull;
 
-	void				UpdateGlowEffect( void );
-	void				DestroyGlowEffect( void );
-
 protected:
 	int			m_bloodColor;			// color of blood particless
 

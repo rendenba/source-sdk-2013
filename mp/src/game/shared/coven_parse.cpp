@@ -23,7 +23,7 @@ static CHudTexture *FindHudTextureInDict(CUtlDict< CHudTexture *, int >& list, c
 
 // The sound categories found in the weapon classname.txt files
 // This needs to match the enum in coven_parse.h
-const char *pCovenSoundCategories[NUM_COVEN_ABILITY_SOUND_TYPES] =
+const char *pCovenSoundCategories[NUM_COVEN_SOUND_TYPES] =
 {
 	"start",
 	"stop"
@@ -110,22 +110,37 @@ static const char *pBuildingTypes[BUILDING_TYPE_COUNT] =
 	"turret",
 	"supplydepot",
 	"purchase_item",
+	"purchase_stimpack",
+	"purchase_medkit",
+	"purchase_pills",
 	"purchase_grenade",
 	"purchase_stungrenade",
-	"purchase_holywater",
-	"purchase_stimpack",
-	"purchase_medkit"
+	"purchase_holywater"
+};
+
+//BB: this must be in the same order as shareddefs
+static const char *pItemTypes[COVEN_ITEM_MAXCOUNT] =
+{
+	"stimpack",
+	"medkit",
+	"pills",
+	"fraggrenade",
+	"stungrenade",
+	"holywater",
+	"gasoline"
 };
 
 static CUtlMap<unsigned int, CovenClassInfo_t *> m_CovenClassInfoDatabase;
 static CUtlVector<CovenAbilityInfo_t *> m_CovenAbilityInfoDatabase;
 static CUtlVector<CovenStatusEffectInfo_t *> m_CovenStatusEffectInfoDatabase;
 static CUtlVector<CovenBuildingInfo_t *> m_CovenBuildingInfoDatabase;
+static CUtlVector<CovenItemInfo_t *> m_CovenItemInfoDatabase;
 
 static CovenClassInfo_t gNullCovenClassInfo;
 static CovenAbilityInfo_t gNullCovenAbilityInfo;
 static CovenStatusEffectInfo_t gNullCovenStatusEffectInfo;
 static CovenBuildingInfo_t gNullCovenBuildingInfo;
+static CovenItemInfo_t gNullCovenItemInfo;
 
 CovenClassInfo_t::CovenClassInfo_t()
 {
@@ -165,7 +180,7 @@ CovenAbilityInfo_t::CovenAbilityInfo_t()
 	flDrain = 0.0f;
 	bPassive = false;
 	iFlags = 0;
-	memset(aSounds, 0, sizeof(aSounds));
+	Q_memset(aSounds, 0, sizeof(aSounds));
 
 	iSpriteCount = 0;
 	abilityIconActive = 0;
@@ -204,6 +219,29 @@ CovenBuildingInfo_t::CovenBuildingInfo_t()
 	iMaxLevel = 0;
 	iHealths.AddToTail(150);
 	iXPs.AddToTail(200);
+}
+
+CovenItemInfo_t::CovenItemInfo_t()
+{
+	bParsedScript = false;
+	bLoadedHudElements = false;
+
+	szName[0] = 0;
+	szPrintName[0] = 0;
+	szModelName[0] = 0;
+	szIconName[0] = 0;
+
+	iFlags = 0;
+	iMagnitude = 0;
+	flDuration = 0.0f;
+	iCost = -1;
+	flUseTime = 0.0f;
+	iCarry = 0;
+	flMaximum = 0.0f;
+	Q_memset(aSounds, 0, sizeof(aSounds));
+
+	hudIcon = 0;
+	hudIconOff = 0;
 }
 
 void CovenClassInfo_t::Parse(KeyValues *pKeyValuesData)
@@ -328,11 +366,11 @@ void CovenAbilityInfo_t::Parse(KeyValues *pKeyValuesData)
 	}*/
 
 	// Now read the sounds
-	memset(aSounds, 0, sizeof(aSounds));
+	Q_memset(aSounds, 0, sizeof(aSounds));
 	KeyValues *pSoundData = pKeyValuesData->FindKey("SoundData");
 	if (pSoundData)
 	{
-		for (int i = ABILITY_SND_START; i < NUM_COVEN_ABILITY_SOUND_TYPES; i++)
+		for (int i = COVEN_SND_START; i < NUM_COVEN_SOUND_TYPES; i++)
 		{
 			const char *soundname = pSoundData->GetString(pCovenSoundCategories[i]);
 			if (soundname && soundname[0])
@@ -430,6 +468,55 @@ void CovenBuildingInfo_t::Parse(KeyValues *pKeyValuesData)
 		for (KeyValues *sub = pAmmo3Info->GetFirstSubKey(); sub != NULL; sub = sub->GetNextKey())
 		{
 			iAmmo3.AddToTail(sub->GetInt());
+		}
+	}
+}
+
+void CovenItemInfo_t::Parse(KeyValues *pKeyValuesData)
+{
+	// Okay, we tried at least once to look this up...
+	bParsedScript = true;
+
+	Q_strncpy(szPrintName, pKeyValuesData->GetString("printname", COVEN_PRINTNAME_MISSING), MAX_COVEN_STRING);
+	Q_strncpy(szModelName, pKeyValuesData->GetString("modelname"), MAX_COVEN_STRING);
+	Q_strncpy(szIconName, pKeyValuesData->GetString("classname", COVEN_PRINTNAME_MISSING), MAX_COVEN_STRING);
+	iMagnitude = pKeyValuesData->GetInt("magnitude", 1);
+	iCost = pKeyValuesData->GetInt("cost", 10);
+	flDuration = pKeyValuesData->GetFloat("duration", 5.0f);
+	flUseTime = pKeyValuesData->GetFloat("usetime");
+	flMaximum = pKeyValuesData->GetFloat("maximum");
+	iCarry = pKeyValuesData->GetInt("maxcarry", 1);
+
+	// LAME old way to specify item flags.
+	// Weapon scripts should use the flag names.
+	iFlags = pKeyValuesData->GetInt("flags", 0);
+
+	/*for (int i = 0; i < ARRAYSIZE(g_ItemFlags); i++)
+	{
+	int iVal = pKeyValuesData->GetInt(g_ItemFlags[i].m_pFlagName, -1);
+	if (iVal == 0)
+	{
+	iFlags &= ~g_ItemFlags[i].m_iFlagValue;
+	}
+	else if (iVal == 1)
+	{
+	iFlags |= g_ItemFlags[i].m_iFlagValue;
+	}
+	}*/
+
+	// Now read the sounds
+	Q_memset(aSounds, 0, sizeof(aSounds));
+	KeyValues *pSoundData = pKeyValuesData->FindKey("SoundData");
+	if (pSoundData)
+	{
+		for (int i = COVEN_SND_START; i < NUM_COVEN_SOUND_TYPES; i++)
+		{
+			const char *soundname = pSoundData->GetString(pCovenSoundCategories[i]);
+			if (soundname && soundname[0])
+			{
+				Q_strncpy(aSounds[i], soundname, MAX_COVEN_STRING);
+				CBaseEntity::PrecacheScriptSound(aSounds[i]);
+			}
 		}
 	}
 }
@@ -540,6 +627,31 @@ void PrecacheBuildings(IFileSystem *filesystem)
 	}
 }
 
+void PrecacheItems(IFileSystem *filesystem)
+{
+	for (int i = 0; i < COVEN_ITEM_MAXCOUNT; i++)
+	{
+		char tempfile[MAX_PATH];
+		Q_snprintf(tempfile, sizeof(tempfile), "scripts/items/%s.txt", pItemTypes[i]);
+		KeyValues *item = new KeyValues("itemdata");
+		if (item->LoadFromFile(filesystem, tempfile, "GAME"))
+		{
+			CovenItemInfo_t *info = new CovenItemInfo_t();
+			Q_snprintf(info->szName, sizeof(info->szName), pItemTypes[i]);
+			info->Parse(item);
+			m_CovenItemInfoDatabase.AddToTail(info);
+#ifdef CLIENT_DLL
+			LoadItemSprites(info);
+#endif
+		}
+		else
+		{
+			Warning("Error loading item file: %s!\n", tempfile);
+			m_CovenItemInfoDatabase.AddToTail(&gNullCovenItemInfo);
+		}
+	}
+}
+
 #ifdef CLIENT_DLL
 void LoadAbilitySprites(CovenAbilityInfo_t *info)
 {
@@ -581,6 +693,7 @@ void LoadStatusEffectSprites(CovenStatusEffectInfo_t *info)
 	info->bLoadedHudElements = true;
 
 	info->statusIcon = NULL;
+	info->altStatusIcon = NULL;
 
 	char sz[128];
 	Q_snprintf(sz, sizeof(sz), "scripts/statuseffects/%s", info->szName);
@@ -605,6 +718,44 @@ void LoadStatusEffectSprites(CovenStatusEffectInfo_t *info)
 	if (p)
 	{
 		info->altStatusIcon = gHUD.AddUnsearchableHudIconToList(*p);
+	}
+
+	FreeHudTextureList(tempList);
+}
+
+void LoadItemSprites(CovenItemInfo_t *info)
+{
+	if (info->bLoadedHudElements)
+		return;
+
+	info->bLoadedHudElements = true;
+
+	info->hudIcon = NULL;
+	info->hudIconOff = NULL;
+
+	char sz[128];
+	Q_snprintf(sz, sizeof(sz), "scripts/items/%s", info->szName);
+
+	CUtlDict< CHudTexture *, int > tempList;
+
+	LoadHudTextures(tempList, sz, g_pGameRules->GetEncryptionKey());
+
+	if (!tempList.Count())
+	{
+		Warning("Unable to load texture data for: %s\n", sz);
+		return;
+	}
+
+	CHudTexture *p;
+	p = FindHudTextureInDict(tempList, "hudicon");
+	if (p)
+	{
+		info->hudIcon = gHUD.AddUnsearchableHudIconToList(*p);
+	}
+	p = FindHudTextureInDict(tempList, "hudiconoff");
+	if (p)
+	{
+		info->hudIconOff = gHUD.AddUnsearchableHudIconToList(*p);
 	}
 
 	FreeHudTextureList(tempList);
@@ -638,4 +789,9 @@ CovenStatusEffectInfo_t *GetCovenStatusEffectData(CovenStatus_t iStatus)
 CovenBuildingInfo_t *GetCovenBuildingData(BuildingType_t iBuildingType)
 {
 	return m_CovenBuildingInfoDatabase[iBuildingType];
+}
+
+CovenItemInfo_t *GetCovenItemData(CovenItemID_t iItemType)
+{
+	return m_CovenItemInfoDatabase[iItemType];
 }

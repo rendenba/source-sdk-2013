@@ -46,6 +46,7 @@ public:
 	virtual C_BaseAnimating *BecomeRagdollOnClient();
 	virtual const QAngle& GetRenderAngles();
 	virtual bool ShouldDraw( void );
+	virtual void OnPreDataChanged(DataUpdateType_t type);
 	virtual void OnDataChanged( DataUpdateType_t type );
 	virtual float GetFOV( void );
 	virtual CStudioHdr *OnNewModel( void );
@@ -64,7 +65,6 @@ public:
 	IRagdoll* GetRepresentativeRagdoll() const;
 	virtual void CalcView( Vector &eyeOrigin, QAngle &eyeAngles, float &zNear, float &zFar, float &fov );
 	virtual const QAngle& EyeAngles( void );
-
 	
 	bool	CanSprint( void );
 	void	StartSprinting( void );
@@ -86,6 +86,12 @@ public:
 
 	virtual void PostThink( void );
 
+	//BB: Variables!!!
+	int m_iLevel;
+
+	//BB: for hud purposes
+	int m_iItemsOld[COVEN_ITEM_COUNT];
+
 private:
 	
 	C_HL2MP_Player( const C_HL2MP_Player & );
@@ -97,9 +103,6 @@ private:
 	CInterpolatedVar< QAngle >	m_iv_angEyeAngles;
 
 	EHANDLE	m_hRagdoll;
-
-	//BB: Variables!!!
-	int m_iLevel;
 
 	int	m_headYawPoseParam;
 	int	m_headPitchPoseParam;

@@ -47,6 +47,9 @@ public:
 	virtual int				GetMinBurst() { return 1; }
 	virtual int				GetMaxBurst() { return 3; }
 
+	virtual float			SequenceDuration(void);
+	virtual float			SequenceDuration(int iSequence);
+
 	bool StartReload( void );
 	bool Reload( void );
 	void FillClip( void );
@@ -138,10 +141,12 @@ bool CWeaponShotgun::StartReload( void )
 	if (m_iClip1 >= GetMaxClip1())
 		return false;
 
-
 	int j = MIN(1, pOwner->GetAmmoCount(m_iPrimaryAmmoType));
 
 	if (j <= 0)
+		return false;
+
+	if (CheckDeferredAction(true))
 		return false;
 
 	SendWeaponAnim( ACT_SHOTGUN_RELOAD_START );
@@ -154,6 +159,26 @@ bool CWeaponShotgun::StartReload( void )
 
 	m_bInReload = true;
 	return true;
+}
+
+float CWeaponShotgun::SequenceDuration(int iSequence)
+{
+	CHL2MP_Player *pOwner = ToHL2MPPlayer(GetOwner());
+
+	if (pOwner && pOwner->HasStatus(COVEN_STATUS_HASTE))
+		return 1.0f / (1.0f + 0.01f * pOwner->GetStatusMagnitude(COVEN_STATUS_HASTE)) * BaseClass::SequenceDuration(iSequence);
+
+	return BaseClass::SequenceDuration(iSequence);
+}
+
+float CWeaponShotgun::SequenceDuration(void)
+{
+	CHL2MP_Player *pOwner = ToHL2MPPlayer(GetOwner());
+
+	if (pOwner && pOwner->HasStatus(COVEN_STATUS_HASTE))
+		return 1.0f / (1.0f + 0.01f * pOwner->GetStatusMagnitude(COVEN_STATUS_HASTE)) * BaseClass::SequenceDuration();
+
+	return BaseClass::SequenceDuration();
 }
 
 //-----------------------------------------------------------------------------
@@ -300,6 +325,10 @@ void CWeaponShotgun::PrimaryAttack( void )
 		return;
 	}
 
+	//BB: this sucks that PrimaryAttack is redefined without inheritance in every freaking weapon!
+	if (CheckDeferredAction(true))
+		return;
+
 	// MUST call sound before removing a round from the clip of a CMachineGun
 	WeaponSound(SINGLE);
 
@@ -400,6 +429,10 @@ void CWeaponShotgun::ItemPostFrame( void )
 	{
 		m_bDelayedReload = true;
 	}
+
+	//BB: good god... guns are a mess in this game.
+	if (CheckDeferredAction())
+		m_bInReload = false;
 
 	if (m_bInReload)
 	{

@@ -415,6 +415,8 @@ C_BasePlayer::C_BasePlayer() : m_iv_vecViewOffset( "C_BasePlayer::m_iv_vecViewOf
 	m_vecOldViewAngles.Init();
 #endif
 
+	m_bPredictHideHud = false;
+
 	m_pFlashlight = NULL;
 
 	m_pCurrentVguiScreen = NULL;

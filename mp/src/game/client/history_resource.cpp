@@ -12,6 +12,7 @@
 #include <vgui/ISurface.h>
 #include "iclientmode.h"
 #include "vgui_controls/AnimationController.h"
+#include "coven_parse.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -23,6 +24,7 @@ extern ConVar hud_drawhistory_time;
 DECLARE_HUDELEMENT( CHudHistoryResource );
 DECLARE_HUD_MESSAGE( CHudHistoryResource, ItemPickup );
 DECLARE_HUD_MESSAGE( CHudHistoryResource, AmmoDenied );
+DECLARE_HUD_MESSAGE( CHudHistoryResource, ItemDenied );
 
 //-----------------------------------------------------------------------------
 // Purpose: Constructor
@@ -61,6 +63,7 @@ void CHudHistoryResource::Init( void )
 {
 	HOOK_HUD_MESSAGE( CHudHistoryResource, ItemPickup );
 	HOOK_HUD_MESSAGE( CHudHistoryResource, AmmoDenied );
+	HOOK_HUD_MESSAGE( CHudHistoryResource, ItemDenied );
 
 	Reset();
 }
@@ -130,7 +133,14 @@ void CHudHistoryResource::AddToHistory( int iType, int iId, int iCount )
 		// clear out any ammo pickup denied icons, since we can obviously pickup again
 		for ( int i = 0; i < m_PickupHistory.Count(); i++ )
 		{
-			if ( m_PickupHistory[i].type == HISTSLOT_AMMODENIED && m_PickupHistory[i].iId == iId )
+			if (m_PickupHistory[i].type == HISTSLOT_AMMO && m_PickupHistory[i].iId == iId)
+			{
+				m_PickupHistory[i].DisplayTime = gpGlobals->curtime + hud_drawhistory_time.GetFloat();
+				m_PickupHistory[i].iCount += iCount;
+				m_bNeedsDraw = true;
+				return;
+			}
+			else if ( m_PickupHistory[i].type == HISTSLOT_AMMODENIED && m_PickupHistory[i].iId == iId )
 			{
 				// kill the old entry
 				m_PickupHistory[i].DisplayTime = 0.0f;
@@ -139,6 +149,50 @@ void CHudHistoryResource::AddToHistory( int iType, int iId, int iCount )
 				break;
 			}
 		}
+	}
+	else if (iType == HISTSLOT_ITEM)
+	{
+		CovenItemInfo_t *info = GetCovenItemData((CovenItemID_t)iId);
+
+		// Get the item's icon
+		CHudTexture *icon = gHUD.GetIcon(info->szIconName);
+		if (icon == NULL)
+			return;
+
+		// clear out any item pickup denied icons, since we can obviously pickup again
+		for (int i = 0; i < m_PickupHistory.Count(); i++)
+		{
+			if (m_PickupHistory[i].type == HISTSLOT_ITEM && m_PickupHistory[i].iId == iId)
+			{
+				m_PickupHistory[i].DisplayTime = gpGlobals->curtime + hud_drawhistory_time.GetFloat();
+				m_PickupHistory[i].iCount += iCount;
+				m_bNeedsDraw = true;
+				return;
+			}
+			else if (m_PickupHistory[i].type == HISTSLOT_ITEMDENIED && m_PickupHistory[i].iId == iId)
+			{
+				// kill the old entry
+				m_PickupHistory[i].DisplayTime = 0.0f;
+				// change the pickup to be in this entry
+				m_iCurrentHistorySlot = i;
+				break;
+			}
+		}
+
+		AddIconToHistory(iType, iId, NULL, iCount, icon);
+		return;
+	}
+	else if (iType == HISTSLOT_ITEMDENIED)
+	{
+		CovenItemInfo_t *info = GetCovenItemData((CovenItemID_t)iId);
+
+		// Get the item's icon
+		CHudTexture *icon = gHUD.GetIcon(info->szIconName);
+		if (icon == NULL)
+			return;
+
+		AddIconToHistory(iType, iId, NULL, iCount, icon);
+		return;
 	}
 
 	AddIconToHistory( iType, iId, NULL, iCount, NULL );
@@ -155,7 +209,7 @@ void CHudHistoryResource::AddToHistory( int iType, const char *szName, int iCoun
 	// Get the item's icon
 	CHudTexture *i = gHUD.GetIcon( szName );
 	if ( i == NULL )
-		return;  
+		return;
 
 	AddIconToHistory( iType, 1, NULL, iCount, i );
 }
@@ -197,7 +251,7 @@ void CHudHistoryResource::AddIconToHistory( int iType, int iId, C_BaseCombatWeap
 	freeslot->m_hWeapon  = weapon;
 	freeslot->iCount = iCount;
 
-	if (iType == HISTSLOT_AMMODENIED)
+	if (iType == HISTSLOT_AMMODENIED || iType == HISTSLOT_ITEMDENIED)
 	{
 		freeslot->DisplayTime = gpGlobals->curtime + (hud_drawhistory_time.GetFloat() / 2.0f);
 	}
@@ -209,6 +263,25 @@ void CHudHistoryResource::AddIconToHistory( int iType, int iId, C_BaseCombatWeap
 	++m_iCurrentHistorySlot;
 }
 
+void CHudHistoryResource::MsgFunc_ItemDenied(bf_read &msg)
+{
+	int iItem = msg.ReadShort();
+
+	// see if there are any denied icons, if so refresh their timer
+	for (int i = 0; i < m_PickupHistory.Count(); i++)
+	{
+		if (m_PickupHistory[i].type == HISTSLOT_ITEMDENIED && m_PickupHistory[i].iId == iItem)
+		{
+			// it's already in the list, refresh
+			m_PickupHistory[i].DisplayTime = gpGlobals->curtime + (hud_drawhistory_time.GetFloat() / 2.0f);
+			m_bNeedsDraw = true;
+			return;
+		}
+	}
+
+	// add into the list
+	AddToHistory(HISTSLOT_ITEMDENIED, iItem, 0);
+}
 
 //-----------------------------------------------------------------------------
 // Purpose: Handle an item pickup event from the server
@@ -231,14 +304,14 @@ void CHudHistoryResource::MsgFunc_AmmoDenied( bf_read &msg )
 	int iAmmo = msg.ReadShort();
 
 	// see if there are any existing ammo items of that type
-	for ( int i = 0; i < m_PickupHistory.Count(); i++ )
+	/*for ( int i = 0; i < m_PickupHistory.Count(); i++ )
 	{
 		if ( m_PickupHistory[i].type == HISTSLOT_AMMO && m_PickupHistory[i].iId == iAmmo )
 		{
 			// it's already in the list as a pickup, ignore
 			return;
 		}
-	}
+	}*/
 
 	// see if there are any denied ammo icons, if so refresh their timer
 	for ( int i = 0; i < m_PickupHistory.Count(); i++ )
@@ -395,11 +468,25 @@ void CHudHistoryResource::Paint( void )
 				break;
 			case HISTSLOT_ITEM:
 				{
-					if ( !m_PickupHistory[i].iId )
+					if ( !m_PickupHistory[i].icon )
 						continue;
 
 					itemIcon = m_PickupHistory[i].icon;
 					bHalfHeight = false;
+					iAmount = m_PickupHistory[i].iCount;
+				}
+				break;
+			case HISTSLOT_ITEMDENIED:
+				{
+					if (!m_PickupHistory[i].icon)
+						continue;
+
+					itemIcon = m_PickupHistory[i].icon;
+					iAmount = 0;
+					bUseAmmoFullMsg = true;
+					// display as red
+					clr = gHUD.m_clrCaution;
+					clr[3] = MIN(scale, 255);
 				}
 				break;
 			default:

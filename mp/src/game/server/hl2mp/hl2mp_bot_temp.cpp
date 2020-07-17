@@ -27,6 +27,8 @@ void Bot_Think( CHL2MP_Player *pBot );
 ConVar bot_debug("bot_debug", "2", 0, "Selected entindex bot to debug.");
 ConVar bot_debug_visual("bot_debug_visual", "0", 0, "Debug coven bots visually.");
 
+extern ConVar sv_coven_refuel_distance;
+
 //BB: BOTS!
 //#ifdef DEBUG
 
@@ -157,6 +159,9 @@ typedef struct
 	BotObjective_t	m_objectiveType;
 	int				m_objective; //index
 	int				m_lastCheckedObjective;
+
+	int				m_lastCheckedItem;
+	Vector			m_vItemLKP;
 
 	BotRole_t		m_role;
 	int				RN;
@@ -356,6 +361,9 @@ CBasePlayer *BotPutInServer(bool bFrozen, CovenTeamID_t iTeam)
 		g_BotData[pPlayer->entindex() - 1].m_flRespawnTime = 0.0f;
 		g_BotData[pPlayer->entindex() - 1].m_bIsPurchasingItems = false;
 		g_BotData[pPlayer->entindex() - 1].m_bHasNotPurchasedItems = true;
+		g_BotData[pPlayer->entindex() - 1].m_lastCheckedItem = 0;
+		g_BotData[pPlayer->entindex() - 1].m_vItemLKP.Init();
+
 
 		Set_Bot_Base_Velocity(pPlayer);
 
@@ -433,6 +441,49 @@ void GetLost( CHL2MP_Player *pBot, bool iZ, bool visCheck )
 	botdata->alreadyReacted = false;
 
 	botdata->m_lastNodeProbe = 0;
+}
+
+void CheckItem(CHL2MP_Player *pBot)
+{
+	botdata_t *botdata = &g_BotData[ENTINDEX(pBot->edict()) - 1];
+	CHL2MPRules *pRules = HL2MPRules();
+	CUtlVector<CBaseEntity *> *hItems = NULL;
+
+	if (!pRules || !pRules->cowsloaded)
+		return;
+
+	if (pBot->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+		hItems = &pRules->hSlayerXP;
+	else
+		hItems = &pRules->hVampireXP;
+
+	if (botdata->m_pOverridePos == NULL)
+	{
+		botdata->m_lastCheckedItem++;
+		if (botdata->m_lastCheckedItem > hItems->Count())
+			botdata->m_lastCheckedItem = 0;
+
+		if ((*hItems)[botdata->m_lastCheckedItem] != NULL && !(*hItems)[botdata->m_lastCheckedItem]->IsEffectActive(EF_NODRAW))
+		{
+			float distance = FLT_MAX;
+			botdata->m_vItemLKP = (*hItems)[botdata->m_lastCheckedItem]->GetAbsOrigin();
+			distance = (botdata->m_vItemLKP - pBot->GetLocalOrigin()).Length();
+			if (distance <= 300.0f)
+			{
+				trace_t tr;
+				UTIL_TraceLine(pBot->EyePosition(), botdata->m_vItemLKP, MASK_SHOT, pBot, COLLISION_GROUP_NONE, &tr);
+				if (tr.DidHitNonWorldEntity() && FClassnameIs(tr.m_pEnt, "item_xp*"))
+				{
+					botdata->m_pOverridePos = &botdata->m_vItemLKP;
+				}
+			}
+		}
+	}
+	if ((*hItems)[botdata->m_lastCheckedItem] == NULL || (*hItems)[botdata->m_lastCheckedItem]->IsEffectActive(EF_NODRAW))
+	{
+		if (botdata->m_pOverridePos == &botdata->m_vItemLKP)
+			botdata->m_pOverridePos = NULL;
+	}
 }
 
 //BB: TODO: defenders!
@@ -670,7 +721,7 @@ bool CheckObjective( CHL2MP_Player *pBot, bool doValidityCheck, unsigned int *bu
 #endif
 				if (tr.fraction < 0.3f)
 				{
-					if (buttons && gpGlobals->curtime > botdata->nextusetime)
+					if (buttons && gpGlobals->curtime > botdata->nextusetime && !pBot->PerformingDeferredAction())
 					{
 						(*buttons) |= IN_USE;
 						botdata->m_pOverridePos = NULL;
@@ -734,37 +785,61 @@ unsigned int WeaponCheck(CHL2MP_Player *pBot)
 			if (pPlayer)
 			{
 				bool isVampDoll = pPlayer->KO && pPlayer->myServerRagdoll != NULL;
-				CBaseCombatWeapon *pWeapon = pBot->Weapon_OwnsThisType("weapon_stake");
+				CBaseCombatWeapon *pStake = pBot->Weapon_OwnsThisType("weapon_stake");
+				CBaseCombatWeapon *pHolyWater = pBot->Weapon_OwnsThisType("weapon_holywater");
+				CBaseCombatWeapon *pFrag = pBot->Weapon_OwnsThisType("weapon_frag");
+				CBaseCombatWeapon *pStunFrag = pBot->Weapon_OwnsThisType("weapon_stunfrag");
 				CBaseCombatWeapon *pActiveWeapon = pBot->GetActiveWeapon();
-				if (pWeapon)
+				if (pStake)
 				{
 					if (isVampDoll)
 					{
 						// Switch to it if we don't have it out
 						// Switch?
-						if (pActiveWeapon != pWeapon)
+						if (pActiveWeapon != pStake)
 						{
 							if (pActiveWeapon->NeedsReload1())
 							{
 								return IN_RELOAD;
 							}
 							else
-								pBot->Weapon_Switch(pWeapon);
+								pBot->Weapon_Switch(pStake);
 						}
 					}
 					else
 					{
-						if (pActiveWeapon == pWeapon)
+						if (pActiveWeapon == pStake)
 						{
-							CBaseCombatWeapon *nextBest = g_pGameRules->GetNextBestWeapon(pBot, pActiveWeapon);
-							if (nextBest && nextBest->HasAmmo())
-								pBot->SwitchToNextBestWeapon(pWeapon);
+							pBot->SwitchToNextBestWeapon(pStake);
+						}
+						else if (pActiveWeapon == pHolyWater)
+						{
+							if (botdata->m_flLastCombatDist < 350.0f)
+							{
+								pBot->SwitchToNextBestWeapon(pActiveWeapon);
+							}
+						}
+						else if (pActiveWeapon == pFrag || pActiveWeapon == pStunFrag)
+						{
+							if (botdata->m_flLastCombatDist < 550.0f)
+							{
+								pBot->SwitchToNextBestWeapon(pActiveWeapon);
+							}
 						}
 						else
 						{
-							if (!pActiveWeapon->CanFire())
+							if (pHolyWater && pHolyWater->HasAmmo() && botdata->m_flLastCombatDist >= 350.0f && botdata->m_flLastCombatDist < 500.0f)
+								pBot->Weapon_Switch(pHolyWater);
+							else if (pFrag && pFrag->HasAmmo() && botdata->m_flLastCombatDist >= 550.0f)
+								pBot->Weapon_Switch(pFrag);
+							else if (pStunFrag && pStunFrag->HasAmmo() && botdata->m_flLastCombatDist >= 550.0f)
+								pBot->Weapon_Switch(pStunFrag);
+							else
 							{
-								return IN_RELOAD;
+								if (!pActiveWeapon->CanFire())
+								{
+									return IN_RELOAD;
+								}
 							}
 						}
 					}
@@ -773,17 +848,15 @@ unsigned int WeaponCheck(CHL2MP_Player *pBot)
 		}
 		else
 		{
-			CBaseCombatWeapon *pWeapon = pBot->Weapon_OwnsThisType("weapon_stake");
-			if (pWeapon)
+			CBaseCombatWeapon *pStake = pBot->Weapon_OwnsThisType("weapon_stake");
+			if (pStake)
 			{
 				CBaseCombatWeapon *pActiveWeapon = pBot->GetActiveWeapon();
-				if (pActiveWeapon == pWeapon)
+				if (pActiveWeapon == pStake)
 				{
-					CBaseCombatWeapon *nextBest = g_pGameRules->GetNextBestWeapon(pBot, pActiveWeapon);
-					if (nextBest && nextBest->HasAmmo())
-						pBot->SwitchToNextBestWeapon(pWeapon);
+					pBot->SwitchToNextBestWeapon(pStake);
 				}
-				else if (pActiveWeapon != pWeapon && pActiveWeapon->HasAmmo())
+				else if (pActiveWeapon != pStake && pActiveWeapon->HasAmmo())
 				{
 					if (pActiveWeapon->NeedsReload1())
 					{
@@ -791,7 +864,7 @@ unsigned int WeaponCheck(CHL2MP_Player *pBot)
 					}
 				}
 				else
-					pBot->Weapon_Switch(pWeapon);
+					pBot->Weapon_Switch(pStake);
 			}
 		}
 		
@@ -807,19 +880,43 @@ void BotRespawn(CHL2MP_Player *pBot)
 	if (pBot->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
 	{
 		botdata->m_bHasNotPurchasedItems = true;
-		botdata->m_bIsPurchasingItems = random->RandomInt(0, 9) < 7; //70% chance to purchase items
+		botdata->m_bIsPurchasingItems = random->RandomInt(0, 9) < 8; //80% chance to purchase items
 	}
 }
 
 void HealthCheck(CHL2MP_Player *pBot)
 {
+	botdata_t *botdata = &g_BotData[ENTINDEX(pBot->edict()) - 1];
+
 	if (pBot->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
 	{
 		
 	}
 	else //Slayers
 	{
-
+		if (!botdata->bCombat)
+		{
+			if (pBot->HasMedkit() && !pBot->PerformingDeferredAction())
+			{
+				CovenItemInfo_t *info = GetCovenItemData(COVEN_ITEM_MEDKIT);
+				int iMissingHP = pBot->GetMaxHealth() - pBot->GetHealth();
+				if (iMissingHP >= info->iMagnitude)
+					pBot->UseCovenItem(COVEN_ITEM_MEDKIT);
+			}
+			if (pBot->HasPills() && !pBot->PerformingDeferredAction())
+			{
+				CovenItemInfo_t *info = GetCovenItemData(COVEN_ITEM_PILLS);
+				if (!pBot->HasStatus(COVEN_STATUS_HASTE) || (pBot->GetStatusTime(COVEN_STATUS_HASTE) < (info->flUseTime * 1.1f) && pBot->GetStatusMagnitude(COVEN_STATUS_HASTE) < info->flMaximum))
+					pBot->UseCovenItem(COVEN_ITEM_PILLS);
+			}
+		}
+		else if (!pBot->PerformingDeferredAction())
+		{
+			CovenItemInfo_t *info = GetCovenItemData(COVEN_ITEM_STIMPACK);
+			int iMissingHP = pBot->GetMaxHealth() - pBot->GetHealth();
+			if (pBot->HasStimpack() && iMissingHP >= info->iMagnitude)
+				pBot->UseCovenItem(COVEN_ITEM_STIMPACK);
+		}
 	}
 }
 
@@ -830,9 +927,9 @@ void PurchaseCheck(CHL2MP_Player *pBot)
 		botdata_t *botdata = &g_BotData[ENTINDEX(pBot->edict()) - 1];
 		if (botdata->m_bIsPurchasingItems && botdata->m_bHasNotPurchasedItems)
 		{
-			CovenItemID_t item = (CovenItemID_t)random->RandomInt(COVEN_ITEM_GRENADE, COVEN_ITEM_HOLYWATER);
+			CovenItemID_t item = (CovenItemID_t)random->RandomInt(COVEN_ITEM_STIMPACK, COVEN_ITEM_HOLYWATER);
 			if (pBot->PurchaseCovenItem(item))
-				botdata->m_bHasNotPurchasedItems = random->RandomInt(0, 9) < 7; //70% chance to keep purchasing
+				botdata->m_bHasNotPurchasedItems = random->RandomInt(0, 9) < 8; //80% chance to keep purchasing
 			else
 				botdata->m_bHasNotPurchasedItems = false;
 		}
@@ -865,7 +962,7 @@ void PlayerCheck( CHL2MP_Player *pBot )
 		Vector playerVec = vecEnd-vecSrc;
 		float dist = playerVec.Length();
 
-		if (botdata->bForceCombat || dist < 600) //400
+		if (botdata->bForceCombat || dist < 800.0f) //600
 		{
 			float check = 0.2f;
 			if (botdata->bForceCombat)
@@ -1631,6 +1728,8 @@ void Bot_Reached_Node(CHL2MP_Player *pBot, const Vector *objLoc)
 //-----------------------------------------------------------------------------
 void Bot_Think( CHL2MP_Player *pBot )
 {
+	float frametime = gpGlobals->frametime;
+
 	CHL2MPRules *pRules = HL2MPRules();
 	// Make sure we stay being a bot
 	pBot->AddFlag( FL_FAKECLIENT );
@@ -1677,8 +1776,41 @@ void Bot_Think( CHL2MP_Player *pBot )
 	//Combat Check
 	PlayerCheck(pBot);
 
+	//Refuel Check
+	if (pBot->PerformingDeferredAction())
+	{
+		if (botdata->bCombat)
+			pBot->CancelDeferredAction();
+		else
+		{
+			if (pBot->MovementCancelActionCheck())
+			{
+				pBot->SetLocalAngles(botdata->forwardAngle);
+				RunPlayerMove(pBot, botdata->forwardAngle, 0.0f, 0.0f, 0.0f, buttons, 0, frametime);
+				return;
+			}
+			else if (pBot->IsDistanceRestricted())
+			{
+				botdata->backwards = true;
+				float velocity = Bot_Velocity(pBot);
+				if ((pBot->GetAbsOrigin() - botdata->m_vObjectiveLKP).Length() > 0.9f * sv_coven_refuel_distance.GetFloat())
+				{
+					velocity = 0.0f;
+					botdata->backwards = false;
+				}
+				botdata->m_vObjectiveLKP = pRules->pAPC->GetAbsOrigin();
+				pBot->SetLocalAngles(botdata->forwardAngle);
+				RunPlayerMove(pBot, botdata->forwardAngle, velocity, 0.0f, 0.0f, buttons | /*IN_DUCK |*/ IN_BACK, 0, frametime);
+				return;
+			}
+		}
+	}
+
 	//Objective Check
 	CheckObjective(pBot, false, &buttons);
+
+	//Item Check
+	CheckItem(pBot);
 
 	//Weapon Swap Check
 	buttons |= WeaponCheck(pBot);
@@ -1692,7 +1824,6 @@ void Bot_Think( CHL2MP_Player *pBot )
 	trace_t trace; //throwaway trace
 
 	byte  impulse = 0;
-	float frametime = gpGlobals->frametime;
 
 	//Pathing calcs
 	if (pRules->pBotNet[botdata->m_targetNode] == NULL || botdata->bLost)

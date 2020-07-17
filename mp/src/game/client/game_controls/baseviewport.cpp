@@ -34,6 +34,8 @@
 // sub dialogs
 #include "clientscoreboarddialog.h"
 #include "hl2mpclientminimap.h"
+#include "hl2mpclientitemmenu.h"
+#include "hl2mpclientgrenademenu.h"
 #include "spectatorgui.h"
 #include "teammenu.h"
 #include "classmenu.h"
@@ -250,6 +252,8 @@ void CBaseViewport::CreateDefaultPanels( void )
 #ifndef _XBOX
 	AddNewPanel( CreatePanelByName( PANEL_SCOREBOARD ), "PANEL_SCOREBOARD" );
 	AddNewPanel( CreatePanelByName( PANEL_MINIMAP ), "PANEL_MINIMAP" );
+	AddNewPanel( CreatePanelByName( PANEL_ITEM ), "PANEL_ITEM" );
+	AddNewPanel( CreatePanelByName( PANEL_GRENADE ), "PANEL_GRENADE" );
 	AddNewPanel( CreatePanelByName( PANEL_LEVEL ), "PANEL_LEVEL" );
 	AddNewPanel( CreatePanelByName( PANEL_INFO ), "PANEL_INFO" );
 	AddNewPanel( CreatePanelByName( PANEL_SPECGUI ), "PANEL_SPECGUI" );
@@ -295,6 +299,14 @@ IViewPortPanel* CBaseViewport::CreatePanelByName(const char *szPanelName)
 	else if ( Q_strcmp(PANEL_MINIMAP, szPanelName) == 0 )
 	{
 		newpanel = new CHL2MPClientMiniMapDialog( this );
+	}
+	else if (Q_strcmp(PANEL_ITEM, szPanelName) == 0)
+	{
+		newpanel = new CHL2MPClientItemMenuDialog(this);
+	}
+	else if (Q_strcmp(PANEL_GRENADE, szPanelName) == 0)
+	{
+		newpanel = new CHL2MPClientGrenadeMenuDialog(this);
 	}
 	else if ( Q_strcmp(PANEL_LEVEL, szPanelName) == 0 )
 	{

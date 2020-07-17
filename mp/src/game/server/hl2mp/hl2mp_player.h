@@ -91,7 +91,6 @@ public:
 	virtual void	UpdateOnRemove( void );
 	virtual void	DeathSound( const CTakeDamageInfo &info );
 	float			Feed();
-	bool			PurchaseCovenItem(CovenItemID_t iItemType);
 	bool			CreateDeathBox(void);
 	bool			HasDroppableItems(void);
 	virtual CBaseEntity* EntSelectSpawnPoint(void);
@@ -231,7 +230,6 @@ public:
 	float solidcooldown;
 
 	CUtlVector<CItem *> medkits;
-	CHandle<CItem> hCarriedItem;
 
 	Vector lock_ts;
 	Vector lock_dash;
@@ -282,7 +280,7 @@ private:
 	CNetworkVar( int, m_iPlayerSoundType );
 
 	//BB: Variables!!!
-	CNetworkVar( int, m_iLevel);
+	CNetworkVar(int, m_iLevel);
 
 	float m_flNextModelChangeTime;
 	float m_flNextTeamChangeTime;

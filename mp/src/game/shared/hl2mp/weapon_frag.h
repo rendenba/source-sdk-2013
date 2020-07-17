@@ -26,6 +26,7 @@ public:
 	void	SecondaryAttack(void);
 	void	DecrementAmmo(CBaseCombatCharacter *pOwner);
 	void	ItemPostFrame(void);
+	virtual bool CanFire();
 
 	bool	Deploy(void);
 	bool	Holster(CBaseCombatWeapon *pSwitchingTo = NULL);

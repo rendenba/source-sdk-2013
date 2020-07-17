@@ -37,8 +37,6 @@ public:
 	virtual bool	Deploy( void );
 	virtual bool	Holster( CBaseCombatWeapon *pSwitchingTo );
 	virtual void	WeaponIdle( void );
-	float			SequenceDuration(void);
-	float			SequenceDuration(int iSequence);
 
 	virtual bool	BuilderClassWeapon(void); //BB: YUCK!
 

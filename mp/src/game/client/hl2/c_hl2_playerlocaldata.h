@@ -47,10 +47,13 @@ public:
 	float	covenIntellectCounter;
 	int		covenCurrentPointsSpent;
 	float	covenGCD;
+	float	covenActionTimer;
+	CovenDeferredAction_t covenAction;
 	CovenAbility_t		covenAbilities[COVEN_MAX_ABILITIES];
 	float	covenStatusTimers[COVEN_STATUS_COUNT];
 	int		covenStatusMagnitude[COVEN_STATUS_COUNT];
 	float	covenCooldownTimers[COVEN_MAX_ABILITIES];
+	int		m_iItems[COVEN_ITEM_COUNT];
 #ifdef HL2_EPISODIC
 	float	m_flFlashBattery;
 	Vector	m_vecLocatorOrigin;

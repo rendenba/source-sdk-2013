@@ -26,6 +26,7 @@
 #include <vgui_controls/AnimationController.h>
 #include <vgui/ISurface.h>
 #include "hud_lcd.h"
+#include <game/client/iviewport.h>
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -966,6 +967,27 @@ bool CHud::IsHidden( int iHudFlags )
 	// Everything hidden?
 	if ( iHideHud & HIDEHUD_ALL )
 		return true;
+
+	if (iHudFlags & HIDEHUD_SCORES)
+	{
+		if (pPlayer->m_bPredictHideHud)
+			return true;
+
+		if (gViewPortInterface)
+		{
+			IViewPortPanel *panel = gViewPortInterface->FindPanelByName(PANEL_SCOREBOARD);
+			if (panel && panel->IsVisible())
+				return true;
+
+			panel = gViewPortInterface->FindPanelByName(PANEL_ITEM);
+			if (panel && panel->IsVisible())
+				return true;
+
+			panel = gViewPortInterface->FindPanelByName(PANEL_GRENADE);
+			if (panel && panel->IsVisible())
+				return true;
+		}
+	}
 
 	// Local player dead?
 	if ( ( iHudFlags & HIDEHUD_PLAYERDEAD ) && ( pPlayer->GetHealth() <= 0 && !pPlayer->IsAlive() ) )

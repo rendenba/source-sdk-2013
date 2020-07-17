@@ -47,6 +47,9 @@ public:
 	virtual int				GetMinBurst() { return 1; }
 	virtual int				GetMaxBurst() { return 3; }
 
+	virtual float			SequenceDuration(void);
+	virtual float			SequenceDuration(int iSequence);
+
 	bool StartReload( void );
 	bool Reload( void );
 	void FillClip( void );
@@ -139,10 +142,12 @@ bool CWeaponDoubleShotgun::StartReload( void )
 	if (m_iClip1 >= GetMaxClip1())
 		return false;
 
-
 	int j = MIN(1, pOwner->GetAmmoCount(m_iPrimaryAmmoType));
 
 	if (j <= 0)
+		return false;
+
+	if (CheckDeferredAction(true))
 		return false;
 
 	SendWeaponAnim( ACT_SHOTGUN_RELOAD_START );
@@ -150,11 +155,31 @@ bool CWeaponDoubleShotgun::StartReload( void )
 	// Make shotgun shell visible
 	SetBodygroup(1,0);
 
-	pOwner->m_flNextAttack = gpGlobals->curtime;
+	pOwner->m_flNextAttack = gpGlobals->curtime + SequenceDuration();
 	m_flNextPrimaryAttack = gpGlobals->curtime + SequenceDuration();
 
 	m_bInReload = true;
 	return true;
+}
+
+float CWeaponDoubleShotgun::SequenceDuration(int iSequence)
+{
+	CHL2MP_Player *pOwner = ToHL2MPPlayer(GetOwner());
+
+	if (pOwner && pOwner->HasStatus(COVEN_STATUS_HASTE))
+		return 1.0f / (1.0f - 0.01f * pOwner->GetStatusMagnitude(COVEN_STATUS_HASTE)) * BaseClass::SequenceDuration(iSequence);
+
+	return BaseClass::SequenceDuration(iSequence);
+}
+
+float CWeaponDoubleShotgun::SequenceDuration(void)
+{
+	CHL2MP_Player *pOwner = ToHL2MPPlayer(GetOwner());
+
+	if (pOwner && pOwner->HasStatus(COVEN_STATUS_HASTE))
+		return 1.0f / (1.0f + 0.01f * pOwner->GetStatusMagnitude(COVEN_STATUS_HASTE)) * BaseClass::SequenceDuration();
+
+	return BaseClass::SequenceDuration();
 }
 
 //-----------------------------------------------------------------------------
@@ -191,7 +216,7 @@ bool CWeaponDoubleShotgun::Reload( void )
 	WeaponSound(RELOAD);
 	SendWeaponAnim( ACT_VM_RELOAD );
 
-	pOwner->m_flNextAttack = gpGlobals->curtime;
+	pOwner->m_flNextAttack = gpGlobals->curtime + SequenceDuration();
 	m_flNextPrimaryAttack = gpGlobals->curtime + SequenceDuration();
 
 	return true;
@@ -212,14 +237,14 @@ void CWeaponDoubleShotgun::FinishReload( void )
 	if ( pOwner == NULL )
 		return;
 
-	m_bInReload = false;
-
 	// Finish reload animation
 	WeaponSound(SPECIAL3);
 	SendWeaponAnim( ACT_SHOTGUN_RELOAD_FINISH );
 
-	pOwner->m_flNextAttack = gpGlobals->curtime;
+	pOwner->m_flNextAttack = gpGlobals->curtime + SequenceDuration();
 	m_flNextPrimaryAttack = gpGlobals->curtime + SequenceDuration();
+
+	m_bInReload = false;
 }
 
 //-----------------------------------------------------------------------------
@@ -297,10 +322,14 @@ void CWeaponDoubleShotgun::PrimaryAttack( void )
 	// Only the player fires this way so we can cast
 	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
 
-	if (!pPlayer)
+	if (!pPlayer || m_bInReload)
 	{
 		return;
 	}
+
+	//BB: this sucks that PrimaryAttack is redefined without inheritance in every freaking weapon!
+	if (CheckDeferredAction(true))
+		return;
 
 	if (m_iClip1 >= 2)
 	{
@@ -417,23 +446,13 @@ void CWeaponDoubleShotgun::ItemPostFrame( void )
 		m_bDelayedReload = true;
 	}
 
+	//BB: good god... guns are a mess in this game.
+	if (CheckDeferredAction())
+		m_bInReload = false;
+
 	if (m_bInReload)
 	{
-		// If I'm primary firing and have one round stop reloading and fire
-		if ((pOwner->m_nButtons & IN_ATTACK ) && (m_iClip1 >=2) && !m_bNeedPump )
-		{
-			m_bInReload		= false;
-			m_bNeedPump		= false;
-			m_bDelayedFire1 = true;
-		}
-		// If I'm secondary firing and have two rounds stop reloading and fire
-		else if ((pOwner->m_nButtons & IN_ATTACK2 ) && (m_iClip1 >=2) && !m_bNeedPump )
-		{
-			m_bInReload		= false;
-			m_bNeedPump		= false;
-			m_bDelayedFire2 = true;
-		}
-		else if (m_flNextPrimaryAttack <= gpGlobals->curtime)
+		if (m_flNextPrimaryAttack <= gpGlobals->curtime)
 		{
 			// If out of ammo end reload
 			if (pOwner->GetAmmoCount(m_iPrimaryAmmoType) <=0)

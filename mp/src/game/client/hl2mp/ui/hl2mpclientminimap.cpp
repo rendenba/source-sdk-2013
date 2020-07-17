@@ -14,7 +14,6 @@
 #include <igameresources.h>
 #include "IGameUIFuncs.h" // for key bindings
 #include "inputsystem/iinputsystem.h"
-#include "clientscoreboarddialog.h"
 #include <voice_status.h>
 
 #include <vgui/IScheme.h>
@@ -34,22 +33,10 @@
 #include "hl2mpclientminimap.h"
 
 #include "hl2mp_gamerules.h"
-#include "c_team.h"
 
 using namespace vgui;
 
 static char temparray[256];
-
-#define TEAM_MAXCOUNT			5
-
-// id's of sections used in the scoreboard
-enum EScoreboardSections
-{
-	SCORESECTION_COMBINE = 1,
-	SCORESECTION_REBELS = 2,
-	SCORESECTION_FREEFORALL = 3,
-	SCORESECTION_SPECTATOR = 4
-};
 
 const int NumSegments = 7;
 static int coord[NumSegments+1] = {
@@ -178,28 +165,7 @@ void CHL2MPClientMiniMapDialog::Update( void )
 	// Reset();
 	
 	// grow the scoreboard to fit all the players
-	int wide, tall;
-	wide = 512;
-	tall = 512;
-	tall += GetAdditionalHeight();
-	if (m_iDesiredHeight < tall)
-	{
-		SetSize(wide, tall);
-	}
-	else
-	{
-		SetSize(wide, m_iDesiredHeight);
-	}
 	MoveToCenterOfScreen();
-
-	C_Team *team = GetGlobalTeam( COVEN_TEAMID_SLAYERS );
-	const char *pDialogVarTeamScore = "s_teamscore";
-	if (team)
-		SetDialogVariable( pDialogVarTeamScore, team->Get_Score() );
-	team = GetGlobalTeam( COVEN_TEAMID_VAMPIRES );
-	pDialogVarTeamScore = "v_teamscore";
-	if (team)
-		SetDialogVariable( pDialogVarTeamScore, team->Get_Score() );
 
 	// update every second
 	m_fNextUpdateTime = gpGlobals->curtime + 1.0f; 
@@ -210,30 +176,6 @@ void CHL2MPClientMiniMapDialog::MoveToCenterOfScreen()
 	int wx, wy, ww, wt;
 	surface()->GetWorkspaceBounds(wx, wy, ww, wt);
 	SetPos((ww - GetWide()) / 2, (wt - GetTall()) / 2);
-	/*Panel *control = FindChildByName( "SlayerScoreLabel" );
-	if ( control )
-	{
-		control->SetPos(GetWide()/4-control->GetWide(), GetTall()-50);
-		control->MoveToFront();
-	}
-	control = FindChildByName( "SlayerScoreValue" );
-	if ( control )
-	{
-		control->SetPos(GetWide()/4+10, GetTall()-50);
-		control->MoveToFront();
-	}
-	control = FindChildByName( "VampireScoreLabel" );
-	if ( control )
-	{
-		control->SetPos(GetWide()-GetWide()/4-control->GetWide(), GetTall()-50);
-		control->MoveToFront();
-	}
-	control = FindChildByName( "VampireScoreValue" );
-	if ( control )
-	{
-		control->SetPos(GetWide()-GetWide()/4+10, GetTall()-50);
-		control->MoveToFront();
-	}*/
 }
 
 
@@ -543,15 +485,6 @@ void CHL2MPClientMiniMapDialog::ApplySchemeSettings( vgui::IScheme *pScheme )
 	SetBorder( pScheme->GetBorder( "BaseBorder" ) );
 }
 
-
-//-----------------------------------------------------------------------------
-// Purpose: sets up base sections
-//-----------------------------------------------------------------------------
-void CHL2MPClientMiniMapDialog::InitScoreboardSections()
-{
-
-}
-
 bool CHL2MPClientMiniMapDialog::LoadFromBuffer( char const *resourceName, const char *pBuffer, IBaseFileSystem* pFileSystem, const char *pPathID )
 {
 	if ( !pBuffer )
@@ -722,52 +655,4 @@ void CHL2MPClientMiniMapDialog::FireGameEvent( IGameEvent *event )
 void CHL2MPClientMiniMapDialog::Reset()
 {
 	m_fNextUpdateTime = 0;
-	// add all the sections
-	InitScoreboardSections();
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: resets the scoreboard team info
-//-----------------------------------------------------------------------------
-void CHL2MPClientMiniMapDialog::UpdateTeamInfo()
-{
-
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: adds the top header of the scoreboars
-//-----------------------------------------------------------------------------
-void CHL2MPClientMiniMapDialog::AddHeader()
-{
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: Adds a new section to the scoreboard (i.e the team header)
-//-----------------------------------------------------------------------------
-void CHL2MPClientMiniMapDialog::AddSection(int teamType, int teamNumber)
-{
-
-}
-
-int CHL2MPClientMiniMapDialog::GetSectionFromTeamNumber( int teamNumber )
-{
-	return SCORESECTION_FREEFORALL;
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: Adds a new row to the scoreboard, from the playerinfo structure
-//-----------------------------------------------------------------------------
-bool CHL2MPClientMiniMapDialog::GetPlayerScoreInfo(int playerIndex, KeyValues *kv)
-{
-	return true;
-}
-
-
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-void CHL2MPClientMiniMapDialog::UpdatePlayerInfo()
-{
-	
 }

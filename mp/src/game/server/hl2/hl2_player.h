@@ -354,7 +354,27 @@ public:
 	void TriggerGCD(void);
 	void EmitLocalSound(const char *soundname);
 
+	void			ResetItems(void);
+	bool			HasStimpack(void);
+	bool			HasMedkit(void);
+	bool			HasPills(void);
+	int				CovenItemQuantity(CovenItemID_t iItemType);
+	int				GiveCovenItem(CovenItemID_t iItemType, int iCount = 1, bool bSuppressSound = false);
+	bool			PurchaseCovenItem(CovenItemID_t iItemType);
+	bool			UseCovenItem(CovenItemID_t iItemType);
+	void			ActivateCovenItem(CovenItemID_t iItemType);
+	bool			PerformDeferredAction(CovenDeferredAction_t iAction = COVEN_ACTION_QUEUED);
+	bool			PerformingDeferredAction(void);
+	bool			UseCancelAction(void);
+	void			CancelDeferredAction(void);
+	bool			DeferredActionComplete(void);
+	bool			MovementCancelActionCheck(void);
+	bool			DistanceCancelActionCheck(void);
+	bool			IsDistanceRestricted(void);
+	bool			QueueDeferredAction(CovenDeferredAction_t iAction, bool bMoveCancel, float flTime, bool bSwallowUseKey = false, CBaseEntity *pUseEnt = NULL, float flRestrictDistance = FLT_MAX);
+
 	bool gorephased;
+	CHandle<CItem> hCarriedItem;
 
 protected:
 	virtual void		PreThink( void );
@@ -367,6 +387,10 @@ protected:
 	virtual void		PlayUseDenySound();
 
 private:
+	bool				m_bMoveCancelAction;
+	bool				m_bBlockUse;
+	float				m_flRestrictedUseDistance;
+	EHANDLE				m_hRestrictedUseObj;
 	int					m_covenabilities[COVEN_ABILITY_COUNT]; //for speed!
 	bool				CommanderExecuteOne( CAI_BaseNPC *pNpc, const commandgoal_t &goal, CAI_BaseNPC **Allies, int numAllies );
 

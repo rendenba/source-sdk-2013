@@ -6,5 +6,5 @@
 
 C_PurchaseItem::C_PurchaseItem()
 {
-	iItemType = COVEN_ITEM_NONE;
+	iItemType = COVEN_ITEM_INVALID;
 }

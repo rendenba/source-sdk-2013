@@ -27,6 +27,10 @@
 #include "filesystem.h"
 #include "utlbuffer.h"
 #include "coven_apc.h"
+
+#else
+#include "c_hl2mp_player.h"
+
 #endif
 
 #define VEC_CROUCH_TRACE_MIN	HL2MPRules()->GetHL2MPViewVectors()->m_vCrouchTraceMin
@@ -170,6 +174,7 @@ public:
 	int		CovenItemCost(BuildingType_t iBuildingType);
 	bool	PurchaseCovenItem(CovenItemID_t iItemType, CBasePlayer *pPlayer);
 	bool	IsInBuyZone(CBasePlayer *pPlayer);
+	bool	CanUseCovenItem(CBasePlayer *pPlayer, CovenItemID_t iItemType);
 
 	CovenGamestate_t covenGameState;
 	CovenGameMode_t covenActiveGameMode;
@@ -183,10 +188,13 @@ public:
 #ifndef CLIENT_DLL
 	CCoven_APC *pAPC;
 	CUtlVector<CBaseEntity *> hGasCans; //for bot speed
+	CUtlVector<CBaseEntity *> hSlayerXP; //for bot speed
+	CUtlVector<CBaseEntity *> hVampireXP; //for bot speed
 
 	void	CreateAPCFlare(int iIndex);
 	void	ReachedCheckpoint(int iIndex);
 
+	CBaseCombatWeapon *GetNextBestWeapon(CBaseCombatCharacter *pPlayer, CBaseCombatWeapon *pCurrentWeapon);
 	virtual Vector VecItemRespawnSpot( CItem *pItem );
 	virtual QAngle VecItemRespawnAngles( CItem *pItem );
 	virtual float	FlItemRespawnTime( CItem *pItem );

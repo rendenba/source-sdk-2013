@@ -229,15 +229,24 @@ void CItem_ItemCrate::OnBreak( const Vector &vecVelocity, const AngularImpulse &
 				}
 				case COVEN_ITEM_STIMPACK:
 				{
+					pSpawn = CreateEntityByName("item_healthvial");
 					break;
 				}
 				case COVEN_ITEM_MEDKIT:
 				{
+					pSpawn = CreateEntityByName("item_healthkit");
+					break;
+				}
+				case COVEN_ITEM_PILLS:
+				{
+					pSpawn = CreateEntityByName("item_pills");
 					break;
 				}
 			}
 			if (pSpawn)
 			{
+				//BB: TODO: are dropboxes always slayers? We might be able to simplify item pickup rules...
+				pSpawn->ChangeTeam(COVEN_TEAMID_SLAYERS);
 				pSpawn->AddSpawnFlags(SF_NORESPAWN);
 				pSpawn->KeyValue("RestActivate", "1");
 			}
@@ -289,15 +298,18 @@ void CItem_ItemCrate::OnBreak( const Vector &vecVelocity, const AngularImpulse &
 				pWeap->SetOriginalSpawnOrigin(pSpawn->GetAbsOrigin());
 				pWeap->SetOriginalSpawnAngles(pSpawn->GetAbsAngles());
 				pWeap->m_flLifetime = gpGlobals->curtime + sv_coven_dropboxtime.GetFloat();
+				pWeap->AddGlowEffect(false, true, true, true, true, 2000.0f);
 			}
 			else
 			{
 				CItem *pItem = dynamic_cast<CItem *>(pSpawn);
 				if (pItem)
 				{
+					pItem->SetCount(m_CovenItems[i]->iCount);
 					pItem->SetOriginalSpawnOrigin(pSpawn->GetAbsOrigin());
 					pItem->SetOriginalSpawnAngles(pSpawn->GetAbsAngles());
 					pItem->m_flLifetime = gpGlobals->curtime + sv_coven_dropboxtime.GetFloat();
+					pItem->AddGlowEffect(false, true, true, true, true, 2000.0f);
 				}
 			}
 		}

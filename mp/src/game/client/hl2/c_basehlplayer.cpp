@@ -125,6 +125,24 @@ bool C_BaseHLPlayer::HasAbility(CovenAbility_t iAbility)
 	return false;
 }
 
+int C_BaseHLPlayer::CovenItemQuantity(CovenItemID_t iItemType)
+{
+	if (iItemType < COVEN_ITEM_COUNT)
+		return m_HL2Local.m_iItems[iItemType];
+
+	switch (iItemType)
+	{
+	case COVEN_ITEM_GRENADE:
+		return GetAmmoCount("grenade");
+	case COVEN_ITEM_STUN_GRENADE:
+		return GetAmmoCount("stungrenade");
+	case COVEN_ITEM_HOLYWATER:
+		return GetAmmoCount("holywater");
+	}
+
+	return 0;
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 // Output : float

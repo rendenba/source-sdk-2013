@@ -6,6 +6,7 @@
 #include "covenlib.h"
 
 extern ConVar bot_debug_visual;
+extern ConVar sv_coven_refuel_distance;
 
 Vector	CCoven_APC::wheelOffset[] = { Vector(80, -50, -32), Vector(-72, -50, -32), Vector(80, 50, -32), Vector(-72, 50, -32) };
 QAngle	CCoven_APC::wheelOrientation[] = { QAngle(0, -90, 0), QAngle(0, -90, 0), QAngle(0, 90, 0), QAngle(0, 90, 0) };
@@ -26,7 +27,22 @@ CCoven_APCProp::CCoven_APCProp()
 void CCoven_APCProp::Use(CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value)
 {
 	if (m_pParent)
-		m_pParent->Use(pActivator, pCaller, useType, value);
+	{
+		if (pActivator->IsPlayer())
+		{
+			CHL2MP_Player *pHL2Player = ToHL2MPPlayer(pActivator);
+			if (pHL2Player->HasStatus(COVEN_STATUS_HAS_GAS))
+			{
+				if (pHL2Player->PerformingDeferredAction())
+					pHL2Player->CancelDeferredAction();
+				CovenItemInfo_t *info = GetCovenItemData(COVEN_ITEM_GASOLINE);
+				pHL2Player->QueueDeferredAction(COVEN_ACTION_REFUEL, (info->iFlags & ITEM_FLAG_MOVEMENT_CANCEL) > 0, gpGlobals->curtime + info->flUseTime, true, this, sv_coven_refuel_distance.GetFloat());
+				pHL2Player->EmitSound(info->aSounds[COVEN_SND_START]);
+			}
+			else
+				pHL2Player->EmitSound("HL2Player.UseDeny");
+		}
+	}
 }
 
 int CCoven_APCProp::ObjectCaps(void)
@@ -760,21 +776,5 @@ void CCoven_APCPart::AttachPhysics(void)
 		fixed.constraint.Defaults();
 
 		m_pConstraint = physenv->CreateFixedConstraint(pShadowPhys, pPartPhys, NULL, fixed);
-	}
-}
-
-void CCoven_APCPart::Use(CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value)
-{
-	if (pActivator->IsPlayer() && m_hAPC != NULL)
-	{
-		CHL2MP_Player *pHL2Player = ToHL2MPPlayer(pActivator);
-		if (pHL2Player->HasStatus(COVEN_STATUS_HAS_GAS))
-		{
-			pHL2Player->RemoveStatus(COVEN_STATUS_HAS_GAS);
-			UTIL_Remove((CBaseEntity *)pHL2Player->hCarriedItem.Get());
-			m_hAPC->StartUp();
-		}
-		else
-			pHL2Player->EmitSound("HL2Player.UseDeny");
 	}
 }

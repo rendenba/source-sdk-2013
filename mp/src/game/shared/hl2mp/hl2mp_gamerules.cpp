@@ -58,7 +58,7 @@ ConVar sv_coven_minplayers("sv_coven_minplayers", "0", FCVAR_GAMEDLL | FCVAR_NOT
 ConVar sv_coven_freezetime("sv_coven_freezetime", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY );//5
 ConVar sv_coven_usects("sv_coven_usects", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_coven_warmuptime("sv_coven_warmuptime", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY );//10
-ConVar sv_coven_xp_slayerstart("sv_coven_xp_slayerstart", "50.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Slayer starting money.");
+ConVar sv_coven_xp_slayerstart("sv_coven_xp_slayerstart", "80.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Slayer starting money.");
 #else
 ConVar sv_coven_minplayers("sv_coven_minplayers", "4", FCVAR_GAMEDLL | FCVAR_NOTIFY );//3
 ConVar sv_coven_freezetime("sv_coven_freezetime", "5", FCVAR_GAMEDLL | FCVAR_NOTIFY );//5
@@ -110,12 +110,7 @@ ConVar sv_coven_mana_per_int("sv_coven_mana_per_int", "10.0", FCVAR_NOTIFY | FCV
 ConVar sv_coven_gcd("sv_coven_gcd", "1.5", FCVAR_NOTIFY | FCVAR_REPLICATED);
 ConVar sv_coven_hp_per_con("sv_coven_hp_per_con", "4.0", FCVAR_NOTIFY | FCVAR_REPLICATED);
 ConVar sv_coven_alarm_time("sv_coven_alarm_time", "60.0", FCVAR_NOTIFY | FCVAR_REPLICATED, "APC alarm timer.");
-
-ConVar sv_coven_cost_grenade("sv_coven_cost_grenade", "8", FCVAR_NOTIFY | FCVAR_REPLICATED, "Frag grenade cost.");
-ConVar sv_coven_cost_stungrenade("sv_coven_cost_stungrenade", "12", FCVAR_NOTIFY | FCVAR_REPLICATED, "Stun grenade cost.");
-ConVar sv_coven_cost_holywater("sv_coven_cost_holywater", "10", FCVAR_NOTIFY | FCVAR_REPLICATED, "Holywater grenade cost.");
-ConVar sv_coven_cost_medkit("sv_coven_cost_medkit", "12", FCVAR_NOTIFY | FCVAR_REPLICATED, "Medkit cost.");
-ConVar sv_coven_cost_stimpack("sv_coven_cost_stimpack", "8", FCVAR_NOTIFY | FCVAR_REPLICATED, "Stimpack cost.");
+ConVar sv_coven_refuel_distance("sv_coven_refuel_distance", "250.0", FCVAR_NOTIFY | FCVAR_REPLICATED, "Distance before refuel cancels.");
 
 REGISTER_GAMERULES_CLASS( CHL2MPRules );
 
@@ -216,6 +211,7 @@ static const char *s_PreserveEnts[] =
 	"npc_depot_stungrenade",
 	"npc_depot_stimpack",
 	"npc_depot_medkit",
+	"npc_depot_pills",
 	"", // END Marker
 };
 //BB: TODO: item_ammo_crate might need to come off this list once they are actually baked into maps...
@@ -342,23 +338,16 @@ float CHL2MPRules::AverageLevel(int team, int &n)
 
 int CHL2MPRules::CovenItemCost(BuildingType_t iBuildingType)
 {
-	return CovenItemCost((CovenItemID_t) (iBuildingType - 4));
+	return CovenItemCost((CovenItemID_t) (iBuildingType + COVEN_ITEM_STIMPACK - BUILDING_PURCHASE_STIMPACK));
 }
 
 int CHL2MPRules::CovenItemCost(CovenItemID_t iItemType)
 {
-	switch (iItemType)
+	if (iItemType > COVEN_ITEM_INVALID)
 	{
-		case COVEN_ITEM_GRENADE:
-			return sv_coven_cost_grenade.GetInt();
-		case COVEN_ITEM_STUN_GRENADE:
-			return sv_coven_cost_stungrenade.GetInt();
-		case COVEN_ITEM_HOLYWATER:
-			return sv_coven_cost_holywater.GetInt();
-		case COVEN_ITEM_STIMPACK:
-			return sv_coven_cost_stimpack.GetInt();
-		case COVEN_ITEM_MEDKIT:
-			return sv_coven_cost_medkit.GetInt();
+		CovenItemInfo_t *info = GetCovenItemData(iItemType);
+		if (info)
+			return info->iCost;
 	}
 	return -1;
 }
@@ -372,6 +361,26 @@ bool CHL2MPRules::IsInBuyZone(CBasePlayer *pPlayer)
 			return true;
 #endif
 	return false;
+}
+
+bool CHL2MPRules::CanUseCovenItem(CBasePlayer *pPlayer, CovenItemID_t iItemType)
+{
+	CHL2MP_Player *pHL2Player = ToHL2MPPlayer(pPlayer);
+
+	if (!pHL2Player)
+		return false;
+
+	CovenItemInfo_t *info = GetCovenItemData(iItemType);
+	switch (iItemType)
+	{
+	case COVEN_ITEM_STIMPACK:
+		return pPlayer->GetHealth() < info->flMaximum * pPlayer->GetMaxHealth();
+	case COVEN_ITEM_MEDKIT:
+		return pPlayer->GetHealth() < info->flMaximum * pPlayer->GetMaxHealth();
+	case COVEN_ITEM_PILLS:
+		return pHL2Player->GetStatusMagnitude(COVEN_STATUS_HASTE) < info->flMaximum;
+	}
+	return true;
 }
 
 bool CHL2MPRules::PurchaseCovenItem(CovenItemID_t iItemType, CBasePlayer *pPlayer)
@@ -1042,9 +1051,15 @@ bool CHL2MPRules::LoadCowFile(IBaseFileSystem *filesystem, const char *resourceN
 							pEnt->SetLocalOrigin(Vector(locs[0], locs[1], locs[2] + 10.0f));
 							pEnt->SetLocalAngles(QAngle(random->RandomInt(0, 180), random->RandomInt(0, 180), random->RandomInt(0, 180)));
 							if (!Q_stricmp(sub->GetName(), "slayers"))
+							{
 								pEnt->ChangeTeam(COVEN_TEAMID_SLAYERS);
+								hSlayerXP.AddToTail(pEnt);
+							}
 							else
+							{
 								pEnt->ChangeTeam(COVEN_TEAMID_VAMPIRES);
+								hVampireXP.AddToTail(pEnt);
+							}
 							((CBaseAnimating *)pEnt)->AddGlowEffect(false, true, true, true, true, 2000.0f);
 							if (sv_coven_warmuptime.GetInt() == 0)
 								pEnt->Spawn();
@@ -2286,10 +2301,6 @@ void CHL2MPRules::Precache( void )
 	CBaseEntity::PrecacheScriptSound( "AlyxEmp.Charge" );
 	UTIL_PrecacheOther("env_flare");
 	UTIL_PrecacheOther("coven_supplydepot");
-	PrecacheAbilities(filesystem);
-	PrecacheClasses(filesystem);
-	PrecacheStatusEffects(filesystem);
-	PrecacheBuildings(filesystem);
 #ifndef CLIENT_DLL
 	if (!cowsloaded)
 	{
@@ -2372,19 +2383,22 @@ CAmmoDef *GetAmmoDef()
 	{
 		bInitted = true;
 
-		def.AddAmmoType("AR2",				DMG_BULLET,					TRACER_LINE_AND_WHIZ,	0,			0,			60,			BULLET_IMPULSE(200, 1225),	0 );
-		def.AddAmmoType("AR2AltFire",		DMG_DISSOLVE,				TRACER_NONE,			0,			0,			3,			0,							0 );
-		def.AddAmmoType("Pistol",			DMG_BULLET,					TRACER_LINE_AND_WHIZ,	0,			0,			60,			BULLET_IMPULSE(200, 1225),	0 );
-		def.AddAmmoType("SMG1",				DMG_BULLET,					TRACER_LINE_AND_WHIZ,	0,			0,			90,			BULLET_IMPULSE(200, 1225),	0 );
-		def.AddAmmoType("357",				DMG_BULLET,					TRACER_LINE_AND_WHIZ,	0,			0,			18,			BULLET_IMPULSE(800, 5000),	0 );
-		def.AddAmmoType("XBowBolt",			DMG_BULLET,					TRACER_LINE,			0,			0,			12,			BULLET_IMPULSE(800, 8000),	0 );
-		def.AddAmmoType("Buckshot",			DMG_BULLET | DMG_BUCKSHOT,	TRACER_LINE,			0,			0,			16,			BULLET_IMPULSE(400, 1200),	0 );
-		def.AddAmmoType("RPG_Round",		DMG_BURN,					TRACER_NONE,			0,			0,			3,			0,							0 );
-		def.AddAmmoType("SMG1_Grenade",		DMG_BURN,					TRACER_NONE,			0,			0,			3,			0,							0 );
-		def.AddAmmoType("Grenade",			DMG_BURN,					TRACER_NONE,			0,			0,			5,			0,							0 );
-		def.AddAmmoType("stungrenade",		DMG_BURN,					TRACER_NONE,			0,			0,			5,			0,							0 );
-		def.AddAmmoType("slam",				DMG_BURN,					TRACER_NONE,			0,			0,			5,			0,							0 );
-		def.AddAmmoType("holywater",		DMG_BURN,					TRACER_NONE,			0,			0,			5,			0,							0 );
+		def.AddAmmoType("AR2",				DMG_BULLET,					TRACER_LINE_AND_WHIZ,	0,			0,			60,				BULLET_IMPULSE(200, 1225),	0);
+		def.AddAmmoType("AR2AltFire",		DMG_DISSOLVE,				TRACER_NONE,			0,			0,			3,				0,							0 );
+		def.AddAmmoType("Pistol",			DMG_BULLET,					TRACER_LINE_AND_WHIZ,	0,			0,			60,				BULLET_IMPULSE(200, 1225),	0 );
+		def.AddAmmoType("SMG1",				DMG_BULLET,					TRACER_LINE_AND_WHIZ,	0,			0,			90,				BULLET_IMPULSE(200, 1225),	0 );
+		def.AddAmmoType("357",				DMG_BULLET,					TRACER_LINE_AND_WHIZ,	0,			0,			18,				BULLET_IMPULSE(800, 5000),	0 );
+		def.AddAmmoType("XBowBolt",			DMG_BULLET,					TRACER_LINE,			0,			0,			12,				BULLET_IMPULSE(800, 8000),	0 );
+		def.AddAmmoType("Buckshot",			DMG_BULLET | DMG_BUCKSHOT,	TRACER_LINE,			0,			0,			18,				BULLET_IMPULSE(400, 1200),	0 );
+		def.AddAmmoType("RPG_Round",		DMG_BURN,					TRACER_NONE,			0,			0,			3,				0,							0 );
+		def.AddAmmoType("SMG1_Grenade",		DMG_BURN,					TRACER_NONE,			0,			0,			3,				0,							0 );
+		CovenItemInfo_t *info = GetCovenItemData(COVEN_ITEM_GRENADE);
+		def.AddAmmoType("Grenade",			DMG_BURN,					TRACER_NONE,			0,			0,			info->iCarry,	0,							0 );
+		info = GetCovenItemData(COVEN_ITEM_STUN_GRENADE);
+		def.AddAmmoType("stungrenade",		DMG_BURN,					TRACER_NONE,			0,			0,			info->iCarry,	0,							0 );
+		def.AddAmmoType("slam",				DMG_BURN,					TRACER_NONE,			0,			0,			5,				0,							0 );
+		info = GetCovenItemData(COVEN_ITEM_HOLYWATER);
+		def.AddAmmoType("holywater",		DMG_BURN,					TRACER_NONE,			0,			0,			info->iCarry,	0,							0 );
 	}
 
 	return &def;
@@ -2437,6 +2451,62 @@ CAmmoDef *GetAmmoDef()
 #endif
 
 #ifndef CLIENT_DLL
+
+CBaseCombatWeapon *CHL2MPRules::GetNextBestWeapon(CBaseCombatCharacter *pPlayer, CBaseCombatWeapon *pCurrentWeapon)
+{
+	CBaseCombatWeapon *pCheck;
+	CBaseCombatWeapon *pBest;// this will be used in the event that we don't find a weapon in the same category.
+
+	int iCurrentWeight = -1;
+	int iBestWeight = -1;// no weapon lower than -1 can be autoswitched to
+	pBest = NULL;
+
+	// If I have a weapon, make sure I'm allowed to holster it
+	if ( pCurrentWeapon )
+	{
+		if (!pCurrentWeapon->AllowsAutoSwitchFrom() || !pCurrentWeapon->CanHolster())
+		{
+			// Either this weapon doesn't allow autoswitching away from it or I
+			// can't put this weapon away right now, so I can't switch.
+			return NULL;
+		}
+
+		iCurrentWeight = pCurrentWeapon->GetWeight();
+	}
+
+	for (int i = 0; i < pPlayer->WeaponCount(); ++i)
+	{
+		pCheck = pPlayer->GetWeapon(i);
+		if (!pCheck)
+			continue;
+
+		// If we have an active weapon and this weapon doesn't allow autoswitching away
+		// from another weapon, skip it.
+		if (pCurrentWeapon && !pCheck->AllowsAutoSwitchTo())
+			continue;
+
+		if (pCheck->GetWeight() > iBestWeight && pCheck != pCurrentWeapon)// don't reselect the weapon we're trying to get rid of
+		{
+			//Msg( "Considering %s\n", STRING( pCheck->GetClassname() );
+			// we keep updating the 'best' weapon just in case we can't find a weapon of the same weight
+			// that the player was using. This will end up leaving the player with his heaviest-weighted 
+			// weapon. 
+			if (pCheck->HasAnyAmmo())
+			{
+				// if this weapon is useable, flag it as the best
+				iBestWeight = pCheck->GetWeight();
+				pBest = pCheck;
+			}
+		}
+	}
+	//Msg("%d %d %s\n", iCurrentWeight, pBest->GetWeight(), pBest->GetClassname());
+	// if we make it here, we've checked all the weapons and found no useable 
+	// weapon in the same catagory as the current weapon. 
+
+	// if pBest is null, we didn't find ANYTHING. Shouldn't be possible- should always 
+	// at least get the crowbar, but ya never know.
+	return pBest;
+}
 
 //BB: lets collect a doll
 void CHL2MPRules::AddDoll(CBaseEntity *doll)

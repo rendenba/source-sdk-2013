@@ -1955,6 +1955,21 @@
     <ClInclude Include="..\shared\purchaseitem_shared.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="hl2mp\ui\hl2mpclientminimap.h">
+      <Filter>Source Files\HL2MP\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="hl2mp\ui\hl2mpclientitemmenu.h">
+      <Filter>Source Files\HL2MP\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="hl2mp\ui\hl2mpwheelmenu.h">
+      <Filter>Source Files\HL2MP\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="hl2mp\ui\hl2mpclientgrenademenu.h">
+      <Filter>Source Files\HL2MP\UI</Filter>
+    </ClInclude>
+    <ClInclude Include="hud_usetimer.h">
+      <Filter>Source Files\HL2MP\UI</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="mp3player.cpp">
@@ -3579,6 +3594,18 @@
     </ClCompile>
     <ClCompile Include="..\shared\hl2mp\weapon_stunfrag.cpp">
       <Filter>Source Files\HL2MP\Weapons</Filter>
+    </ClCompile>
+    <ClCompile Include="hl2mp\ui\hl2mpclientitemmenu.cpp">
+      <Filter>Source Files\HL2MP\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="hl2mp\ui\hl2mpwheelmenu.cpp">
+      <Filter>Source Files\HL2MP\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="hl2mp\ui\hl2mpclientgrenademenu.cpp">
+      <Filter>Source Files\HL2MP\UI</Filter>
+    </ClCompile>
+    <ClCompile Include="hud_usetimer.cpp">
+      <Filter>Source Files\HL2MP\UI</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

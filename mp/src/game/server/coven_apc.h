@@ -44,7 +44,6 @@ public:
 
 	virtual void			Spawn(void);
 	virtual void			Precache(void);
-	virtual void			Use(CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value);
 	void					AttachPhysics(void);
 	void					MakeSolid(void);
 	void					MoveToCorrectLocation(void);

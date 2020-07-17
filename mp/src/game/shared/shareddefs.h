@@ -203,8 +203,9 @@ enum CastVote
 #define	HIDEHUD_VEHICLE_CROSSHAIR	( 1<<9 )	// Hide vehicle crosshair
 #define HIDEHUD_INVEHICLE			( 1<<10 )
 #define HIDEHUD_BONUS_PROGRESS		( 1<<11 )	// Hide bonus progress display (for bonus map challenges)
+#define HIDEHUD_SCORES				( 1<<12 )	// Hide when scoreboard type panel is open
 
-#define HIDEHUD_BITCOUNT			12
+#define HIDEHUD_BITCOUNT			13
 
 //===================================================================================================================
 // suit usage bits
@@ -519,14 +520,25 @@ typedef enum
 //BB: CovenItemID_t's must correspond in order to PURCHASE_XXX BuildingType_t's
 typedef enum
 {
-	COVEN_ITEM_NONE,
-	COVEN_ITEM_GRENADE,
-	COVEN_ITEM_STUN_GRENADE,
-	COVEN_ITEM_HOLYWATER,
+	COVEN_ITEM_INVALID = -1,
 	COVEN_ITEM_STIMPACK,
 	COVEN_ITEM_MEDKIT,
-	COVEN_ITEM_COUNT
+	COVEN_ITEM_PILLS,
+	COVEN_ITEM_COUNT, // Maximum number of non-weapon items
+	COVEN_ITEM_GRENADE = COVEN_ITEM_COUNT,
+	COVEN_ITEM_STUN_GRENADE,
+	COVEN_ITEM_HOLYWATER,
+	COVEN_ITEM_GASOLINE,
+	COVEN_ITEM_MAXCOUNT
 } CovenItemID_t;
+
+typedef enum
+{
+	COVEN_ACTION_QUEUED = -1,
+	//CovenItemID_t's correspond 1:1 for deferred actions!
+	COVEN_ACTION_REFUEL = COVEN_ITEM_COUNT,
+	COVEN_ACTION_COUNT
+} CovenDeferredAction_t;
 
 //BB: CovenItemID_t's must correspond in order to PURCHASE_XXX BuildingType_t's
 typedef enum
@@ -536,11 +548,12 @@ typedef enum
 	BUILDING_TURRET,
 	BUILDING_SUPPLYDEPOT,
 	BUILDING_PURCHASEITEM,
+	BUILDING_PURCHASE_STIMPACK,		// This must be in the same order as CovenItemID_t
+	BUILDING_PURCHASE_MEDKIT,
+	BUILDING_PURCHASE_PILLS,
 	BUILDING_PURCHASE_GRENADE,
 	BUILDING_PURCHASE_STUNGRENADE,
 	BUILDING_PURCHASE_HOLYWATER,
-	BUILDING_PURCHASE_STIMPACK,
-	BUILDING_PURCHASE_MEDKIT,
 	BUILDING_TYPE_COUNT
 } BuildingType_t;
 

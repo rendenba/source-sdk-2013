@@ -44,6 +44,7 @@ protected:
 	
 	// Crosshair sprite and colors
 	CHudTexture		*m_pCrosshair;
+	C_BaseCombatWeapon		*m_pWeapOld;
 	CHudTexture		*m_pDefaultCrosshair;
 	Color			m_clrCrosshair;
 	QAngle			m_vecCrossHairOffsetAngle;

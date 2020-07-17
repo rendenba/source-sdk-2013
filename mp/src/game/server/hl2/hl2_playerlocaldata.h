@@ -46,10 +46,13 @@ public:
 	CNetworkVar( float, covenIntellectCounter );
 	CNetworkVar( int, covenCurrentPointsSpent );
 	CNetworkVar( float, covenGCD );
+	CNetworkVar( float, covenActionTimer );
+	CNetworkVar( CovenDeferredAction_t, covenAction);
 	CNetworkArray( CovenAbility_t, covenAbilities, COVEN_MAX_ABILITIES );
 	CNetworkArray( float, covenStatusTimers, COVEN_STATUS_COUNT );
 	CNetworkArray( int, covenStatusMagnitude, COVEN_STATUS_COUNT );
 	CNetworkArray( float, covenCooldownTimers, COVEN_MAX_ABILITIES );
+	CNetworkArray( int, m_iItems, COVEN_ITEM_COUNT);
 #ifdef HL2_EPISODIC
 	CNetworkVar( float, m_flFlashBattery );
 	CNetworkVar( Vector, m_vecLocatorOrigin );

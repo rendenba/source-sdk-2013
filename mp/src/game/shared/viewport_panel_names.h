@@ -17,6 +17,8 @@
 
 #define PANEL_SCOREBOARD	"scores"
 #define PANEL_MINIMAP		"minimap"
+#define PANEL_ITEM			"item"
+#define PANEL_GRENADE		"grenade"
 #define PANEL_LEVEL			"level"
 #define PANEL_OVERVIEW		"overview"
 #define PANEL_CLASS			"class"

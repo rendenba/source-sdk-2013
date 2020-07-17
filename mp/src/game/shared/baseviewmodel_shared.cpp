@@ -13,8 +13,10 @@
 #include "prediction.h"
 #include "client_virtualreality.h"
 #include "sourcevr/isourcevirtualreality.h"
+#include "c_hl2mp_player.h"
 #else
 #include "vguiscreen.h"
+#include "hl2mp_player.h"
 #endif
 
 #if defined( CLIENT_DLL ) && defined( SIXENSE )
@@ -377,6 +379,23 @@ void CBaseViewModel::SendViewModelMatchingSequence( int sequence )
 	// Restart animation at frame 0
 	SetCycle( 0 );
 	ResetSequenceInfo();
+#ifndef CLIENT_DLL
+	CHL2MP_Player *pHL2MPOwner = ToHL2MPPlayer(GetOwner());
+	if (pHL2MPOwner == NULL)
+		return;
+	if (pHL2MPOwner->HasStatus(COVEN_STATUS_HASTE))
+	{
+		m_flPlaybackRate = 1.0 + (pHL2MPOwner->GetStatusMagnitude(COVEN_STATUS_HASTE) * 0.01f);
+	}
+#else
+	C_HL2MP_Player *pHL2Player = dynamic_cast<C_HL2MP_Player*>(C_BasePlayer::GetLocalPlayer());
+	if (pHL2Player == NULL)
+		return;
+	if (pHL2Player->HasStatus(COVEN_STATUS_HASTE))
+	{
+		m_flPlaybackRate = 1.0 + (pHL2Player->GetStatusMagnitude(COVEN_STATUS_HASTE) * 0.01f);
+	}
+#endif
 }
 
 #if defined( CLIENT_DLL )

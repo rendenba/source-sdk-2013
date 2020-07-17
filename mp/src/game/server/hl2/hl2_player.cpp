@@ -411,6 +411,11 @@ CHL2_Player::CHL2_Player()
 	m_pPlayerAISquad = 0;
 	m_bSprintEnabled = true;
 
+	m_bMoveCancelAction = false;
+	m_bBlockUse = false;
+	m_flRestrictedUseDistance = FLT_MAX;
+	m_hRestrictedUseObj = NULL;
+
 	m_flArmorReductionTime = 0.0f;
 	m_iArmorReductionFrom = 0;
 	Q_memset(m_covenabilities, 0, sizeof(m_covenabilities));
@@ -420,6 +425,304 @@ CHL2_Player::CHL2_Player()
 int CHL2_Player::GetTotalXP()
 {
 	return totalXP;
+}
+
+void CHL2_Player::ResetItems(void)
+{
+	for (int i = 0; i < COVEN_ITEM_COUNT; i++)
+	{
+		m_HL2Local.m_iItems.Set(i, 0);
+	}
+}
+
+bool CHL2_Player::HasStimpack(void)
+{
+	return m_HL2Local.m_iItems[COVEN_ITEM_STIMPACK] > 0;
+}
+
+bool CHL2_Player::HasMedkit(void)
+{
+	return m_HL2Local.m_iItems[COVEN_ITEM_MEDKIT] > 0;
+}
+
+bool CHL2_Player::HasPills(void)
+{
+	return m_HL2Local.m_iItems[COVEN_ITEM_PILLS] > 0;
+}
+
+int CHL2_Player::CovenItemQuantity(CovenItemID_t iItemType)
+{
+	if (iItemType < COVEN_ITEM_COUNT)
+		return m_HL2Local.m_iItems[iItemType];
+
+	switch (iItemType)
+	{
+	case COVEN_ITEM_GRENADE:
+		return GetAmmoCount("grenade");
+	case COVEN_ITEM_STUN_GRENADE:
+		return GetAmmoCount("stungrenade");
+	case COVEN_ITEM_HOLYWATER:
+		return GetAmmoCount("holywater");
+	}
+
+	return 0;
+}
+
+int CHL2_Player::GiveCovenItem(CovenItemID_t iItemType, int iCount, bool bSuppressSound)
+{
+	//const char *szClassName = NULL;
+	if (iItemType > COVEN_ITEM_COUNT)
+		return 0;
+
+	CovenItemInfo_t *info = GetCovenItemData(iItemType);
+
+	int iAdd = min(iCount, info->iCarry - m_HL2Local.m_iItems[iItemType]);
+	if (iAdd < 1)
+	{
+		if (!bSuppressSound)
+		{
+			CSingleUserRecipientFilter user(this);
+			user.MakeReliable();
+			UserMessageBegin(user, "ItemDenied");
+				WRITE_SHORT(iItemType);
+			MessageEnd();
+		}
+		return 0;
+	}
+	m_HL2Local.m_iItems.Set(iItemType, m_HL2Local.m_iItems[iItemType] + iAdd);
+
+	// Ammo pickup sound
+	if (!bSuppressSound)
+	{
+		EmitSound("BaseCombatCharacter.AmmoPickup");
+	}
+
+	return iAdd;
+}
+
+bool CHL2_Player::UseCovenItem(CovenItemID_t iItemType)
+{
+	if (HasStatus(COVEN_STATUS_STUN))
+		return false;
+
+	if (iItemType > COVEN_ITEM_COUNT || m_HL2Local.m_iItems[iItemType] == 0)
+		return false;
+
+	if (HL2MPRules()->CanUseCovenItem(this, iItemType))
+	{
+		CovenItemInfo_t *info = GetCovenItemData(iItemType);
+		if (PerformingDeferredAction())
+			CancelDeferredAction();
+		if (info->flUseTime > 0.0f)
+		{
+			if (QueueDeferredAction((CovenDeferredAction_t)iItemType, (info->iFlags & ITEM_FLAG_MOVEMENT_CANCEL) > 0, gpGlobals->curtime + info->flUseTime))
+			{
+				EmitSound(info->aSounds[COVEN_SND_START]);
+			}
+		}
+		else
+			ActivateCovenItem(iItemType);
+		return true;
+	}
+
+	return false;
+}
+
+//BB: FORCE use an items effect!
+void CHL2_Player::ActivateCovenItem(CovenItemID_t iItemType)
+{
+	CovenItemInfo_t *info = GetCovenItemData(iItemType);
+	switch (iItemType)
+	{
+		case COVEN_ITEM_STIMPACK:
+		{
+			float health = min(GetMaxHealth() * info->flMaximum - GetHealth(), info->iMagnitude);
+			TakeHealth(health, DMG_GENERIC);
+			break;
+		}
+		case COVEN_ITEM_MEDKIT:
+		{
+			float health = GetMaxHealth() * info->flMaximum - GetHealth();
+			TakeHealth(health, DMG_GENERIC);
+			break;
+		}
+		case COVEN_ITEM_PILLS:
+		{
+			AddStatus(COVEN_STATUS_HASTE, GetStatusMagnitude(COVEN_STATUS_HASTE) + info->iMagnitude, gpGlobals->curtime + info->flDuration, false, false);
+			break;
+		}
+		default:
+		{
+			return;
+		}
+	}
+	EmitSound(info->aSounds[COVEN_SND_STOP]);
+	m_HL2Local.m_iItems.Set(iItemType, m_HL2Local.m_iItems[iItemType] - 1);
+}
+
+void CHL2_Player::CancelDeferredAction(void)
+{
+	m_HL2Local.covenActionTimer = 0.0f;
+	m_bMoveCancelAction = false;
+	m_hRestrictedUseObj = NULL;
+	m_Local.m_iHideHUD &= ~HIDEHUD_SCORES;
+	if (m_HL2Local.covenAction < COVEN_ITEM_COUNT)
+	{
+		CovenItemInfo_t *info = GetCovenItemData(CovenItemID_t(m_HL2Local.covenAction.Get()));
+		StopSound(info->aSounds[COVEN_SND_START]);
+	}
+	CBaseCombatWeapon *pWeap = GetActiveWeapon();
+	if (pWeap && pWeap->IsHolstered())
+		pWeap->Deploy();
+
+	ComputeSpeed();
+}
+
+bool CHL2_Player::PerformingDeferredAction(void)
+{
+	return m_HL2Local.covenActionTimer > 0.0f;
+}
+
+bool CHL2_Player::PerformDeferredAction(CovenDeferredAction_t iAction)
+{
+	if (iAction == COVEN_ACTION_QUEUED)
+		iAction = m_HL2Local.covenAction;
+
+	int iTranslatedAction = iAction;
+
+	if (iTranslatedAction < COVEN_ITEM_COUNT)
+		ActivateCovenItem((CovenItemID_t)iTranslatedAction);
+	else
+	{
+		switch (iTranslatedAction)
+		{
+			case COVEN_ACTION_REFUEL:
+			{
+				RemoveStatus(COVEN_STATUS_HAS_GAS);
+				UTIL_Remove((CBaseEntity *)hCarriedItem.Get());
+				HL2MPRules()->pAPC->StartUp();
+				break;
+			}
+			default:
+			{
+				return false;
+			}
+		}
+	}
+
+	CBaseCombatWeapon *pWeap = GetActiveWeapon();
+	if (pWeap && pWeap->IsHolstered())
+		pWeap->Deploy();
+
+	m_HL2Local.covenActionTimer = 0.0f;
+	m_hRestrictedUseObj = NULL;
+	ComputeSpeed();
+	m_Local.m_iHideHUD &= ~HIDEHUD_SCORES;
+	return true;
+}
+
+bool CHL2_Player::DeferredActionComplete(void)
+{
+	return gpGlobals->curtime > m_HL2Local.covenActionTimer;
+}
+
+bool CHL2_Player::UseCancelAction(void)
+{
+	return (m_afButtonPressed & IN_USE) > 0 && !m_bBlockUse;
+}
+
+bool CHL2_Player::MovementCancelActionCheck(void)
+{
+	return m_bMoveCancelAction;
+}
+
+bool CHL2_Player::DistanceCancelActionCheck(void)
+{
+	if (m_hRestrictedUseObj != NULL)
+		return (GetAbsOrigin() - m_hRestrictedUseObj->GetAbsOrigin()).Length() > m_flRestrictedUseDistance;
+
+	return false;
+}
+
+bool CHL2_Player::IsDistanceRestricted(void)
+{
+	return m_hRestrictedUseObj != NULL;
+}
+
+bool CHL2_Player::QueueDeferredAction(CovenDeferredAction_t iAction, bool bMoveCancel, float flTime, bool bSwallowUseKey, CBaseEntity *pUseEnt, float flRestrictDistance)
+{
+	CBaseCombatWeapon *pWeap = GetActiveWeapon();
+	if (pWeap && pWeap->Holster())
+	{
+		m_HL2Local.covenAction = iAction;
+		m_HL2Local.covenActionTimer = flTime;
+		m_bMoveCancelAction = bMoveCancel;
+		m_bBlockUse = bSwallowUseKey;
+		m_flRestrictedUseDistance = flRestrictDistance;
+		m_hRestrictedUseObj = pUseEnt;
+		ComputeSpeed();
+		m_Local.m_iHideHUD |= HIDEHUD_SCORES;
+		return true;
+	}
+	return false;
+}
+
+bool CHL2_Player::PurchaseCovenItem(CovenItemID_t iItemType)
+{
+	int cost = HL2MPRules()->CovenItemCost(iItemType);
+	if (cost > m_HL2Local.covenXPCounter)
+		return false;
+
+	switch (iItemType)
+	{
+	case COVEN_ITEM_GRENADE:
+	{
+		if (Weapon_OwnsThisType("weapon_frag"))
+		{
+			if (CBasePlayer::GiveAmmo(1, "grenade") == 0)
+				return false;
+		}
+		else
+			GiveNamedItem("weapon_frag");
+		break;
+	}
+	case COVEN_ITEM_STUN_GRENADE:
+	{
+		if (Weapon_OwnsThisType("weapon_stunfrag"))
+		{
+			if (CBasePlayer::GiveAmmo(1, "stungrenade") == 0)
+				return false;
+		}
+		else
+			GiveNamedItem("weapon_stunfrag");
+		break;
+	}
+	case COVEN_ITEM_HOLYWATER:
+	{
+		if (Weapon_OwnsThisType("weapon_holywater"))
+		{
+			if (CBasePlayer::GiveAmmo(1, "holywater") == 0)
+				return false;
+		}
+		else
+			GiveNamedItem("weapon_holywater");
+		break;
+	}
+	case COVEN_ITEM_STIMPACK:
+	case COVEN_ITEM_MEDKIT:
+	case COVEN_ITEM_PILLS:
+	{
+		if (GiveCovenItem(iItemType) == 0)
+			return false;
+		break;
+	}
+	default:
+	{
+		return false;
+	}
+	}
+	RemoveXP(cost);
+	return true;
 }
 
 void CHL2_Player::ClearCovenAbilities()
@@ -571,6 +874,8 @@ void CHL2_Player::HandleStatus(CovenStatus_t iStatusNum)
 			case COVEN_STATUS_STUN:
 			{
 				AddFlag(FL_FROZEN);
+				if (PerformingDeferredAction())
+					CancelDeferredAction();
 				break;
 			}
 			case COVEN_STATUS_BATTLEYELL:
@@ -588,6 +893,11 @@ void CHL2_Player::HandleStatus(CovenStatus_t iStatusNum)
 			{
 				CovenClassInfo_t *classInfo = GetCovenClassData(covenClassID);
 				GiveStrength(-(classInfo->flStrength * (GetStatusMagnitude(iStatusNum) - m_iHandledEffect[iStatusNum]) * 0.01f));
+				break;
+			}
+			case COVEN_STATUS_HASTE:
+			{
+				ComputeSpeed();
 				break;
 			}
 			default:
@@ -1029,6 +1339,9 @@ void CHL2_Player::PreThink(void)
 		NDebugOverlay::Box( predPos, NAI_Hull::Mins( GetHullType() ), NAI_Hull::Maxs( GetHullType() ), 0, 255, 0, 0, 0.01f );
 		NDebugOverlay::Line( GetAbsOrigin(), predPos, 0, 255, 0, 0, 0.01f );
 	}
+
+	if (m_afButtonReleased & IN_USE && m_bBlockUse)
+		m_bBlockUse = false;
 
 #ifdef HL2_EPISODIC
 	if( m_hLocatorTargetEntity != NULL )
@@ -1738,6 +2051,9 @@ void CHL2_Player::ComputeSpeed( void )
 	speed = info->flBaseSpeed;
 
 	float factor = 1.0f;
+
+	if (PerformingDeferredAction())
+		factor = 0.5f;
 
 	if (gorephased)
 		factor += 0.5f;
@@ -3476,7 +3792,8 @@ void CHL2_Player::PlayerUse ( void )
 		// Signal that we want to play the deny sound, unless the user is +USEing on a ladder!
 		// The sound is emitted in ItemPostFrame, since that occurs after GameMovement::ProcessMove which
 		// lets the ladder code unset this flag.
-		m_bPlayUseDenySound = true;
+		if (!PerformingDeferredAction())
+			m_bPlayUseDenySound = true;
 	}
 
 	// Debounce the use key
@@ -4155,7 +4472,8 @@ surfacedata_t *CHL2_Player::GetLadderSurface( const Vector &origin )
 //-----------------------------------------------------------------------------
 void CHL2_Player::PlayUseDenySound()
 {
-	m_bPlayUseDenySound = true;
+	if (!PerformingDeferredAction())
+		m_bPlayUseDenySound = true;
 }
 
 

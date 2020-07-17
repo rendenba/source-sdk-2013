@@ -21,6 +21,7 @@ enum
 	HISTSLOT_WEAP,
 	HISTSLOT_ITEM,
 	HISTSLOT_AMMODENIED,
+	HISTSLOT_ITEMDENIED,
 };
 
 namespace vgui
@@ -73,6 +74,7 @@ public:
 	void	AddToHistory( C_BaseCombatWeapon *weapon );
 	void	MsgFunc_ItemPickup( bf_read &msg );
 	void	MsgFunc_AmmoDenied( bf_read &msg );
+	void	MsgFunc_ItemDenied( bf_read &msg );
 	
 	void	CheckClearHistory( void );
 	void	SetHistoryGap( int iNewHistoryGap );

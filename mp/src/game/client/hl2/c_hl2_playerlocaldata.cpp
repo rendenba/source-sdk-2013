@@ -31,10 +31,13 @@ BEGIN_RECV_TABLE_NOBASE( C_HL2PlayerLocalData, DT_HL2Local )
 	RecvPropFloat( RECVINFO(covenIntellectCounter) ),
 	RecvPropInt( RECVINFO(covenCurrentPointsSpent) ),
 	RecvPropFloat( RECVINFO(covenGCD) ),
+	RecvPropFloat( RECVINFO(covenActionTimer) ),
+	RecvPropInt( RECVINFO(covenAction) ),
 	RecvPropArray3( RECVINFO_ARRAY(covenAbilities), RecvPropInt( RECVINFO(covenAbilities[0]))),
 	RecvPropArray3( RECVINFO_ARRAY(covenStatusTimers), RecvPropFloat( RECVINFO(covenStatusTimers[0]))),
 	RecvPropArray3( RECVINFO_ARRAY(covenCooldownTimers), RecvPropFloat( RECVINFO(covenCooldownTimers[0]))),
 	RecvPropArray3( RECVINFO_ARRAY(covenStatusMagnitude), RecvPropInt( RECVINFO(covenStatusMagnitude[0]))),
+	RecvPropArray3( RECVINFO_ARRAY(m_iItems), RecvPropInt( RECVINFO(m_iItems[0])) ),
 #ifdef HL2_EPISODIC
 	RecvPropFloat( RECVINFO(m_flFlashBattery) ),
 	RecvPropVector( RECVINFO(m_vecLocatorOrigin) ),
@@ -53,6 +56,8 @@ C_HL2PlayerLocalData::C_HL2PlayerLocalData()
 	covenConstitutionCounter = 0.0f;
 	covenIntellectCounter = 0.0f;
 	covenGCD = 0.0f;
+	covenActionTimer = 0.0f;
+	covenAction = (CovenDeferredAction_t)0;
 	m_flSuitPower = 0.0;
 	m_bZooming = false;
 	m_iSquadMemberCount = 0;

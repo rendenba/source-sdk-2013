@@ -17,6 +17,7 @@
 #include "haptics/haptic_utils.h"
 #ifdef CLIENT_DLL
 	#include "prediction.h"
+	#include "c_hl2mp_player.h"
 #endif
 // NVNT end extra includes
 
@@ -34,6 +35,7 @@
 
 #ifdef HL2MP
 	#include "hl2mp_gamerules.h"
+	#include "hl2mp_player.h"
 #endif
 
 #endif
@@ -1065,7 +1067,13 @@ void CBaseCombatWeapon::SetActivity( Activity act, float duration )
 		}
 		else
 		{
-			m_flPlaybackRate = 1.0;
+			CHL2MP_Player *pHL2MPOwner = ToHL2MPPlayer(GetOwner());
+			if (pHL2MPOwner == NULL)
+				return;
+			if (pHL2MPOwner->HasStatus(COVEN_STATUS_HASTE))
+				m_flPlaybackRate = 1.0f + (pHL2MPOwner->GetStatusMagnitude(COVEN_STATUS_HASTE) * 0.01f);
+			else
+				m_flPlaybackRate = 1.0f;
 		}
 	}
 }
@@ -1159,6 +1167,7 @@ float CBaseCombatWeapon::GetViewModelSequenceDuration()
 
 	SetViewModel();
 	Assert( vm->ViewModelIndex() == m_nViewModelIndex );
+
 	return vm->SequenceDuration();
 }
 
@@ -1402,6 +1411,30 @@ bool CBaseCombatWeapon::ReloadOrSwitchWeapons( void )
 	return false;
 }
 
+bool CBaseCombatWeapon::CheckDeferredAction(bool bCancel)
+{
+	CBasePlayer *pOwner = ToBasePlayer(GetOwner());
+	if (!pOwner)
+		return false;
+
+#ifndef CLIENT_DLL
+	CHL2_Player *pHL2Owner = ToHL2Player(pOwner);
+	if (pHL2Owner && pHL2Owner->PerformingDeferredAction())
+	{
+		if (bCancel)
+			pHL2Owner->CancelDeferredAction();
+		return true;
+	}
+#else
+	C_BaseHLPlayer *pPlayer = dynamic_cast<C_BaseHLPlayer *>(pOwner);
+	if (pPlayer && pPlayer->m_HL2Local.covenActionTimer > 0.0f)
+	{
+		return true;
+	}
+#endif
+	return false;
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 // Input  : *szViewModel - 
@@ -1425,7 +1458,11 @@ bool CBaseCombatWeapon::DefaultDeploy( char *szViewModel, char *szWeaponModel, i
 		// Dead men deploy no weapons
 		if ( pOwner->IsAlive() == false )
 			return false;
-
+#ifndef CLIENT_DLL
+		CHL2_Player *pHL2Owner = ToHL2Player(pOwner);
+		if (pHL2Owner && pHL2Owner->PerformingDeferredAction())
+			pHL2Owner->CancelDeferredAction();
+#endif
 		pOwner->SetAnimationExtension( szAnimExt );
 
 		SetViewModel();
@@ -1693,6 +1730,9 @@ void CBaseCombatWeapon::ItemPostFrame( void )
 		return;
 
 	UpdateAutoFire();
+
+	if (CheckDeferredAction())
+		m_bInReload = false;
 
 	//Track the duration of the fire
 	//FIXME: Check for IN_ATTACK2 as well?
@@ -2189,7 +2229,6 @@ void CBaseCombatWeapon::CheckReload( void )
 void CBaseCombatWeapon::FinishReload( void )
 {
 	CBaseCombatCharacter *pOwner = GetOwner();
-
 	if (pOwner)
 	{
 		// If I use primary clips, reload primary
@@ -2415,6 +2454,7 @@ bool CBaseCombatWeapon::SetIdealActivity( Activity ideal )
 
 	//Set the next time the weapon will idle
 	SetWeaponIdleTime( gpGlobals->curtime + SequenceDuration() );
+
 	return true;
 }
 

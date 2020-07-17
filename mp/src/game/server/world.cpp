@@ -31,6 +31,7 @@
 #include "engine/IStaticPropMgr.h"
 #include "particle_parse.h"
 #include "globalstate.h"
+#include "coven_parse.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -628,6 +629,11 @@ void CWorld::Precache( void )
 // the area based ambient sounds MUST be the first precache_sounds
 
 // player precaches     
+	PrecacheAbilities(filesystem);
+	PrecacheClasses(filesystem);
+	PrecacheStatusEffects(filesystem);
+	PrecacheBuildings(filesystem);
+	PrecacheItems(filesystem);
 	W_Precache ();									// get weapon precaches
 	ClientPrecache();
 	g_pGameRules->Precache();

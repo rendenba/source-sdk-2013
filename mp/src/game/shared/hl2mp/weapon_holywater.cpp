@@ -54,6 +54,7 @@ public:
 	void	SecondaryAttack(void);
 	void	DecrementAmmo(CBaseCombatCharacter *pOwner);
 	void	ItemPostFrame(void);
+	virtual bool CanFire();
 
 	bool	Deploy(void);
 	bool	Holster(CBaseCombatWeapon *pSwitchingTo = NULL);
@@ -65,7 +66,7 @@ public:
 #endif
 
 	void	ThrowGrenade(CBasePlayer *pPlayer);
-	bool	IsPrimed(bool) { return (m_AttackPaused != 0); }
+	bool	IsPrimed(void) { return (m_AttackPaused != 0); }
 
 private:
 
@@ -148,6 +149,11 @@ void CWeaponHolywater::Precache(void)
 
 	PrecacheScriptSound("WeaponFrag.Throw");
 	PrecacheScriptSound("WeaponFrag.Roll");
+}
+
+bool CWeaponHolywater::CanFire()
+{
+	return !IsPrimed();
 }
 
 #ifndef CLIENT_DLL
@@ -319,6 +325,17 @@ void CWeaponHolywater::PrimaryAttack(void)
 	if (!HasPrimaryAmmo())
 	{
 		pPlayer->SwitchToNextBestWeapon(this);
+	}
+}
+
+void DropPrimedHolyWaterGrenade(CHL2MP_Player *pPlayer, CBaseCombatWeapon *pGrenade)
+{
+	CWeaponHolywater *pWeaponHW = dynamic_cast<CWeaponHolywater*>(pGrenade);
+
+	if (pWeaponHW)
+	{
+		pWeaponHW->ThrowGrenade(pPlayer);
+		pWeaponHW->DecrementAmmo(pPlayer);
 	}
 }
 

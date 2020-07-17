@@ -117,7 +117,7 @@ CItem::CItem()
 {
 	m_bActivateWhenAtRest = false;
 	m_vOriginalSpawnOrigin = vec3_origin;
-	creator = NULL;
+	m_iCount = 0;
 }
 
 bool CItem::CreateItemVPhysicsObject( void )

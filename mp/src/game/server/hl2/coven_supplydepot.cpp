@@ -43,6 +43,14 @@ void CCoven_SupplyDepot::Spawn(void)
 			pEnt->SetAbsOrigin(src);
 			pEnt->Spawn();
 			pEnt->ChangeTeam(COVEN_TEAMID_SLAYERS);
+
+			pEnt = CreateEntityByName("npc_depot_pills");
+			src = origin + Vector(12.272559, -3.312744, -7.5);
+			VectorRotate2DPoint(src, origin, angles.y, &src);
+			pEnt->SetAbsAngles(angles + QAngle(0, 80, 0));
+			pEnt->SetAbsOrigin(src);
+			pEnt->Spawn();
+			pEnt->ChangeTeam(COVEN_TEAMID_SLAYERS);
 			break;
 		}
 		case COVEN_SUPPLYDEPOT_TYPE_TWO:

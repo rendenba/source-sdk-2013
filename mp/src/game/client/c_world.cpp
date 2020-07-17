@@ -179,6 +179,11 @@ void Building_Precache(void)
 	PrecacheBuildings(filesystem);
 }
 
+void Item_Precache(void)
+{
+	PrecacheItems(filesystem);
+}
+
 void C_World::Precache( void )
 {
 	// UNDONE: Make most of these things server systems or precache_registers
@@ -191,11 +196,12 @@ void C_World::Precache( void )
 	RegisterSharedActivities();
 
 	// Get weapon precaches
-	W_Precache();	
 	Abil_Precache();
 	Class_Precache();
 	Status_Precache();
 	Building_Precache();
+	Item_Precache();
+	W_Precache();
 
 	// Call all registered precachers.
 	CPrecacheRegister::Precache();

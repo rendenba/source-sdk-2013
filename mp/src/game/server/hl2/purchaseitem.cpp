@@ -4,7 +4,7 @@
 
 CPurchaseItem::CPurchaseItem()
 {
-	iItemType = COVEN_ITEM_NONE;
+	iItemType = COVEN_ITEM_INVALID;
 }
 
 void CPurchaseItem::Spawn(void)
@@ -22,7 +22,8 @@ void CPurchaseItem::Use(CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE 
 	CBasePlayer *pPlayer = ToBasePlayer(pActivator);
 
 	if (pPlayer && pPlayer->GetTeamNumber() == GetTeamNumber())
-		PlayerUseItem(pPlayer);
+		if (!PlayerUseItem(pPlayer))
+			pPlayer->EmitSound("HL2Player.UseDeny");
 }
 
 bool CPurchaseItem::PlayerUseItem(CBasePlayer *pPlayer)
@@ -141,3 +142,24 @@ public:
 	}
 };
 LINK_ENTITY_TO_CLASS(npc_depot_medkit, CPurchaseItem_Medkit);
+
+/***************************************************************************************************************/
+class CPurchaseItem_Pills : public CPurchaseItem
+{
+public:
+	DECLARE_CLASS(CPurchaseItem_Pills, CPurchaseItem);
+
+	CPurchaseItem_Pills()
+	{
+		iItemType = COVEN_ITEM_PILLS;
+	}
+	void Spawn(void)
+	{
+		m_BuildingType = BUILDING_PURCHASE_PILLS;
+		Precache();
+		CovenBuildingInfo_t *bldgInfo = GetCovenBuildingData(m_BuildingType);
+		SetModel(bldgInfo->szModelName);
+		BaseClass::Spawn();
+	}
+};
+LINK_ENTITY_TO_CLASS(npc_depot_pills, CPurchaseItem_Pills);

@@ -45,8 +45,6 @@ public:
 
 	CItem();
 
-	CBaseEntity *creator;
-
 	virtual void Spawn( void );
 	virtual void Precache();
 
@@ -78,6 +76,7 @@ public:
 	void	SetOriginalSpawnAngles( const QAngle& angles ) { m_vOriginalSpawnAngles = angles; }
 	bool	CreateItemVPhysicsObject( void );
 	virtual bool	ItemCanBeTouchedByPlayer( CBasePlayer *pPlayer );
+	void	SetCount(int iCount) { m_iCount = iCount; }
 
 #if defined( HL2MP ) || defined( TF_DLL )
 	void	UpdateOnRemove(void);
@@ -90,9 +89,10 @@ public:
 protected:
 	virtual void ComeToRest( void );
 	bool		m_bActivateWhenAtRest;
+	int			m_iCount;
 
 private:
-	
+
 	COutputEvent m_OnPlayerTouch;
 	COutputEvent m_OnCacheInteraction;
 	
