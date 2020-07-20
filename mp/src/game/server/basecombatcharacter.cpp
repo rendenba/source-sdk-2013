@@ -2552,7 +2552,7 @@ int CBaseCombatCharacter::OnTakeDamage( const CTakeDamageInfo &info )
 					{
 						((CRagdollProp *)myServerRagdoll)->myBody = this;
 						((CRagdollProp *)myServerRagdoll)->block = true;
-						((CRagdollProp *)myServerRagdoll)->team = COVEN_TEAMID_VAMPIRES;
+						((CRagdollProp *)myServerRagdoll)->ChangeTeam(COVEN_TEAMID_VAMPIRES);
 						((CHL2MP_Player *)this)->m_hRagdoll = myServerRagdoll;
 					}
 					AddEffects(EF_NODRAW);
@@ -2579,8 +2579,8 @@ int CBaseCombatCharacter::OnTakeDamage( const CTakeDamageInfo &info )
 						((CHL2MP_Player *)this)->m_hRagdoll = myServerRagdoll;
 						((CRagdollProp *)myServerRagdoll)->flClearTime = gpGlobals->curtime + 60.0f;
 						((CRagdollProp *)myServerRagdoll)->block = false;
-						((CRagdollProp *)myServerRagdoll)->team = COVEN_TEAMID_SLAYERS;
-						HL2MPRules()->AddDoll(myServerRagdoll);
+						((CRagdollProp *)myServerRagdoll)->ChangeTeam(COVEN_TEAMID_SLAYERS);
+						((CRagdollProp *)myServerRagdoll)->iSlot = HL2MPRules()->AddDoll(myServerRagdoll);
 					}
 				}
 

@@ -54,6 +54,7 @@ public:
 	int		covenStatusMagnitude[COVEN_STATUS_COUNT];
 	float	covenCooldownTimers[COVEN_MAX_ABILITIES];
 	int		m_iItems[COVEN_ITEM_COUNT];
+	int		m_iDollHP[COVEN_MAX_RAGDOLLS];
 #ifdef HL2_EPISODIC
 	float	m_flFlashBattery;
 	Vector	m_vecLocatorOrigin;

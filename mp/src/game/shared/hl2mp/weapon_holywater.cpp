@@ -55,6 +55,7 @@ public:
 	void	DecrementAmmo(CBaseCombatCharacter *pOwner);
 	void	ItemPostFrame(void);
 	virtual bool CanFire();
+	virtual bool IsGrenade() const { return true; }
 
 	bool	Deploy(void);
 	bool	Holster(CBaseCombatWeapon *pSwitchingTo = NULL);

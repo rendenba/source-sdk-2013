@@ -67,6 +67,7 @@ extern ConVar sv_coven_mana_per_int;
 extern ConVar sv_coven_manachargerate;
 extern ConVar sv_coven_hp_per_con;
 extern ConVar sv_coven_gcd;
+extern ConVar sv_coven_hp_per_ragdoll;
 
 // Do not touch with without seeing me, please! (sjb)
 // For consistency's sake, enemy gunfire is traced against a scaled down
@@ -511,7 +512,7 @@ bool CHL2_Player::UseCovenItem(CovenItemID_t iItemType)
 	if (HL2MPRules()->CanUseCovenItem(this, iItemType))
 	{
 		CovenItemInfo_t *info = GetCovenItemData(iItemType);
-		if (PerformingDeferredAction())
+		if (IsPerformingDeferredAction())
 			CancelDeferredAction();
 		if (info->flUseTime > 0.0f)
 		{
@@ -578,7 +579,7 @@ void CHL2_Player::CancelDeferredAction(void)
 	ComputeSpeed();
 }
 
-bool CHL2_Player::PerformingDeferredAction(void)
+bool CHL2_Player::IsPerformingDeferredAction(void)
 {
 	return m_HL2Local.covenActionTimer > 0.0f;
 }
@@ -874,7 +875,7 @@ void CHL2_Player::HandleStatus(CovenStatus_t iStatusNum)
 			case COVEN_STATUS_STUN:
 			{
 				AddFlag(FL_FROZEN);
-				if (PerformingDeferredAction())
+				if (IsPerformingDeferredAction())
 					CancelDeferredAction();
 				break;
 			}
@@ -1010,6 +1011,54 @@ void CHL2_Player::ResetVitals(void)
 void CHL2_Player::TriggerGCD(void)
 {
 	m_HL2Local.covenGCD = gpGlobals->curtime + sv_coven_gcd.GetFloat();
+}
+
+void CHL2_Player::ResetFedHP(int iIndex)
+{
+	m_HL2Local.m_iDollHP.Set(iIndex, 0);
+}
+
+int CHL2_Player::GetFedHP(int iIndex)
+{
+	return m_HL2Local.m_iDollHP[iIndex];
+}
+
+float CHL2_Player::Feed(int iIndex)
+{
+	if (iIndex < 0 || iIndex >= COVEN_MAX_RAGDOLLS)
+		return 0.0f;
+
+	int temp = min(0.05f * GetMaxHealth(), sv_coven_hp_per_ragdoll.GetInt() - m_HL2Local.m_iDollHP[iIndex]);
+	int xp = 0;
+	//BB: Coven GORGE implementation
+	if (HasAbility(COVEN_ABILITY_GORGE))
+	{
+		int newmax = GetMaxHealth() * 1.3f;
+		temp = min(0.04f * GetMaxHealth(), sv_coven_hp_per_ragdoll.GetInt() - m_HL2Local.m_iDollHP[iIndex]);
+		if (GetHealth() + temp <= newmax)
+			SetHealth(GetHealth() + temp);
+		else
+		{
+			SetHealth(newmax);
+			temp = 0;
+		}
+
+	}
+	else
+		temp = TakeHealth(temp, DMG_GENERIC);
+
+	if (temp == 0)
+		xp = min(0.04f * GetXPCap(), sv_coven_hp_per_ragdoll.GetInt() - m_HL2Local.m_iDollHP[iIndex]);
+	if (xp > 0)
+		GiveXP(xp);
+	if (temp > 0 || xp > 0)
+		EmitSound("Vampire.Regen");
+
+	float feedval = (float)(temp + xp);
+
+	m_HL2Local.m_iDollHP.Set(iIndex, m_HL2Local.m_iDollHP[iIndex] + feedval);
+
+	return feedval;
 }
 
 //Still positive for removal!
@@ -2052,7 +2101,7 @@ void CHL2_Player::ComputeSpeed( void )
 
 	float factor = 1.0f;
 
-	if (PerformingDeferredAction())
+	if (IsPerformingDeferredAction())
 		factor = 0.5f;
 
 	if (gorephased)
@@ -3792,7 +3841,7 @@ void CHL2_Player::PlayerUse ( void )
 		// Signal that we want to play the deny sound, unless the user is +USEing on a ladder!
 		// The sound is emitted in ItemPostFrame, since that occurs after GameMovement::ProcessMove which
 		// lets the ladder code unset this flag.
-		if (!PerformingDeferredAction())
+		if (!IsPerformingDeferredAction())
 			m_bPlayUseDenySound = true;
 	}
 
@@ -4467,12 +4516,21 @@ surfacedata_t *CHL2_Player::GetLadderSurface( const Vector &origin )
 	return BaseClass::GetLadderSurface(origin);
 }
 
+bool CHL2_Player::IsReloading(void)
+{
+	CBaseCombatWeapon *pWeap = GetActiveWeapon();
+	if (pWeap)
+		return pWeap->IsReloading();
+
+	return false;
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: Queues up a use deny sound, played in ItemPostFrame.
 //-----------------------------------------------------------------------------
 void CHL2_Player::PlayUseDenySound()
 {
-	if (!PerformingDeferredAction())
+	if (!IsPerformingDeferredAction())
 		m_bPlayUseDenySound = true;
 }
 

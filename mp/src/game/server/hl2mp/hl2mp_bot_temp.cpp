@@ -28,6 +28,7 @@ ConVar bot_debug("bot_debug", "2", 0, "Selected entindex bot to debug.");
 ConVar bot_debug_visual("bot_debug_visual", "0", 0, "Debug coven bots visually.");
 
 extern ConVar sv_coven_refuel_distance;
+extern ConVar sv_coven_hp_per_ragdoll;
 
 //BB: BOTS!
 //#ifdef DEBUG
@@ -75,6 +76,8 @@ typedef enum
 	BOT_OBJECTIVE_CTS,
 	BOT_OBJECTIVE_GET_GAS,
 	BOT_OBJECTIVE_RETURN_TO_APC,
+	BOT_OBJECTIVE_FEED,
+	BOT_OBJECTIVE_BUILD,
 	BOT_OBJECTIVE_COUNT
 } BotObjective_t;
 
@@ -155,10 +158,13 @@ typedef struct
 	bool			bIgnoreZ;
 	bool			bVisCheck;
 	float			m_flBaseSpeed;
+	bool			bNotIgnoringStrikes;
 
 	BotObjective_t	m_objectiveType;
 	int				m_objective; //index
 	int				m_lastCheckedObjective;
+
+	int				m_lastCheckedRagdoll;
 
 	int				m_lastCheckedItem;
 	Vector			m_vItemLKP;
@@ -363,6 +369,8 @@ CBasePlayer *BotPutInServer(bool bFrozen, CovenTeamID_t iTeam)
 		g_BotData[pPlayer->entindex() - 1].m_bHasNotPurchasedItems = true;
 		g_BotData[pPlayer->entindex() - 1].m_lastCheckedItem = 0;
 		g_BotData[pPlayer->entindex() - 1].m_vItemLKP.Init();
+		g_BotData[pPlayer->entindex() - 1].m_lastCheckedRagdoll = 0;
+		g_BotData[pPlayer->entindex() - 1].bNotIgnoringStrikes = true;
 
 
 		Set_Bot_Base_Velocity(pPlayer);
@@ -394,7 +402,11 @@ const Vector *CurrentObjectiveLoc( CHL2MP_Player *pBot )
 	{
 		return &pRules->pAPC->GetAbsOrigin();
 	}
-	else //ROGUE
+	else if (botdata->m_objectiveType == BOT_OBJECTIVE_FEED)
+	{
+		return &botdata->m_vObjectiveLKP;
+	}
+	else //BOT_OBJECTIVE_ROGUE
 	{
 		if (botdata->m_objective > 0)
 			ret = &pRules->pBotNet[botdata->m_objective]->location;
@@ -439,6 +451,7 @@ void GetLost( CHL2MP_Player *pBot, bool iZ, bool visCheck )
 	botdata->goWild = 0.0f;
 	botdata->m_flReactionTime = -1.0f;
 	botdata->alreadyReacted = false;
+	botdata->bNotIgnoringStrikes = true;
 
 	botdata->m_lastNodeProbe = 0;
 }
@@ -460,7 +473,7 @@ void CheckItem(CHL2MP_Player *pBot)
 	if (botdata->m_pOverridePos == NULL)
 	{
 		botdata->m_lastCheckedItem++;
-		if (botdata->m_lastCheckedItem > hItems->Count())
+		if (botdata->m_lastCheckedItem >= hItems->Count())
 			botdata->m_lastCheckedItem = 0;
 
 		if ((*hItems)[botdata->m_lastCheckedItem] != NULL && !(*hItems)[botdata->m_lastCheckedItem]->IsEffectActive(EF_NODRAW))
@@ -580,6 +593,22 @@ bool CheckObjective( CHL2MP_Player *pBot, bool doValidityCheck, unsigned int *bu
 		else //BOT_OBJECTIVE_ROGUE
 		{
 			botdata->m_objective = random->RandomInt(1, pRules->bot_node_count - 1);
+		}
+	}
+
+	if (botdata->m_objectiveType == BOT_OBJECTIVE_FEED)
+	{
+		if (pRules->doll_collector[botdata->m_lastCheckedRagdoll] == NULL || pBot->GetFedHP(botdata->m_lastCheckedRagdoll) >= sv_coven_hp_per_ragdoll.GetInt())
+		{
+			if (botdata->m_pOverridePos == &botdata->m_vObjectiveLKP)
+			{
+				botdata->m_pOverridePos = NULL;
+				GetLost(pBot);
+			}
+		}
+		else
+		{
+			botdata->m_vObjectiveLKP = pRules->doll_collector[botdata->m_lastCheckedRagdoll]->GetAbsOrigin();
 		}
 	}
 	
@@ -721,7 +750,7 @@ bool CheckObjective( CHL2MP_Player *pBot, bool doValidityCheck, unsigned int *bu
 #endif
 				if (tr.fraction < 0.3f)
 				{
-					if (buttons && gpGlobals->curtime > botdata->nextusetime && !pBot->PerformingDeferredAction())
+					if (buttons && gpGlobals->curtime > botdata->nextusetime && !pBot->IsPerformingDeferredAction())
 					{
 						(*buttons) |= IN_USE;
 						botdata->m_pOverridePos = NULL;
@@ -829,11 +858,17 @@ unsigned int WeaponCheck(CHL2MP_Player *pBot)
 						else
 						{
 							if (pHolyWater && pHolyWater->HasAmmo() && botdata->m_flLastCombatDist >= 350.0f && botdata->m_flLastCombatDist < 500.0f)
+							{
 								pBot->Weapon_Switch(pHolyWater);
+							}
 							else if (pFrag && pFrag->HasAmmo() && botdata->m_flLastCombatDist >= 550.0f)
+							{
 								pBot->Weapon_Switch(pFrag);
+							}
 							else if (pStunFrag && pStunFrag->HasAmmo() && botdata->m_flLastCombatDist >= 550.0f)
+							{
 								pBot->Weapon_Switch(pStunFrag);
+							}
 							else
 							{
 								if (!pActiveWeapon->CanFire())
@@ -848,23 +883,26 @@ unsigned int WeaponCheck(CHL2MP_Player *pBot)
 		}
 		else
 		{
-			CBaseCombatWeapon *pStake = pBot->Weapon_OwnsThisType("weapon_stake");
-			if (pStake)
+			if (!pBot->IsPerformingDeferredAction())
 			{
-				CBaseCombatWeapon *pActiveWeapon = pBot->GetActiveWeapon();
-				if (pActiveWeapon == pStake)
+				CBaseCombatWeapon *pStake = pBot->Weapon_OwnsThisType("weapon_stake");
+				if (pStake)
 				{
-					pBot->SwitchToNextBestWeapon(pStake);
-				}
-				else if (pActiveWeapon != pStake && pActiveWeapon->HasAmmo())
-				{
-					if (pActiveWeapon->NeedsReload1())
+					CBaseCombatWeapon *pActiveWeapon = pBot->GetActiveWeapon();
+					if (pActiveWeapon == pStake)
 					{
-						return IN_RELOAD;
+						pBot->SwitchToNextBestWeapon(pStake);
 					}
+					else if (pActiveWeapon != pStake && pActiveWeapon->HasAmmo())
+					{
+						if (pActiveWeapon->NeedsReload1())
+						{
+							return IN_RELOAD;
+						}
+					}
+					else
+						pBot->Weapon_Switch(pStake);
 				}
-				else
-					pBot->Weapon_Switch(pStake);
 			}
 		}
 		
@@ -890,27 +928,64 @@ void HealthCheck(CHL2MP_Player *pBot)
 
 	if (pBot->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
 	{
-		
+		if (!botdata->bCombat)
+		{
+			CHL2MPRules *pRules = HL2MPRules();
+			if (pRules)
+			{
+				if (botdata->m_objectiveType != BOT_OBJECTIVE_FEED && botdata->m_pOverridePos == NULL)
+				{
+					botdata->m_lastCheckedRagdoll++;
+					if (botdata->m_lastCheckedRagdoll >= COVEN_MAX_RAGDOLLS)
+						botdata->m_lastCheckedRagdoll = 0;
+
+					if (pRules->doll_collector[botdata->m_lastCheckedRagdoll] != NULL && pBot->GetFedHP(botdata->m_lastCheckedRagdoll) < sv_coven_hp_per_ragdoll.GetInt())
+					{
+						float distance = FLT_MAX;
+						botdata->m_vObjectiveLKP = pRules->doll_collector[botdata->m_lastCheckedRagdoll]->GetAbsOrigin();
+						distance = (botdata->m_vObjectiveLKP - pBot->GetLocalOrigin()).Length();
+						if (distance <= 300.0f)
+						{
+							trace_t tr;
+							UTIL_TraceLine(pBot->EyePosition(), botdata->m_vObjectiveLKP, MASK_SHOT, pBot, COLLISION_GROUP_WEAPON, &tr);
+							if (tr.DidHitNonWorldEntity() && tr.m_pEnt == pRules->doll_collector[botdata->m_lastCheckedRagdoll])
+							{
+								botdata->m_pOverridePos = &botdata->m_vObjectiveLKP;
+								botdata->m_objectiveType = BOT_OBJECTIVE_FEED;
+							}
+						}
+					}
+				}
+				if (pRules->doll_collector[botdata->m_lastCheckedRagdoll] == NULL || pBot->GetFedHP(botdata->m_lastCheckedRagdoll) >= sv_coven_hp_per_ragdoll.GetInt())
+				{
+					if (botdata->m_pOverridePos == &botdata->m_vObjectiveLKP)
+					{
+						botdata->m_pOverridePos = NULL;
+						GetLost(pBot);
+					}
+				}
+			}
+		}
 	}
 	else //Slayers
 	{
 		if (!botdata->bCombat)
 		{
-			if (pBot->HasMedkit() && !pBot->PerformingDeferredAction())
+			if (pBot->HasMedkit() && !pBot->IsPerformingDeferredAction() && !pBot->IsReloading())
 			{
 				CovenItemInfo_t *info = GetCovenItemData(COVEN_ITEM_MEDKIT);
 				int iMissingHP = pBot->GetMaxHealth() - pBot->GetHealth();
 				if (iMissingHP >= info->iMagnitude)
 					pBot->UseCovenItem(COVEN_ITEM_MEDKIT);
 			}
-			if (pBot->HasPills() && !pBot->PerformingDeferredAction())
+			if (pBot->HasPills() && !pBot->IsPerformingDeferredAction() && !pBot->IsReloading())
 			{
 				CovenItemInfo_t *info = GetCovenItemData(COVEN_ITEM_PILLS);
 				if (!pBot->HasStatus(COVEN_STATUS_HASTE) || (pBot->GetStatusTime(COVEN_STATUS_HASTE) < (info->flUseTime * 1.1f) && pBot->GetStatusMagnitude(COVEN_STATUS_HASTE) < info->flMaximum))
 					pBot->UseCovenItem(COVEN_ITEM_PILLS);
 			}
 		}
-		else if (!pBot->PerformingDeferredAction())
+		else if (!pBot->IsPerformingDeferredAction())
 		{
 			CovenItemInfo_t *info = GetCovenItemData(COVEN_ITEM_STIMPACK);
 			int iMissingHP = pBot->GetMaxHealth() - pBot->GetHealth();
@@ -1777,7 +1852,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 	PlayerCheck(pBot);
 
 	//Refuel Check
-	if (pBot->PerformingDeferredAction())
+	if (pBot->IsPerformingDeferredAction())
 	{
 		if (botdata->bCombat)
 			pBot->CancelDeferredAction();
@@ -1836,7 +1911,9 @@ void Bot_Think( CHL2MP_Player *pBot )
 		float flMinDistance;
 		if (botdata->m_objectiveType == BOT_OBJECTIVE_CAPPOINT)
 			flMinDistance = pRules->cap_point_distance[botdata->m_objective];
-		else //ROGUE
+		else if (botdata->m_objectiveType == BOT_OBJECTIVE_FEED)
+			flMinDistance = 75.0f;
+		else //BOT_OBJECTIVE_ROGUE
 			flMinDistance = BOT_NODE_TOLERANCE;
 		//reached objective
 		if (objLoc && (*objLoc - pBot->GetLocalOrigin()).Length() < flMinDistance && !botdata->bCombat)
@@ -1873,10 +1950,34 @@ void Bot_Think( CHL2MP_Player *pBot )
 					}
 				}
 			}
-			else //ROGUE
+			else if (botdata->m_objectiveType == BOT_OBJECTIVE_FEED)
+			{
+				if (pRules->doll_collector[botdata->m_lastCheckedRagdoll] == NULL || pBot->GetFedHP(botdata->m_lastCheckedRagdoll) >= sv_coven_hp_per_ragdoll.GetInt())
+				{
+					if (botdata->m_pOverridePos == &botdata->m_vObjectiveLKP)
+					{
+						botdata->m_pOverridePos = NULL;
+						GetLost(pBot);
+					}
+				}
+				else
+				{
+					botdata->m_vObjectiveLKP = pRules->doll_collector[botdata->m_lastCheckedRagdoll]->GetAbsOrigin();
+					botdata->bNotIgnoringStrikes = false;
+					buttons |= (IN_USE | IN_DUCK);
+				}
+			}
+			else //BOT_OBJECTIVE_ROGUE
 			{
 				GetLost(pBot);
 				botdata->bGuarding = false;
+			}
+		}
+		else
+		{
+			if (botdata->m_objectiveType == BOT_OBJECTIVE_FEED)
+			{
+				botdata->bNotIgnoringStrikes = true;
 			}
 		}
 		//reached node
@@ -1887,7 +1988,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 		}
 		else if (!botdata->bLost && botdata->guardTimer == 0.0f)
 		{
-			if (gpGlobals->curtime > botdata->flTimeout)
+			if (gpGlobals->curtime > botdata->flTimeout && botdata->bNotIgnoringStrikes)
 			{
 #ifdef DEBUG_BOTS
 				if (bot_debug.GetInt() == pBot->entindex())
@@ -1919,9 +2020,12 @@ void Bot_Think( CHL2MP_Player *pBot )
 		}
 	}
 
-	//Forward momentum calc
-	forwardmove = Bot_Velocity(pBot);
-	buttons |= botdata->backwards ? IN_BACK : IN_FORWARD; //freaking WAT. okay HL2 ladders...
+	if (botdata->bNotIgnoringStrikes)
+	{
+		//Forward momentum calc
+		forwardmove = Bot_Velocity(pBot);
+		buttons |= botdata->backwards ? IN_BACK : IN_FORWARD; //freaking WAT. okay HL2 ladders...
+	}
 
 	//Actual movement calcs
 	if (pBot->IsAlive() && (pBot->GetSolid() == SOLID_BBOX) && !pBot->IsEFlagSet(EFL_BOT_FROZEN))
@@ -1983,7 +2087,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 				if (!isVampDoll)
 				{
 					UTIL_TraceLine(pBot->EyePosition(), pPlayer->GetPlayerMidPoint(), MASK_SHOT, pBot, COLLISION_GROUP_PLAYER, &trace);
-					float attackDot = pBot->GetTeamNumber() == COVEN_TEAMID_VAMPIRES ? DOT_45DEGREE : BOT_ATTACK_DOT_STRICT;
+					float attackDot = pBot->GetTeamNumber() == COVEN_TEAMID_VAMPIRES ? DOT_45DEGREE : pBot->GetActiveWeapon()->IsGrenade() ? DOT_25DEGREE : BOT_ATTACK_DOT_STRICT;
 					if ((trace.DidHitNonWorldEntity() || trace.fraction == 1.0f) && (botdata->m_lastPlayerDot > attackDot || !pPlayer->IsPlayer()))
 					{
 						bool bSwing = true;
@@ -2161,7 +2265,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 			{
 				if (botdata->m_pOverridePos != NULL)
 				{
-					forward = *botdata->m_pOverridePos - pBot->GetLocalOrigin();
+					forward = *botdata->m_pOverridePos - pBot->EyePosition();
 					VectorAngles(forward, botdata->objectiveAngle);
 				}
 				else if (botdata->m_targetNode >= 0 && pRules->pBotNet[botdata->m_targetNode] != NULL)
@@ -2177,7 +2281,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 			}
 			else //guardtimer is set, slowly rotate and crouch
 			{
-				//Don't try to cap and already capped point
+				//Don't try to cap an already capped point
 				if (CheckObjective(pBot, true))
 				{
 					if (botdata->bGuarding)
@@ -2332,7 +2436,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 	pBot->SetLocalAngles(botdata->forwardAngle);
 
 	//Stuck calcs
-	if (!(pBot->GetFlags() & FL_FROZEN) && !(pBot->GetEFlags() & EFL_BOT_FROZEN))
+	if (!(pBot->GetFlags() & FL_FROZEN) && !(pBot->GetEFlags() & EFL_BOT_FROZEN) && botdata->bNotIgnoringStrikes)
 	{
 		float velocity = 0.0f;
 		if (pBot->GetMoveType() == MOVETYPE_LADDER)

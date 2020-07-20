@@ -21,8 +21,8 @@ END_DATADESC()
 //-----------------------------------------------------------------------------
 void CCoven_AmmoCrate::Spawn(void)
 {
-	BaseClass::Spawn();
 	m_BuildingType = BUILDING_AMMOCRATE;
+	BaseClass::Spawn();
 	SetBodygroup(1, false);
 
 	ResetSequence(LookupSequence("Idle"));
@@ -255,10 +255,10 @@ void CCoven_AmmoCrate::HandleAnimEvent(animevent_t *pEvent)
 		bool didPickup = false;
 		bool didPickupMetal = false;
 		//BB: always prioritize owner->activator->everyone else
-		if (mOwner != NULL)
+		if (mOwner.Get() != NULL)
 		{
-			doPlayer[mOwner->entindex()] = false;
-			didPickup = GiveAmmo(mOwner->entindex(), didPickupMetal);
+			doPlayer[mOwner.Get()->entindex()] = false;
+			didPickup = GiveAmmo(mOwner.Get()->entindex(), didPickupMetal);
 		}
 		if (m_hActivator != NULL)
 		{

@@ -1411,6 +1411,11 @@ bool CBaseCombatWeapon::ReloadOrSwitchWeapons( void )
 	return false;
 }
 
+bool CBaseCombatWeapon::IsReloading(void)
+{
+	return m_bInReload;
+}
+
 bool CBaseCombatWeapon::CheckDeferredAction(bool bCancel)
 {
 	CBasePlayer *pOwner = ToBasePlayer(GetOwner());
@@ -1419,7 +1424,7 @@ bool CBaseCombatWeapon::CheckDeferredAction(bool bCancel)
 
 #ifndef CLIENT_DLL
 	CHL2_Player *pHL2Owner = ToHL2Player(pOwner);
-	if (pHL2Owner && pHL2Owner->PerformingDeferredAction())
+	if (pHL2Owner && pHL2Owner->IsPerformingDeferredAction())
 	{
 		if (bCancel)
 			pHL2Owner->CancelDeferredAction();
@@ -1460,7 +1465,7 @@ bool CBaseCombatWeapon::DefaultDeploy( char *szViewModel, char *szWeaponModel, i
 			return false;
 #ifndef CLIENT_DLL
 		CHL2_Player *pHL2Owner = ToHL2Player(pOwner);
-		if (pHL2Owner && pHL2Owner->PerformingDeferredAction())
+		if (pHL2Owner && pHL2Owner->IsPerformingDeferredAction())
 			pHL2Owner->CancelDeferredAction();
 #endif
 		pOwner->SetAnimationExtension( szAnimExt );

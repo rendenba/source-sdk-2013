@@ -113,7 +113,6 @@ public:
 	ragdoll_t *GetRagdoll( void ){ return &m_ragdoll; }
 };
 
-
 CRagdoll *CreateRagdoll( 
 	C_BaseEntity *ent, 
 	CStudioHdr *pstudiohdr, 

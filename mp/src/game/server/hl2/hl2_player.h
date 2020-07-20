@@ -352,6 +352,9 @@ public:
 	void ResetMaxHealth(void);
 	void ResetVitals(void);
 	void TriggerGCD(void);
+	virtual float Feed(int iIndex);
+	int GetFedHP(int iIndex);
+	void ResetFedHP(int iIndex);
 	void EmitLocalSound(const char *soundname);
 
 	void			ResetItems(void);
@@ -364,7 +367,8 @@ public:
 	bool			UseCovenItem(CovenItemID_t iItemType);
 	void			ActivateCovenItem(CovenItemID_t iItemType);
 	bool			PerformDeferredAction(CovenDeferredAction_t iAction = COVEN_ACTION_QUEUED);
-	bool			PerformingDeferredAction(void);
+	bool			IsPerformingDeferredAction(void);
+	bool			IsReloading(void);
 	bool			UseCancelAction(void);
 	void			CancelDeferredAction(void);
 	bool			DeferredActionComplete(void);

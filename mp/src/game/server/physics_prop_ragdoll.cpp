@@ -24,7 +24,7 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-ConVar sv_coven_hp_per_ragdoll("sv_coven_hp_per_ragdoll", "80.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "HP allowed per player to feed upon.");
+extern ConVar sv_coven_hp_per_ragdoll;
 
 //-----------------------------------------------------------------------------
 // Forward declarations
@@ -64,6 +64,7 @@ IMPLEMENT_SERVERCLASS_ST(CRagdollProp, DT_Ragdoll)
 	SendPropEHandle(SENDINFO( m_hUnragdoll ) ),
 	SendPropFloat(SENDINFO(m_flBlendWeight), 8, SPROP_ROUNDDOWN, 0.0f, 1.0f ),
 	SendPropInt(SENDINFO(m_nOverlaySequence), 11),
+	SendPropInt(SENDINFO(iSlot), 5, SPROP_UNSIGNED),
 END_SEND_TABLE()
 
 #define DEFINE_RAGDOLL_ELEMENT( i ) \
@@ -219,17 +220,15 @@ void CRagdollProp::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE 
 	// if it's not a player, ignore
 	if ( !pActivator->IsPlayer() )
 		return;
-	CHL2MP_Player *pPlayer = dynamic_cast<CHL2MP_Player *>(pActivator);
-	int index = pPlayer->GetClientIndex();
-	if (feedhp[index] >= sv_coven_hp_per_ragdoll.GetFloat())
+	CHL2MP_Player *pPlayer = ToHL2MPPlayer(pActivator);
+	if (pPlayer->GetFedHP(iSlot) >= sv_coven_hp_per_ragdoll.GetFloat())
 		return;
 
 	if (pPlayer->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
 	{
-		if (feedhp[index] <= sv_coven_hp_per_ragdoll.GetFloat())
+		if (pPlayer->GetFedHP(iSlot) <= sv_coven_hp_per_ragdoll.GetFloat())
 		{
-			float temp = pPlayer->Feed();
-			feedhp[index] += temp;
+			pPlayer->Feed(iSlot);
 			/*if (feedhp[index] >= COVEN_HP_PER_RAGDOLL)
 			{
 				flClearTime = gpGlobals->curtime + 4.5f;
@@ -314,6 +313,7 @@ CRagdollProp::CRagdollProp( void )
 	m_flDefaultFadeScale = 1;
 	block = true;
 	flClearTime = -1.0f;
+	iSlot = -1;
 }
 
 CRagdollProp::~CRagdollProp( void )
@@ -1342,9 +1342,7 @@ CBaseEntity *CreateServerRagdoll( CBaseAnimating *pAnimating, int forceBone, con
 	//BB: for some reason, THIS is what is preventing the owner of a ragdoll from interacting with it
 	//pRagdoll->SetOwnerEntity( pAnimating );
 	//BB: set up feeding
-	Q_memset(pRagdoll->feedhp, 0, sizeof(pRagdoll->feedhp));
 	pRagdoll->myBody = NULL;
-	pRagdoll->team = 0;
 	pRagdoll->m_iCaps	= FCAP_CONTINUOUS_USE;
 
 	pRagdoll->InitRagdollAnimation();

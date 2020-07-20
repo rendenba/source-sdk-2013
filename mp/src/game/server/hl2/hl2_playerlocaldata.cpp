@@ -41,6 +41,7 @@ BEGIN_SEND_TABLE_NOBASE( CHL2PlayerLocalData, DT_HL2Local )
 	SendPropArray3( SENDINFO_ARRAY3(covenCooldownTimers), SendPropFloat( SENDINFO_ARRAY(covenCooldownTimers), -1, SPROP_NOSCALE ) ),
 	SendPropArray3( SENDINFO_ARRAY3(covenStatusMagnitude), SendPropInt( SENDINFO_ARRAY(covenStatusMagnitude), 8, SPROP_UNSIGNED ) ),
 	SendPropArray3( SENDINFO_ARRAY3(m_iItems), SendPropInt(SENDINFO_ARRAY(m_iItems), 4, SPROP_UNSIGNED) ),
+	SendPropArray3( SENDINFO_ARRAY3(m_iDollHP), SendPropInt(SENDINFO_ARRAY(m_iDollHP), 8, SPROP_UNSIGNED) ),
 #ifdef HL2_EPISODIC
 	SendPropFloat( SENDINFO(m_flFlashBattery) ),
 	SendPropVector( SENDINFO(m_vecLocatorOrigin) ),

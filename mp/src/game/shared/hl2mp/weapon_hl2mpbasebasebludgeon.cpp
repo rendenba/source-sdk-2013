@@ -167,7 +167,7 @@ void CBaseHL2MPBludgeonWeapon::Hit( trace_t &traceHit, Activity nHitActivity )
 		if (pPlayer && pHitEntity->IsServerdoll())
 		{
 			//we have hit a ragdoll... see if it has an alive player
-			if (((CRagdollProp *)pHitEntity)->myBody != NULL && ((CRagdollProp *)pHitEntity)->team == COVEN_TEAMID_VAMPIRES)
+			if (((CRagdollProp *)pHitEntity)->myBody != NULL && ((CRagdollProp *)pHitEntity)->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
 			{
 				//kill the player
 				CTakeDamageInfo newinfo = info;

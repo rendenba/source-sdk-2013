@@ -292,6 +292,7 @@ public:
 
 	// returns true if we're currently being ragdolled
 	bool							IsRagdoll() const;
+	virtual bool					IsServerdoll() const { return false; };
 	bool							IsAboutToRagdoll() const;
 	virtual C_BaseAnimating			*BecomeRagdollOnClient();
 	C_BaseAnimating					*CreateRagdollCopy();

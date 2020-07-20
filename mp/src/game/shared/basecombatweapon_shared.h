@@ -261,6 +261,7 @@ public:
 	virtual bool			IsHolstered(){ return false; }
 	virtual void			Detach() {}
 	virtual bool			CheckDeferredAction(bool bCancel = false);
+	virtual bool			IsReloading(void);
 
 	// Weapon behaviour
 	virtual void			ItemPreFrame( void );					// called each frame by the player PreThink
@@ -274,6 +275,8 @@ public:
 	virtual bool			CanPerformSecondaryAttack() const;
 
 	virtual bool			ShouldBlockPrimaryFire() { return false; }
+
+	virtual bool			IsGrenade() const { return false; }
 
 #ifdef CLIENT_DLL
 	virtual void			CreateMove( float flInputSampleTime, CUserCmd *pCmd, const QAngle &vecOldViewAngles ) {}

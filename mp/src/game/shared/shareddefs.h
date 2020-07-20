@@ -400,6 +400,8 @@ enum PLAYER_ANIM
 //#define COVEN_DEVELOPER_MODE
 //#define DEBUG_BOTS
 
+#define COVEN_MAX_RAGDOLLS 20
+
 typedef enum
 {
 	COVEN_GAMEMODE_NONE,

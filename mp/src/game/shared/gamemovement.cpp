@@ -2418,7 +2418,7 @@ bool CGameMovement::CheckJumpButton( void )
 
 #ifndef CLIENT_DLL
 	CHL2_Player *pHL2Player = ToHL2Player(player);
-	if (pHL2Player && pHL2Player->PerformingDeferredAction())
+	if (pHL2Player && pHL2Player->IsPerformingDeferredAction())
 #else
 	C_BaseHLPlayer *pHL2Player = dynamic_cast<C_BaseHLPlayer *>(player);
 	if (pHL2Player && pHL2Player->m_HL2Local.covenActionTimer > 0.0f)

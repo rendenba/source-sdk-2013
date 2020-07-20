@@ -83,8 +83,8 @@ public:
 
 	virtual bool	CheckLevel(void);
 
-	CHandle<CHL2_Player>	mOwner;
-	int m_iLevel;
+	CNetworkVar(EHANDLE, mOwner);
+	CNetworkVar(int, m_iLevel);
 	int m_iXP;
 	int m_iMaxXP;
 
@@ -105,6 +105,7 @@ private:
 	float									m_flTop;
 	bool									m_bGoneToSleep;
 	void									WakeUp(void);
+	float									m_flSparkTimer;
 
 protected:
 

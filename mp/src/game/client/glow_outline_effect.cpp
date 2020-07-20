@@ -109,14 +109,14 @@ void CGlowObjectManager::UpdateGlowEffectsVisibility(void)
 						{
 							if (bTraceCheck && m_GlowObjectDefinitions[i].m_bRenderWhenUnoccluded)
 							{
-								if (m_GlowObjectDefinitions[i].m_flGlowAlpha > 0.6f)
+								if (m_GlowObjectDefinitions[i].m_flGlowAlpha > 0.8f)
 								{
 									if (m_GlowObjectDefinitions[i].m_bPulsed)
 										m_GlowObjectDefinitions[i].m_flPulse = -gpGlobals->frametime / 2.0f;
 									else
 										m_GlowObjectDefinitions[i].m_flPulse = -gpGlobals->frametime * 3.0f;
 								}
-								else if (m_GlowObjectDefinitions[i].m_flGlowAlpha < 0.3f || m_GlowObjectDefinitions[i].m_flPulse == 0.0f)
+								else if (m_GlowObjectDefinitions[i].m_flGlowAlpha < 0.5f || m_GlowObjectDefinitions[i].m_flPulse == 0.0f)
 								{
 									m_GlowObjectDefinitions[i].m_bPulsed = true;
 									m_GlowObjectDefinitions[i].m_flPulse = gpGlobals->frametime / 2.0f;

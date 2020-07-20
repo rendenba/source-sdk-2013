@@ -64,7 +64,7 @@ ConVar sv_coven_minplayers("sv_coven_minplayers", "4", FCVAR_GAMEDLL | FCVAR_NOT
 ConVar sv_coven_freezetime("sv_coven_freezetime", "5", FCVAR_GAMEDLL | FCVAR_NOTIFY );//5
 ConVar sv_coven_usects("sv_coven_usects", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_coven_warmuptime("sv_coven_warmuptime", "20", FCVAR_GAMEDLL | FCVAR_NOTIFY );//10
-ConVar sv_coven_xp_slayerstart("sv_coven_xp_slayerstart", "10.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Slayer starting money.");
+ConVar sv_coven_xp_slayerstart("sv_coven_xp_slayerstart", "15.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Slayer starting money.");
 #endif
 ConVar sv_coven_roundtime("sv_coven_roundtime", "120", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Round time limit in seconds.");
 
@@ -78,7 +78,8 @@ ConVar sv_coven_xp_cappersec("sv_coven_xp_cappersec", "1.0", FCVAR_GAMEDLL | FCV
 ConVar sv_coven_pts_cappersec("sv_coven_pts_cappersec", "0.75", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_coven_pts_cts("sv_coven_pts_cts", "125", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_coven_pts_item("sv_coven_pts_item", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY);
-ConVar sv_coven_xp_item("sv_coven_xp_item", "10.0", FCVAR_GAMEDLL | FCVAR_NOTIFY);
+ConVar sv_coven_xp_item_slayer("sv_coven_xp_item_slayer", "10.0", FCVAR_GAMEDLL | FCVAR_NOTIFY);
+ConVar sv_coven_xp_item_vampire("sv_coven_xp_item_vampire", "15.0", FCVAR_GAMEDLL | FCVAR_NOTIFY);
 ConVar sv_coven_cts_returntime("sv_coven_cts_returntime", "16", FCVAR_GAMEDLL | FCVAR_NOTIFY);
 ConVar sv_coven_gas_returntime("sv_coven_gas_returntime", "60", FCVAR_GAMEDLL | FCVAR_NOTIFY);
 ConVar sv_coven_manachargerate("sv_coven_manachargerate", "5.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Intellect / X per second.");
@@ -111,6 +112,7 @@ ConVar sv_coven_gcd("sv_coven_gcd", "1.5", FCVAR_NOTIFY | FCVAR_REPLICATED);
 ConVar sv_coven_hp_per_con("sv_coven_hp_per_con", "4.0", FCVAR_NOTIFY | FCVAR_REPLICATED);
 ConVar sv_coven_alarm_time("sv_coven_alarm_time", "60.0", FCVAR_NOTIFY | FCVAR_REPLICATED, "APC alarm timer.");
 ConVar sv_coven_refuel_distance("sv_coven_refuel_distance", "250.0", FCVAR_NOTIFY | FCVAR_REPLICATED, "Distance before refuel cancels.");
+ConVar sv_coven_hp_per_ragdoll("sv_coven_hp_per_ragdoll", "100", FCVAR_NOTIFY | FCVAR_REPLICATED, "HP allowed per player to feed upon.");
 
 REGISTER_GAMERULES_CLASS( CHL2MPRules );
 
@@ -306,6 +308,9 @@ CHL2MPRules::CHL2MPRules()
 
 	s_caps = 0;
 	v_caps = 0;
+
+	Q_memset(doll_collector, 0, sizeof(doll_collector));
+	iCurrentDoll = 0;
 
 	covenActiveGameMode = COVEN_GAMEMODE_NONE;
 	covenGameState = COVEN_GAMESTATE_UNDEFINED;
@@ -629,7 +634,12 @@ void CHL2MPRules::GiveItemXP(int team, float overridexp)
 	//int n = 0;
 	//float avg = AverageLevel(team, n);
 	if (overridexp <= 0.0f)
-		overridexp = sv_coven_xp_item.GetFloat();
+	{
+		if (team == COVEN_TEAMID_VAMPIRES)
+			overridexp = sv_coven_xp_item_vampire.GetFloat();
+		else
+			overridexp = sv_coven_xp_item_slayer.GetFloat();
+	}
 	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
 		CHL2MP_Player *pPlayer = (CHL2MP_Player *)UTIL_PlayerByIndex( i );
@@ -1198,7 +1208,9 @@ void CHL2MPRules::FreezeAll(bool unfreeze)
 void CHL2MPRules::RestartRound(bool bFullReset)
 {
 #ifndef CLIENT_DLL
-	doll_collector.RemoveAll();
+	Q_memset(doll_collector, 0, sizeof(doll_collector));
+	iCurrentDoll = 0;
+
 	for (int i = 0; i < num_cap_points; i++)
 	{
 		cap_point_status.Set(i, 60);
@@ -2509,37 +2521,51 @@ CBaseCombatWeapon *CHL2MPRules::GetNextBestWeapon(CBaseCombatCharacter *pPlayer,
 }
 
 //BB: lets collect a doll
-void CHL2MPRules::AddDoll(CBaseEntity *doll)
+int CHL2MPRules::AddDoll(CBaseEntity *doll)
 {
-	if (doll_collector.Count() > 20)
+	int iCurrent = iCurrentDoll;
+
+	if (doll_collector[iCurrentDoll] != NULL)
+		UTIL_Remove(doll_collector[iCurrentDoll]);
+
+	for (int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
-		doll_collector.Remove(0);
+		CHL2MP_Player *pPlayer = (CHL2MP_Player*) UTIL_PlayerByIndex( i );
+		if (pPlayer)
+			pPlayer->ResetFedHP(iCurrentDoll);
 	}
-	doll_collector.AddToTail(doll);
+
+	doll_collector[iCurrentDoll] = doll;
+	iCurrentDoll++;
+	if (iCurrentDoll >= COVEN_MAX_RAGDOLLS)
+		iCurrentDoll = 0;
+
+	return iCurrent;
 }
 
 //BB: deal with dolls (think)
 void CHL2MPRules::DollCollectorThink()
 {
-	for (int i=0; i < doll_collector.Count(); i++)
+	for (int i=0; i < COVEN_MAX_RAGDOLLS; i++)
 	{
-		CBaseEntity *temp;
-		temp = doll_collector[i];
-		if (temp != NULL && ((CRagdollProp *)temp)->flClearTime > 0.0f)
+		if (doll_collector[i] == NULL)
+			continue;
+
+		if (((CRagdollProp *)doll_collector[i])->flClearTime > 0.0f)
 		{
-			if (gpGlobals->curtime > ((CRagdollProp *)temp)->flClearTime)
+			if (gpGlobals->curtime > ((CRagdollProp *)doll_collector[i])->flClearTime)
 			{
-				doll_collector.Remove(i);
-				UTIL_Remove(temp);
-				temp = NULL;
+				UTIL_Remove(doll_collector[i]);
+				doll_collector[i] = NULL;
 			}
 			else
 			{
-				if (temp->GetRenderMode() != kRenderTransTexture)
-					temp->SetRenderMode( kRenderTransTexture );
-				if (((CRagdollProp *)temp)->flClearTime - gpGlobals->curtime < 4.5f)
+				
+				if (((CRagdollProp *)doll_collector[i])->flClearTime - gpGlobals->curtime < 4.5f)
 				{
-					temp->SetRenderColorA(255.0f*(((CRagdollProp *)temp)->flClearTime - gpGlobals->curtime)/4.5f);
+					if (doll_collector[i]->GetRenderMode() != kRenderTransTexture)
+						doll_collector[i]->SetRenderMode( kRenderTransTexture );
+					doll_collector[i]->SetRenderColorA(255.0f*(((CRagdollProp *)doll_collector[i])->flClearTime - gpGlobals->curtime)/4.5f);
 				}
 			}
 		}

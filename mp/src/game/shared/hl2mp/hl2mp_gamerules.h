@@ -217,10 +217,11 @@ public:
 	float scoreTimer;
 	int last_verified_cap_point;
 
-	void AddDoll( CBaseEntity *doll );
+	int AddDoll( CBaseEntity *doll );
 	void DollCollectorThink( void );
 	//BB: my little doll collector
-	CUtlVector<CBaseEntity *> doll_collector;
+	CBaseEntity	*doll_collector[COVEN_MAX_RAGDOLLS];
+	int			iCurrentDoll;
 
 #endif
 	virtual void ClientDisconnected( edict_t *pClient );

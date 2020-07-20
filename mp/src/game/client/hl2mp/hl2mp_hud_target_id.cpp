@@ -15,6 +15,7 @@
 #include "hl2mp_gamerules.h"
 #include "purchaseitem_shared.h"
 #include "coven_parse.h"
+#include "c_serverragdoll.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -24,6 +25,11 @@
 
 static ConVar hud_centerid( "hud_centerid", "1" );
 static ConVar hud_showtargetid( "hud_showtargetid", "1" );
+
+
+extern ConVar sv_coven_hp_per_ragdoll;
+
+class C_ServerRagdoll;
 
 //-----------------------------------------------------------------------------
 // Purpose: 
@@ -44,7 +50,10 @@ private:
 
 	vgui::HFont		m_hFont;
 	int				m_iLastEntIndex;
-	CHandle<C_CovenBuilding> lastItem;
+	CHandle<CBaseAnimating>			lastGlowObject;
+	byte			m_GlowGoalColor;
+	byte			m_GlowColor;
+	float			m_flGlowTimer;
 	float			m_flLastChangeTime;
 };
 
@@ -64,7 +73,10 @@ CTargetID::CTargetID( const char *pElementName ) :
 	m_hFont = g_hFontTrebuchet24;
 	m_flLastChangeTime = 0;
 	m_iLastEntIndex = 0;
-	lastItem = NULL;
+	lastGlowObject = NULL;
+	m_GlowGoalColor = 255;
+	m_GlowColor = 255;
+	m_flGlowTimer = 0.0f;
 
 	SetHiddenBits( HIDEHUD_MISCSTATUS );
 }
@@ -120,10 +132,11 @@ void CTargetID::Paint()
 	// Get our target's ent index
 	int iEntIndex = pPlayer->GetIDTarget();
 
-	if (iEntIndex != m_iLastEntIndex && lastItem != NULL)
+	if (iEntIndex != m_iLastEntIndex && lastGlowObject != NULL)
 	{
-		lastItem->SetClientSideGlowEnabled(false);
-		lastItem = NULL;
+		lastGlowObject->SetClientSideGlowEnabled(false);
+		m_GlowColor = m_GlowGoalColor = 255;
+		lastGlowObject = NULL;
 	}
 
 	// Didn't find one?
@@ -176,7 +189,7 @@ void CTargetID::Paint()
 				bShowHealth = true;
 			}
 			//BB: we dont want to see name tags for stealthed people...
-			else if (pPlayer->m_floatCloakFactor > 0.0f && !((pPlayer->GetFlags() & EF_NODRAW) > 0))
+			else if (pPlayer->m_floatCloakFactor == 0.0f && !((pPlayer->GetFlags() & EF_NODRAW) > 0))
 			{
 				printFormatString = "#Playerid_diffteam";
 			}
@@ -185,28 +198,27 @@ void CTargetID::Paint()
 			if ( bShowHealth )
 			{
 				//BB: dont show the % sign in the health... we use HP not %... NOT ANY MORE!
-				_snwprintf( wszHealthText, ARRAYSIZE(wszHealthText) - 1, L"%.0f",  ((float)pPlayer->GetHealth() / (float)pPlayer->GetMaxHealth()*100.0f ) );
+				_snwprintf( wszHealthText, ARRAYSIZE(wszHealthText) - 1, L"%d / %d",  pPlayer->GetHealth(), pPlayer->GetMaxHealth());
 				wszHealthText[ ARRAYSIZE(wszHealthText)-1 ] = '\0';
 			}
 		}
 		else
 		{
-			CBaseEntity *pEnt = cl_entitylist->GetEnt(iEntIndex);
+			CBaseAnimating *pEnt = dynamic_cast<CBaseAnimating *>(cl_entitylist->GetEnt(iEntIndex));
 			if (pEnt != NULL)
 			{
-				C_BasePlayer *pLocalPlayer = C_BasePlayer::GetLocalPlayer();
+				CBasePlayer *pLocalPlayer = CBasePlayer::GetLocalPlayer();
 				if (pEnt->IsABuilding() && pEnt->GetTeamNumber() == pLocalPlayer->GetTeamNumber())
 				{
-					C_CovenBuilding *bldg = static_cast<C_CovenBuilding *>(pEnt);
+					CCovenBuilding *bldg = static_cast<CCovenBuilding *>(pEnt);
 					CovenBuildingInfo_t *info = GetCovenBuildingData(bldg->m_BuildingType);
-					c = GetColorForTargetTeam(pEnt->GetTeamNumber());
-					wchar_t wszBuildingName[MAX_PLAYER_NAME_LENGTH];
-					wchar_t wszCostText[4];
-					V_swprintf_safe(wszCostText, L"???");
-					V_swprintf_safe(wszBuildingName, L"%s", g_pVGuiLocalize->Find(info->szPrintName));
 					int cost = HL2MPRules()->CovenItemCost(bldg->m_BuildingType);
 					if (cost >= 0)
 					{
+						c = GetColorForTargetTeam(pEnt->GetTeamNumber());
+						wchar_t wszBuildingName[MAX_PLAYER_NAME_LENGTH];
+						wchar_t wszCostText[4];
+						V_swprintf_safe(wszBuildingName, L"%s", g_pVGuiLocalize->Find(info->szPrintName));
 						V_swprintf_safe(wszCostText, L"%d", cost);
 						if (!bldg->IsClientSideGlowEnabled())
 						{
@@ -216,9 +228,73 @@ void CTargetID::Paint()
 							clr.g = clr.a = 255;
 
 							bldg->ForceGlowEffect(clr, true, true, 750.0f);
-							lastItem = bldg;
+							lastGlowObject = bldg;
 						}
 						g_pVGuiLocalize->ConstructString(sIDString, sizeof(sIDString), g_pVGuiLocalize->Find("#ItemID"), 2, wszBuildingName, wszCostText);
+					}
+					else
+					{
+						CCovenBuilding *bldg = static_cast<CCovenBuilding *>(pEnt);
+						if (bldg->mOwner != NULL)
+						{
+							c = GetColorForTargetTeam(pEnt->GetTeamNumber());
+							wchar_t wszHealthString[MAX_PLAYER_NAME_LENGTH];
+							wchar_t wszLevelString[3];
+							V_swprintf_safe(wszHealthString, L"%d / %d", bldg->GetHealth(), bldg->GetMaxHealth());
+							V_swprintf_safe(wszLevelString, L"%d", bldg->m_iLevel + 1);
+							if (!bldg->IsClientSideGlowEnabled() && bldg->mOwner.Get() == pLocalPlayer)
+							{
+								bldg->SetClientSideGlowEnabled(true);
+								color32 clr;
+								clr.r = c.r();
+								clr.g = c.g();
+								clr.b = c.b();
+								clr.a = c.a();
+
+								bldg->ForceGlowEffect(clr, true, true, 750.0f);
+								lastGlowObject = bldg;
+							}
+							g_pVGuiLocalize->ConstructString(sIDString, sizeof(sIDString), g_pVGuiLocalize->Find("#BuildingID"), 2, wszLevelString, wszHealthString);
+						}
+					}
+				}
+				else if (pEnt->IsServerdoll() && pEnt->GetTeamNumber() != pLocalPlayer->GetTeamNumber() && pLocalPlayer->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+				{
+					C_BaseHLPlayer *pHL2Player = static_cast<C_BaseHLPlayer *>(pLocalPlayer);
+					C_ServerRagdoll *pDoll = static_cast<C_ServerRagdoll *>(pEnt);
+					int iLeft = sv_coven_hp_per_ragdoll.GetInt() - pHL2Player->m_HL2Local.m_iDollHP[pDoll->iSlot];
+					if (iLeft > 0)
+					{
+						wchar_t wszVitalityText[4];
+						V_swprintf_safe(wszVitalityText, L"%d", iLeft);
+						g_pVGuiLocalize->ConstructString(sIDString, sizeof(sIDString), g_pVGuiLocalize->Find("#FeedID"), 1, wszVitalityText);
+						c = GetColorForTargetTeam(pLocalPlayer->GetTeamNumber());
+						if (!pEnt->IsClientSideGlowEnabled())
+						{
+							pEnt->SetClientSideGlowEnabled(true);
+							m_GlowColor = 255 * (0.75f * (1.0f - pHL2Player->m_HL2Local.m_iDollHP[pDoll->iSlot] / (float)sv_coven_hp_per_ragdoll.GetInt()) + 0.25f);
+							lastGlowObject = pEnt;
+						}
+						color32 clr;
+						clr.b = clr.g = 0;
+						clr.a = 255;
+						clr.r = m_GlowColor;
+						m_GlowGoalColor = 255 * (0.75f * (1.0f - pHL2Player->m_HL2Local.m_iDollHP[pDoll->iSlot] / (float)sv_coven_hp_per_ragdoll.GetInt()) + 0.25f);
+						pEnt->ForceGlowEffect(clr, true, true, 750.0f);
+						if (m_GlowColor > m_GlowGoalColor && gpGlobals->curtime > m_flGlowTimer)
+						{
+							m_flGlowTimer = gpGlobals->curtime + 0.01f;
+							m_GlowColor--;
+						}
+					}
+					else
+					{
+						if (pEnt->IsClientSideGlowEnabled())
+						{
+							pEnt->SetClientSideGlowEnabled(false);
+							m_GlowColor = m_GlowGoalColor = 255;
+							lastGlowObject = NULL;
+						}
 					}
 				}
 			}

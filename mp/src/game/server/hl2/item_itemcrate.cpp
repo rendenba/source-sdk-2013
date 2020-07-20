@@ -160,7 +160,7 @@ int CItem_ItemCrate::OnTakeDamage( const CTakeDamageInfo &info )
 		return BaseClass::OnTakeDamage( dmgInfo );
 	}
 
-	if (info.GetAttacker() == NULL || (info.GetAttacker()->IsPlayer() && info.GetAttacker()->GetTeamNumber() != GetTeamNumber()))
+	if (info.GetAttacker() == NULL || !info.GetAttacker()->IsPlayer() || (info.GetAttacker()->IsPlayer() && info.GetAttacker()->GetTeamNumber() != GetTeamNumber()))
 	{
 		CTakeDamageInfo dmgInfo = info;
 		dmgInfo.SetDamage(0.0f);
@@ -248,7 +248,7 @@ void CItem_ItemCrate::OnBreak( const Vector &vecVelocity, const AngularImpulse &
 				//BB: TODO: are dropboxes always slayers? We might be able to simplify item pickup rules...
 				pSpawn->ChangeTeam(COVEN_TEAMID_SLAYERS);
 				pSpawn->AddSpawnFlags(SF_NORESPAWN);
-				pSpawn->KeyValue("RestActivate", "1");
+				//pSpawn->KeyValue("RestActivate", "1");
 			}
 			break;
 

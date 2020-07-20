@@ -90,7 +90,7 @@ public:
 	virtual void	Weapon_Drop( CBaseCombatWeapon *pWeapon, const Vector *pvecTarget = NULL, const Vector *pVelocity = NULL );
 	virtual void	UpdateOnRemove( void );
 	virtual void	DeathSound( const CTakeDamageInfo &info );
-	float			Feed();
+	virtual float	Feed(int iIndex);
 	bool			CreateDeathBox(void);
 	bool			HasDroppableItems(void);
 	virtual CBaseEntity* EntSelectSpawnPoint(void);

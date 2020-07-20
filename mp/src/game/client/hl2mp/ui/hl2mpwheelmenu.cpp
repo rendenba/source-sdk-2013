@@ -133,6 +133,15 @@ void CHL2MPClientWheelMenuDialog::OnThink()
 
 	if (IsVisible())
 	{
+		if (g_pInputSystem->IsButtonDown(MOUSE_LEFT) || g_pInputSystem->IsButtonDown(MOUSE_RIGHT))
+		{
+			m_iSelected = 0;
+			m_nCloseKey = BUTTON_CODE_INVALID;
+			gViewPortInterface->ShowPanel(szPanelName, false);
+			GetClientVoiceMgr()->StopSquelchMode();
+			return;
+		}
+
 		int x = g_pInputSystem->GetAnalogDelta(MOUSE_X);
 		int y = g_pInputSystem->GetAnalogDelta(MOUSE_Y);
 
@@ -207,6 +216,15 @@ void CHL2MPClientWheelMenuDialog::ShowPanel(bool bShow)
 	// Catch the case where we call ShowPanel before ApplySchemeSettings, eg when
 	// going from windowed <-> fullscreen
 
+	CHL2MP_Player *pPlayer = ToHL2MPPlayer(C_BasePlayer::GetLocalPlayer());
+
+	if (!pPlayer)
+		return;
+
+	//BB: HACK HACK! Vamps dont use this!
+	if (!pPlayer->IsAlive() || pPlayer->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+		bShow = false;
+
 	if (!bShow)
 	{
 		m_nCloseKey = BUTTON_CODE_INVALID;
@@ -226,11 +244,6 @@ void CHL2MPClientWheelMenuDialog::ShowPanel(bool bShow)
 	{
 		BaseClass::SetVisible(false);
 		SetMouseInputEnabled(false);
-
-		CHL2MP_Player *pPlayer = ToHL2MPPlayer(C_BasePlayer::GetLocalPlayer());
-
-		if (!pPlayer)
-			return;
 
 		if (m_iSelected > 0)
 		{

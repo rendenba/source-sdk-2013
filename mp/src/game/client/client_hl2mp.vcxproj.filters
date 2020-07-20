@@ -1970,6 +1970,9 @@
     <ClInclude Include="hud_usetimer.h">
       <Filter>Source Files\HL2MP\UI</Filter>
     </ClInclude>
+    <ClInclude Include="c_serverragdoll.h">
+      <Filter>Source Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="mp3player.cpp">

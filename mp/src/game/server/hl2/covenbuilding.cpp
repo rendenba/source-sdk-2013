@@ -18,6 +18,10 @@ LINK_ENTITY_TO_CLASS(coven_building, CCovenBuilding);
 
 IMPLEMENT_SERVERCLASS_ST(CCovenBuilding, DT_CovenBuilding)
 	SendPropInt(SENDINFO(m_BuildingType), 4, SPROP_UNSIGNED),
+	SendPropInt(SENDINFO(m_iHealth), 9, SPROP_UNSIGNED | SPROP_CHANGES_OFTEN),
+	SendPropInt(SENDINFO(m_iMaxHealth), 9, SPROP_UNSIGNED),
+	SendPropEHandle(SENDINFO(mOwner)),
+	SendPropInt(SENDINFO(m_iLevel), 3, SPROP_UNSIGNED),
 END_SEND_TABLE()
 
 BEGIN_DATADESC(CCovenBuilding)
@@ -42,6 +46,7 @@ CCovenBuilding::CCovenBuilding()
 	m_bEnabled = m_bSelfDestructing = false;
 	m_flTop = m_flBottom = m_flDestructTime = m_flPingTime = 0.0f;
 	m_BuildingType = BUILDING_DEFAULT;
+	m_flSparkTimer = 0.0f;
 }
 
 //-----------------------------------------------------------------------------
@@ -79,8 +84,8 @@ void CCovenBuilding::Spawn(void)
 	m_takedamage = DAMAGE_YES;
 	//m_takedamage = DAMAGE_EVENTS_ONLY;
 
-	if (mOwner != NULL)
-		ChangeTeam(mOwner->GetTeamNumber());
+	if (mOwner.Get() != NULL)
+		ChangeTeam(mOwner.Get()->GetTeamNumber());
 	else
 		ChangeTeam(COVEN_TEAMID_SLAYERS);
 
@@ -233,9 +238,10 @@ bool CCovenBuilding::CheckLevel(void)
 
 void CCovenBuilding::NotifyOwner(void)
 {
-	if (mOwner != NULL)
+	if (mOwner.Get() != NULL)
 	{
-		mOwner->UpdateBuilding(this);
+		CHL2_Player *pOwner = ToHL2Player(mOwner.Get());
+		pOwner->UpdateBuilding(this);
 	}
 }
 
@@ -254,6 +260,14 @@ bool CCovenBuilding::PreThink(void)
 	StudioFrameAdvance();
 	DispatchAnimEvents(this);
 	NotifyOwner();
+
+	if (m_iHealth <= 0.5f * m_iMaxHealth && gpGlobals->curtime > m_flSparkTimer)
+	{
+		float heightZ = m_flBottom + (m_flTop - m_flBottom) * 0.5f;
+		Spark(random->RandomFloat(heightZ, m_flTop), 2, 1);
+		m_flSparkTimer = gpGlobals->curtime + 0.1f * random->RandomInt(4, 10);
+	}
+
 	return false;
 }
 
@@ -355,12 +369,13 @@ void CCovenBuilding::SelfDestruct(void)
 	m_iHealth = 0;
 	m_lifeState = LIFE_DYING;
 	NotifyOwner();
-	if (mOwner != NULL)
+	if (mOwner.Get() != NULL)
 	{
+		CHL2_Player *pOwner = ToHL2Player(mOwner.Get());
 		if (MyType() == BUILDING_TURRET)
-			mOwner->m_hTurret = NULL;
+			pOwner->m_hTurret = NULL;
 		else if (MyType() == BUILDING_AMMOCRATE)
-			mOwner->m_hDispenser = NULL;
+			pOwner->m_hDispenser = NULL;
 	}
 
 	m_flPingTime = gpGlobals->curtime;
@@ -535,7 +550,7 @@ void CCovenBuilding::VPhysicsCollision(int index, gamevcollisionevent_t *pEvent)
 	if (pHitEntity && pHitEntity->IsPlayer())
 	{
 		CHL2_Player *pPlayer = ToHL2Player(pHitEntity);
-		if (pPlayer && (pPlayer->GetTeamNumber() != GetTeamNumber() || mOwner == pPlayer))
+		if (pPlayer && (pPlayer->GetTeamNumber() != GetTeamNumber() || mOwner.Get() == pPlayer))
 			WakeUp();
 	}
 
@@ -562,7 +577,7 @@ void CCovenBuilding::Use(CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE
 	if (pPlayer == NULL)
 		return;
 
-	if (mOwner != NULL && mOwner == pPlayer)
+	if (mOwner.Get() != NULL && mOwner.Get() == pPlayer)
 	{
 		m_OnUsed.FireOutput(pActivator, this);
 		SetCollisionGroup(COLLISION_GROUP_DEBRIS_TRIGGER);
@@ -585,7 +600,7 @@ int CCovenBuilding::OnTakeDamage(const CTakeDamageInfo &info)
 	if (HasSpawnFlags(SF_COVENBUILDING_INERT))
 		return 0;
 
-	if (mOwner == NULL || (info.GetAttacker() != NULL && info.GetAttacker()->GetTeamNumber() == GetTeamNumber() && !(info.GetDamageType() & DMG_SHOCK)))
+	if (mOwner.Get() == NULL || (info.GetAttacker() != NULL && info.GetAttacker()->GetTeamNumber() == GetTeamNumber() && !(info.GetDamageType() & DMG_SHOCK)))
 		return 0;
 
 	CHL2_Player *pAttacker = ToHL2Player(info.GetAttacker());

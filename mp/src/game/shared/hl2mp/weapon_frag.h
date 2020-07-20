@@ -31,6 +31,8 @@ public:
 	bool	Deploy(void);
 	bool	Holster(CBaseCombatWeapon *pSwitchingTo = NULL);
 
+	virtual bool	IsGrenade() const { return true; }
+
 	bool	Reload(void);
 
 #ifndef CLIENT_DLL

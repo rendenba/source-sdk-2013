@@ -829,7 +829,7 @@ bool CHL2MP_Player::DoAbilityThink()
 						if (m_afButtonPressed & keyNum)
 							EmitLocalSound("Coven.Deny");
 					}
-					else
+					else if (!info->bPassive)
 					{
 						switch (iAbility)
 						{
@@ -1653,6 +1653,7 @@ void CHL2MP_Player::Spawn(void)
 	solidcooldown = -1.0f;
 
 	gorelock = GORELOCK_NONE;
+	m_floatCloakFactor = 0.0f;
 	/*if (myServerRagdoll)
 	{
 		UTIL_RemoveImmediate(myServerRagdoll);
@@ -1980,7 +1981,7 @@ void CHL2MP_Player::StealthCalc()
 	}
 }
 
-float CHL2MP_Player::Feed()
+float CHL2MP_Player::Feed(int iIndex)
 {
 	//BB: JAM request... dont break stealth to feed
 	//coven_timer_vstealth = 0.0f;
@@ -1999,32 +2000,8 @@ float CHL2MP_Player::Feed()
 	else if (gpGlobals->curtime > coven_timer_feed)
 	{
 		coven_timer_feed = -1.0f;
-		int temp = 0.04f * GetMaxHealth();
-		int xp = 0;
-		//BB: Coven GORGE implementation
-		if (HasAbility(COVEN_ABILITY_GORGE))
-		{
-			int newmax = GetMaxHealth() * 1.3f;
-			temp = 0.04f * GetMaxHealth();
-			if (GetHealth() + temp <= newmax)
-				SetHealth(GetHealth() + temp);
-			else
-			{
-				SetHealth(newmax);
-				temp = 0;
-				xp = 0.04f * GetXPCap();
-			}
-
-		}
-		else
-			temp = TakeHealth(temp, DMG_GENERIC);
-		if (temp == 0)
-			xp = 0.04f * GetXPCap();
-		if (xp > 0)
-			GiveXP(xp);
-		if (temp > 0 || xp > 0)
-			EmitSound("Vampire.Regen");
-		return (float)(temp + xp);
+		
+		return BaseClass::Feed(iIndex);
 	}
 	return 0.0f;
 }
@@ -3317,7 +3294,7 @@ void CHL2MP_Player::DoStatusThink()
 	}
 
 	//ACTION
-	if (PerformingDeferredAction())
+	if (IsPerformingDeferredAction())
 	{
 		if (UseCancelAction() || (MovementCancelActionCheck() && (m_nButtons & (IN_FORWARD | IN_BACK | IN_MOVELEFT | IN_MOVERIGHT))) || DistanceCancelActionCheck())
 		{
@@ -4511,16 +4488,56 @@ bool CHL2MP_Player::CovenStatusDamageHandle(CTakeDamageInfo &info, int iDmgType,
 
 int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 {
+	//return here if the player is in the respawn grace period vs. slams.
+	if (gpGlobals->curtime < m_flSlamProtectTime && (inputInfo.GetDamageType() == DMG_BLAST))
+		return 0;
+
+	CTakeDamageInfo inputInfoAdjust = inputInfo;
+
+	//BB: DO HOLY WATER DAMAGE DETECT
+	if ((inputInfo.GetDamageType() & DMG_HOLY) && IsAlive() && !KO)
+	{
+		//do holy stuff...
+		inputInfoAdjust.SetDamage(0.0f);
+		if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+		{
+			//startup the healing aura...
+			AddStatusMagDur(COVEN_STATUS_HOLYWATER, inputInfo.GetDamage() / 5.0f * 30.0f);
+			coven_timer_holywater = gpGlobals->curtime + 1.0f;
+			//insta heal component
+			//TakeHealth(inputInfo.GetDamage()/5.0f*20.0f, DMG_GENERIC);
+			//BB: no insta heal anymore?
+		}
+		else
+		{
+			//set me on fire or extend fire appropriately...
+			if (m_pFlame == NULL)
+			{
+				m_pFlame = CEntityFlame::Create(this);
+				if (m_pFlame)
+				{
+					m_pFlame->creator = (CBasePlayer *)inputInfo.GetInflictor();
+					m_pFlame->SetLifetime(max(inputInfo.GetDamage() / 5.0f*8.0f, 1.0f));//15.0f 10
+					AddFlag(FL_ONFIRE);
+
+					SetEffectEntity(m_pFlame);
+				}
+			}
+			else
+			{
+				m_pFlame->SupplementDamage(inputInfo.GetDamage());
+			}
+			AddStatus(COVEN_STATUS_HOLYWATER, -1, gpGlobals->curtime + m_pFlame->GetRemainingLife());
+		}
+	}
+
+	if (!g_pGameRules->FPlayerCanTakeDamage(this, inputInfoAdjust.GetAttacker(), inputInfoAdjust))
+		return 0;
+
 	if (IsBot())
 		Bot_Combat_Check(this, inputInfo.GetAttacker());
 
-	//return here if the player is in the respawn grace period vs. slams.
-	if ( gpGlobals->curtime < m_flSlamProtectTime &&  (inputInfo.GetDamageType() == DMG_BLAST ) )
-		return 0;
-
 	m_vecTotalBulletForce += inputInfo.GetDamageForce();
-
-	CTakeDamageInfo inputInfoAdjust = inputInfo;
 
 	//DODGE
 	if (HasStatus(COVEN_STATUS_DODGE))
@@ -4646,43 +4663,6 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 		else
 		{
 			coven_timer_damage = gpGlobals->curtime + 2.0f;
-		}
-	}
-
-	//BB: DO HOLY WATER DAMAGE DETECT
-	if ((inputInfo.GetDamageType() & DMG_HOLY) && IsAlive() && !KO)
-	{
-		//do holy stuff...
-		inputInfoAdjust.SetDamage(0.0f);
-		if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
-		{
-			//startup the healing aura...
-			AddStatusMagDur(COVEN_STATUS_HOLYWATER, inputInfo.GetDamage() / 5.0f * 30.0f);
-			coven_timer_holywater = gpGlobals->curtime + 1.0f;
-			//insta heal component
-			//TakeHealth(inputInfo.GetDamage()/5.0f*20.0f, DMG_GENERIC);
-			//BB: no insta heal anymore?
-		}
-		else
-		{
-			//set me on fire or extend fire appropriately...
-			if (m_pFlame == NULL)
-			{
-				m_pFlame = CEntityFlame::Create( this );
-				if (m_pFlame)
-				{
-					m_pFlame->creator = (CBasePlayer *)inputInfo.GetInflictor();
-					m_pFlame->SetLifetime(max(inputInfo.GetDamage() / 5.0f*8.0f, 1.0f));//15.0f 10
-					AddFlag( FL_ONFIRE );
-
-					SetEffectEntity( m_pFlame );
-				}
-			}
-			else
-			{
-				m_pFlame->SupplementDamage(inputInfo.GetDamage());
-			}
-			AddStatus(COVEN_STATUS_HOLYWATER, -1, gpGlobals->curtime + m_pFlame->GetRemainingLife());
 		}
 	}
 

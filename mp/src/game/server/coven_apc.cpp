@@ -33,7 +33,7 @@ void CCoven_APCProp::Use(CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE
 			CHL2MP_Player *pHL2Player = ToHL2MPPlayer(pActivator);
 			if (pHL2Player->HasStatus(COVEN_STATUS_HAS_GAS))
 			{
-				if (pHL2Player->PerformingDeferredAction())
+				if (pHL2Player->IsPerformingDeferredAction())
 					pHL2Player->CancelDeferredAction();
 				CovenItemInfo_t *info = GetCovenItemData(COVEN_ITEM_GASOLINE);
 				pHL2Player->QueueDeferredAction(COVEN_ACTION_REFUEL, (info->iFlags & ITEM_FLAG_MOVEMENT_CANCEL) > 0, gpGlobals->curtime + info->flUseTime, true, this, sv_coven_refuel_distance.GetFloat());

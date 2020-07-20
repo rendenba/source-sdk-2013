@@ -17,9 +17,13 @@ public:
 
 	C_CovenBuilding();
 
-	virtual bool IsABuilding() const { return true; };
+	virtual bool	IsABuilding() const { return true; }
+	virtual int		GetHealth() { return m_iHealth; }
+	virtual int		GetMaxHealth() { return m_iMaxHealth; }
 
 	BuildingType_t m_BuildingType;
+	EHANDLE mOwner;
+	int		m_iLevel;
 };
 
 #endif
