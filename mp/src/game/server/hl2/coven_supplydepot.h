@@ -8,16 +8,6 @@
 #include "cbase.h"
 #include "covenbuilding.h"
 
-typedef enum
-{
-	COVEN_SUPPLYDEPOT_TYPE_NONE,
-	COVEN_SUPPLYDEPOT_TYPE_ONE,
-	COVEN_SUPPLYDEPOT_TYPE_TWO,
-	COVEN_SUPPLYDEPOT_TYPE_THREE,
-	COVEN_SUPPLYDEPOT_TYPE_FOUR,
-	COVEN_SUPPLYDEPOT_TYPE_MAX
-} CovenSupplyDepotType_t;
-
 class CCoven_SupplyDepot : public CCovenBuilding
 {
 public:
@@ -28,7 +18,7 @@ public:
 	virtual void	Spawn(void);
 	virtual void	Precache(void);
 
-	CovenSupplyDepotType_t iDepotType;
+	int iDepotType;
 };
 
 #endif

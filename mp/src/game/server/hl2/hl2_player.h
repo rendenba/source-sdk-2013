@@ -368,6 +368,7 @@ public:
 	void			ActivateCovenItem(CovenItemID_t iItemType);
 	bool			PerformDeferredAction(CovenDeferredAction_t iAction = COVEN_ACTION_QUEUED);
 	bool			IsPerformingDeferredAction(void);
+	CovenDeferredAction_t CurrentDeferredAction(void);
 	bool			IsReloading(void);
 	bool			UseCancelAction(void);
 	void			CancelDeferredAction(void);

@@ -544,7 +544,7 @@ bool CHL2MP_Player::BuildTurret(int iAbilityNum)
 	angle.x = 0;
 	angle.z = 0;
 	AngleVectors(angle, &vForward);
-	Vector vecSrc = EyePosition() + vForward * 50.0f;
+	Vector vecSrc = EyePosition() + vForward * 55.0f;
 	trace_t tr;
 	UTIL_TraceLine(EyePosition(), vecSrc, MASK_PLAYERSOLID, this, COLLISION_GROUP_PLAYER_MOVEMENT, &tr);
 	if (tr.DidHit())
@@ -2323,7 +2323,7 @@ void CHL2MP_Player::DoVampirePreThink()
 {
 	VampireReSolidify();
 	if (covenClassID == COVEN_CLASSID_DEGEN)
-		VampireCheckRegen(0.7f);
+		VampireCheckRegen(0.8f);
 	else
 		VampireCheckRegen(0.5f);
 	VampireManageRagdoll();
@@ -3129,6 +3129,13 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 	else if (iTeam == COVEN_TEAMID_VAMPIRES && GetTeamNumber() != COVEN_TEAMID_VAMPIRES)
 		SetXP(0.0f);
 
+	if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES && m_hRagdoll != NULL)
+	{
+		UTIL_Remove(m_hRagdoll);
+		m_hRagdoll = myServerRagdoll = NULL;
+		timeofdeath = 0.0f;
+	}
+
 	if (GetTeamNumber() < COVEN_TEAMID_SLAYERS)
 		covenRespawnTimer = 0.0f;
 
@@ -3438,7 +3445,7 @@ bool CHL2MP_Player::HandleCommand_JoinTeam( int team )
 			return false;
 		}
 
-		if ( GetTeamNumber() != TEAM_UNASSIGNED && !IsDead() )
+		if ( GetTeamNumber() != TEAM_UNASSIGNED && !IsDead() && !KO )
 		{
 			m_fNextSuicideTime = gpGlobals->curtime;	// allow the suicide to work
 
@@ -4018,7 +4025,7 @@ CON_COMMAND(test, "test")
 			CCoven_SupplyDepot *pEnt = static_cast<CCoven_SupplyDepot *>(CreateEntityByName("coven_supplydepot"));
 			pEnt->SetAbsOrigin(tr.endpos + Vector(0, 0, 0));
 			pEnt->SetAbsAngles(QAngle(0, angle.y - 90, 0));
-			pEnt->iDepotType = COVEN_SUPPLYDEPOT_TYPE_TWO;
+			pEnt->iDepotType = 2;
 			pEnt->Spawn();
 			pEnt->ChangeTeam(COVEN_TEAMID_SLAYERS);
 		}
@@ -4502,7 +4509,7 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 		if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
 		{
 			//startup the healing aura...
-			AddStatusMagDur(COVEN_STATUS_HOLYWATER, inputInfo.GetDamage() / 5.0f * 30.0f);
+			AddStatusMagDur(COVEN_STATUS_HOLYWATER, inputInfo.GetDamage());
 			coven_timer_holywater = gpGlobals->curtime + 1.0f;
 			//insta heal component
 			//TakeHealth(inputInfo.GetDamage()/5.0f*20.0f, DMG_GENERIC);
@@ -4517,7 +4524,7 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 				if (m_pFlame)
 				{
 					m_pFlame->creator = (CBasePlayer *)inputInfo.GetInflictor();
-					m_pFlame->SetLifetime(max(inputInfo.GetDamage() / 5.0f*8.0f, 1.0f));//15.0f 10
+					m_pFlame->SetLifetime(max(inputInfo.GetDamage() / 4.0f, 1.0f));//15.0f 10
 					AddFlag(FL_ONFIRE);
 
 					SetEffectEntity(m_pFlame);
@@ -4637,6 +4644,9 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 			inputInfoAdjust.SetDamage((1.0f - GetStrength() / 60.0f) * inputInfoAdjust.GetDamage());
 		}
 	}
+	
+	bool bResetDamageTimer = true;
+
 	if (HasAbility(COVEN_ABILITY_MASOCHIST) && !(inputInfoAdjust.GetDamageType() & DMG_NO))
 	{
 		//BB: MASOCHIST implementation
@@ -4647,12 +4657,14 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 		if (inputInfo.GetAttacker() && inputInfo.GetAttacker()->IsPlayer() && inputInfo.GetAttacker() == this)
 		{
 			add *= 2.0f;
+			bResetDamageTimer = false;
 		}
 		status = min(status + add, abilityInfo->flRange);
 		AddStatus(COVEN_STATUS_MASOCHIST, status, gpGlobals->curtime + abilityInfo->flDuration);
 		ComputeSpeed();
 	}
-	if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+
+	if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES && !(inputInfoAdjust.GetDamageType() & DMG_NO) && bResetDamageTimer)
 	{
 		coven_timer_vstealth = 0.0f;
 

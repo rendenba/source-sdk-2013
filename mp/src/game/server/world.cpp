@@ -632,6 +632,7 @@ void CWorld::Precache( void )
 	PrecacheAbilities(filesystem);
 	PrecacheClasses(filesystem);
 	PrecacheStatusEffects(filesystem);
+	PrecacheSupplyDepots(filesystem);
 	PrecacheBuildings(filesystem);
 	PrecacheItems(filesystem);
 	W_Precache ();									// get weapon precaches

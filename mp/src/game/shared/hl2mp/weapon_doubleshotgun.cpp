@@ -582,10 +582,13 @@ void CWeaponDoubleShotgun::ItemPostFrame( void )
 			// weapon is useable. Reload if empty and weapon has waited as long as it has to after firing
 			if ( m_iClip1 <= 0 && !(GetWeaponFlags() & ITEM_FLAG_NOAUTORELOAD) && m_flNextPrimaryAttack < gpGlobals->curtime )
 			{
-				if (StartReload())
+				if (CheckDeferredAction())
 				{
-					// if we've successfully started to reload, we're done
-					return;
+					if (StartReload())
+					{
+						// if we've successfully started to reload, we're done
+						return;
+					}
 				}
 			}
 		}

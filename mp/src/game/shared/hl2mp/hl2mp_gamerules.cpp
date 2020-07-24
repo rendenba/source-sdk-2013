@@ -774,7 +774,7 @@ bool CHL2MPRules::LoadCowFile(IBaseFileSystem *filesystem, const char *resourceN
 						pEnt->SetAbsOrigin(Vector(locs[0], locs[1], locs[2]));
 						UTIL_StringToVector(locs, sub->GetString("angles", "0 0 0"));
 						pEnt->SetAbsAngles(QAngle(locs[0], locs[1], locs[2]));
-						pEnt->iDepotType = (CovenSupplyDepotType_t)sub->GetInt("type", 0);
+						pEnt->iDepotType = sub->GetInt("type", 0);
 						pEnt->Spawn();
 					}
 				}
@@ -864,6 +864,7 @@ bool CHL2MPRules::LoadCowFile(IBaseFileSystem *filesystem, const char *resourceN
 							pGasCan->AddSpawnFlags(SF_NORESPAWN);
 							if (sv_coven_warmuptime.GetInt() == 0)
 								pGasCan->Spawn();
+							iValidGasCans.AddToTail(hGasCans.Count());
 							hGasCans.AddToTail(pGasCan);
 #ifdef COVEN_DEVELOPER_MODE
 							Msg("Gascan: %f %f %f\n", locs[0], locs[1], locs[2]);

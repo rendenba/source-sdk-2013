@@ -139,23 +139,9 @@ public:
 
 	float	MaxYawSpeed(void);
 
-	Vector EyePosition(void)
-	{
-		UpdateMuzzleMatrix();
+	const Vector &EyePosition(void) const;
 
-		Vector vecOrigin;
-		MatrixGetColumn(m_muzzleToWorld, 3, vecOrigin);
-
-		Vector vecForward;
-		MatrixGetColumn(m_muzzleToWorld, 0, vecForward);
-
-		// Note: We back up into the model to avoid an edge case where the eyes clip out of the world and
-		//		 cause problems with the PVS calculations -- jdw
-
-		vecOrigin -= vecForward * 8.0f;
-
-		return vecOrigin;
-	}
+	void	UpdateEyeVector(void);
 
 	virtual const Vector GetPlayerMidPoint(void) const;
 
@@ -194,7 +180,7 @@ protected:
 	bool	IsCitizenTurret(void) { return HasSpawnFlags(SF_COVEN_TURRET_CITIZEN); };
 	bool	UpdateFacing(void);
 	void	DryFire(void);
-	void	UpdateMuzzleMatrix();
+	bool	UpdateMuzzleMatrix();
 
 	matrix3x4_t m_muzzleToWorld;
 	int		m_muzzleToWorldTick;
@@ -223,6 +209,7 @@ protected:
 	CHandle<CBeam>			m_pFlashlightBeam;
 
 	Vector	m_vecEnemyLKP;
+	Vector	m_vecEyePosition;
 
 	// physics influence
 	CHandle<CBasePlayer>	m_hPhysicsAttacker;

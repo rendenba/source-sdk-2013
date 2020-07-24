@@ -36,8 +36,8 @@ DEFINE_INPUTFUNC(FIELD_VOID, "Kill", InputKill),
 
 END_DATADESC()
 
-
-
+ConVar sv_coven_building_hp_per_energy("sv_coven_building_hp_per_energy", "4", FCVAR_GAMEDLL | FCVAR_NOTIFY, "HP per energy per swing.");
+ConVar sv_coven_building_max_energy_swing("sv_coven_building_max_energy_swing", "25", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Max energy per category per swing.");
 
 CCovenBuilding::CCovenBuilding()
 {
@@ -266,6 +266,16 @@ bool CCovenBuilding::PreThink(void)
 		float heightZ = m_flBottom + (m_flTop - m_flBottom) * 0.5f;
 		Spark(random->RandomFloat(heightZ, m_flTop), 2, 1);
 		m_flSparkTimer = gpGlobals->curtime + 0.1f * random->RandomInt(4, 10);
+	}
+
+	if (m_bSelfDestructing)
+	{
+		if (gpGlobals->curtime > m_flDestructTime)
+		{
+			SetThink(&CCovenBuilding::Detonate);
+			SetNextThink(gpGlobals->curtime + 0.1f);
+			return true;
+		}
 	}
 
 	return false;
@@ -577,7 +587,7 @@ void CCovenBuilding::Use(CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE
 	if (pPlayer == NULL)
 		return;
 
-	if (mOwner.Get() != NULL && mOwner.Get() == pPlayer)
+	if (mOwner.Get() != NULL && mOwner.Get() == pPlayer && !m_bSelfDestructing)
 	{
 		m_OnUsed.FireOutput(pActivator, this);
 		SetCollisionGroup(COLLISION_GROUP_DEBRIS_TRIGGER);
@@ -606,22 +616,22 @@ int CCovenBuilding::OnTakeDamage(const CTakeDamageInfo &info)
 	CHL2_Player *pAttacker = ToHL2Player(info.GetAttacker());
 	if (pAttacker)
 	{
-		if (info.GetDamageType() & DMG_SHOCK && GetTeamNumber() == pAttacker->GetTeamNumber())
+		if (info.GetDamageType() & DMG_SHOCK && GetTeamNumber() == pAttacker->GetTeamNumber() && !m_bSelfDestructing)
 		{
 			CovenBuildingInfo_t *bldgInfo = GetCovenBuildingData(m_BuildingType);
 			int hp = 0;
 			int xp = 0;
-			hp = min(25, ceil((m_iMaxHealth - m_iHealth) / 3.0f));
-			int maxXP = m_iMaxXP + 25;
+			hp = min(sv_coven_building_max_energy_swing.GetInt(), ceil((m_iMaxHealth - m_iHealth) / sv_coven_building_hp_per_energy.GetFloat()));
+			int maxXP = m_iMaxXP + sv_coven_building_max_energy_swing.GetInt();
 			if (m_iLevel >= (bldgInfo->iMaxLevel - 2))
 				maxXP = m_iMaxXP;
-			xp = min(25, maxXP - m_iXP);
+			xp = min(sv_coven_building_max_energy_swing.GetInt(), maxXP - m_iXP);
 
 			int total = min(hp + xp, pAttacker->SuitPower_GetCurrentPercentage());
 			int drain = min(total, hp);
 			if (drain > 0)
 			{
-				m_iHealth = min(m_iHealth + 3 * drain, m_iMaxHealth);
+				m_iHealth = min(m_iHealth + sv_coven_building_hp_per_energy.GetInt() * drain, m_iMaxHealth);
 				total -= drain;
 				pAttacker->SuitPower_Drain(drain);
 			}

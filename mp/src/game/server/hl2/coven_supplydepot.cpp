@@ -1,22 +1,47 @@
 #include "cbase.h"
 #include "coven_supplydepot.h"
 #include "covenlib.h"
+#include "coven_parse.h"
 
 LINK_ENTITY_TO_CLASS(coven_supplydepot, CCoven_SupplyDepot);
 
 CCoven_SupplyDepot::CCoven_SupplyDepot()
 {
-	iDepotType = COVEN_SUPPLYDEPOT_TYPE_NONE;
+	iDepotType = 0;
 }
 
 void CCoven_SupplyDepot::Spawn(void)
 {
-	if (iDepotType == COVEN_SUPPLYDEPOT_TYPE_NONE)
+	if (iDepotType == 0)
 		return;
 
 	AddSpawnFlags(SF_COVENBUILDING_INERT);
 
-	switch (iDepotType)
+	if (iDepotType >= CovenSupplyDepotDataLength())
+		return;
+
+	CovenSupplyDepotInfo_t *info = GetCovenSupplyDepotData(iDepotType);
+
+	QAngle angles = GetAbsAngles() + info->qOffsetAngle;
+	Vector shift = info->vOffsetPosition;
+	VectorRotate2D(shift, angles.y, &shift);
+	Vector origin = GetAbsOrigin() + shift;
+	SetAbsAngles(angles);
+	SetAbsOrigin(origin);
+	SetModel(info->szModelName);
+
+	for (int i = 0; i < info->ItemInfo.Count(); i++)
+	{
+		CBaseEntity *pEnt = CreateEntityByName(info->ItemInfo[i]->szItemName);
+		Vector src = origin + info->ItemInfo[i]->vRelPosition;
+		VectorRotate2DPoint(src, origin, angles.y, &src);
+		pEnt->SetAbsAngles(angles + info->ItemInfo[i]->qRelAngle);
+		pEnt->SetAbsOrigin(src);
+		pEnt->Spawn();
+		pEnt->ChangeTeam(COVEN_TEAMID_SLAYERS);
+	}
+
+	/*switch (iDepotType)
 	{
 		case COVEN_SUPPLYDEPOT_TYPE_ONE:
 		{
@@ -88,7 +113,7 @@ void CCoven_SupplyDepot::Spawn(void)
 		case COVEN_SUPPLYDEPOT_TYPE_FOUR:
 		{
 			/*Vector(18.611817, -1.845764, -55.3)*/
-			Vector origin = GetAbsOrigin();
+			/*Vector origin = GetAbsOrigin();
 			QAngle angles = GetAbsAngles();
 			SetModel("models/props_lab/workspace004.mdl");
 
@@ -105,15 +130,17 @@ void CCoven_SupplyDepot::Spawn(void)
 		{
 			break;
 		}
-	}
+	}*/
 	m_BuildingType = BUILDING_SUPPLYDEPOT;
 	BaseClass::Spawn();
 }
 
 void CCoven_SupplyDepot::Precache(void)
 {
-	PrecacheModel("models/props_lab/workspace004.mdl");
-	PrecacheModel("models/props_wasteland/prison_shelf001a.mdl");
-	PrecacheModel("models/props_wasteland/cafeteria_table001a.mdl");
+	for (int i = 1; i < CovenSupplyDepotDataLength(); i++)
+	{
+		CovenSupplyDepotInfo_t *info = GetCovenSupplyDepotData(i);
+		PrecacheModel(info->szModelName);
+	}
 	BaseClass::Precache();
 }

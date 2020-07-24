@@ -135,7 +135,10 @@ public:
 		{
 			int index = pRules->hGasCans.Find(this);
 			if (index > -1)
+			{
+				pRules->iValidGasCans.FindAndRemove(index);
 				pRules->hGasCans[index] = NULL;
+			}
 		}
 		BaseClass::UpdateOnRemove();
 	}

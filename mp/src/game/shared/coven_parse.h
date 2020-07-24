@@ -39,6 +39,21 @@ public:
 	int		iAmmoCount;
 };
 
+class CovenItem_t
+{
+public:
+	CovenItem_t()
+	{
+		szItemName[0] = 0;
+		vRelPosition.Init();
+		qRelAngle.Init();
+	};
+
+	char	szItemName[MAX_COVEN_STRING];
+	Vector	vRelPosition;
+	QAngle	qRelAngle;
+};
+
 class CovenClassInfo_t
 {
 public:
@@ -223,11 +238,36 @@ public:
 	// SERVER DLL
 };
 
+class CovenSupplyDepotInfo_t
+{
+public:
+	CovenSupplyDepotInfo_t();
+
+	// Each game can override this to get whatever values it wants from the script.
+	virtual void Parse(KeyValues *pKeyValuesData);
+
+public:
+	bool						bParsedScript;
+	bool						bLoadedHudElements;
+
+	// SHARED
+	char						szName[MAX_COVEN_STRING];
+	char						szModelName[MAX_COVEN_STRING];
+	int							iFlags;									// miscellaneous flags
+	Vector						vOffsetPosition;
+	QAngle						qOffsetAngle;
+	CUtlVector<CovenItem_t *>	ItemInfo;
+	// CLIENT DLL
+	// Sprite data, read from the data file
+	// SERVER DLL
+};
+
 void PrecacheAbilities(IFileSystem *filesystem);
 void PrecacheClasses(IFileSystem *filesystem);
 void PrecacheStatusEffects(IFileSystem *filesystem);
 void PrecacheBuildings(IFileSystem *filesystem);
 void PrecacheItems(IFileSystem *filesystem);
+void PrecacheSupplyDepots(IFileSystem *filesystem);
 
 #ifdef CLIENT_DLL
 void LoadAbilitySprites(CovenAbilityInfo_t *info);
@@ -245,4 +285,7 @@ CovenStatusEffectInfo_t		*GetCovenStatusEffectData(CovenStatus_t iStatus);
 CovenBuildingInfo_t			*GetCovenBuildingData(BuildingType_t iBuildingType);
 
 CovenItemInfo_t				*GetCovenItemData(CovenItemID_t iItemType);
+
+CovenSupplyDepotInfo_t		*GetCovenSupplyDepotData(int iDepotType);
+int							CovenSupplyDepotDataLength(void);
 #endif

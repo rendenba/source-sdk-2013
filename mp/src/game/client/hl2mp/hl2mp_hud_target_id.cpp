@@ -167,6 +167,9 @@ void CTargetID::Paint()
 		C_BasePlayer *pPlayer = static_cast<C_BasePlayer*>(cl_entitylist->GetEnt( iEntIndex ));
 		C_BasePlayer *pLocalPlayer = C_BasePlayer::GetLocalPlayer();
 
+		if (!pPlayer)
+			return;
+
 		const char *printFormatString = NULL;
 		wchar_t wszPlayerName[ MAX_PLAYER_NAME_LENGTH ];
 		wchar_t wszHealthText[ 10 ];
@@ -183,7 +186,7 @@ void CTargetID::Paint()
 			bShowPlayerName = true;
 			g_pVGuiLocalize->ConvertANSIToUnicode( pPlayer->GetPlayerName(),  wszPlayerName, sizeof(wszPlayerName) );
 			
-			if ( HL2MPRules()->IsTeamplay() == true && pPlayer->InSameTeam(pLocalPlayer) )
+			if (pLocalPlayer->GetTeamNumber() < COVEN_TEAMID_SLAYERS || (HL2MPRules()->IsTeamplay() == true && pPlayer->InSameTeam(pLocalPlayer)))
 			{
 				printFormatString = "#Playerid_sameteam";
 				bShowHealth = true;
@@ -208,12 +211,12 @@ void CTargetID::Paint()
 			if (pEnt != NULL)
 			{
 				CBasePlayer *pLocalPlayer = CBasePlayer::GetLocalPlayer();
-				if (pEnt->IsABuilding() && pEnt->GetTeamNumber() == pLocalPlayer->GetTeamNumber())
+				if (pEnt->IsABuilding() && (pEnt->GetTeamNumber() == pLocalPlayer->GetTeamNumber() || pLocalPlayer->GetTeamNumber() < COVEN_TEAMID_SLAYERS))
 				{
 					CCovenBuilding *bldg = static_cast<CCovenBuilding *>(pEnt);
 					CovenBuildingInfo_t *info = GetCovenBuildingData(bldg->m_BuildingType);
 					int cost = HL2MPRules()->CovenItemCost(bldg->m_BuildingType);
-					if (cost >= 0)
+					if (cost >= 0 && pLocalPlayer->GetTeamNumber() > COVEN_TEAMID_SPECTATOR)
 					{
 						c = GetColorForTargetTeam(pEnt->GetTeamNumber());
 						wchar_t wszBuildingName[MAX_PLAYER_NAME_LENGTH];

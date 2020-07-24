@@ -57,7 +57,7 @@ CWeaponStunFrag::CWeaponStunFrag(void) :
 CWeaponFrag()
 {
 	m_flGrenadeRadius = 4.0f; // inches
-	m_flGrenadeDamageRadius = 250.0f;
+	m_flGrenadeDamageRadius = 300.0f;
 	m_GrenadeType = GRENADE_TYPE_STUN;
 }
 

@@ -444,7 +444,7 @@ void CWeaponHolywater::ThrowGrenade(CBasePlayer *pPlayer)
 	pGrenade->SetMoveType(MOVETYPE_FLYGRAVITY, MOVECOLLIDE_FLY_BOUNCE);
 	pGrenade->SetThrower(pPlayer);
 	pGrenade->SetDamage(GetHL2MPWpnData().m_iPlayerDamage);
-	pGrenade->SetDamageRadius(150.0f);
+	pGrenade->SetDamageRadius(200.0f);
 #endif
 
 	m_bRedraw = true;
@@ -479,7 +479,7 @@ void CWeaponHolywater::LobGrenade(CBasePlayer *pPlayer)
 	pGrenade->SetMoveType(MOVETYPE_FLYGRAVITY, MOVECOLLIDE_FLY_BOUNCE);
 	pGrenade->SetThrower(pPlayer);
 	pGrenade->SetDamage(GetHL2MPWpnData().m_iPlayerDamage);
-	pGrenade->SetDamageRadius(150.0f);
+	pGrenade->SetDamageRadius(200.0f);
 #endif
 
 	WeaponSound(WPN_DOUBLE);

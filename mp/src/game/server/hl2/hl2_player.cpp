@@ -584,6 +584,11 @@ bool CHL2_Player::IsPerformingDeferredAction(void)
 	return m_HL2Local.covenActionTimer > 0.0f;
 }
 
+CovenDeferredAction_t CHL2_Player::CurrentDeferredAction(void)
+{
+	return m_HL2Local.covenAction;
+}
+
 bool CHL2_Player::PerformDeferredAction(CovenDeferredAction_t iAction)
 {
 	if (iAction == COVEN_ACTION_QUEUED)

@@ -53,6 +53,7 @@ ConVar bot_charge_noncombat("bot_charge_noncombat", "550.0", FCVAR_ARCHIVE, "Non
 ConVar bot_leap_combat("bot_leap_combat", "200.0", FCVAR_ARCHIVE, "Combat leap distance.");
 ConVar bot_leap_noncombat("bot_leap_noncombat", "550.0", FCVAR_ARCHIVE, "Non-combat leap distance.");
 ConVar bot_phase_combat("bot_phase_combat", "90.0", FCVAR_ARCHIVE, "Combat phase distance.");
+ConVar bot_dodge_combat("bot_dodge_combat", "90.0", FCVAR_ARCHIVE, "Combat dodge distance.");
 
 #ifdef NEXT_BOT
 extern ConVar bot_mimic;
@@ -137,7 +138,7 @@ typedef struct
 	bool			bForceCombat;
 	float			m_flLastCombat;
 	Vector			m_vCombatLKP;
-	Vector			m_vObjectiveLKP;
+	const Vector	*m_vObjectiveLKP;
 	float			m_flLastCombatDist;
 	float			m_lastPlayerDot;
 	float			m_flReactionTime;
@@ -145,7 +146,7 @@ typedef struct
 	float			lastThinkTime;
 	float			flTimeout;
 
-	Vector			*m_pOverridePos;
+	const Vector	*m_pOverridePos;
 	QAngle			overrideAngle;
 	float			m_flOverrideDur;
 	float			m_flAbilityTimer[COVEN_MAX_ABILITIES];
@@ -167,7 +168,6 @@ typedef struct
 	int				m_lastCheckedRagdoll;
 
 	int				m_lastCheckedItem;
-	Vector			m_vItemLKP;
 
 	BotRole_t		m_role;
 	int				RN;
@@ -275,6 +275,12 @@ void Set_Bot_Base_Velocity(CHL2MP_Player *pBot)
 	botdata->m_flBaseSpeed = info->flBaseSpeed;
 }
 
+inline bool ValidTurret(CCoven_Turret *pTurret)
+{
+	CovenBuildingInfo_t *info = GetCovenBuildingData(BUILDING_TURRET);
+	return !pTurret->bTipped && (pTurret->m_iHealth < pTurret->m_iMaxHealth || pTurret->m_iLevel < (info->iMaxLevel - 1) || pTurret->GetAmmo(3) < info->iAmmo1[pTurret->m_iLevel] + info->iAmmo2[pTurret->m_iLevel]);
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: Create a new Bot and put it in the game.
 // Output : Pointer to the new Bot, or NULL if there's no free clients.
@@ -362,13 +368,12 @@ CBasePlayer *BotPutInServer(bool bFrozen, CovenTeamID_t iTeam)
 		g_BotData[pPlayer->entindex() - 1].RN = rn;
 		g_BotData[pPlayer->entindex() - 1].flTimeout = 0.0f;
 		g_BotData[pPlayer->entindex() - 1].m_vCombatLKP.Init();
-		g_BotData[pPlayer->entindex() - 1].m_vObjectiveLKP.Init();
+		g_BotData[pPlayer->entindex() - 1].m_vObjectiveLKP = NULL;
 		g_BotData[pPlayer->entindex() - 1].m_pOverridePos = NULL;
 		g_BotData[pPlayer->entindex() - 1].m_flRespawnTime = 0.0f;
 		g_BotData[pPlayer->entindex() - 1].m_bIsPurchasingItems = false;
 		g_BotData[pPlayer->entindex() - 1].m_bHasNotPurchasedItems = true;
 		g_BotData[pPlayer->entindex() - 1].m_lastCheckedItem = 0;
-		g_BotData[pPlayer->entindex() - 1].m_vItemLKP.Init();
 		g_BotData[pPlayer->entindex() - 1].m_lastCheckedRagdoll = 0;
 		g_BotData[pPlayer->entindex() - 1].bNotIgnoringStrikes = true;
 
@@ -395,8 +400,6 @@ const Vector *CurrentObjectiveLoc( CHL2MP_Player *pBot )
 		if (botdata->m_objective > -1)
 			if (pRules->hGasCans[botdata->m_objective] != NULL)
 				ret = &pRules->hGasCans[botdata->m_objective]->GetAbsOrigin();
-			else
-				return &botdata->m_vObjectiveLKP;
 	}
 	else if (botdata->m_objectiveType == BOT_OBJECTIVE_RETURN_TO_APC)
 	{
@@ -404,7 +407,12 @@ const Vector *CurrentObjectiveLoc( CHL2MP_Player *pBot )
 	}
 	else if (botdata->m_objectiveType == BOT_OBJECTIVE_FEED)
 	{
-		return &botdata->m_vObjectiveLKP;
+		if (pRules->doll_collector[botdata->m_lastCheckedRagdoll] != NULL)
+			return &pRules->doll_collector[botdata->m_lastCheckedRagdoll]->GetAbsOrigin();
+	}
+	else if (botdata->m_objectiveType == BOT_OBJECTIVE_BUILD)
+	{
+		return botdata->m_vObjectiveLKP;
 	}
 	else //BOT_OBJECTIVE_ROGUE
 	{
@@ -436,6 +444,7 @@ void GetLost( CHL2MP_Player *pBot, bool iZ, bool visCheck )
 	botdata_t *botdata = &g_BotData[ ENTINDEX( pBot->edict() ) - 1 ];
 	botdata->m_targetNode = 0;
 	botdata->m_pOverridePos = NULL;
+	botdata->m_vObjectiveLKP = NULL;
 	botdata->m_role = BOT_ROLE_UNDEFINED;
 	botdata->m_objectiveType = BOT_OBJECTIVE_UNDEFINED;
 	botdata->m_objective = -1;
@@ -479,22 +488,22 @@ void CheckItem(CHL2MP_Player *pBot)
 		if ((*hItems)[botdata->m_lastCheckedItem] != NULL && !(*hItems)[botdata->m_lastCheckedItem]->IsEffectActive(EF_NODRAW))
 		{
 			float distance = FLT_MAX;
-			botdata->m_vItemLKP = (*hItems)[botdata->m_lastCheckedItem]->GetAbsOrigin();
-			distance = (botdata->m_vItemLKP - pBot->GetLocalOrigin()).Length();
+			const Vector *itemOrigin = &(*hItems)[botdata->m_lastCheckedItem]->GetAbsOrigin();
+			distance = ((*itemOrigin) - pBot->GetLocalOrigin()).Length();
 			if (distance <= 300.0f)
 			{
 				trace_t tr;
-				UTIL_TraceLine(pBot->EyePosition(), botdata->m_vItemLKP, MASK_SHOT, pBot, COLLISION_GROUP_NONE, &tr);
+				UTIL_TraceLine(pBot->EyePosition(), (*itemOrigin), MASK_SHOT, pBot, COLLISION_GROUP_NONE, &tr);
 				if (tr.DidHitNonWorldEntity() && FClassnameIs(tr.m_pEnt, "item_xp*"))
 				{
-					botdata->m_pOverridePos = &botdata->m_vItemLKP;
+					botdata->m_pOverridePos = itemOrigin;
 				}
 			}
 		}
 	}
 	if ((*hItems)[botdata->m_lastCheckedItem] == NULL || (*hItems)[botdata->m_lastCheckedItem]->IsEffectActive(EF_NODRAW))
 	{
-		if (botdata->m_pOverridePos == &botdata->m_vItemLKP)
+		if (botdata->m_pOverridePos == &(*hItems)[botdata->m_lastCheckedItem]->GetAbsOrigin())
 			botdata->m_pOverridePos = NULL;
 	}
 }
@@ -526,7 +535,19 @@ bool CheckObjective( CHL2MP_Player *pBot, bool doValidityCheck, unsigned int *bu
 			else if ((r < 3 && pRules->covenCTSStatus > COVEN_CTS_STATUS_UNDEFINED) || pRules->num_cap_points == 0)
 				botdata->m_objectiveType = BOT_OBJECTIVE_CTS;
 			else
+			{
 				botdata->m_objectiveType = BOT_OBJECTIVE_CAPPOINT;
+
+				if (pBot->IsBuilderClass() && pBot->SuitPower_GetCurrentPercentage() >= 60 && pBot->m_hTurret != NULL)
+				{
+					CCoven_Turret *pTurret = static_cast<CCoven_Turret *>(pBot->m_hTurret.Get());
+					if (ValidTurret(pTurret) && random->RandomInt(0, 1) > 0)
+					{
+						botdata->m_objectiveType = BOT_OBJECTIVE_BUILD;
+						botdata->m_vObjectiveLKP = &pTurret->EyePosition();
+					}
+				}
+			}
 		}
 		else if (pRules->covenActiveGameMode == COVEN_GAMEMODE_COVEN)
 		{
@@ -544,7 +565,19 @@ bool CheckObjective( CHL2MP_Player *pBot, bool doValidityCheck, unsigned int *bu
 						if (r < 1)
 							botdata->m_objectiveType = BOT_OBJECTIVE_ROGUE;
 						else
+						{
 							botdata->m_objectiveType = BOT_OBJECTIVE_GET_GAS;
+
+							if (pBot->IsBuilderClass() && pBot->SuitPower_GetCurrentPercentage() >= 60 && pBot->m_hTurret != NULL)
+							{
+								CCoven_Turret *pTurret = static_cast<CCoven_Turret *>(pBot->m_hTurret.Get());
+								if (ValidTurret(pTurret) && random->RandomInt(0, 1) > 0)
+								{
+									botdata->m_objectiveType = BOT_OBJECTIVE_BUILD;
+									botdata->m_vObjectiveLKP = &pTurret->EyePosition();
+								}
+							}
+						}
 					}
 				}
 				else
@@ -587,8 +620,7 @@ bool CheckObjective( CHL2MP_Player *pBot, bool doValidityCheck, unsigned int *bu
 		}
 		else if (botdata->m_objectiveType == BOT_OBJECTIVE_GET_GAS)
 		{
-			botdata->m_objective = random->RandomInt(0, pRules->hGasCans.Count() - 1);
-			botdata->m_lastCheckedObjective = 0;
+			botdata->m_objective = pRules->iValidGasCans[random->RandomInt(0, pRules->iValidGasCans.Count() - 1)];
 		}
 		else //BOT_OBJECTIVE_ROGUE
 		{
@@ -600,15 +632,37 @@ bool CheckObjective( CHL2MP_Player *pBot, bool doValidityCheck, unsigned int *bu
 	{
 		if (pRules->doll_collector[botdata->m_lastCheckedRagdoll] == NULL || pBot->GetFedHP(botdata->m_lastCheckedRagdoll) >= sv_coven_hp_per_ragdoll.GetInt())
 		{
-			if (botdata->m_pOverridePos == &botdata->m_vObjectiveLKP)
-			{
-				botdata->m_pOverridePos = NULL;
-				GetLost(pBot);
-			}
+			GetLost(pBot);
+		}
+	}
+	else if (botdata->m_objectiveType == BOT_OBJECTIVE_BUILD)
+	{
+		if (pBot->m_hTurret == NULL || pBot->SuitPower_GetCurrentPercentage() < 5.0f)
+		{
+			GetLost(pBot);
 		}
 		else
 		{
-			botdata->m_vObjectiveLKP = pRules->doll_collector[botdata->m_lastCheckedRagdoll]->GetAbsOrigin();
+			CCoven_Turret *pTurret = static_cast<CCoven_Turret *>(pBot->m_hTurret.Get());
+			if (ValidTurret(pTurret))
+			{
+				if (botdata->m_pOverridePos == NULL)
+				{
+					if (((*botdata->m_vObjectiveLKP) - pBot->EyePosition()).Length() <= 250.0f)
+					{
+						trace_t tr;
+						UTIL_TraceLine(pBot->EyePosition(), (*botdata->m_vObjectiveLKP), MASK_SHOT, pBot, COLLISION_GROUP_NONE, &tr);
+						if (tr.DidHitNonWorldEntity() && tr.m_pEnt == pBot->m_hTurret)
+						{
+							botdata->m_pOverridePos = botdata->m_vObjectiveLKP;
+						}
+					}
+				}
+			}
+			else
+			{
+				GetLost(pBot);
+			}
 		}
 	}
 	
@@ -692,6 +746,7 @@ bool CheckObjective( CHL2MP_Player *pBot, bool doValidityCheck, unsigned int *bu
 			if (pBot->HasStatus(COVEN_STATUS_HAS_GAS))
 			{
 				botdata->m_pOverridePos = NULL;
+				botdata->m_vObjectiveLKP = NULL;
 				botdata->m_objectiveType = BOT_OBJECTIVE_RETURN_TO_APC;
 				if (botdata->m_targetNode > 0)
 				{
@@ -708,28 +763,21 @@ bool CheckObjective( CHL2MP_Player *pBot, bool doValidityCheck, unsigned int *bu
 						botdata->m_lastCheckedObjective = 0;
 					if (pRules->hGasCans[botdata->m_lastCheckedObjective] != NULL && !pRules->hGasCans[botdata->m_lastCheckedObjective]->IsEffectActive(EF_NODRAW))
 					{
-						float distance = FLT_MAX;
-						botdata->m_vObjectiveLKP = pRules->hGasCans[botdata->m_lastCheckedObjective]->GetAbsOrigin();
-						distance = (botdata->m_vObjectiveLKP - pBot->GetLocalOrigin()).Length();
-						if (distance <= 250.0f)
+						const Vector *checkOrigin = &pRules->hGasCans[botdata->m_lastCheckedObjective]->GetAbsOrigin();
+						if (((*checkOrigin) - pBot->GetLocalOrigin()).Length() <= 250.0f)
 						{
 							trace_t tr;
-							UTIL_TraceLine(pBot->EyePosition(), botdata->m_vObjectiveLKP, MASK_SHOT, pBot, COLLISION_GROUP_NONE, &tr);
+							UTIL_TraceLine(pBot->EyePosition(), (*checkOrigin), MASK_SHOT, pBot, COLLISION_GROUP_NONE, &tr);
 							if (tr.DidHitNonWorldEntity() && FClassnameIs(tr.m_pEnt, "item_gas"))
 							{
-								botdata->m_pOverridePos = &botdata->m_vObjectiveLKP;
-								botdata->m_objective = botdata->m_lastCheckedObjective;
+								botdata->m_pOverridePos = checkOrigin;
 							}
-						}
-						if (pRules->hGasCans[botdata->m_objective] == NULL || pRules->hGasCans[botdata->m_objective]->IsEffectActive(EF_NODRAW))
-						{
-							botdata->m_objective = botdata->m_lastCheckedObjective;
 						}
 					}
 				}
-				if (pRules->hGasCans[botdata->m_objective] != NULL && !pRules->hGasCans[botdata->m_objective]->IsEffectActive(EF_NODRAW))
+				if (pRules->hGasCans[botdata->m_objective] == NULL || pRules->hGasCans[botdata->m_objective]->IsEffectActive(EF_NODRAW))
 				{
-					botdata->m_vObjectiveLKP = pRules->hGasCans[botdata->m_objective]->GetAbsOrigin();
+					botdata->m_objective = pRules->iValidGasCans[random->RandomInt(0, pRules->iValidGasCans.Count())];
 				}
 			}
 		}
@@ -737,11 +785,11 @@ bool CheckObjective( CHL2MP_Player *pBot, bool doValidityCheck, unsigned int *bu
 		{
 			botdata->m_pOverridePos = NULL;
 			trace_t tr;
-			botdata->m_vObjectiveLKP = pRules->pAPC->GetAbsOrigin();
-			UTIL_TraceLine(pBot->EyePosition(), botdata->m_vObjectiveLKP, MASK_SHOT, pBot, COLLISION_GROUP_NONE, &tr);
+			botdata->m_vObjectiveLKP = &pRules->pAPC->GetAbsOrigin();
+			UTIL_TraceLine(pBot->EyePosition(), (*botdata->m_vObjectiveLKP), MASK_SHOT, pBot, COLLISION_GROUP_NONE, &tr);
 			if (tr.DidHitNonWorldEntity() && FClassnameIs(tr.m_pEnt, "coven_prop_physics") && tr.fraction < 0.8f)
 			{
-				botdata->m_pOverridePos = &botdata->m_vObjectiveLKP;
+				botdata->m_pOverridePos = botdata->m_vObjectiveLKP;
 #ifdef DEBUG_BOTS
 				if (bot_debug.GetInt() == pBot->entindex())
 				{
@@ -753,7 +801,6 @@ bool CheckObjective( CHL2MP_Player *pBot, bool doValidityCheck, unsigned int *bu
 					if (buttons && gpGlobals->curtime > botdata->nextusetime && !pBot->IsPerformingDeferredAction())
 					{
 						(*buttons) |= IN_USE;
-						botdata->m_pOverridePos = NULL;
 						botdata->nextusetime = gpGlobals->curtime + 0.4f;
 						GetLost(pBot, false, true);
 					}
@@ -886,9 +933,16 @@ unsigned int WeaponCheck(CHL2MP_Player *pBot)
 			if (!pBot->IsPerformingDeferredAction())
 			{
 				CBaseCombatWeapon *pStake = pBot->Weapon_OwnsThisType("weapon_stake");
-				if (pStake)
+				CBaseCombatWeapon *pStunStick = pBot->Weapon_OwnsThisType("weapon_stunstick");
+				CBaseCombatWeapon *pActiveWeapon = pBot->GetActiveWeapon();
+				if (pStunStick && pActiveWeapon == pStunStick && botdata->m_objectiveType != BOT_OBJECTIVE_BUILD)
 				{
-					CBaseCombatWeapon *pActiveWeapon = pBot->GetActiveWeapon();
+					CBaseCombatWeapon *pNewWeapon = g_pGameRules->GetNextBestWeapon(pBot, pStunStick);
+					if (pNewWeapon && pNewWeapon != pStake)
+						pBot->SwitchToNextBestWeapon(pStunStick);
+				}
+				else
+				{
 					if (pActiveWeapon == pStake)
 					{
 						pBot->SwitchToNextBestWeapon(pStake);
@@ -900,7 +954,7 @@ unsigned int WeaponCheck(CHL2MP_Player *pBot)
 							return IN_RELOAD;
 						}
 					}
-					else
+					else if (pActiveWeapon != pStunStick)
 						pBot->Weapon_Switch(pStake);
 				}
 			}
@@ -941,27 +995,17 @@ void HealthCheck(CHL2MP_Player *pBot)
 
 					if (pRules->doll_collector[botdata->m_lastCheckedRagdoll] != NULL && pBot->GetFedHP(botdata->m_lastCheckedRagdoll) < sv_coven_hp_per_ragdoll.GetInt())
 					{
-						float distance = FLT_MAX;
-						botdata->m_vObjectiveLKP = pRules->doll_collector[botdata->m_lastCheckedRagdoll]->GetAbsOrigin();
-						distance = (botdata->m_vObjectiveLKP - pBot->GetLocalOrigin()).Length();
-						if (distance <= 300.0f)
+						const Vector *bodyOrigin = &pRules->doll_collector[botdata->m_lastCheckedRagdoll]->GetAbsOrigin();
+						if (((*bodyOrigin) - pBot->GetLocalOrigin()).Length() <= 500.0f)
 						{
 							trace_t tr;
-							UTIL_TraceLine(pBot->EyePosition(), botdata->m_vObjectiveLKP, MASK_SHOT, pBot, COLLISION_GROUP_WEAPON, &tr);
+							UTIL_TraceLine(pBot->EyePosition(), (*bodyOrigin), MASK_SHOT, pBot, COLLISION_GROUP_WEAPON, &tr);
 							if (tr.DidHitNonWorldEntity() && tr.m_pEnt == pRules->doll_collector[botdata->m_lastCheckedRagdoll])
 							{
-								botdata->m_pOverridePos = &botdata->m_vObjectiveLKP;
+								botdata->m_pOverridePos = bodyOrigin;
 								botdata->m_objectiveType = BOT_OBJECTIVE_FEED;
 							}
 						}
-					}
-				}
-				if (pRules->doll_collector[botdata->m_lastCheckedRagdoll] == NULL || pBot->GetFedHP(botdata->m_lastCheckedRagdoll) >= sv_coven_hp_per_ragdoll.GetInt())
-				{
-					if (botdata->m_pOverridePos == &botdata->m_vObjectiveLKP)
-					{
-						botdata->m_pOverridePos = NULL;
-						GetLost(pBot);
 					}
 				}
 			}
@@ -1285,10 +1329,9 @@ static void RunPlayerMove( CHL2MP_Player *fakeclient, const QAngle& viewangles, 
 	gpGlobals->curtime = flOldCurtime;
 }
 
-unsigned int Bot_Ability_Think(CHL2MP_Player *pBot)
+unsigned int Bot_Ability_Think(CHL2MP_Player *pBot, unsigned int &buttons)
 {
 	botdata_t *botdata = &g_BotData[ENTINDEX(pBot->edict()) - 1];
-	unsigned int buttons = 0;
 	unsigned int key = 0;
 
 	if (!pBot->IsAlive() || pBot->KO)
@@ -1411,7 +1454,34 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot)
 		}
 	}
 	//BB: TODO: random sneak walk
-	//BB: TODO: dodge
+	if (pBot->HasAbility(COVEN_ABILITY_DODGE))
+	{
+		if (botdata->bCombat)
+		{
+			if (!pBot->HasStatus(COVEN_STATUS_DODGE))
+			{
+				int abilityNum = pBot->AbilityKey(COVEN_ABILITY_DODGE, &key);
+				if (!pBot->IsInCooldown(abilityNum) && botdata->m_flLastCombatDist >= bot_dodge_combat.GetFloat())
+				{
+					CBaseCombatCharacter *pEnemy = BotGetEnemy(pBot);
+					if (pEnemy && pEnemy->IsAlive() && !pEnemy->KO)
+					{
+						buttons |= key;
+						buttons &= ~IN_ATTACK;
+						botdata->m_flAbilityTimer[abilityNum] = 0.25f + gpGlobals->curtime;
+					}
+				}
+			}
+		}
+		else
+		{
+			if (pBot->HasStatus(COVEN_STATUS_DODGE))
+			{
+				pBot->AbilityKey(COVEN_ABILITY_DODGE, &key);
+				buttons |= key;
+			}
+		}
+	}
 	if (pBot->HasAbility(COVEN_ABILITY_PHASE))
 	{
 		if (botdata->bCombat)
@@ -1425,7 +1495,8 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot)
 					if (pEnemy && pEnemy->IsAlive() && !pEnemy->KO)
 					{
 						buttons |= key;
-						botdata->m_flAbilityTimer[abilityNum] = 0.1f + gpGlobals->curtime;
+						buttons &= ~IN_ATTACK;
+						botdata->m_flAbilityTimer[abilityNum] = 0.25f + gpGlobals->curtime;
 					}
 				}
 			}
@@ -1456,7 +1527,7 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot)
 		}
 		else
 		{
-			if (!botdata->bLost)
+			if (!botdata->bLost && botdata->m_pOverridePos == NULL)
 			{
 				int abilityNum = pBot->AbilityKey(COVEN_ABILITY_DETONATEBLOOD, &key);
 				if (!pBot->IsInCooldown(abilityNum) && (float)pBot->GetHealth() / pBot->GetMaxHealth() > 0.5f && (!pBot->HasStatus(COVEN_STATUS_MASOCHIST) || pBot->GetStatusTime(COVEN_STATUS_MASOCHIST) - gpGlobals->curtime < 1.0f))
@@ -1493,13 +1564,12 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot)
 		}
 		else
 		{
-			if (!botdata->bLost)
+			if (!botdata->bLost && botdata->m_pOverridePos == NULL)
 			{
 				CHL2MPRules *pRules;
 				pRules = HL2MPRules();
 				if (botdata->m_targetNode > -1 && pRules->pBotNet[botdata->m_targetNode] != NULL)
 				{
-					
 					int abilityNum = pBot->AbilityKey(COVEN_ABILITY_LEAP, &key);
 					if (!pBot->IsInCooldown(abilityNum))
 					{
@@ -1581,7 +1651,7 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot)
 		}
 		else
 		{
-			if (!botdata->bLost)
+			if (!botdata->bLost && botdata->m_pOverridePos == NULL)
 			{
 				CHL2MPRules *pRules;
 				pRules = HL2MPRules();
@@ -1864,16 +1934,21 @@ void Bot_Think( CHL2MP_Player *pBot )
 				RunPlayerMove(pBot, botdata->forwardAngle, 0.0f, 0.0f, 0.0f, buttons, 0, frametime);
 				return;
 			}
-			else if (pBot->IsDistanceRestricted())
+			else if (pBot->CurrentDeferredAction() == COVEN_ACTION_REFUEL)
 			{
 				botdata->backwards = true;
 				float velocity = Bot_Velocity(pBot);
-				if ((pBot->GetAbsOrigin() - botdata->m_vObjectiveLKP).Length() > 0.9f * sv_coven_refuel_distance.GetFloat())
+				float distance = (pBot->GetAbsOrigin() - (pRules->pAPC->GetAbsOrigin())).Length();
+				if (distance > 0.9f * sv_coven_refuel_distance.GetFloat())
+				{
+					botdata->backwards = false;
+					velocity = -velocity;
+				}
+				else if (distance > 0.8f * sv_coven_refuel_distance.GetFloat())
 				{
 					velocity = 0.0f;
 					botdata->backwards = false;
 				}
-				botdata->m_vObjectiveLKP = pRules->pAPC->GetAbsOrigin();
 				pBot->SetLocalAngles(botdata->forwardAngle);
 				RunPlayerMove(pBot, botdata->forwardAngle, velocity, 0.0f, 0.0f, buttons | /*IN_DUCK |*/ IN_BACK, 0, frametime);
 				return;
@@ -1887,11 +1962,11 @@ void Bot_Think( CHL2MP_Player *pBot )
 	//Item Check
 	CheckItem(pBot);
 
-	//Weapon Swap Check
-	buttons |= WeaponCheck(pBot);
-
 	//Health Check
 	HealthCheck(pBot);
+
+	//Weapon Swap Check
+	buttons |= WeaponCheck(pBot);
 
 	float forwardmove = 0.0f;
 	float sidemove = botdata->sidemove;
@@ -1912,7 +1987,9 @@ void Bot_Think( CHL2MP_Player *pBot )
 		if (botdata->m_objectiveType == BOT_OBJECTIVE_CAPPOINT)
 			flMinDistance = pRules->cap_point_distance[botdata->m_objective];
 		else if (botdata->m_objectiveType == BOT_OBJECTIVE_FEED)
-			flMinDistance = 75.0f;
+			flMinDistance = 95.0f;
+		else if (botdata->m_objectiveType == BOT_OBJECTIVE_BUILD)
+			flMinDistance = 95.0f;
 		else //BOT_OBJECTIVE_ROGUE
 			flMinDistance = BOT_NODE_TOLERANCE;
 		//reached objective
@@ -1952,19 +2029,33 @@ void Bot_Think( CHL2MP_Player *pBot )
 			}
 			else if (botdata->m_objectiveType == BOT_OBJECTIVE_FEED)
 			{
-				if (pRules->doll_collector[botdata->m_lastCheckedRagdoll] == NULL || pBot->GetFedHP(botdata->m_lastCheckedRagdoll) >= sv_coven_hp_per_ragdoll.GetInt())
+				if (pRules->doll_collector[botdata->m_lastCheckedRagdoll] != NULL)
 				{
-					if (botdata->m_pOverridePos == &botdata->m_vObjectiveLKP)
-					{
-						botdata->m_pOverridePos = NULL;
-						GetLost(pBot);
-					}
-				}
-				else
-				{
-					botdata->m_vObjectiveLKP = pRules->doll_collector[botdata->m_lastCheckedRagdoll]->GetAbsOrigin();
 					botdata->bNotIgnoringStrikes = false;
 					buttons |= (IN_USE | IN_DUCK);
+				}
+			}
+			else if (botdata->m_objectiveType == BOT_OBJECTIVE_BUILD)
+			{
+				if (pBot->m_hTurret != NULL)
+				{
+					CCoven_Turret *pTurret = static_cast<CCoven_Turret *>(pBot->m_hTurret.Get());
+					if (ValidTurret(pTurret) && !pBot->IsPerformingDeferredAction())
+					{
+						CBaseCombatWeapon *pStunStick = pBot->Weapon_OwnsThisType("weapon_stunstick");
+						if (pStunStick && pBot->GetActiveWeapon() != pStunStick)
+							pBot->Weapon_Switch(pStunStick);
+						botdata->bNotIgnoringStrikes = false;
+						buttons |= IN_ATTACK;
+					}
+					else if (pBot->IsPerformingDeferredAction())
+					{
+						botdata->bNotIgnoringStrikes = false;
+					}
+					else
+					{
+						GetLost(pBot);
+					}
 				}
 			}
 			else //BOT_OBJECTIVE_ROGUE
@@ -1975,7 +2066,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 		}
 		else
 		{
-			if (botdata->m_objectiveType == BOT_OBJECTIVE_FEED)
+			if (botdata->m_objectiveType == BOT_OBJECTIVE_FEED || botdata->m_objectiveType == BOT_OBJECTIVE_BUILD)
 			{
 				botdata->bNotIgnoringStrikes = true;
 			}
@@ -2093,9 +2184,13 @@ void Bot_Think( CHL2MP_Player *pBot )
 						bool bSwing = true;
 						if (pBot->HasAbility(COVEN_ABILITY_PHASE))
 						{
-							bSwing = false;
-							if (gpGlobals->curtime > botdata->m_flAbilityTimer[pBot->AbilityKey(COVEN_ABILITY_PHASE)] && botdata->m_flLastCombatDist <= 64.0f)
-								bSwing = true;
+							if (pBot->HasStatus(COVEN_STATUS_PHASE) && (gpGlobals->curtime < botdata->m_flAbilityTimer[pBot->AbilityKey(COVEN_ABILITY_PHASE)] || botdata->m_flLastCombatDist > 64.0f))
+								bSwing = false;
+						}
+						if (pBot->HasAbility(COVEN_ABILITY_DODGE))
+						{
+							if (pBot->HasStatus(COVEN_STATUS_DODGE) && (gpGlobals->curtime < botdata->m_flAbilityTimer[pBot->AbilityKey(COVEN_ABILITY_DODGE)] || botdata->m_flLastCombatDist > 64.0f))
+								bSwing = false;
 						}
 						if (bSwing)
 						{
@@ -2127,15 +2222,15 @@ void Bot_Think( CHL2MP_Player *pBot )
 					sidemove = botdata->sidemove = 0;
 					if ((pPlayer->myServerRagdoll->GetAbsOrigin() - pBot->GetAbsOrigin()).Length() < 175 - 25 * bot_difficulty.GetInt())
 					{
-						CBaseCombatWeapon *pWeapon = pBot->Weapon_OwnsThisType("weapon_stake");
+						CBaseCombatWeapon *pStake = pBot->Weapon_OwnsThisType("weapon_stake");
 						CBaseCombatWeapon *pActiveWeapon = pBot->GetActiveWeapon();
-						if (pWeapon)
+						if (pStake)
 						{
 							// Switch to it if we don't have it out
 							// Switch?
-							if (pActiveWeapon != pWeapon)
+							if (pActiveWeapon != pStake)
 							{
-								pBot->Weapon_Switch(pWeapon);
+								pBot->Weapon_Switch(pStake);
 							}
 						}
 						buttons |= IN_ATTACK;
@@ -2595,7 +2690,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 	}
 
 	//This needs to be the last call... because we are going to be modifying view angles for abilities
-	buttons |= Bot_Ability_Think(pBot);
+	Bot_Ability_Think(pBot, buttons);
 
 	//Msg("%d %.02f %.02f %.02f %.02f\n", pBot->covenClassID, botdata->m_flBaseSpeed, forwardmove, sidemove, botdata->nextstrafetime);
 	RunPlayerMove(pBot, botdata->forwardAngle, forwardmove, sidemove, upmove, buttons, impulse, frametime);

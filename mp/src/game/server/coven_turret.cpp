@@ -69,6 +69,11 @@ DEFINE_OUTPUT(m_OnTipped, "OnTipped"),
 
 END_DATADESC()
 
+extern ConVar sv_coven_building_hp_per_energy;
+extern ConVar sv_coven_building_max_energy_swing;
+ConVar sv_coven_building_ammo_per_energy("sv_coven_building_ammo_per_energy", "2", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Ammo per energy per swing.");
+ConVar sv_coven_building_energy_per_energy("sv_coven_building_energy_per_energy", "2", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Energy ammo per energy per swing.");
+
 //-----------------------------------------------------------------------------
 // Constructor
 //-----------------------------------------------------------------------------
@@ -95,6 +100,7 @@ m_flThrashTime(0.0f)
 	m_iMaxEnergy = 50;
 	bTipped = false;
 
+	m_vecEyePosition = vec3_invalid;
 	m_vecEnemyLKP = vec3_invalid;
 }
 
@@ -235,6 +241,30 @@ void CCoven_Turret::Spawn(void)
 	CreateEffects();
 
 	SetEnemy(NULL);
+}
+
+void CCoven_Turret::UpdateEyeVector(void)
+{
+	if (UpdateMuzzleMatrix())
+	{
+		Vector vecOrigin;
+		MatrixGetColumn(m_muzzleToWorld, 3, vecOrigin);
+
+		Vector vecForward;
+		MatrixGetColumn(m_muzzleToWorld, 0, vecForward);
+
+		// Note: We back up into the model to avoid an edge case where the eyes clip out of the world and
+		//		 cause problems with the PVS calculations -- jdw
+
+		m_vecEyePosition = vecOrigin - vecForward * 8.0f;
+	}
+}
+
+const Vector &CCoven_Turret::EyePosition(void) const
+{
+	const_cast<CCoven_Turret *>(this)->UpdateEyeVector();
+	
+	return m_vecEyePosition;
 }
 
 int CCoven_Turret::GetAmmo(int index)
@@ -1553,7 +1583,7 @@ int CCoven_Turret::OnTakeDamage(const CTakeDamageInfo &info)
 
 	if (info.GetDamageType() & DMG_SHOCK)
 	{
-		if (info.GetAttacker() != NULL && info.GetAttacker()->IsPlayer() && info.GetAttacker()->GetTeamNumber() == GetTeamNumber())
+		if (info.GetAttacker() != NULL && info.GetAttacker()->IsPlayer() && info.GetAttacker()->GetTeamNumber() == GetTeamNumber() && !m_bSelfDestructing)
 		{
 			CHL2MP_Player *pAttacker = (CHL2MP_Player *)info.GetAttacker();
 			if (pAttacker)
@@ -1563,29 +1593,29 @@ int CCoven_Turret::OnTakeDamage(const CTakeDamageInfo &info)
 				int ammo = 0;
 				int energy = 0;
 				int xp = 0;
-				hp = min(25, ceil((m_iMaxHealth - m_iHealth) / 3.0f));
-				ammo = min(25, m_iMaxAmmo - m_iAmmo);
-				energy = min(25, m_iMaxEnergy - m_iEnergy);
+				hp = min(sv_coven_building_max_energy_swing.GetInt(), ceil((m_iMaxHealth - m_iHealth) / sv_coven_building_hp_per_energy.GetFloat()));
+				ammo = min(sv_coven_building_max_energy_swing.GetInt(), ceil((m_iMaxAmmo - m_iAmmo) / sv_coven_building_ammo_per_energy.GetFloat()));
+				energy = min(sv_coven_building_max_energy_swing.GetInt(), ceil((m_iMaxEnergy - m_iEnergy) / sv_coven_building_energy_per_energy.GetFloat()));
 				if (hp == 0 || (ammo + energy) == 0)
 				{
-					int maxXP = m_iMaxXP + 25;
+					int maxXP = m_iMaxXP + sv_coven_building_max_energy_swing.GetInt();
 					if (m_iLevel >= (bldgInfo->iMaxLevel - 2))
 						maxXP = m_iMaxXP;
-					xp = min(25, maxXP - m_iXP);
+					xp = min(sv_coven_building_max_energy_swing.GetInt(), maxXP - m_iXP);
 				}
 
 				int total = min(ammo + hp + energy + xp, pAttacker->SuitPower_GetCurrentPercentage());
 				int drain = min(total, hp);
 				if (drain > 0)
 				{
-					m_iHealth = min(m_iHealth + 3 * drain, m_iMaxHealth);
+					m_iHealth = min(m_iHealth + sv_coven_building_hp_per_energy.GetInt() * drain, m_iMaxHealth);
 					total -= drain;
 					pAttacker->SuitPower_Drain(drain);
 				}
 				drain = min(total, ammo);
 				if (drain > 0)
 				{
-					m_iAmmo += drain;
+					m_iAmmo = min(m_iAmmo + sv_coven_building_ammo_per_energy.GetInt() * drain, m_iMaxAmmo);
 					RemoveSpawnFlags(SF_COVEN_TURRET_OUT_OF_AMMO);
 					total -= drain;
 					pAttacker->SuitPower_Drain(drain);
@@ -1593,7 +1623,7 @@ int CCoven_Turret::OnTakeDamage(const CTakeDamageInfo &info)
 				drain = min(total, energy);
 				if (drain > 0)
 				{
-					m_iEnergy += drain;
+					m_iEnergy = min(m_iEnergy + sv_coven_building_energy_per_energy.GetInt() * drain, m_iMaxEnergy);
 					RemoveSpawnFlags(SF_COVEN_TURRET_OUT_OF_ENERGY);
 					total -= drain;
 					pAttacker->SuitPower_Drain(drain);
@@ -1762,13 +1792,15 @@ int CCoven_Turret::DrawDebugTextOverlays(void)
 	return text_offset;
 }
 
-void CCoven_Turret::UpdateMuzzleMatrix()
+bool CCoven_Turret::UpdateMuzzleMatrix()
 {
 	if (gpGlobals->tickcount != m_muzzleToWorldTick)
 	{
 		m_muzzleToWorldTick = gpGlobals->tickcount;
 		GetAttachment(m_iMuzzleAttachment, m_muzzleToWorld);
+		return true;
 	}
+	return false;
 }
 
 //-----------------------------------------------------------------------------

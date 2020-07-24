@@ -184,6 +184,11 @@ void Item_Precache(void)
 	PrecacheItems(filesystem);
 }
 
+void SupplyDepot_Precache(void)
+{
+	PrecacheSupplyDepots(filesystem);
+}
+
 void C_World::Precache( void )
 {
 	// UNDONE: Make most of these things server systems or precache_registers
@@ -199,6 +204,7 @@ void C_World::Precache( void )
 	Abil_Precache();
 	Class_Precache();
 	Status_Precache();
+	SupplyDepot_Precache();
 	Building_Precache();
 	Item_Precache();
 	W_Precache();

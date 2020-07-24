@@ -135,12 +135,14 @@ static CUtlVector<CovenAbilityInfo_t *> m_CovenAbilityInfoDatabase;
 static CUtlVector<CovenStatusEffectInfo_t *> m_CovenStatusEffectInfoDatabase;
 static CUtlVector<CovenBuildingInfo_t *> m_CovenBuildingInfoDatabase;
 static CUtlVector<CovenItemInfo_t *> m_CovenItemInfoDatabase;
+static CUtlVector<CovenSupplyDepotInfo_t *> m_CovenSupplyDepotInfoDatabase;
 
 static CovenClassInfo_t gNullCovenClassInfo;
 static CovenAbilityInfo_t gNullCovenAbilityInfo;
 static CovenStatusEffectInfo_t gNullCovenStatusEffectInfo;
 static CovenBuildingInfo_t gNullCovenBuildingInfo;
 static CovenItemInfo_t gNullCovenItemInfo;
+static CovenSupplyDepotInfo_t gNullSupplyDepotInfo;
 
 CovenClassInfo_t::CovenClassInfo_t()
 {
@@ -242,6 +244,20 @@ CovenItemInfo_t::CovenItemInfo_t()
 
 	hudIcon = 0;
 	hudIconOff = 0;
+}
+
+CovenSupplyDepotInfo_t::CovenSupplyDepotInfo_t()
+{
+	bParsedScript = false;
+	bLoadedHudElements = false;
+
+	szName[0] = 0;
+	szModelName[0] = 0;
+
+	vOffsetPosition.Init();
+	qOffsetAngle.Init();
+
+	iFlags = 0;
 }
 
 void CovenClassInfo_t::Parse(KeyValues *pKeyValuesData)
@@ -521,6 +537,38 @@ void CovenItemInfo_t::Parse(KeyValues *pKeyValuesData)
 	}
 }
 
+void CovenSupplyDepotInfo_t::Parse(KeyValues *pKeyValuesData)
+{
+	// Okay, we tried at least once to look this up...
+	bParsedScript = true;
+
+	Q_strncpy(szModelName, pKeyValuesData->GetString("modelname"), MAX_COVEN_STRING);
+
+	float locs[3];
+	UTIL_StringToVector(locs, pKeyValuesData->GetString("offset_position", "0 0 0"));
+	vOffsetPosition.Init(locs[0], locs[1], locs[2]);
+	UTIL_StringToVector(locs, pKeyValuesData->GetString("offset_angles", "0 0 0"));
+	qOffsetAngle.Init(locs[0], locs[1], locs[2]);
+	KeyValues *pItems = pKeyValuesData->FindKey("items");
+	if (pItems)
+	{
+		for (KeyValues *sub = pItems->GetFirstSubKey(); sub != NULL; sub = sub->GetNextKey())
+		{
+			CovenItem_t *item = new CovenItem_t();
+			Q_snprintf(item->szItemName, sizeof(item->szItemName), sub->GetName());
+			UTIL_StringToVector(locs, sub->GetString("rel_location", "0 0 0"));
+			item->vRelPosition.Init(locs[0], locs[1], locs[2]);
+			UTIL_StringToVector(locs, sub->GetString("rel_angles", "0 0 0"));
+			item->qRelAngle.Init(locs[0], locs[1], locs[2]);
+			ItemInfo.AddToTail(item);
+		}
+	}
+
+	// LAME old way to specify item flags.
+	// Weapon scripts should use the flag names.
+	iFlags = pKeyValuesData->GetInt("flags", 0);
+}
+
 void PrecacheClasses(IFileSystem *filesystem)
 {
 	SetDefLessFunc(m_CovenClassInfoDatabase);
@@ -649,6 +697,36 @@ void PrecacheItems(IFileSystem *filesystem)
 			Warning("Error loading item file: %s!\n", tempfile);
 			m_CovenItemInfoDatabase.AddToTail(&gNullCovenItemInfo);
 		}
+	}
+}
+
+void PrecacheSupplyDepots(IFileSystem *filesystem)
+{
+	m_CovenSupplyDepotInfoDatabase.AddToTail(&gNullSupplyDepotInfo);
+	char tempfile[MAX_PATH];
+	Q_snprintf(tempfile, sizeof(tempfile), "scripts/buildings/supplydepot_manifest.txt");
+	KeyValues *manifest = new KeyValues("supplydepot_manifest");
+	if (manifest->LoadFromFile(filesystem, tempfile, "GAME"))
+	{
+		for (KeyValues *sub = manifest->GetFirstSubKey(); sub != NULL; sub = sub->GetNextKey())
+		{
+			Q_snprintf(tempfile, sizeof(tempfile), "%s", sub->GetString());
+			KeyValues *pSupplyDepot = new KeyValues("supplydepot");
+			if (pSupplyDepot->LoadFromFile(filesystem, tempfile, "GAME"))
+			{
+				CovenSupplyDepotInfo_t *info = new CovenSupplyDepotInfo_t();
+				info->Parse(pSupplyDepot);
+				m_CovenSupplyDepotInfoDatabase.AddToTail(info);
+			}
+			else
+			{
+				Warning("Error loading supply depot file: %s!\n", tempfile);
+			}
+		}
+	}
+	else
+	{
+		Warning("Error loading supply depot manifest file: %s!\n", tempfile);
 	}
 }
 
@@ -794,4 +872,14 @@ CovenBuildingInfo_t *GetCovenBuildingData(BuildingType_t iBuildingType)
 CovenItemInfo_t *GetCovenItemData(CovenItemID_t iItemType)
 {
 	return m_CovenItemInfoDatabase[iItemType];
+}
+
+CovenSupplyDepotInfo_t *GetCovenSupplyDepotData(int iDepotType)
+{
+	return m_CovenSupplyDepotInfoDatabase[iDepotType];
+}
+
+int CovenSupplyDepotDataLength(void)
+{
+	return m_CovenSupplyDepotInfoDatabase.Count();
 }

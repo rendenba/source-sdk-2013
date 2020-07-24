@@ -188,6 +188,7 @@ public:
 #ifndef CLIENT_DLL
 	CCoven_APC *pAPC;
 	CUtlVector<CBaseEntity *> hGasCans; //for bot speed
+	CUtlVector<int> iValidGasCans; //for bot speed
 	CUtlVector<CBaseEntity *> hSlayerXP; //for bot speed
 	CUtlVector<CBaseEntity *> hVampireXP; //for bot speed
 
