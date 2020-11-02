@@ -54,6 +54,8 @@ public:
 	CNetworkArray( float, covenCooldownTimers, COVEN_MAX_ABILITIES );
 	CNetworkArray( int, m_iItems, COVEN_ITEM_COUNT );
 	CNetworkArray( int, m_iDollHP, COVEN_MAX_RAGDOLLS );
+	CNetworkVar(int,	m_iNumTripmines);
+	CNetworkVar(int,	m_iNumSatchel);
 #ifdef HL2_EPISODIC
 	CNetworkVar( float, m_flFlashBattery );
 	CNetworkVar( Vector, m_vecLocatorOrigin );

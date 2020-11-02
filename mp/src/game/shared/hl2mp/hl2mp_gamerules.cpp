@@ -91,6 +91,7 @@ ConVar sv_coven_respawn_slayer_base("sv_coven_respawn_slayer_base", "5.0", FCVAR
 ConVar sv_coven_respawn_vampire_base("sv_coven_respawn_vampire_base", "10.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Base vampire respawn time.");
 ConVar sv_coven_item_respawn_time("sv_coven_item_respawn_time", "30", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Dropped item respawn time.");
 ConVar sv_coven_dropboxtime("sv_coven_dropboxtime", "60.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Dropped item existance time.");
+ConVar sv_coven_flamedamage("sv_coven_flamedamage", "6.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Flame damage inflicted per second.");
 
 extern ConVar mp_chattime;
 extern ConVar bot_debug_visual;
@@ -113,6 +114,7 @@ ConVar sv_coven_hp_per_con("sv_coven_hp_per_con", "4.0", FCVAR_NOTIFY | FCVAR_RE
 ConVar sv_coven_alarm_time("sv_coven_alarm_time", "60.0", FCVAR_NOTIFY | FCVAR_REPLICATED, "APC alarm timer.");
 ConVar sv_coven_refuel_distance("sv_coven_refuel_distance", "250.0", FCVAR_NOTIFY | FCVAR_REPLICATED, "Distance before refuel cancels.");
 ConVar sv_coven_hp_per_ragdoll("sv_coven_hp_per_ragdoll", "100", FCVAR_NOTIFY | FCVAR_REPLICATED, "HP allowed per player to feed upon.");
+ConVar sv_coven_max_slam("sv_coven_max_slam", "6", FCVAR_NOTIFY | FCVAR_REPLICATED, "Maximum number of TOTAL deployed slams.");
 
 REGISTER_GAMERULES_CLASS( CHL2MPRules );
 
@@ -214,6 +216,7 @@ static const char *s_PreserveEnts[] =
 	"npc_depot_stimpack",
 	"npc_depot_medkit",
 	"npc_depot_pills",
+	"npc_depot_slam",
 	"", // END Marker
 };
 //BB: TODO: item_ammo_crate might need to come off this list once they are actually baked into maps...
@@ -384,6 +387,12 @@ bool CHL2MPRules::CanUseCovenItem(CBasePlayer *pPlayer, CovenItemID_t iItemType)
 		return pPlayer->GetHealth() < info->flMaximum * pPlayer->GetMaxHealth();
 	case COVEN_ITEM_PILLS:
 		return pHL2Player->GetStatusMagnitude(COVEN_STATUS_HASTE) < info->flMaximum;
+	case COVEN_ITEM_SLAM:
+#ifndef CLIENT_DLL
+		return pHL2Player->NumSatchels() > 0;
+#else
+		return pHL2Player->m_HL2Local.m_iNumSatchel > 0;
+#endif
 	}
 	return true;
 }
@@ -1246,6 +1255,7 @@ void CHL2MPRules::RestartRound(bool bFullReset)
 		pPlayer->KO = false;
 		pPlayer->ClearAllBuildings();
 		pPlayer->ClearTripmines();
+		pPlayer->ClearSatchels();
 		pPlayer->ResetCovenStatus();
 		pPlayer->ResetAbilities();
 		Q_memset(pPlayer->covenLoadouts, 0, sizeof(pPlayer->covenLoadouts));
@@ -2409,7 +2419,8 @@ CAmmoDef *GetAmmoDef()
 		def.AddAmmoType("Grenade",			DMG_BURN,					TRACER_NONE,			0,			0,			info->iCarry,	0,							0 );
 		info = GetCovenItemData(COVEN_ITEM_STUN_GRENADE);
 		def.AddAmmoType("stungrenade",		DMG_BURN,					TRACER_NONE,			0,			0,			info->iCarry,	0,							0 );
-		def.AddAmmoType("slam",				DMG_BURN,					TRACER_NONE,			0,			0,			5,				0,							0 );
+		info = GetCovenItemData(COVEN_ITEM_SLAM);
+		def.AddAmmoType("slam",				DMG_BURN,					TRACER_NONE,			0,			0,			info->iCarry,	0,							0 );
 		info = GetCovenItemData(COVEN_ITEM_HOLYWATER);
 		def.AddAmmoType("holywater",		DMG_BURN,					TRACER_NONE,			0,			0,			info->iCarry,	0,							0 );
 	}

@@ -39,6 +39,8 @@ BEGIN_RECV_TABLE_NOBASE( C_HL2PlayerLocalData, DT_HL2Local )
 	RecvPropArray3( RECVINFO_ARRAY(covenStatusMagnitude), RecvPropInt( RECVINFO(covenStatusMagnitude[0]))),
 	RecvPropArray3( RECVINFO_ARRAY(m_iItems), RecvPropInt( RECVINFO(m_iItems[0])) ),
 	RecvPropArray3( RECVINFO_ARRAY(m_iDollHP), RecvPropInt(RECVINFO(m_iDollHP[0])) ),
+	RecvPropInt(RECVINFO(m_iNumTripmines)),
+	RecvPropInt(RECVINFO(m_iNumSatchel)),
 #ifdef HL2_EPISODIC
 	RecvPropFloat( RECVINFO(m_flFlashBattery) ),
 	RecvPropVector( RECVINFO(m_vecLocatorOrigin) ),
@@ -66,6 +68,8 @@ C_HL2PlayerLocalData::C_HL2PlayerLocalData()
 	m_fSquadInFollowMode = false;
 	m_bWeaponLowered = false;
 	m_hLadder = NULL;
+	m_iNumTripmines = 0;
+	m_iNumSatchel = 0;
 #ifdef HL2_EPISODIC
 	m_flFlashBattery = 0.0f;
 	m_vecLocatorOrigin = vec3_origin;

@@ -51,6 +51,8 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+
+extern ConVar sv_coven_flamedamage;
 extern ConVar sk_npc_head;
 
 #define ZOMBIE_BULLET_DAMAGE_SCALE 0.5f
@@ -1215,7 +1217,7 @@ void CNPC_BaseZombie::Ignite( float flFlameLifetime, bool bNPCOnly, float flSize
 #endif // HL2_EPISODIC
 
 	// Set the zombie up to burn to death in about ten seconds.
-	SetHealth( MIN( m_iHealth, FLAME_DIRECT_DAMAGE_PER_SEC * (ZOMBIE_BURN_TIME + random->RandomFloat( -ZOMBIE_BURN_TIME_NOISE, ZOMBIE_BURN_TIME_NOISE)) ) );
+	SetHealth(MIN(m_iHealth, sv_coven_flamedamage.GetFloat() * (ZOMBIE_BURN_TIME + random->RandomFloat(-ZOMBIE_BURN_TIME_NOISE, ZOMBIE_BURN_TIME_NOISE))));
 
 	// FIXME: use overlays when they come online
 	//AddOverlay( ACT_ZOM_WALK_ON_FIRE, false );

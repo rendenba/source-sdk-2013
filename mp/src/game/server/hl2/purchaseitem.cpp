@@ -163,3 +163,24 @@ public:
 	}
 };
 LINK_ENTITY_TO_CLASS(npc_depot_pills, CPurchaseItem_Pills);
+
+/***************************************************************************************************************/
+class CPurchaseItem_SLAM : public CPurchaseItem
+{
+public:
+	DECLARE_CLASS(CPurchaseItem_SLAM, CPurchaseItem);
+
+	CPurchaseItem_SLAM()
+	{
+		iItemType = COVEN_ITEM_SLAM;
+	}
+	void Spawn(void)
+	{
+		m_BuildingType = BUILDING_PURCHASE_SLAM;
+		Precache();
+		CovenBuildingInfo_t *bldgInfo = GetCovenBuildingData(m_BuildingType);
+		SetModel(bldgInfo->szModelName);
+		BaseClass::Spawn();
+	}
+};
+LINK_ENTITY_TO_CLASS(npc_depot_slam, CPurchaseItem_SLAM);

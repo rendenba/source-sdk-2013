@@ -49,6 +49,8 @@ static int coord[NumSegments + 1] = {
 	10
 };
 
+extern ConVar sv_coven_max_slam;
+
 //-----------------------------------------------------------------------------
 // Purpose: Konstructor
 //-----------------------------------------------------------------------------
@@ -88,15 +90,16 @@ void CHL2MPClientWheelMenuDialog::LoadWheelTextures(void)
 	m_iBlipTexOn = surface()->CreateNewTextureID();
 	surface()->DrawSetTextureFile(m_iBlipTexOn, "hud/ui/numeral_blip_on", true, true);
 
+	char szTextureFile[MAX_PATH];
 	int texture = surface()->CreateNewTextureID();
-	surface()->DrawSetTextureFile(texture, "hud/ui/g_wheel_off", true, true);
+	Q_snprintf(szTextureFile, sizeof(szTextureFile), "hud/ui/g_wheel_off_%d", m_Items.Count());
+	surface()->DrawSetTextureFile(texture, szTextureFile, true, true);
 	m_iSectorTex.AddToTail(texture);
 
 	for (int i = 1; i <= m_Items.Count(); i++)
 	{
-		char szTextureFile[MAX_PATH];
 		texture = surface()->CreateNewTextureID();
-		Q_snprintf(szTextureFile, sizeof(szTextureFile), "hud/ui/g_wheel_sector%d", i);
+		Q_snprintf(szTextureFile, sizeof(szTextureFile), "hud/ui/g_wheel_sector%d_%d", m_Items.Count(), i);
 		surface()->DrawSetTextureFile(texture, szTextureFile, true, true);
 		m_iSectorTex.AddToTail(texture);
 	}
@@ -195,7 +198,21 @@ void CHL2MPClientWheelMenuDialog::OnThink()
 					angle = 270.0f;
 
 				float width = 360.0f / m_Items.Count();
-				m_iSelected = ceil(angle / width);
+				float selection = angle / width;
+				int selected = ceil(selection);
+				if (selected == 0)
+					selected = 1;
+
+				if (m_iSelected > 0 && selected != m_iSelected)
+				{
+					float value = selected - selection;
+					if (value < 0.95f || value > 1.05f)
+					{
+						m_iSelected = selected;
+					}
+				}
+				else
+					m_iSelected = selected;
 
 				float sn, cs;
 				SinCos(angle * M_PI / 180.0f, &sn, &cs);
@@ -248,7 +265,7 @@ void CHL2MPClientWheelMenuDialog::ShowPanel(bool bShow)
 		if (m_iSelected > 0)
 		{
 			CovenItemID_t n = m_Items[m_iSelected - 1];
-			if (pPlayer->CovenItemQuantity(n) > 0 && HL2MPRules()->CanUseCovenItem(pPlayer, n))
+			if ((n == COVEN_ITEM_SLAM && ((pPlayer->CovenItemQuantity(n) > 0 && pPlayer->m_HL2Local.m_iNumSatchel + pPlayer->m_HL2Local.m_iNumTripmines < sv_coven_max_slam.GetInt()) || HL2MPRules()->CanUseCovenItem(pPlayer, n))) || (pPlayer->CovenItemQuantity(n) > 0 && HL2MPRules()->CanUseCovenItem(pPlayer, n)))
 			{
 				if (n < COVEN_ITEM_COUNT)
 				{
@@ -283,6 +300,13 @@ void CHL2MPClientWheelMenuDialog::ShowPanel(bool bShow)
 						{
 							pPlayer->m_bPredictHideHud = true;
 							engine->ClientCmd("use weapon_holywater");
+						}
+						break;
+					case COVEN_ITEM_SLAM:
+						if (pWeap && !FClassnameIs(pWeap, "weapon_slam"))
+						{
+							pPlayer->m_bPredictHideHud = true;
+							engine->ClientCmd("use weapon_slam");
 						}
 						break;
 					}
@@ -379,7 +403,7 @@ void CHL2MPClientWheelMenuDialog::PaintBackground()
 		int py = center_y - mouse_distance * cs;
 		int amount = pPlayer->CovenItemQuantity(m_Items[i]);
 		bool bAllow = HL2MPRules()->CanUseCovenItem(pPlayer, m_Items[i]);
-		if (amount > 0 && bAllow)
+		if ((amount > 0 && bAllow) || (m_Items[i] == COVEN_ITEM_SLAM && ((amount > 0 && pPlayer->m_HL2Local.m_iNumSatchel + pPlayer->m_HL2Local.m_iNumTripmines < sv_coven_max_slam.GetInt()) || bAllow)))
 		{
 			surface()->DrawSetTextColor(Color(255, 255, 255, 255));
 			surface()->DrawSetTexture(info->hudIcon->textureId);

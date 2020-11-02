@@ -441,7 +441,14 @@ void CWeaponDoubleShotgun::ItemPostFrame( void )
 		return;
 	}
 
-	if ( m_bNeedPump && ( pOwner->m_nButtons & IN_RELOAD ) )
+	if (m_bDelayedReload && m_flNextPrimaryAttack <= gpGlobals->curtime)
+	{
+		m_bDelayedReload = false;
+		StartReload();
+		return;
+	}
+
+	if (m_bNeedPump && (pOwner->m_nButtons & IN_RELOAD) || (!m_bInReload && m_iClip1 <= 0 && pOwner->GetAmmoCount(m_iPrimaryAmmoType) >= 0))
 	{
 		m_bDelayedReload = true;
 	}

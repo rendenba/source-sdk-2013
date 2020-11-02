@@ -138,6 +138,8 @@ int C_BaseHLPlayer::CovenItemQuantity(CovenItemID_t iItemType)
 		return GetAmmoCount("stungrenade");
 	case COVEN_ITEM_HOLYWATER:
 		return GetAmmoCount("holywater");
+	case COVEN_ITEM_SLAM:
+		return GetAmmoCount("slam");
 	}
 
 	return 0;

@@ -41,8 +41,6 @@ public:
 public:
 	EHANDLE		m_hOwner;
 
-	int			m_nTeam;
-
 private:
 	bool		m_bReCycle;
 	Vector		m_vecRecyclePosition;

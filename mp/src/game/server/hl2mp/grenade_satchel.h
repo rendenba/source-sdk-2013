@@ -30,7 +30,9 @@ public:
 	void			BounceSound( void );
 	void			SatchelTouch( CBaseEntity *pOther );
 	void			SatchelThink( void );
-	
+	int				OnTakeDamage(const CTakeDamageInfo &inputInfo);
+	void			Event_Killed(const CTakeDamageInfo &inputInfo);
+
 	// Input handlers
 	void			InputExplode( inputdata_t &inputdata );
 

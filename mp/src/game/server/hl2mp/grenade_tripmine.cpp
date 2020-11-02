@@ -231,14 +231,14 @@ void CTripmineGrenade::BeamBreakThink( void  )
 	CBaseEntity *pEntity = tr.m_pEnt;
 	CBaseCombatCharacter *pBCC  = ToBaseCombatCharacter( pEntity );
 	
-	if (pBCC && pBCC->GetTeamNumber() != m_nTeam && pBCC->m_floatCloakFactor < 1.0f)
+	if (pBCC && pBCC->GetTeamNumber() != GetTeamNumber() && pBCC->m_floatCloakFactor < 1.0f)
 	//if (pBCC || fabs( m_flBeamLength - tr.fraction ) > 0.001)
 	{
 		m_iHealth = 0;
-		Event_Killed( CTakeDamageInfo( (CBaseEntity*)m_hOwner, this, 100, GIB_NORMAL ) );
+		Event_Killed( CTakeDamageInfo( this, (CBaseEntity*)m_hOwner, 100, GIB_NORMAL ) );
 		return;
 	}
-	else if (pBCC && pBCC->GetTeamNumber() == m_nTeam)
+	else if (pBCC && pBCC->GetTeamNumber() == GetTeamNumber())
 	{
 		m_bReCycle = true;
 		m_vecRecyclePosition = tr.endpos;
@@ -295,7 +295,7 @@ void CTripmineGrenade::Event_Killed( const CTakeDamageInfo &info )
 
 int CTripmineGrenade::OnTakeDamage( const CTakeDamageInfo &info )
 {
-	if (info.GetDamageType() & DMG_HOLY)
+	if (info.GetDamageType() & DMG_HOLY || (info.GetAttacker() != NULL && info.GetAttacker()->GetTeamNumber() == GetTeamNumber() && m_hOwner != NULL && info.GetAttacker() != m_hOwner))
 		return 0;
 
 	return BaseClass::OnTakeDamage(info);
@@ -309,7 +309,7 @@ void CTripmineGrenade::DelayDeathThink( void )
 	UTIL_TraceLine ( GetAbsOrigin() + m_vecDir * 8, GetAbsOrigin() - m_vecDir * 64,  MASK_SOLID, this, COLLISION_GROUP_NONE, & tr);
 	UTIL_ScreenShake( GetAbsOrigin(), 25.0, 150.0, 1.0, 750, SHAKE_START );
 
-	ExplosionCreate( GetAbsOrigin() + m_vecDir * 8, GetAbsAngles(), m_hOwner, GetDamage(), 200, 
+	ExplosionCreate( GetAbsOrigin() + m_vecDir * 8, GetAbsAngles(), m_hOwner, GetDamage(), m_DmgRadius, 
 		SF_ENVEXPLOSION_NOSPARKS | SF_ENVEXPLOSION_NODLIGHTS | SF_ENVEXPLOSION_NOSMOKE, 0.0f, this);
 
 	UTIL_Remove( this );

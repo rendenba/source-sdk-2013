@@ -55,7 +55,7 @@
 #define NUM_SUPPLY_CRATE_HUD_HINTS		3
 
 extern CBaseEntity *FindPickerEntity( CBasePlayer *pPlayer );
-
+extern ConVar sv_coven_flamedamage;
 
 ConVar g_debug_doors( "g_debug_doors", "0" );
 ConVar breakable_disable_gib_limit( "breakable_disable_gib_limit", "0" );
@@ -1116,7 +1116,7 @@ int CBreakableProp::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 		}
 
 		// Change my health so that I burn for flBurnTime seconds.
-		float flIdealHealth = MIN( m_iHealth, FLAME_DIRECT_DAMAGE_PER_SEC *  flBurnTime );
+		float flIdealHealth = MIN(m_iHealth, sv_coven_flamedamage.GetFloat() *  flBurnTime);
 		float flIdealDamage = m_iHealth - flIdealHealth;
 
 		// Scale the damage to do ideal damage.

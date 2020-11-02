@@ -210,9 +210,9 @@ bool CCoven_AmmoCrate::GiveMetal(CHL2MP_Player *pPlayer)
 	return false;
 }
 
-bool CCoven_AmmoCrate::GiveAmmo(int index, bool &gaveMetal)
+bool CCoven_AmmoCrate::GiveAmmo(int playerindex, bool &gaveMetal)
 {
-	CHL2MP_Player *pPlayer = ToHL2MPPlayer(UTIL_PlayerByIndex(index));
+	CHL2MP_Player *pPlayer = ToHL2MPPlayer(UTIL_PlayerByIndex(playerindex));
 	if (pPlayer && pPlayer->GetTeamNumber() == GetTeamNumber() && pPlayer->IsAlive() && !pPlayer->KO)
 	{
 		if ((GetAbsOrigin() - pPlayer->GetAbsOrigin()).Length() < PickupRadius())
@@ -224,16 +224,21 @@ bool CCoven_AmmoCrate::GiveAmmo(int index, bool &gaveMetal)
 				if (!gaveMetal)
 					gaveMetal |= GiveMetal(pPlayer);
 
-				CovenClassInfo_t *info = GetCovenClassData(pPlayer->covenClassID);
-				for (int i = 0; i < info->szWeapons.Count(); i++)
+				if (HasSpawnFlags(SF_COVEN_CRATE_INFINITE))
+					pPlayer->CovenGiveAmmo(1.0f);
+				else
+				{
+					int iLevel = m_iLevel + 1;
+					pPlayer->CovenGiveAmmo(0.1f * iLevel, iLevel);
+				}
+				/*for (int i = 0; i < info->szWeapons.Count(); i++)
 				{
 					FileWeaponInfo_t *weapInfo = GetFileWeaponInfoFromHandle(LookupWeaponInfoSlot(info->szWeapons[i]));
-					weapInfo->iAmmoType;
 					if (HasSpawnFlags(SF_COVEN_CRATE_INFINITE))
 						pPlayer->GiveAmmo(GetAmmoDef()->MaxCarry(weapInfo->iAmmoType), weapInfo->iAmmoType, false);
 					else
-						pPlayer->GiveAmmo(GetAmmoDef()->MaxCarry(weapInfo->iAmmoType)* 0.1f * (m_iLevel + 1), weapInfo->iAmmoType, false);
-				}
+						pPlayer->GiveAmmo(GetAmmoDef()->MaxCarry(weapInfo->iAmmoType) * 0.1f * (m_iLevel + 1), weapInfo->iAmmoType, false);
+				}*/
 			}
 		}
 	}
@@ -260,7 +265,7 @@ void CCoven_AmmoCrate::HandleAnimEvent(animevent_t *pEvent)
 			doPlayer[mOwner.Get()->entindex()] = false;
 			didPickup = GiveAmmo(mOwner.Get()->entindex(), didPickupMetal);
 		}
-		if (m_hActivator != NULL)
+		if (m_hActivator != NULL && doPlayer[m_hActivator->entindex()])
 		{
 			doPlayer[m_hActivator->entindex()] = false;
 			didPickup = GiveAmmo(m_hActivator->entindex(), didPickupMetal);

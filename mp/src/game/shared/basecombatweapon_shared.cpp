@@ -1454,7 +1454,8 @@ bool CBaseCombatWeapon::DefaultDeploy( char *szViewModel, char *szWeaponModel, i
 
 	// Weapons that don't autoswitch away when they run out of ammo 
 	// can still be deployed when they have no ammo.
-	if ( !HasAnyAmmo() && AllowsAutoSwitchFrom() )
+	//BB: HACK! Is there a better way?
+	if ( !HasAnyAmmo() && AllowsAutoSwitchFrom() && !FClassnameIs(this, "weapon_slam"))
 		return false;
 
 	CBasePlayer *pOwner = ToBasePlayer( GetOwner() );

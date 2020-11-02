@@ -42,6 +42,8 @@ BEGIN_SEND_TABLE_NOBASE( CHL2PlayerLocalData, DT_HL2Local )
 	SendPropArray3( SENDINFO_ARRAY3(covenStatusMagnitude), SendPropInt( SENDINFO_ARRAY(covenStatusMagnitude), 8, SPROP_UNSIGNED ) ),
 	SendPropArray3( SENDINFO_ARRAY3(m_iItems), SendPropInt(SENDINFO_ARRAY(m_iItems), 4, SPROP_UNSIGNED) ),
 	SendPropArray3( SENDINFO_ARRAY3(m_iDollHP), SendPropInt(SENDINFO_ARRAY(m_iDollHP), 8, SPROP_UNSIGNED) ),
+	SendPropInt(SENDINFO(m_iNumTripmines), 4, SPROP_UNSIGNED),
+	SendPropInt(SENDINFO(m_iNumSatchel), 4, SPROP_UNSIGNED),
 #ifdef HL2_EPISODIC
 	SendPropFloat( SENDINFO(m_flFlashBattery) ),
 	SendPropVector( SENDINFO(m_vecLocatorOrigin) ),
@@ -88,6 +90,8 @@ CHL2PlayerLocalData::CHL2PlayerLocalData()
 	m_hLadder.Set(NULL);
 	m_vecAutoAimPoint.GetForModify().Init();
 	m_bDisplayReticle = false;
+	m_iNumTripmines = 0;
+	m_iNumSatchel = 0;
 #ifdef HL2_EPISODIC
 	m_flFlashBattery = 0.0f;
 #endif

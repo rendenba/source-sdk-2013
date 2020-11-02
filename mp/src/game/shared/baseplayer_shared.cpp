@@ -1037,6 +1037,9 @@ void CBasePlayer::SelectItem( const char *pstr, int iSubType )
 	if ( !Weapon_ShouldSelectItem( pItem ) )
 		return;
 
+	if (!Weapon_CanSwitchTo(pItem))
+		return;
+
 	// FIX, this needs to queue them up and delay
 	// Make sure the current weapon can be holstered
 	if ( GetActiveWeapon() )

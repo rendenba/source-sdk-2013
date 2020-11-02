@@ -35,8 +35,6 @@ public:
 	int		m_iDispenserXP;
 	int		m_iDispenserMaxXP;
 	int		m_iDispenserLevel;
-
-	int		m_iNumTripmines;
 };
 
 

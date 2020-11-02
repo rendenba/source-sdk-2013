@@ -169,13 +169,7 @@ public:
 		HL2MPRules()->GiveItemXP(COVEN_TEAMID_SLAYERS);
 		if (HL2Player)
 		{
-			CovenClassInfo_t *info = GetCovenClassData(HL2Player->covenClassID);
-			for (int i = 0; i < info->szWeapons.Count(); i++)
-			{
-				FileWeaponInfo_t *weapInfo = GetFileWeaponInfoFromHandle(LookupWeaponInfoSlot(info->szWeapons[i]));
-				weapInfo->iAmmoType;
-				pPlayer->GiveAmmo(GetAmmoDef()->MaxCarry(weapInfo->iAmmoType)* 0.3f, weapInfo->iAmmoType, false);
-			}
+			HL2Player->CovenGiveWeaponAmmo(0.3f);
 			if (HL2Player->IsBuilderClass())
 				HL2Player->SuitPower_Charge(50.0f);
 		}

@@ -211,8 +211,8 @@ public:
 	// -----------------------
 	// Ammo
 	// -----------------------
-	virtual int			GiveAmmo( int iCount, int iAmmoIndex, bool bSuppressSound = false );
-	int					GiveAmmo( int iCount, const char *szName, bool bSuppressSound = false );
+	virtual int			GiveAmmo( int iCount, int iAmmoIndex, bool bSuppressSound = false, bool bUnPurchased = false );
+	int					GiveAmmo( int iCount, const char *szName, bool bSuppressSound = false, bool bUnPurchased = false );
 	virtual void		RemoveAmmo( int iCount, int iAmmoIndex );
 	virtual void		RemoveAmmo( int iCount, const char *szName );
 	void				RemoveAllAmmo( );
@@ -220,6 +220,9 @@ public:
 	int					GetAmmoCount( char *szName ) const;
 
 	virtual Activity	NPC_TranslateActivity( Activity baseAct );
+
+	int		GetUnPurchasedItemCount(CovenItemID_t iItemType);
+	void	UnPurchaseItem(CovenItemID_t iItemType, int iCount);
 
 	// -----------------------
 	// Weapons
@@ -337,6 +340,8 @@ public:
 
 protected:
 	Relationship_t			*FindEntityRelationship( CBaseEntity *pTarget );
+	//BB: this sucks. A major definition of GiveAmmo was not declared virtual and is explicitly called everywhere. This should go in HL2 player or above.
+	int						m_iUnPurchasedItems[COVEN_ITEM_MAXCOUNT];
 
 public:
 	

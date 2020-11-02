@@ -24,8 +24,6 @@ RecvPropInt(RECVINFO(m_iDispenserMaxMetal)),
 RecvPropInt(RECVINFO(m_iDispenserXP)),
 RecvPropInt(RECVINFO(m_iDispenserMaxXP)),
 RecvPropInt(RECVINFO(m_iDispenserLevel)),
-
-RecvPropInt(RECVINFO(m_iNumTripmines)),
 END_RECV_TABLE()
 
 C_CovenBuilderLocalData::C_CovenBuilderLocalData()
@@ -39,6 +37,5 @@ C_CovenBuilderLocalData::C_CovenBuilderLocalData()
 	m_iTurretMaxXP = m_iDispenserMaxXP = 100;
 	m_iTurretLevel = m_iDispenserLevel = 0;
 	m_bTurretTipped = false;
-	m_iNumTripmines = 0;
 }
 

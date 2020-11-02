@@ -144,10 +144,15 @@ public:
 	bool SuitPower_ShouldRecharge( void );
 	float SuitPower_GetCurrentPercentage( void ) { return m_HL2Local.m_flSuitPower; }
 
-	int		NumTripmines(void) { return m_CovenBuilderLocal.m_iNumTripmines; };
-	void	ClearTripmines(void) { m_CovenBuilderLocal.m_iNumTripmines = 0; };
-	void	AddTripmine(void) { m_CovenBuilderLocal.m_iNumTripmines++; };
-	void	RemoveTripmine(void) { m_CovenBuilderLocal.m_iNumTripmines--; };
+	int		NumSlams(void) { return m_HL2Local.m_iNumSatchel + m_HL2Local.m_iNumTripmines; };
+	int		NumSatchels(void) { return m_HL2Local.m_iNumSatchel; };
+	int		NumTripmines(void) { return m_HL2Local.m_iNumTripmines; };
+	void	ClearTripmines(void) { m_HL2Local.m_iNumTripmines = 0; };
+	void	ClearSatchels(void) { m_HL2Local.m_iNumSatchel = 0; };
+	void	AddTripmine(void) { m_HL2Local.m_iNumTripmines++; };
+	void	AddSatchel(void) { m_HL2Local.m_iNumSatchel++; };
+	void	RemoveTripmine(int iNum = 1) { m_HL2Local.m_iNumTripmines = max(m_HL2Local.m_iNumTripmines - iNum, 0); };
+	void	RemoveSatchel(int iNum = 1) { m_HL2Local.m_iNumSatchel = max(m_HL2Local.m_iNumSatchel - iNum, 0); };
 	
 	void SetFlashlightEnabled( bool bState );
 
@@ -245,7 +250,7 @@ public:
 
 	void				SetLocatorTargetEntity( CBaseEntity *pEntity ) { m_hLocatorTargetEntity.Set( pEntity ); }
 
-	virtual int			GiveAmmo( int nCount, int nAmmoIndex, bool bSuppressSound);
+	virtual int			GiveAmmo( int nCount, int nAmmoIndex, bool bSuppressSound, bool bUnPurchased);
 	virtual bool		BumpWeapon( CBaseCombatWeapon *pWeapon );
 	
 	virtual bool		Weapon_CanUse( CBaseCombatWeapon *pWeapon );

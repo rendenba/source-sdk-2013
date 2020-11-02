@@ -26,8 +26,6 @@ SendPropInt(SENDINFO(m_iDispenserMaxMetal), 9, SPROP_UNSIGNED),
 SendPropInt(SENDINFO(m_iDispenserXP), 9, SPROP_UNSIGNED),
 SendPropInt(SENDINFO(m_iDispenserMaxXP), 9, SPROP_UNSIGNED),
 SendPropInt(SENDINFO(m_iDispenserLevel), 3, SPROP_UNSIGNED),
-
-SendPropInt(SENDINFO(m_iNumTripmines), 3, SPROP_UNSIGNED),
 END_SEND_TABLE()
 
 CCovenBuilderLocalData::CCovenBuilderLocalData()
@@ -41,6 +39,5 @@ CCovenBuilderLocalData::CCovenBuilderLocalData()
 	m_iTurretMaxXP = m_iDispenserMaxXP = 100;
 	m_iTurretLevel = m_iDispenserLevel = 0;
 	m_bTurretTipped = false;
-	m_iNumTripmines = 0;
 }
 

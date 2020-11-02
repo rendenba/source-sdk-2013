@@ -76,7 +76,8 @@ static const char *pCovenAbilities[COVEN_ABILITY_COUNT] =
 	"tripmine",
 	"darkwill",
 	"dash",
-	"innerlight"
+	"innerlight",
+	"demolition"
 };
 
 //BB: this must be in the same order as shareddefs
@@ -115,7 +116,8 @@ static const char *pBuildingTypes[BUILDING_TYPE_COUNT] =
 	"purchase_pills",
 	"purchase_grenade",
 	"purchase_stungrenade",
-	"purchase_holywater"
+	"purchase_holywater",
+	"purchase_slam"
 };
 
 //BB: this must be in the same order as shareddefs
@@ -127,6 +129,7 @@ static const char *pItemTypes[COVEN_ITEM_MAXCOUNT] =
 	"fraggrenade",
 	"stungrenade",
 	"holywater",
+	"slam",
 	"gasoline"
 };
 

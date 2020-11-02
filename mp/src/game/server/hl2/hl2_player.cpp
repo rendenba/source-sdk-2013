@@ -120,6 +120,7 @@ ConVar sv_stickysprint("sv_stickysprint", "0", FCVAR_ARCHIVE | FCVAR_ARCHIVE_XBO
 #define	FLASH_DRAIN_TIME	 1.1111	// 100 units / 90 secs
 #define	FLASH_CHARGE_TIME	 50.0f	// 100 units / 2 secs
 
+extern ConVar sv_coven_max_slam;
 
 //==============================================================================================
 // CAPPED PLAYER PHYSICS DAMAGE TABLE
@@ -712,6 +713,17 @@ bool CHL2_Player::PurchaseCovenItem(CovenItemID_t iItemType)
 		}
 		else
 			GiveNamedItem("weapon_holywater");
+		break;
+	}
+	case COVEN_ITEM_SLAM:
+	{
+		if (Weapon_OwnsThisType("weapon_slam"))
+		{
+			if (CBasePlayer::GiveAmmo(1, "slam") == 0)
+				return false;
+		}
+		else
+			GiveNamedItem("weapon_slam");
 		break;
 	}
 	case COVEN_ITEM_STIMPACK:
@@ -3524,7 +3536,7 @@ bool CHL2_Player::ShouldKeepLockedAutoaimTarget( EHANDLE hLockedTarget )
 //			bSuppressSound - 
 // Output : int
 //-----------------------------------------------------------------------------
-int CHL2_Player::GiveAmmo( int nCount, int nAmmoIndex, bool bSuppressSound)
+int CHL2_Player::GiveAmmo( int nCount, int nAmmoIndex, bool bSuppressSound, bool bUnPurchased)
 {
 	// Don't try to give the player invalid ammo indices.
 	if (nAmmoIndex < 0)
@@ -3536,7 +3548,7 @@ int CHL2_Player::GiveAmmo( int nCount, int nAmmoIndex, bool bSuppressSound)
 		bCheckAutoSwitch = true;
 	}
 
-	int nAdd = BaseClass::GiveAmmo(nCount, nAmmoIndex, bSuppressSound);
+	int nAdd = BaseClass::GiveAmmo(nCount, nAmmoIndex, bSuppressSound, bUnPurchased);
 
 	if ( nCount > 0 && nAdd == 0 )
 	{
@@ -4039,7 +4051,13 @@ bool CHL2_Player::Weapon_CanSwitchTo( CBaseCombatWeapon *pWeapon )
 	if (pVehicle && !pPlayer->UsingStandardWeaponsInVehicle())
 		return false;
 
-	if ( !pWeapon->HasAnyAmmo() && !GetAmmoCount( pWeapon->m_iPrimaryAmmoType ) )
+	//BB: hacky but let's clean this up...
+	if (FClassnameIs(pWeapon, "weapon_slam"))
+	{
+		if ((!pWeapon->HasAnyAmmo() || NumSlams() == sv_coven_max_slam.GetInt()) && m_HL2Local.m_iNumSatchel == 0)
+			return false;
+	}
+	else if ( !pWeapon->HasAnyAmmo() && !GetAmmoCount( pWeapon->m_iPrimaryAmmoType ) )
 		return false;
 
 	if ( !pWeapon->CanDeploy() )

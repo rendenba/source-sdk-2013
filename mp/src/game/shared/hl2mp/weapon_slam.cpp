@@ -25,6 +25,8 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+extern ConVar sv_coven_max_slam;
+
 #define	SLAM_PRIMARY_VOLUME		450
 
 IMPLEMENT_NETWORKCLASS_ALIASED( Weapon_SLAM, DT_Weapon_SLAM )
@@ -118,9 +120,6 @@ void CWeapon_SLAM::Spawn( )
 
 	m_tSlamState		= (int)SLAM_SATCHEL_THROW;
 	m_flWallSwitchTime	= 0;
-
-	// Give 1 piece of default ammo when first picked up
-	m_iClip2 = 1;
 }
 
 void CWeapon_SLAM::Precache( void )
@@ -203,7 +202,7 @@ void CWeapon_SLAM::PrimaryAttack( void )
 		return;
 	}
 
-	if (pOwner->GetAmmoCount(m_iSecondaryAmmoType) <= 0)
+	if (pOwner->GetAmmoCount(m_iPrimaryAmmoType) <= 0)
 	{
 		return;
 	}
@@ -253,12 +252,14 @@ void CWeapon_SLAM::SatchelDetonate()
 {
 #ifndef CLIENT_DLL
 	CBaseEntity *pEntity = NULL;
+	int n = 0;
 
 	while ((pEntity = gEntList.FindEntityByClassname( pEntity, "npc_satchel" )) != NULL)
 	{
 		CSatchelCharge *pSatchel = dynamic_cast<CSatchelCharge *>(pEntity);
 		if (pSatchel->m_bIsLive && pSatchel->GetThrower() && GetOwner() && pSatchel->GetThrower() == GetOwner())
 		{
+			n++;
 			//pSatchel->Use( GetOwner(), GetOwner(), USE_ON, 0 );
 			//variant_t emptyVariant;
 			//pSatchel->AcceptInput( "Explode", NULL, NULL, emptyVariant, 5 );
@@ -269,7 +270,17 @@ void CWeapon_SLAM::SatchelDetonate()
 	// Play sound for pressing the detonator
 	EmitSound( "Weapon_SLAM.SatchelDetonate" );
 
-	m_bDetonatorArmed	= false;
+	CHL2MP_Player *pOwner = ToHL2MPPlayer(GetOwner());
+	if (!pOwner)
+		return;
+
+	if (GetActivity() == ACT_SLAM_DETONATOR_IDLE)
+		m_bNeedReload = pOwner->GetAmmoCount(m_iPrimaryAmmoType) > 0;
+
+#ifndef CLIENT_DLL
+	pOwner->RemoveSatchel(n);
+#endif
+	m_bDetonatorArmed = false;
 }
 
 //-----------------------------------------------------------------------------
@@ -376,10 +387,13 @@ void CWeapon_SLAM::TripmineAttach( void )
 
 			CTripmineGrenade *pMine = (CTripmineGrenade *)pEnt;
 			pMine->m_hOwner = GetOwner();
-
+			pMine->ChangeTeam(GetOwner()->GetTeamNumber());
+			pMine->SetDamage(GetHL2MPWpnData().m_iPlayerDamage);
+			pMine->SetDamageRadius(250.0f);
+			pOwner->AddTripmine();
 #endif
 
-			pOwner->RemoveAmmo( 1, m_iSecondaryAmmoType );
+			pOwner->RemoveAmmo(1, m_iPrimaryAmmoType);
 		}
 	}
 }
@@ -434,7 +448,7 @@ void CWeapon_SLAM::StartTripmineAttach( void )
 				SendWeaponAnim(ACT_SLAM_TRIPMINE_ATTACH);
 			}
 
-			m_bNeedReload		= true;
+			m_bNeedReload = true;
 			m_bAttachTripmine	= true;
 			m_bNeedDetonatorDraw = m_bDetonatorArmed;
 		}
@@ -460,7 +474,7 @@ void CWeapon_SLAM::SatchelThrow( void )
 	m_bThrowSatchel = false;
 
 	// Only the player fires this way so we can cast
-	CBasePlayer *pPlayer = ToBasePlayer( GetOwner() );
+	CHL2MP_Player *pPlayer = ToHL2MPPlayer(GetOwner());
 
 	Vector vecSrc	 = pPlayer->WorldSpaceCenter();
 	Vector vecFacing = pPlayer->BodyDirection3D( );
@@ -489,10 +503,14 @@ void CWeapon_SLAM::SatchelThrow( void )
 		pSatchel->SetLocalAngularVelocity( QAngle( 0, 400, 0 ) );
 		pSatchel->m_bIsLive = true;
 		pSatchel->m_pMyWeaponSLAM = this;
+		pSatchel->ChangeTeam(GetOwner()->GetTeamNumber());
+		pSatchel->SetDamage(GetHL2MPWpnData().m_iPlayerDamage);
+		pSatchel->SetDamageRadius(250.0f);
 	}
 
-	pPlayer->RemoveAmmo( 1, m_iSecondaryAmmoType );
+	pPlayer->RemoveAmmo(1, m_iPrimaryAmmoType);
 	pPlayer->SetAnimation( PLAYER_ATTACK1 );
+	pPlayer->AddSatchel();
 
 #endif
 
@@ -573,7 +591,7 @@ void CWeapon_SLAM::SatchelAttach( void )
 			pSatchel->SetOwnerEntity( ((CBaseEntity*)GetOwner()) );
 			pSatchel->m_pMyWeaponSLAM	= this;
 
-			pOwner->RemoveAmmo( 1, m_iSecondaryAmmoType );
+			pOwner->RemoveAmmo(1, m_iPrimaryAmmoType);
 		}
 	}
 #endif
@@ -664,7 +682,15 @@ void CWeapon_SLAM::SLAMThink( void )
 	// a wall. If we are we go into satchel_attach mode
 	CBaseCombatCharacter *pOwner  = GetOwner();
 
-	if ( (pOwner && pOwner->GetAmmoCount(m_iSecondaryAmmoType) > 0))
+#ifdef CLIENT_DLL
+	C_BaseHLPlayer *pPlayer = dynamic_cast<C_BaseHLPlayer *>(pOwner);
+	int num_tripmines = pPlayer->m_HL2Local.m_iNumTripmines + pPlayer->m_HL2Local.m_iNumSatchel;
+#else
+	CHL2_Player *pPlayer = ToHL2Player(pOwner);
+	int num_tripmines = pPlayer->NumSlams();
+#endif
+
+	if ((pOwner && pOwner->GetAmmoCount(m_iPrimaryAmmoType) > 0 && num_tripmines < sv_coven_max_slam.GetInt()))
 	{	
 		if (CanAttachSLAM())
 		{
@@ -797,7 +823,7 @@ void CWeapon_SLAM::Weapon_Switch( void )
 
 #ifndef CLIENT_DLL
 	// If not armed and have no ammo
-	if (!m_bDetonatorArmed && pOwner->GetAmmoCount(m_iSecondaryAmmoType) <= 0)
+	if (!m_bDetonatorArmed && pOwner->GetAmmoCount(m_iPrimaryAmmoType) <= 0)
 	{
 		pOwner->ClearActiveWeapon();
 	}
@@ -826,6 +852,14 @@ void CWeapon_SLAM::WeaponIdle( void )
 		{
 			return;
 		}
+
+#ifdef CLIENT_DLL
+		C_BaseHLPlayer *pPlayer = dynamic_cast<C_BaseHLPlayer *>(pOwner);
+		int num_tripmines = pPlayer->m_HL2Local.m_iNumTripmines + pPlayer->m_HL2Local.m_iNumSatchel;
+#else
+		CHL2_Player *pPlayer = ToHL2Player(pOwner);
+		int num_tripmines = pPlayer->NumSlams();
+#endif
 
 		int iAnim = 0;
 
@@ -856,12 +890,20 @@ void CWeapon_SLAM::WeaponIdle( void )
 		else if (m_bAttachTripmine)
 		{
 			TripmineAttach();
+			//PREDICT
+			num_tripmines++;
 			iAnim = m_bNeedDetonatorDraw ? ACT_SLAM_STICKWALL_ATTACH2 : ACT_SLAM_TRIPMINE_ATTACH2;
+			if (num_tripmines >= sv_coven_max_slam.GetInt())
+			{
+				m_bNeedDetonatorDraw = false;
+				if (m_bDetonatorArmed)
+					iAnim = ACT_SLAM_DETONATOR_IDLE;
+			}
 		}	
 		else if ( m_bNeedReload )
 		{	
 			// If owner had ammo draw the correct SLAM type
-			if (pOwner->GetAmmoCount(m_iSecondaryAmmoType) > 0)
+			if (pOwner->GetAmmoCount(m_iPrimaryAmmoType) > 0 && num_tripmines < sv_coven_max_slam.GetInt())
 			{
 				switch( m_tSlamState)
 				{
@@ -918,16 +960,18 @@ void CWeapon_SLAM::WeaponIdle( void )
 			else
 			{
 #ifndef CLIENT_DLL
-				pOwner->Weapon_Drop( this );
-				UTIL_Remove(this);
+				pOwner->SwitchToNextBestWeapon(this);
+				//pOwner->Weapon_Drop(this);
+				//UTIL_Remove(this);
 #endif
 			}
 		}
-		else if (pOwner->GetAmmoCount(m_iSecondaryAmmoType) <= 0)
+		else if (pOwner->GetAmmoCount(m_iPrimaryAmmoType) <= 0)
 		{
 #ifndef CLIENT_DLL
-			pOwner->Weapon_Drop( this );
-			UTIL_Remove(this);
+			pOwner->SwitchToNextBestWeapon(this);
+			//pOwner->Weapon_Drop(this);
+			//UTIL_Remove(this);
 #endif
 		}
 
@@ -986,7 +1030,6 @@ bool CWeapon_SLAM::Deploy( void )
 
 	m_bDetonatorArmed = AnyUndetonatedCharges();
 
-
 	SetModel( GetViewModel() );
 
 	m_tSlamState		= (int)SLAM_SATCHEL_THROW;
@@ -1000,14 +1043,23 @@ bool CWeapon_SLAM::Deploy( void )
 	m_bNeedReload = false;
 	if (m_bDetonatorArmed)
 	{
-		if (pOwner->GetAmmoCount(m_iSecondaryAmmoType) <= 0)
+#ifdef CLIENT_DLL
+		C_BaseHLPlayer *pPlayer = dynamic_cast<C_BaseHLPlayer *>(pOwner);
+		int num_tripmines = pPlayer->m_HL2Local.m_iNumTripmines + pPlayer->m_HL2Local.m_iNumSatchel;
+#else
+		CHL2_Player *pPlayer = ToHL2Player(pOwner);
+		int num_tripmines = pPlayer->NumSlams();
+#endif
+		if (pOwner->GetAmmoCount(m_iPrimaryAmmoType) <= 0 || num_tripmines >= sv_coven_max_slam.GetInt())
 		{
 			iActivity = ACT_SLAM_DETONATOR_DRAW;
 			m_bNeedReload = true;
 		}
 		else if (CanAttachSLAM())
 		{
-			iActivity = ACT_SLAM_DETONATOR_STICKWALL_DRAW; 
+			//BB: WTF! This activity doesn't actually exist!
+			//iActivity = ACT_SLAM_DETONATOR_STICKWALL_DRAW; 
+			iActivity = ACT_SLAM_DETONATOR_THROW_DRAW;
 			SetSlamState(SLAM_TRIPMINE_READY);
 		}
 		else

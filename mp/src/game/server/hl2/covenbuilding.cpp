@@ -38,6 +38,7 @@ END_DATADESC()
 
 ConVar sv_coven_building_hp_per_energy("sv_coven_building_hp_per_energy", "4", FCVAR_GAMEDLL | FCVAR_NOTIFY, "HP per energy per swing.");
 ConVar sv_coven_building_max_energy_swing("sv_coven_building_max_energy_swing", "25", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Max energy per category per swing.");
+ConVar sv_coven_building_strength("sv_coven_building_strength", "34.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Coven building strength for damage calcs.");
 
 CCovenBuilding::CCovenBuilding()
 {
@@ -651,6 +652,9 @@ int CCovenBuilding::OnTakeDamage(const CTakeDamageInfo &info)
 
 	if (m_bGoneToSleep)
 		WakeUp();
+
+	CTakeDamageInfo newInfo = info;
+	newInfo.SetDamage((1.0f - sv_coven_building_strength.GetFloat() / 60.0f) * newInfo.GetDamage());
 
 	return BaseClass::OnTakeDamage(info);
 }

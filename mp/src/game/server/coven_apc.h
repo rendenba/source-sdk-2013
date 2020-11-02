@@ -6,7 +6,7 @@
 
 #include "props.h"
 #include "basecombatcharacter.h"
-#include "sprite.h"
+#include "Sprite.h"
 
 #define COVEN_APC_MAX_TURNING_VALUE	25.0f
 #define COVEN_APC_MAX_TURN_ACCEL	3.0f

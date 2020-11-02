@@ -160,6 +160,22 @@ void CBaseCombatCharacter::RemoveAmmo( int iCount, int iAmmoIndex )
 
 	// Ammo pickup sound
 	m_iAmmo.Set( iAmmoIndex, MAX( m_iAmmo[iAmmoIndex] - iCount, 0 ) );
+
+#ifndef CLIENT_DLL
+	//BB: HACK! I want to keep track of purchased items so the drop rate isn't insane.
+	char *szName = GetAmmoDef()->GetAmmoOfIndex(iAmmoIndex)->pName;
+	CovenItemID_t index = COVEN_ITEM_INVALID;
+
+	if (!Q_stricmp(szName, "grenade"))
+		index = COVEN_ITEM_GRENADE;
+	else if (!Q_stricmp(szName, "stungrenade"))
+		index = COVEN_ITEM_STUN_GRENADE;
+	else if (!Q_stricmp(szName, "holywater"))
+		index = COVEN_ITEM_HOLYWATER;
+
+	if (index > COVEN_ITEM_INVALID && m_iUnPurchasedItems[index] > 0)
+		m_iUnPurchasedItems[index] -= iCount;
+#endif
 }
 
 void CBaseCombatCharacter::RemoveAmmo( int iCount, const char *szName )

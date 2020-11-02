@@ -98,6 +98,10 @@ int CBaseCombatWeapon::UpdateTransmitState( void)
 	// about whether or not to transmit it.
 	if ( GetOwner() )
 	{	
+		//BB: HACK HACK! Is there a better way to do this? FL_EDICT_ALWAYS is necessary to prevent motion sickness when spectating players with alpha rendermode weapons.
+		//if (Q_stricmp(GetClassname(), "weapon_crowbar") == 0)
+		if (GetRenderMode() == kRenderTransTexture)
+			return SetTransmitState( FL_EDICT_ALWAYS );
 		return SetTransmitState( FL_EDICT_PVSCHECK );
 	}
 	else

@@ -14,6 +14,10 @@
 #include "Sprite.h"
 #include "grenade_satchel.h"
 
+#ifndef CLIENT_DLL
+#include "eventqueue.h"
+#endif
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -57,6 +61,29 @@ void CSatchelCharge::Deactivate( void )
 	}
 }
 
+int CSatchelCharge::OnTakeDamage(const CTakeDamageInfo &inputInfo)
+{
+	if (inputInfo.GetDamageType() & DMG_HOLY || (inputInfo.GetAttacker() != NULL && inputInfo.GetAttacker()->GetTeamNumber() == GetTeamNumber() && GetOriginalThrower() != NULL && inputInfo.GetAttacker() != GetOriginalThrower()))
+		return 0;
+
+	return BaseClass::OnTakeDamage(inputInfo);
+}
+
+void CSatchelCharge::Event_Killed(const CTakeDamageInfo &inputInfo)
+{
+	m_takedamage = DAMAGE_NO;
+
+	ExplosionCreate(GetAbsOrigin() + Vector(0, 0, 16), GetAbsAngles(), GetThrower(), GetDamage(), m_DmgRadius, SF_ENVEXPLOSION_NOSPARKS | SF_ENVEXPLOSION_NODLIGHTS | SF_ENVEXPLOSION_NOSMOKE, 0.0f, this);
+
+	if (GetOriginalThrower() && GetOriginalThrower()->IsPlayer())
+	{
+		CHL2_Player *pPlayer = ToHL2Player(GetOriginalThrower());
+		if (pPlayer)
+			pPlayer->RemoveSatchel();
+	}
+
+	UTIL_Remove(this);
+}
 
 void CSatchelCharge::Spawn( void )
 {
@@ -118,10 +145,7 @@ void CSatchelCharge::CreateEffects( void )
 //-----------------------------------------------------------------------------
 void CSatchelCharge::InputExplode( inputdata_t &inputdata )
 {
-	ExplosionCreate( GetAbsOrigin() + Vector( 0, 0, 16 ), GetAbsAngles(), GetThrower(), GetDamage(), 200, 
-		SF_ENVEXPLOSION_NOSPARKS | SF_ENVEXPLOSION_NODLIGHTS | SF_ENVEXPLOSION_NOSMOKE, 0.0f, this);
-
-	UTIL_Remove( this );
+	Event_Killed(CTakeDamageInfo(this, GetOriginalThrower(), 100, GIB_NORMAL));
 }
 
 
@@ -161,6 +185,7 @@ void CSatchelCharge::SatchelThink( void )
 		SetLocalAngularVelocity( angVel );
 
 		// Clear think function
+		SetTouch(&CSatchelCharge::SatchelTouch);
 		SetThink(NULL);
 		return;
 	}
@@ -180,6 +205,14 @@ void CSatchelCharge::SatchelThink( void )
 	{
 		return;
 	}
+}
+
+void CSatchelCharge::SatchelTouch(CBaseEntity *pOther)
+{
+#ifndef CLIENT_DLL
+	if (pOther && pOther->IsPlayer() && pOther->GetTeamNumber() > COVEN_TEAMID_SPECTATOR && pOther->GetTeamNumber() != GetTeamNumber())
+		g_EventQueue.AddEvent(this, "Explode", 0.10, GetThrower(), GetThrower());
+#endif
 }
 
 void CSatchelCharge::Precache( void )

@@ -798,6 +798,8 @@ CBaseCombatCharacter::CBaseCombatCharacter( void )
 	m_HackedGunPos.Init();
 #endif
 
+	Q_memset(m_iUnPurchasedItems, 0, sizeof(m_iUnPurchasedItems));
+
 	// Zero the damage accumulator.
 	m_flDamageAccumulator = 0.0f;
 
@@ -848,7 +850,8 @@ CBaseCombatCharacter::~CBaseCombatCharacter( void )
 void CBaseCombatCharacter::Spawn( void )
 {
 	BaseClass::Spawn();
-	
+	Q_memset(m_iUnPurchasedItems, 0, sizeof(m_iUnPurchasedItems));
+
 	SetBlocksLOS( false );
 	m_aliveTimer.Start();
 	m_hasBeenInjured = 0;
@@ -2417,6 +2420,19 @@ void CBaseCombatCharacter::Weapon_HandleAnimEvent( animevent_t *pEvent )
 	}
 }
 
+void CBaseCombatCharacter::UnPurchaseItem(CovenItemID_t iItemType, int iCount)
+{
+	if (iItemType > COVEN_ITEM_INVALID)
+		m_iUnPurchasedItems[iItemType] += iCount;
+}
+
+int CBaseCombatCharacter::GetUnPurchasedItemCount(CovenItemID_t iItemType)
+{
+	if (iItemType > COVEN_ITEM_INVALID)
+		return m_iUnPurchasedItems[iItemType];
+	return -1;
+}
+
 void CBaseCombatCharacter::RemoveAllWeapons()
 {
 	ClearActiveWeapon();
@@ -3135,7 +3151,7 @@ CBaseEntity *CBaseCombatCharacter::Weapon_FindUsable( const Vector &range )
 //			iMax - Max carrying capability of the player
 // Output : Amount of ammo actually given
 //-----------------------------------------------------------------------------
-int CBaseCombatCharacter::GiveAmmo( int iCount, int iAmmoIndex, bool bSuppressSound)
+int CBaseCombatCharacter::GiveAmmo( int iCount, int iAmmoIndex, bool bSuppressSound, bool bUnPurchased )
 {
 	if (iCount <= 0)
 		return 0;
@@ -3162,13 +3178,31 @@ int CBaseCombatCharacter::GiveAmmo( int iCount, int iAmmoIndex, bool bSuppressSo
 
 	m_iAmmo.Set( iAmmoIndex, m_iAmmo[iAmmoIndex] + iAdd );
 
+	//BB: HACK! I want to keep track of un-purchased items so the drop rate isn't insane.
+	if (bUnPurchased)
+	{
+
+		CovenItemID_t index = COVEN_ITEM_INVALID;
+		char *szName = GetAmmoDef()->GetAmmoOfIndex(iAmmoIndex)->pName;
+
+		if (!Q_stricmp(szName, "grenade"))
+			index = COVEN_ITEM_GRENADE;
+		else if (!Q_stricmp(szName, "stungrenade"))
+			index = COVEN_ITEM_STUN_GRENADE;
+		else if (!Q_stricmp(szName, "holywater"))
+			index = COVEN_ITEM_HOLYWATER;
+
+		if (index > COVEN_ITEM_INVALID)
+			m_iUnPurchasedItems[index] += iAdd;
+	}
+
 	return iAdd;
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: Give the player some ammo.
 //-----------------------------------------------------------------------------
-int CBaseCombatCharacter::GiveAmmo( int iCount, const char *szName, bool bSuppressSound )
+int CBaseCombatCharacter::GiveAmmo( int iCount, const char *szName, bool bSuppressSound, bool bUnPurchased )
 {
 	int iAmmoType = GetAmmoDef()->Index(szName);
 	if (iAmmoType == -1)
@@ -3176,7 +3210,8 @@ int CBaseCombatCharacter::GiveAmmo( int iCount, const char *szName, bool bSuppre
 		Msg("ERROR: Attempting to give unknown ammo type (%s)\n",szName);
 		return 0;
 	}
-	return GiveAmmo( iCount, iAmmoType, bSuppressSound );
+
+	return GiveAmmo( iCount, iAmmoType, bSuppressSound, bUnPurchased );
 }
 
 

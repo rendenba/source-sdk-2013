@@ -222,6 +222,11 @@ void CItem_ItemCrate::OnBreak( const Vector &vecVelocity, const AngularImpulse &
 					pSpawn = CreateEntityByName("weapon_stunfrag");
 					break;
 				}
+				case COVEN_ITEM_SLAM:
+				{
+					pSpawn = CreateEntityByName("weapon_slam");
+					break;
+				}
 				case COVEN_ITEM_HOLYWATER:
 				{
 					pSpawn = CreateEntityByName("weapon_holywater");

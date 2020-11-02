@@ -33,8 +33,6 @@ public:
 	CNetworkVar(int,	m_iDispenserXP);
 	CNetworkVar(int,	m_iDispenserMaxXP);
 	CNetworkVar(int,	m_iDispenserLevel);
-
-	CNetworkVar(int,	m_iNumTripmines);
 };
 
 EXTERN_SEND_TABLE(DT_CovenBuilderLocal);

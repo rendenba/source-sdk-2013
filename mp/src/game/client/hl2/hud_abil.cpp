@@ -217,15 +217,15 @@ float CHudAbils::DrawAbility(int iAbilityNum, float y, float wide, float inset, 
 		swprintf(wNumTM, sizeof(wNumTM), L"%.0f", info->flDrain);
 		DrawTextTitle(1.25f * inset, y, UTIL_ComputeStringWidth(m_hFontNumerals, wNumTM), wide - 1.7f * minset, wNumTM, false, m_hFontNumerals);
 	}
-	//BB: TODO: HACK! fix this?
-	if (pPlayer->m_HL2Local.covenAbilities[iAbilityNum] == COVEN_ABILITY_TRIPMINE && pPlayer->m_CovenBuilderLocal.m_iNumTripmines > 0)
+	//BB: TODO: HACK! fix this? This has moved to an item now.
+	/*if (pPlayer->m_HL2Local.covenAbilities[iAbilityNum] == COVEN_ABILITY_TRIPMINE && pPlayer->m_HL2Local.m_iNumTripmines > 0)
 	{
 		wchar_t wNumTM[3];
-		swprintf(wNumTM, sizeof(wNumTM), L"%d", pPlayer->m_CovenBuilderLocal.m_iNumTripmines);
+		swprintf(wNumTM, sizeof(wNumTM), L"%d", pPlayer->m_HL2Local.m_iNumTripmines);
 		//Q_snprintf(numTM, sizeof(numTM), "%d", pPlayer->m_CovenBuilderLocal.m_iNumTripmines);
 		//g_pVGuiLocalize->ConvertANSIToUnicode(numTM, wNumTM, sizeof(wNumTM));
 		DrawTextTitle(wide - minset, y, UTIL_ComputeStringWidth(m_hFontNumerals, wNumTM) - minset, minset, wNumTM, false, m_hFontNumerals);
-	}
+	}*/
 
 	if (cl_coven_abilitytitles.GetInt() > 0)
 	{

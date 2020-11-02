@@ -71,6 +71,7 @@ END_DATADESC()
 
 extern ConVar sv_coven_building_hp_per_energy;
 extern ConVar sv_coven_building_max_energy_swing;
+extern ConVar sv_coven_building_strength;
 ConVar sv_coven_building_ammo_per_energy("sv_coven_building_ammo_per_energy", "2", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Ammo per energy per swing.");
 ConVar sv_coven_building_energy_per_energy("sv_coven_building_energy_per_energy", "2", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Energy ammo per energy per swing.");
 
@@ -1661,8 +1662,7 @@ int CCoven_Turret::OnTakeDamage(const CTakeDamageInfo &info)
 	newInfo.ScaleDamageForce( 2.5f );
 	}*/
 
-	//BB: TODO: check this... I don't think I need this anymore...
-	// Manually apply vphysics because AI_BaseNPC takedamage doesn't call back to CBaseEntity OnTakeDamage
+	// Manually apply vphysics because CBaseCombatCharacter takedamage doesn't call back to CBaseEntity OnTakeDamage
 	VPhysicsTakeDamage(newInfo);
 
 	// Bump up our search time
@@ -1674,7 +1674,9 @@ int CCoven_Turret::OnTakeDamage(const CTakeDamageInfo &info)
 		SetThink(&CCoven_Turret::Deploy);
 	}
 
-	return BaseClass::OnTakeDamage(info);
+	newInfo.SetDamage((1.0f - sv_coven_building_strength.GetFloat() / 60.0f) * newInfo.GetDamage());
+
+	return BaseClass::OnTakeDamage(newInfo);
 }
 
 void CCoven_Turret::ToggleLight(bool bToggle)

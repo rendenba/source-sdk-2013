@@ -31,6 +31,7 @@
 #include "coven_supplydepot.h"
 #include "item_itemcrate.h"
 #include "weapon_frag.h"
+#include "ammodef.h"
 
 #include "grenade_tripmine.h"
 #include "coven_apc.h"
@@ -349,7 +350,7 @@ CHL2MP_Player::~CHL2MP_Player( void )
 bool CHL2MP_Player::HasDroppableItems(void)
 {
 	return GetTeamNumber() == COVEN_TEAMID_SLAYERS && ((Weapon_OwnsThisType("weapon_frag") && GetAmmoCount("grenade") > 0) || (Weapon_OwnsThisType("weapon_stunfrag") && GetAmmoCount("stungrenade") > 0) || (Weapon_OwnsThisType("weapon_holywater") && GetAmmoCount("holywater") > 0) ||
-		HasPills() || HasMedkit() || HasStimpack());
+		(Weapon_OwnsThisType("weapon_slam") && GetAmmoCount("slam") > 0) || HasPills() || HasMedkit() || HasStimpack());
 }
 
 bool CHL2MP_Player::CreateDeathBox(void)
@@ -359,11 +360,13 @@ bool CHL2MP_Player::CreateDeathBox(void)
 		CItem_ItemCrate *pEnt = static_cast<CItem_ItemCrate *>(CreateEntityByName("item_item_crate"));
 		pEnt->KeyValue("CrateType", "1");
 		if (Weapon_OwnsThisType("weapon_frag") && GetAmmoCount("grenade") > 0)
-			pEnt->AddCovenItem(COVEN_ITEM_GRENADE, GetAmmoCount("grenade"));
+			pEnt->AddCovenItem(COVEN_ITEM_GRENADE, max(GetAmmoCount("grenade") - GetUnPurchasedItemCount(COVEN_ITEM_GRENADE), 1));
 		if (Weapon_OwnsThisType("weapon_stunfrag") && GetAmmoCount("stungrenade") > 0)
-			pEnt->AddCovenItem(COVEN_ITEM_STUN_GRENADE, GetAmmoCount("stungrenade"));
+			pEnt->AddCovenItem(COVEN_ITEM_STUN_GRENADE, max(GetAmmoCount("stungrenade") - GetUnPurchasedItemCount(COVEN_ITEM_STUN_GRENADE), 1));
 		if (Weapon_OwnsThisType("weapon_holywater") && GetAmmoCount("holywater") > 0)
-			pEnt->AddCovenItem(COVEN_ITEM_HOLYWATER, GetAmmoCount("holywater"));
+			pEnt->AddCovenItem(COVEN_ITEM_HOLYWATER, max(GetAmmoCount("holywater") - GetUnPurchasedItemCount(COVEN_ITEM_HOLYWATER), 1));
+		if (Weapon_OwnsThisType("weapon_slam") && GetAmmoCount("slam") > 0)
+			pEnt->AddCovenItem(COVEN_ITEM_SLAM, max(GetAmmoCount("slam") - GetUnPurchasedItemCount(COVEN_ITEM_SLAM), 1));
 		for (int i = 0; i < COVEN_ITEM_COUNT; i++)
 		{
 			int amount = CovenItemQuantity(CovenItemID_t(i));
@@ -1419,7 +1422,7 @@ bool CHL2MP_Player::AttachTripmine(int iAbilityNum)
 
 			CTripmineGrenade *pMine = (CTripmineGrenade *)pEnt;
 			pMine->m_hOwner = this;
-			pMine->m_nTeam = GetTeamNumber();
+			pMine->ChangeTeam(GetTeamNumber());
 
 			AddTripmine();
 			SuitPower_Drain(info->flCost);
@@ -1542,6 +1545,43 @@ void CHL2MP_Player::GiveAllItems( void )
 	
 }
 
+void CHL2MP_Player::CovenGiveAmmo(float flAmount, int iMin)
+{
+	CovenClassInfo_t *info = GetCovenClassData(covenClassID);
+	for (int i = 0; i < info->tAmmo.Count(); i++)
+	{
+		int ammoIndex = GetAmmoDef()->Index(info->tAmmo[i]->szAmmoName);
+		int ammoCount = GetAmmoCount(ammoIndex);
+		if (ammoCount < info->tAmmo[i]->iAmmoCount)
+			CBasePlayer::GiveAmmo(min(info->tAmmo[i]->iAmmoCount - ammoCount, max(info->tAmmo[i]->iAmmoCount * flAmount, iMin)), ammoIndex);
+	}
+
+	if (HasAbility(COVEN_ABILITY_DEMOLITION))
+	{
+		CovenAbilityInfo_t *abilInfo = GetCovenAbilityData(COVEN_ABILITY_DEMOLITION);
+		int iMinAmount = max(abilInfo->iMagnitude * flAmount, iMin);
+
+		FileWeaponInfo_t *weapInfo = GetFileWeaponInfoFromHandle(LookupWeaponInfoSlot("weapon_frag"));
+		CBasePlayer::GiveAmmo(min(iMinAmount, abilInfo->iMagnitude - GetAmmoCount(weapInfo->iAmmoType)), weapInfo->iAmmoType, false, true);
+		weapInfo = GetFileWeaponInfoFromHandle(LookupWeaponInfoSlot("weapon_stunfrag"));
+		CBasePlayer::GiveAmmo(min(iMinAmount, abilInfo->iMagnitude - GetAmmoCount(weapInfo->iAmmoType)), weapInfo->iAmmoType, false, true);
+		weapInfo = GetFileWeaponInfoFromHandle(LookupWeaponInfoSlot("weapon_holywater"));
+		CBasePlayer::GiveAmmo(min(iMinAmount, abilInfo->iMagnitude - GetAmmoCount(weapInfo->iAmmoType)), weapInfo->iAmmoType, false, true);
+		weapInfo = GetFileWeaponInfoFromHandle(LookupWeaponInfoSlot("weapon_slam"));
+		CBasePlayer::GiveAmmo(min(iMinAmount, abilInfo->iMagnitude - GetAmmoCount(weapInfo->iAmmoType)), weapInfo->iAmmoType, false, true);
+	}
+}
+
+void CHL2MP_Player::CovenGiveWeaponAmmo(float flAmount)
+{
+	CovenClassInfo_t *info = GetCovenClassData(covenClassID);
+	for (int i = 0; i < info->szWeapons.Count(); i++)
+	{
+		FileWeaponInfo_t *weapInfo = GetFileWeaponInfoFromHandle(LookupWeaponInfoSlot(info->szWeapons[i]));
+		CBasePlayer::GiveAmmo(GetAmmoDef()->MaxCarry(weapInfo->iAmmoType) * flAmount, weapInfo->iAmmoType);
+	}
+}
+
 void CHL2MP_Player::GiveDefaultItems( void )
 {
 	EquipSuit();
@@ -1549,10 +1589,37 @@ void CHL2MP_Player::GiveDefaultItems( void )
 	CovenClassInfo_t *info = GetCovenClassData(covenClassID);
 
 	for (int i = 0; i < info->szWeapons.Count(); i++)
+	{
+		FileWeaponInfo_t *weapInfo = GetFileWeaponInfoFromHandle(LookupWeaponInfoSlot(info->szWeapons[i]));
 		GiveNamedItem(info->szWeapons[i]);
+		if (weapInfo->iMaxClip1 < 0)
+			CBasePlayer::RemoveAmmo(weapInfo->iDefaultClip1, weapInfo->iAmmoType);
+	}
 
 	for (int i = 0; i < info->tAmmo.Count(); i++)
-		CBasePlayer::GiveAmmo(info->tAmmo[i]->iAmmoCount, info->tAmmo[i]->szAmmoName);
+		CBasePlayer::GiveAmmo(info->tAmmo[i]->iAmmoCount, info->tAmmo[i]->szAmmoName, false, true);
+
+	if (HasAbility(COVEN_ABILITY_DEMOLITION))
+	{
+		CovenAbilityInfo_t *abilInfo = GetCovenAbilityData(COVEN_ABILITY_DEMOLITION);
+		int n = abilInfo->iMagnitude - 1;
+
+		GiveNamedItem("weapon_frag");
+		CBasePlayer::GiveAmmo(n, "grenade");
+		UnPurchaseItem(COVEN_ITEM_GRENADE, 3);
+
+		GiveNamedItem("weapon_stunfrag");
+		CBasePlayer::GiveAmmo(n, "stungrenade");
+		UnPurchaseItem(COVEN_ITEM_STUN_GRENADE, 3);
+
+		GiveNamedItem("weapon_holywater");
+		CBasePlayer::GiveAmmo(n, "holywater");
+		UnPurchaseItem(COVEN_ITEM_HOLYWATER, 3);
+
+		GiveNamedItem("weapon_slam");
+		CBasePlayer::GiveAmmo(n, "slam");
+		UnPurchaseItem(COVEN_ITEM_SLAM, 3);
+	}
 
 	const char *szDefaultWeaponName = engine->GetClientConVarValue( engine->IndexOfEdict( edict() ), "cl_defaultweapon" );
 
@@ -3358,8 +3425,9 @@ void CHL2MP_Player::SlayerHolywaterThink()
 
 void CHL2MP_Player::DestroyAllBuildings(void)
 {
-	if (HasAbility(COVEN_ABILITY_TRIPMINE))
-		DetonateTripmines();
+	//BB: this is an item now.
+	//if (HasAbility(COVEN_ABILITY_TRIPMINE))
+	//	DetonateTripmines();
 	BaseClass::DestroyAllBuildings();
 }
 
@@ -4801,7 +4869,7 @@ CBaseEntity* CHL2MP_Player::EntSelectSpawnPoint( void )
 		{
 			// if ent is a client, kill em (unless they are ourselves)
 			if ( (ent->IsPlayer() && !(ent->edict() == player)) || ent->IsABuilding() )
-				ent->TakeDamage( CTakeDamageInfo( GetContainingEntity(INDEXENT(0)), GetContainingEntity(INDEXENT(0)), 300, DMG_GENERIC ) );
+				ent->TakeDamage( CTakeDamageInfo( GetContainingEntity(INDEXENT(0)), GetContainingEntity(INDEXENT(0)), 500, DMG_GENERIC ) );
 		}
 	}
 	else if (!pSpot)

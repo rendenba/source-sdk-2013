@@ -47,7 +47,7 @@ public:
 	void		AddMetal(void);
 	int			GetMetal(int have);
 	bool		GiveMetal(CHL2MP_Player *pPlayer);
-	bool		GiveAmmo(int index, bool &gaveMetal);
+	bool		GiveAmmo(int playerindex, bool &gaveMetal);
 	bool		Open(CBasePlayer *pPlayer);
 	virtual const Vector GetPlayerMidPoint(void) const;
 
