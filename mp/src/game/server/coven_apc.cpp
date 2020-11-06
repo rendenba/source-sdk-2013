@@ -240,14 +240,22 @@ void CCoven_APC::APCThink(void)
 
 	if (m_bPlayingSiren && gpGlobals->curtime > m_flSoundSirenSwitch)
 	{
+#ifdef WIN32
 		m_flSoundSirenSwitch = gpGlobals->curtime + GetSoundDuration("TimerLow", NULL);
+#else
+		m_flSoundSirenSwitch = gpGlobals->curtime + 3.687438f;
+#endif
 		StopSound("TimerLow");
 		EmitSound("TimerLow");
 	}
 
 	if (m_bPlayingSound && gpGlobals->curtime > m_flSoundSwitch)
 	{
+#ifdef WIN32
 		m_flSoundSwitch = gpGlobals->curtime + GetSoundDuration("ATV_engine_idle", NULL);
+#else
+		m_flSoundSwitch = gpGlobals->curtime + 4.316735f;
+#endif
 		StopSound("ATV_engine_start");
 		StopSound("ATV_engine_idle");
 		EmitSound("ATV_engine_idle");
@@ -326,7 +334,11 @@ void CCoven_APC::StartSiren(void)
 	{
 		m_bPlayingSiren = true;
 		EmitSound("TimerLow");
+#ifdef WIN32
 		m_flSoundSirenSwitch = gpGlobals->curtime + GetSoundDuration("TimerLow", NULL);
+#else
+		m_flSoundSirenSwitch = gpGlobals->curtime + 3.687438f;
+#endif
 	}
 }
 
@@ -570,7 +582,12 @@ void CCoven_APC::StartUp(void)
 		{
 			m_bPlayingSound = true;
 			EmitSound("ATV_engine_start");
+			//BB: GetSoundDuration does not appear to work for Linux SRCDS! Linux will need a hardcoded timestamp! FIX THIS THROUGHOUT THIS FILE!
+#ifdef WIN32
 			m_flSoundSwitch = gpGlobals->curtime + GetSoundDuration("ATV_engine_Start", NULL);
+#else
+			m_flSoundSwitch = gpGlobals->curtime + 6.151132f;
+#endif
 			SetThink(&CCoven_APC::APCThink);
 			SetNextThink(gpGlobals->curtime + 0.2f);
 		}

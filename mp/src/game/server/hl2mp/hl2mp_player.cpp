@@ -2566,6 +2566,7 @@ void CHL2MP_Player::VampireManageRagdoll()
 
 void CHL2MP_Player::VampireCheckResurrect()
 {
+	//BB: THIS IS HARDCODED SOUND LENGTHS! THIS MUST BE CHANGED IF THE SOUND FILE IS CHANGED!
 	float x = 4.268f;
 	float y = 5.0f;
 	//BB: UNDYING implementation
