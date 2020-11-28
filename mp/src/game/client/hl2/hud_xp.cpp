@@ -180,7 +180,7 @@ void CHudXP::Paint()
 	wchar_t szText[ 32 ];
 
 	if (pPlayer->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
-		V_swprintf_safe(szText, L"£ %d / %d", m_XP, max);
+		V_swprintf_safe(szText, L"Â£ %d / %d", m_XP, max);
 	else
 		V_swprintf_safe(szText, L"%d / %d", m_XP, max);
 
