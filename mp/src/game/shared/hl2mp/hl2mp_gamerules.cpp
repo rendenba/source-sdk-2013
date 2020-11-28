@@ -191,8 +191,6 @@ static const char *s_PreserveEnts[] =
 	"info_player_slayer",
 	"info_player_vampire",
 	"info_map_parameters",
-	"keyframe_rope",
-	"move_rope",
 	"info_ladder",
 	"player",
 	"point_viewcontrol",
