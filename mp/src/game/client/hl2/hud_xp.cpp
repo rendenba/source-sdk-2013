@@ -178,11 +178,16 @@ void CHudXP::Paint()
 	surface()->DrawSetTextFont(m_hTextFont);
 	//draw our value
 	wchar_t szText[ 32 ];
+	wchar_t wszXPText[4];
+	wchar_t wszMaxXPText[4];
+
+	V_swprintf_safe(wszXPText, L"%d", m_XP);
+	V_swprintf_safe(wszMaxXPText, L"%d", max);
 
 	if (pPlayer->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
-		V_swprintf_safe(szText, L"£ %d / %d", m_XP, max);
+		g_pVGuiLocalize->ConstructString(szText, sizeof(szText), g_pVGuiLocalize->Find("#SlayerXP"), 2, wszXPText, wszMaxXPText);
 	else
-		V_swprintf_safe(szText, L"%d / %d", m_XP, max);
+		g_pVGuiLocalize->ConstructString(szText, sizeof(szText), g_pVGuiLocalize->Find("#VampireXP"), 2, wszXPText, wszMaxXPText);
 
 	int tx = wide/2-UTIL_ComputeStringWidth(m_hTextFont,szText)/2;
 	int ty = tall/2-surface()->GetFontTall(m_hTextFont)/2;
