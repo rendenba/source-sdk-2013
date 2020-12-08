@@ -461,6 +461,7 @@ void GetLost( CHL2MP_Player *pBot, bool iZ, bool visCheck )
 	botdata->m_flReactionTime = -1.0f;
 	botdata->alreadyReacted = false;
 	botdata->bNotIgnoringStrikes = true;
+	botdata->nextstrafetime = 0.0f;
 
 	botdata->m_lastNodeProbe = 0;
 }
