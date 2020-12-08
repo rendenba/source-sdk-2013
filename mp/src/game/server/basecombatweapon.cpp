@@ -101,10 +101,8 @@ int CBaseCombatWeapon::UpdateTransmitState( void)
 	{	
 		//BB: HACK HACK! Is there a better way to do this? FL_EDICT_ALWAYS is necessary to prevent motion sickness when spectating players with alpha rendermode weapons.
 		//BB: It appears that any non-transtexture rendermode "crowbar" outside the PVS causes problems if the spectating player has a transtexture rendermode crowbar. Bummer. Transmit all crowbars.
-		//if (Q_stricmp(GetClassname(), "weapon_crowbar") == 0)
+		if (Q_stricmp(GetClassname(), "weapon_crowbar") == 0)
 		//if (GetRenderMode() == kRenderTransTexture)
-		//BB: poor man's "crowbar." This will need to change if vampires ever have other weapons.
-		if (pOwner->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
 			return SetTransmitState( FL_EDICT_ALWAYS );
 		return SetTransmitState( FL_EDICT_PVSCHECK );
 	}
