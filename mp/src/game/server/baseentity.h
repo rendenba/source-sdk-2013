@@ -2514,8 +2514,6 @@ inline bool CBaseEntity::IsPointSized() const
 inline void CBaseEntity::SetRenderMode( RenderMode_t nRenderMode )
 {
 	m_nRenderMode = nRenderMode;
-
-	DispatchUpdateTransmitState();
 }
 
 inline RenderMode_t CBaseEntity::GetRenderMode() const
