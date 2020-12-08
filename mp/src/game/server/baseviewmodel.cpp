@@ -62,6 +62,9 @@ int CBaseViewModel::UpdateTransmitState()
 		return SetTransmitState( FL_EDICT_DONTSEND );
 	}
 
+	if (GetRenderMode() == kRenderTransTexture)
+		return SetTransmitState(FL_EDICT_ALWAYS);
+
 	return SetTransmitState( FL_EDICT_FULLCHECK );
 }
 
