@@ -932,8 +932,8 @@ bool CHL2MP_Player::ToggleDodge(int iAbilityNum)
 	{
 		if (GetRenderMode() != kRenderTransTexture)
 			SetRenderMode(kRenderTransTexture);
-		if (GetActiveWeapon() != NULL && GetActiveWeapon()->GetRenderMode() != kRenderTransTexture)
-			GetActiveWeapon()->SetRenderMode(kRenderTransTexture);
+		/*if (GetActiveWeapon() != NULL && GetActiveWeapon()->GetRenderMode() != kRenderTransTexture)
+			GetActiveWeapon()->SetRenderMode(kRenderTransTexture);*/
 		CBaseViewModel *pVM = GetViewModel();
 		if (pVM && pVM->GetRenderMode() != kRenderTransTexture)
 			pVM->SetRenderMode(kRenderTransTexture);
@@ -1781,7 +1781,8 @@ void CHL2MP_Player::Spawn(void)
 		//BB: do not draw crowbar
 		if (GetActiveWeapon() && GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
 		{
-			GetActiveWeapon()->AddEffects(EF_NODRAW);
+			//GetActiveWeapon()->AddEffects(EF_NODRAW);
+			GetActiveWeapon()->SetRenderMode(kRenderNone);
 			GetActiveWeapon()->AddEffects(EF_NOSHADOW);
 			GetActiveWeapon()->AddSolidFlags(FSOLID_NOT_SOLID);
 		}
@@ -1791,7 +1792,7 @@ void CHL2MP_Player::Spawn(void)
 	ResetAnimation();
 
 	//m_nRenderFX = kRenderNormal;
-	SetRenderMode(kRenderTransTexture);
+	//SetRenderMode(kRenderTransTexture);
 
 	m_Local.m_iHideHUD = 0;
 	

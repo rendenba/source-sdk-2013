@@ -360,7 +360,8 @@ void CGlowObjectManager::GlowObjectDefinition_t::DrawModel()
 
 		while ( pAttachment != NULL )
 		{
-			if ( !g_GlowObjectManager.HasGlowEffect( pAttachment ) && pAttachment->ShouldDraw() )
+			//BB: HACK! this is so that we have an extra layer of control over glow effects and weapons don't (or can't) cull visibility via ShouldDraw properly (I'm looking at you crowbar)
+			if ( !g_GlowObjectManager.HasGlowEffect( pAttachment ) && pAttachment->ShouldDraw() && pAttachment->GetRenderMode() != kRenderNone )
 			{
 				pAttachment->DrawModel( STUDIO_RENDER );
 			}
