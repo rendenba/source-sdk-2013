@@ -4707,7 +4707,7 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 			RemoveStatus(COVEN_STATUS_GUTCHECK);
 			SetCooldown(AbilityKey(COVEN_ABILITY_GUTCHECK), gpGlobals->curtime + abilityInfo->flCooldown);
 			EmitSound(abilityInfo->aSounds[COVEN_SND_START]);
-			inputInfoAdjust.SetDamage(0.0f);
+			inputInfoAdjust.SetDamage(0.01f * abilityInfo->iMagnitude * inputInfoAdjust.GetDamage());
 		}
 		else
 		{
