@@ -1050,7 +1050,8 @@ float CHL2_Player::Feed(int iIndex)
 	//BB: Coven GORGE implementation
 	if (HasAbility(COVEN_ABILITY_GORGE))
 	{
-		int newmax = GetMaxHealth() * 1.3f;
+		CovenAbilityInfo_t *abilityInfo = GetCovenAbilityData(COVEN_ABILITY_GORGE);
+		int newmax = GetMaxHealth() * (1.0f + 0.01f * abilityInfo->iMagnitude);
 		temp = min(0.04f * GetMaxHealth(), sv_coven_hp_per_ragdoll.GetInt() - m_HL2Local.m_iDollHP[iIndex]);
 		if (GetHealth() + temp <= newmax)
 			SetHealth(GetHealth() + temp);
