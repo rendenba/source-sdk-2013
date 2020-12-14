@@ -2434,6 +2434,16 @@ void CHL2MP_Player::CheckGore()
 	}
 }
 
+void CHL2MP_Player::RemoveStatBoost()
+{
+	CovenClassInfo_t *classInfo = GetCovenClassData(covenClassID);
+	float magnitude = GetStatusMagnitude(COVEN_STATUS_STATBOOST) * 0.01f;
+	GiveStrength(-(magnitude * classInfo->flStrength));
+	GiveConstitution(-(magnitude * classInfo->flConstitution), false);
+	GiveIntellect(-(magnitude * classInfo->flIntellect), false);
+	SuitPower_Charge(0.0f);
+}
+
 void CHL2MP_Player::Pushback(const Vector *direction, float flMagnitude)
 {
 	ApplyAbsVelocityImpulse((IsBot() ? flMagnitude * 1.5f : flMagnitude) * (*direction));
@@ -3346,12 +3356,7 @@ void CHL2MP_Player::DoStatusThink()
 	{
 		if (gpGlobals->curtime > GetStatusTime(COVEN_STATUS_STATBOOST))
 		{
-			CovenClassInfo_t *classInfo = GetCovenClassData(covenClassID);
-			float magnitude = GetStatusMagnitude(COVEN_STATUS_STATBOOST) * 0.01f;
-			GiveStrength(-(magnitude * classInfo->flStrength));
-			GiveConstitution(-(magnitude * classInfo->flConstitution), false);
-			GiveIntellect(-(magnitude * classInfo->flIntellect), false);
-			SuitPower_Charge(0.0f);
+			RemoveStatBoost();
 			RemoveStatus(COVEN_STATUS_STATBOOST);
 		}
 		HandleStatus(COVEN_STATUS_STATBOOST);
@@ -4511,8 +4516,12 @@ int CHL2MP_Player::OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo )
 	int ret = BaseClass::OnTakeDamage_Alive(inputInfo);
 
 	//BB: this is vampires only... pre KO, pre death.
-	if (m_iHealth <= 0)
+	if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES && m_iHealth <= 0)
 	{
+		//STAT BOOST
+		if (HasStatus(COVEN_STATUS_STATBOOST))
+			RemoveStatBoost();
+
 		//UN-PHASE
 		if (gorephased)
 			DoGorePhase(0);

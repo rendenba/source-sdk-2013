@@ -1169,7 +1169,7 @@ void CHL2_Player::GiveConstitution(float c, bool bRecalcHealth)
 {
 	m_HL2Local.covenConstitutionCounter += c;
 	ResetMaxHealth();
-	if (bRecalcHealth)
+	if (bRecalcHealth && GetHealth() <= GetMaxHealth())
 		SetHealth(GetHealth() + ceil(c * sv_coven_hp_per_con.GetFloat()));
 }
 

@@ -167,6 +167,7 @@ public:
 	void BoostStats(CovenAbility_t iReason, int iAbilityNum);
 	void StartEffect(int iEffect);
 	void StopEffect(int iEffect);
+	void RemoveStatBoost();
 
 	//BB: vampire helper functions
 	void DoLeap(int iAbilityNum);
