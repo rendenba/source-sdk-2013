@@ -611,7 +611,8 @@ int CCovenBuilding::OnTakeDamage(const CTakeDamageInfo &info)
 	if (HasSpawnFlags(SF_COVENBUILDING_INERT))
 		return 0;
 
-	if (mOwner.Get() == NULL || (info.GetAttacker() != NULL && info.GetAttacker()->GetTeamNumber() == GetTeamNumber() && !(info.GetDamageType() & DMG_SHOCK)))
+	//BB: holy damage has the attacker as the grenade, and uses inflictor instead
+	if (mOwner.Get() == NULL || info.GetDamageType() & DMG_HOLY || (info.GetAttacker() != NULL && info.GetAttacker()->GetTeamNumber() == GetTeamNumber() && !(info.GetDamageType() & DMG_SHOCK)))
 		return 0;
 
 	CHL2_Player *pAttacker = ToHL2Player(info.GetAttacker());
