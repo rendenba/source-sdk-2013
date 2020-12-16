@@ -146,8 +146,7 @@ bool CWeaponShotgun::StartReload( void )
 	if (j <= 0)
 		return false;
 
-	if (CheckDeferredAction(true))
-		return false;
+	CheckDeferredAction(true);
 
 	SendWeaponAnim( ACT_SHOTGUN_RELOAD_START );
 
@@ -432,7 +431,7 @@ void CWeaponShotgun::ItemPostFrame( void )
 		return;
 	}
 
-	if ((m_bNeedPump && (pOwner->m_nButtons & IN_RELOAD)) || (!m_bInReload && m_iClip1 <= 0 && pOwner->GetAmmoCount(m_iPrimaryAmmoType) > 0))
+	if ((m_bNeedPump && (pOwner->m_nButtons & IN_RELOAD)) || (!m_bInReload && m_iClip1 <= 0 && pOwner->GetAmmoCount(m_iPrimaryAmmoType) > 0) && !CheckDeferredAction())
 	{
 		m_bDelayedReload = true;
 	}
@@ -441,7 +440,10 @@ void CWeaponShotgun::ItemPostFrame( void )
 
 	//BB: good god... guns are a mess in this game.
 	if (CheckDeferredAction())
+	{
 		m_bInReload = false;
+		m_bDelayedReload = false;
+	}
 
 	if (m_bInReload)
 	{
@@ -589,7 +591,7 @@ void CWeaponShotgun::ItemPostFrame( void )
 			// weapon is useable. Reload if empty and weapon has waited as long as it has to after firing
 			if ( m_iClip1 <= 0 && !(GetWeaponFlags() & ITEM_FLAG_NOAUTORELOAD) && m_flNextPrimaryAttack < gpGlobals->curtime )
 			{
-				if (CheckDeferredAction())
+				if (!CheckDeferredAction())
 				{
 					if (StartReload())
 					{

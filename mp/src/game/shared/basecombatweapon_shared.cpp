@@ -1395,16 +1395,19 @@ bool CBaseCombatWeapon::ReloadOrSwitchWeapons( void )
 	}
 	else
 	{
-		// Weapon is useable. Reload if empty and weapon has waited as long as it has to after firing
-		if ( UsesClipsForAmmo1() && !AutoFiresFullClip() && 
-			 (m_iClip1 == 0) && 
-			 (GetWeaponFlags() & ITEM_FLAG_NOAUTORELOAD) == false && 
-			 m_flNextPrimaryAttack < gpGlobals->curtime && 
-			 m_flNextSecondaryAttack < gpGlobals->curtime )
+		if (!CheckDeferredAction())
 		{
-			// if we're successfully reloading, we're done
-			if ( Reload() )
-				return true;
+			// Weapon is useable. Reload if empty and weapon has waited as long as it has to after firing
+			if (UsesClipsForAmmo1() && !AutoFiresFullClip() &&
+				(m_iClip1 == 0) &&
+				(GetWeaponFlags() & ITEM_FLAG_NOAUTORELOAD) == false &&
+				m_flNextPrimaryAttack < gpGlobals->curtime &&
+				m_flNextSecondaryAttack < gpGlobals->curtime)
+			{
+				// if we're successfully reloading, we're done
+				if (Reload())
+					return true;
+			}
 		}
 	}
 
@@ -1738,7 +1741,11 @@ void CBaseCombatWeapon::ItemPostFrame( void )
 	UpdateAutoFire();
 
 	if (CheckDeferredAction())
+	{
+		m_bFireOnEmpty = false;
 		m_bInReload = false;
+		m_flNextPrimaryAttack = 0.0f;
+	}
 
 	//Track the duration of the fire
 	//FIXME: Check for IN_ATTACK2 as well?
@@ -1804,6 +1811,7 @@ void CBaseCombatWeapon::ItemPostFrame( void )
 		if ( !IsMeleeWeapon() &&  
 			(( UsesClipsForAmmo1() && m_iClip1 <= 0) || ( !UsesClipsForAmmo1() && pOwner->GetAmmoCount(m_iPrimaryAmmoType)<=0 )) )
 		{
+			CheckDeferredAction(true);
 			HandleFireOnEmpty();
 		}
 		else if (pOwner->GetWaterLevel() == 3 && m_bFiresUnderwater == false)

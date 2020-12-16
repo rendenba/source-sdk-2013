@@ -122,8 +122,7 @@ bool CWeapon357::Reload(void)
 	if (!bReload)
 		return false;
 
-	if (CheckDeferredAction(true))
-		return false;
+	CheckDeferredAction(true);
 
 	// Play reload
 	WeaponSound(RELOAD);
