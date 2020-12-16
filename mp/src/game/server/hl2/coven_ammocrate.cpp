@@ -228,8 +228,9 @@ bool CCoven_AmmoCrate::GiveAmmo(int playerindex, bool &gaveMetal)
 					pPlayer->CovenGiveAmmo(1.0f);
 				else
 				{
-					int iLevel = m_iLevel + 1;
-					pPlayer->CovenGiveAmmo(0.1f * iLevel, iLevel);
+					CovenBuildingInfo_t *bldgInfo = GetCovenBuildingData(m_BuildingType);
+					int iLevel =  m_iLevel + 1;
+					pPlayer->CovenGiveAmmo(0.1f * iLevel, 1, (float)iLevel / bldgInfo->iMaxLevel);
 				}
 				/*for (int i = 0; i < info->szWeapons.Count(); i++)
 				{

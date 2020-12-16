@@ -1545,7 +1545,7 @@ void CHL2MP_Player::GiveAllItems( void )
 	
 }
 
-void CHL2MP_Player::CovenGiveAmmo(float flAmount, int iMin)
+void CHL2MP_Player::CovenGiveAmmo(float flAmount, int iMin, float fCrateLevel)
 {
 	CovenClassInfo_t *info = GetCovenClassData(covenClassID);
 	for (int i = 0; i < info->tAmmo.Count(); i++)
@@ -1558,17 +1558,41 @@ void CHL2MP_Player::CovenGiveAmmo(float flAmount, int iMin)
 
 	if (HasAbility(COVEN_ABILITY_DEMOLITION))
 	{
-		CovenAbilityInfo_t *abilInfo = GetCovenAbilityData(COVEN_ABILITY_DEMOLITION);
-		int iMinAmount = max(abilInfo->iMagnitude * flAmount, iMin);
+		int key = AbilityKey(COVEN_ABILITY_DEMOLITION);
+		if (gpGlobals->curtime > GetCooldown(key))
+		{
+			CovenAbilityInfo_t *abilInfo = GetCovenAbilityData(COVEN_ABILITY_DEMOLITION);
+			int iMaxAmount = round((float)abilInfo->iMagnitude * fCrateLevel);
+			int iGiven = 0;
 
-		FileWeaponInfo_t *weapInfo = GetFileWeaponInfoFromHandle(LookupWeaponInfoSlot("weapon_frag"));
-		CBasePlayer::GiveAmmo(min(iMinAmount, abilInfo->iMagnitude - GetAmmoCount(weapInfo->iAmmoType)), weapInfo->iAmmoType, false, true);
-		weapInfo = GetFileWeaponInfoFromHandle(LookupWeaponInfoSlot("weapon_stunfrag"));
-		CBasePlayer::GiveAmmo(min(iMinAmount, abilInfo->iMagnitude - GetAmmoCount(weapInfo->iAmmoType)), weapInfo->iAmmoType, false, true);
-		weapInfo = GetFileWeaponInfoFromHandle(LookupWeaponInfoSlot("weapon_holywater"));
-		CBasePlayer::GiveAmmo(min(iMinAmount, abilInfo->iMagnitude - GetAmmoCount(weapInfo->iAmmoType)), weapInfo->iAmmoType, false, true);
-		weapInfo = GetFileWeaponInfoFromHandle(LookupWeaponInfoSlot("weapon_slam"));
-		CBasePlayer::GiveAmmo(min(iMinAmount, abilInfo->iMagnitude - GetAmmoCount(weapInfo->iAmmoType)), weapInfo->iAmmoType, false, true);
+			FileWeaponInfo_t *weapInfo = GetFileWeaponInfoFromHandle(LookupWeaponInfoSlot("weapon_frag"));
+			int iAmmoCount = GetAmmoCount(weapInfo->iAmmoType);
+			if (iAmmoCount < iMaxAmount)
+			{
+				iGiven += CBasePlayer::GiveAmmo(iMin, weapInfo->iAmmoType, false, true);
+			}
+			weapInfo = GetFileWeaponInfoFromHandle(LookupWeaponInfoSlot("weapon_stunfrag"));
+			iAmmoCount = GetAmmoCount(weapInfo->iAmmoType);
+			if (iAmmoCount < iMaxAmount)
+			{
+				iGiven += CBasePlayer::GiveAmmo(iMin, weapInfo->iAmmoType, false, true);
+			}
+			weapInfo = GetFileWeaponInfoFromHandle(LookupWeaponInfoSlot("weapon_holywater"));
+			iAmmoCount = GetAmmoCount(weapInfo->iAmmoType);
+			if (iAmmoCount < iMaxAmount)
+			{
+				iGiven += CBasePlayer::GiveAmmo(iMin, weapInfo->iAmmoType, false, true);
+			}
+			weapInfo = GetFileWeaponInfoFromHandle(LookupWeaponInfoSlot("weapon_slam"));
+			iAmmoCount = GetAmmoCount(weapInfo->iAmmoType);
+			if (iAmmoCount < iMaxAmount)
+			{
+				iGiven += CBasePlayer::GiveAmmo(iMin, weapInfo->iAmmoType, false, true);
+			}
+
+			if (iGiven > 0)
+				SetCooldown(key, gpGlobals->curtime + abilInfo->flCooldown);
+		}
 	}
 }
 

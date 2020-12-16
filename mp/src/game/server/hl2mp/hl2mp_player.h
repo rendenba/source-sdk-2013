@@ -110,7 +110,7 @@ public:
 	void GiveAllItems( void );
 	void GiveDefaultItems( void );
 	void CovenGiveWeaponAmmo(float flAmount); //Amount is 0.00-1.00 percentage of max ammo
-	void CovenGiveAmmo(float flAmount, int iMin = 0); //Amount is 0.00-1.00 percentage of max ammo
+	void CovenGiveAmmo(float flAmount, int iMin = 1, float fCrateLevel = 1.0f); //Amount is 0.00-1.00 percentage of max ammo
 
 	void NoteWeaponFired( void );
 
