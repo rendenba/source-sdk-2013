@@ -4654,9 +4654,12 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 	if (HasStatus(COVEN_STATUS_DODGE))
 	{
 		CovenAbilityInfo_t *abilityInfo = GetCovenAbilityData(COVEN_ABILITY_DODGE);
-		inputInfoAdjust.SetDamage(inputInfoAdjust.GetDamage() * abilityInfo->flDuration);
+		float flPreDmg = inputInfoAdjust.GetDamage();
+		inputInfoAdjust.SetDamage(flPreDmg * abilityInfo->flDuration);
 		if (random->RandomFloat() <= abilityInfo->flRange)
 			inputInfoAdjust.SetDamage(0.0f);
+		float flMitigated = flPreDmg - inputInfoAdjust.GetDamage();
+		SuitPower_Drain(flMitigated);
 	}
 
 	//INNERLIGHT
