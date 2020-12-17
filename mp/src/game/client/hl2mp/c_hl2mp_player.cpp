@@ -259,6 +259,14 @@ void C_HL2MP_Player::ClientThink( void )
 		else if (IsClientSideGlowEnabled())
 			SetClientSideGlowEnabled(false);
 	}
+	else
+	{
+		//BB: turn off forced glows switched on while spectating
+		if (IsClientSideGlowEnabled())
+		{
+			SetClientSideGlowEnabled(false);
+		}
+	}
 
 	bool bFoundViewTarget = false;
 	
