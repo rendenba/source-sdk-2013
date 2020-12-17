@@ -288,6 +288,8 @@ CHL2MPRules::CHL2MPRules()
 
 	pAPC = NULL;
 
+	m_iPushedTimelimit = -1;
+
 	m_bTeamPlayEnabled = teamplay.GetBool();
 	m_flIntermissionEndTime = 0.0f;
 	m_flGameStartTime = 0;
@@ -896,7 +898,7 @@ bool CHL2MPRules::LoadCowFile(IBaseFileSystem *filesystem, const char *resourceN
 							KeyValues *pPath = pAPCKV->FindKey("Path");
 							if (pPath)
 							{
-								bool bHasCheckpoints = false;
+								float flTimelimit = 0.0f;
 								for (KeyValues *sub = pPath->GetFirstSubKey(); sub != NULL; sub = sub->GetNextKey())
 								{
 									APCNode_t *node = new APCNode_t;
@@ -910,8 +912,8 @@ bool CHL2MPRules::LoadCowFile(IBaseFileSystem *filesystem, const char *resourceN
 #endif
 										node->location.Init(locs[0], locs[1], locs[2]);
 										node->flTimer = sub->GetFloat("timer");
+										flTimelimit += node->flTimer;
 										node->bCheckpoint = true;
-										bHasCheckpoints = true;
 									}
 									else
 									{
@@ -926,12 +928,21 @@ bool CHL2MPRules::LoadCowFile(IBaseFileSystem *filesystem, const char *resourceN
 									hAPCNet.AddToTail(node);
 								}
 								pAPC->SetGoal(0);
-								if (!bHasCheckpoints)
+								if (flTimelimit <= 0.0f)
 								{
 									Msg("Missing APC checkpoint definition!\n");
 									covenActiveGameMode--;
 									RemoveEntity("coven_apc");
 									RemoveEntity("item_gas");
+								}
+								else
+								{
+									flTimelimit = ceil(flTimelimit / 60.0f);
+									if (mp_timelimit.GetInt() < flTimelimit)
+									{
+										m_iPushedTimelimit = mp_timelimit.GetInt();
+										mp_timelimit.SetValue((int)flTimelimit);
+									}
 								}
 							}
 							else
@@ -1707,6 +1718,8 @@ bool CHL2MPRules::CheckGameOver()
 		// check to see if we should change levels now
 		if ( m_flIntermissionEndTime < gpGlobals->curtime )
 		{
+			if (m_iPushedTimelimit < 0)
+				mp_timelimit.SetValue(m_iPushedTimelimit);
 			ChangeLevel(); // intermission is over			
 		}
 

@@ -262,6 +262,7 @@ private:
 	CUtlVector<CovenBuyZone_s *> m_hBuyZones;
 
 #ifndef CLIENT_DLL
+	int		m_iPushedTimelimit;
 	bool m_bChangelevelDone;
 #endif
 };
