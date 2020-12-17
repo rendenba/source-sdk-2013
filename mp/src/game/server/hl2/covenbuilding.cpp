@@ -157,6 +157,14 @@ void CCovenBuilding::InputKill(inputdata_t &data)
 	UTIL_Remove(this);
 }
 
+void CCovenBuilding::UpdateControllerGoalAxis(const Vector &vecNewGoal)
+{
+	if (m_pMotionController != NULL)
+	{
+		m_pMotionController->UpdateGoalAxis(vecNewGoal);
+	}
+}
+
 bool CCovenBuilding::CheckLevel(void)
 {
 	CovenBuildingInfo_t *info = GetCovenBuildingData(m_BuildingType);
@@ -166,6 +174,10 @@ bool CCovenBuilding::CheckLevel(void)
 		m_iLevel++;
 		m_iMaxHealth = info->iHealths[m_iLevel];
 		m_iHealth = m_iMaxHealth;
+		if (info->iControllerStrengths.Size() > m_iLevel)
+		{
+			m_pMotionController->SetAngLimit(info->iControllerStrengths[m_iLevel]);
+		}
 		if (m_iLevel < (info->iMaxLevel - 1))
 		{
 			m_iXP -= m_iMaxXP;
@@ -740,6 +752,16 @@ void CCovenBuilding::UnlockController(void)
 		m_pMotionController->Unlock();
 }
 
+void CCovenBuilding::AdjustControllerAxis(void)
+{
+	trace_t tr;
+	UTIL_TraceLine(GetAbsOrigin(), GetAbsOrigin() + Vector(0, 0, -128), MASK_SHOT, this, COLLISION_GROUP_NONE, &tr);
+	if (tr.DidHit())
+	{
+		UpdateControllerGoalAxis(tr.plane.normal);
+	}
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
@@ -834,6 +856,16 @@ bool CCovenBuilding::OnAttemptPhysGunPickup(CBasePlayer *pPhysGunUser, PhysGunPi
 	}
 
 	return true;
+}
+
+float CCovenBuilding::MaxTipControllerAngularVelocity()
+{
+	CovenBuildingInfo_t *info = GetCovenBuildingData(m_BuildingType);
+	if (info->iMaxAngVel.Size() > m_iLevel)
+	{
+		return info->iMaxAngVel[m_iLevel];
+	}
+	return info->iMaxAngVel[0];
 }
 
 //-----------------------------------------------------------------------------
@@ -958,6 +990,11 @@ void CCovenBuildingTipController::Unlock(void)
 	m_angularLimit = 25.0f;
 }
 
+void CCovenBuildingTipController::SetAngLimit(float flAngLimit)
+{
+	m_angularLimit = flAngLimit;
+}
+
 
 //-----------------------------------------------------------------------------
 // Purpose: Actual simulation for tip controller
@@ -977,7 +1014,7 @@ IMotionEvent::simresult_e CCovenBuildingTipController::Simulate(IPhysicsMotionCo
 	if (m_pParentBuilding->WasJustDroppedByPlayer())
 	{
 		// Increase the controller strength a little
-		flAngularLimit += 5.0f;
+		flAngularLimit += 10.0f;
 	}
 	else
 	{

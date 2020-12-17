@@ -195,6 +195,8 @@ public:
 	char					szModelName[MAX_COVEN_STRING];
 	int						iFlags;									// miscellaneous flags
 	int						iMaxLevel;
+	CUtlVector<int>			iControllerStrengths;
+	CUtlVector<int>			iMaxAngVel;
 	CUtlVector<int>			iHealths;
 	CUtlVector<int>			iXPs;
 	CUtlVector<int>			iCosts;

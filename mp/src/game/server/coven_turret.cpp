@@ -1644,13 +1644,15 @@ int CCoven_Turret::OnTakeDamage(const CTakeDamageInfo &info)
 		}
 	}
 
-	if (info.GetDamageType() & (DMG_SLASH))
+	WakeUp();
+
+	if (info.GetDamageType() & (DMG_CLUB))
 	{
 		// Take extra force from melee hits
-		newInfo.ScaleDamageForce(2.0f);
+		newInfo.ScaleDamageForce(0.5f);
 
 		// Disable our upright controller for some time
-		SuspendUprightController(2.0f);
+		//SuspendUprightController(0.5f);
 	}
 	else if (info.GetDamageType() & DMG_BLAST)
 	{
@@ -1739,6 +1741,12 @@ void CCoven_Turret::SpinUp(void)
 void CCoven_Turret::SpinDown(void)
 {
 	
+}
+
+void CCoven_Turret::OnPhysGunDrop(CBasePlayer *pPhysGunUser, PhysGunDrop_t Reason)
+{
+	AdjustControllerAxis();
+	BaseClass::OnPhysGunDrop(pPhysGunUser, Reason);
 }
 
 //-----------------------------------------------------------------------------

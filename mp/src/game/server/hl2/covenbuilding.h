@@ -32,6 +32,7 @@ public:
 
 	void			LockController(void);
 	void			UnlockController(void);
+	void			AdjustControllerAxis(void);
 	virtual void	VPhysicsCollision(int index, gamevcollisionevent_t *pEvent);
 	virtual void	InputKill(inputdata_t &data);
 	virtual int		ObjectCaps(void) { return (BaseClass::ObjectCaps() | FCAP_IMPULSE_USE); };
@@ -89,7 +90,7 @@ public:
 	int m_iMaxXP;
 
 	virtual float	MaxTipControllerVelocity() { return 300.0f * 300.0f; };
-	virtual float	MaxTipControllerAngularVelocity() { return 90.0f * 90.0f; };
+	virtual float	MaxTipControllerAngularVelocity();
 
 	virtual BuildingType_t MyType() const { return m_BuildingType; };
 
@@ -104,7 +105,6 @@ private:
 	float									m_flBottom; //to get around buildings with legs
 	float									m_flTop;
 	bool									m_bGoneToSleep;
-	void									WakeUp(void);
 	float									m_flSparkTimer;
 
 protected:
@@ -124,6 +124,8 @@ protected:
 	virtual void	DoSelfDestructEffects(float percentage);
 
 	// physics influence
+	void					WakeUp(void);
+	void					UpdateControllerGoalAxis(const Vector &vecNewGoal);
 	CHandle<CBasePlayer>	m_hPhysicsAttacker;
 	float					m_flLastPhysicsInfluenceTime;
 	COutputEvent m_OnPhysGunPickup;
@@ -158,6 +160,11 @@ public:
 	float SuspendedTill(void);
 	void Lock(void);
 	void Unlock(void);
+	void SetAngLimit(float flAngLimit);
+	void UpdateGoalAxis(const Vector &vecNewGoal)
+	{
+		m_worldGoalAxis = vecNewGoal;
+	}
 
 	bool Enabled(void);
 

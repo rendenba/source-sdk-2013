@@ -136,6 +136,7 @@ public:
 	void	InputDisable(inputdata_t &inputdata);
 	void	InputDepleteAmmo(inputdata_t &inputdata);
 	void	InputRestoreAmmo(inputdata_t &inputdata);
+	void	OnPhysGunDrop(CBasePlayer *pPhysGunUser, PhysGunDrop_t Reason);
 
 	float	MaxYawSpeed(void);
 

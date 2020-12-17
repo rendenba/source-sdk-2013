@@ -572,6 +572,7 @@ bool CHL2MP_Player::BuildTurret(int iAbilityNum)
 	ent->Teleport(&vecSrc, &angle, NULL);
 	UTIL_DropToFloor(ent, MASK_NPCSOLID);
 	ent->Activate();
+	((CCoven_Turret *)ent)->AdjustControllerAxis();
 	m_hTurret = ent;
 	return true;
 }

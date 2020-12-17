@@ -222,6 +222,8 @@ CovenBuildingInfo_t::CovenBuildingInfo_t()
 
 	iFlags = 0;
 	iMaxLevel = 0;
+	iControllerStrengths.AddToTail(25);
+	iMaxAngVel.AddToTail(8100); //90 x 90
 	iHealths.AddToTail(150);
 	iXPs.AddToTail(200);
 }
@@ -487,6 +489,24 @@ void CovenBuildingInfo_t::Parse(KeyValues *pKeyValuesData)
 		for (KeyValues *sub = pAmmo3Info->GetFirstSubKey(); sub != NULL; sub = sub->GetNextKey())
 		{
 			iAmmo3.AddToTail(sub->GetInt());
+		}
+	}
+	KeyValues *pControllerStrengthInfo = pKeyValuesData->FindKey("controller");
+	if (pControllerStrengthInfo)
+	{
+		iControllerStrengths.Purge();
+		for (KeyValues *sub = pControllerStrengthInfo->GetFirstSubKey(); sub != NULL; sub = sub->GetNextKey())
+		{
+			iControllerStrengths.AddToTail(sub->GetInt());
+		}
+	}
+	KeyValues *pMaxAngVels = pKeyValuesData->FindKey("maxangvel");
+	if (pMaxAngVels)
+	{
+		iMaxAngVel.Purge();
+		for (KeyValues *sub = pMaxAngVels->GetFirstSubKey(); sub != NULL; sub = sub->GetNextKey())
+		{
+			iMaxAngVel.AddToTail(sub->GetInt());
 		}
 	}
 }
