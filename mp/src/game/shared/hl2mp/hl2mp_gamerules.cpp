@@ -109,7 +109,7 @@ ConVar sv_coven_capture_fraglimit("sv_coven_capture_fraglimit", "1600", FCVAR_NO
 ConVar sv_coven_fraglimit("sv_coven_fraglimit", "0", FCVAR_NOTIFY | FCVAR_REPLICATED, "Coven mode fraglimit.");
 ConVar sv_coven_round_fraglimit("sv_coven_round_fraglimit", "12", FCVAR_NOTIFY | FCVAR_REPLICATED, "Round mode fraglimit.");
 ConVar sv_coven_mana_per_int("sv_coven_mana_per_int", "10.0", FCVAR_NOTIFY | FCVAR_REPLICATED);
-ConVar sv_coven_gcd("sv_coven_gcd", "1.5", FCVAR_NOTIFY | FCVAR_REPLICATED);
+ConVar sv_coven_gcd("sv_coven_gcd", "1.0", FCVAR_NOTIFY | FCVAR_REPLICATED);
 ConVar sv_coven_hp_per_con("sv_coven_hp_per_con", "4.0", FCVAR_NOTIFY | FCVAR_REPLICATED);
 ConVar sv_coven_alarm_time("sv_coven_alarm_time", "60.0", FCVAR_NOTIFY | FCVAR_REPLICATED, "APC alarm timer.");
 ConVar sv_coven_refuel_distance("sv_coven_refuel_distance", "250.0", FCVAR_NOTIFY | FCVAR_REPLICATED, "Distance before refuel cancels.");
