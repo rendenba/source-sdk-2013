@@ -2390,7 +2390,11 @@ void CHL2MP_Player::PreThink( void )
 	}
 
 	if (DoAbilityThink())
+	{
+		if (IsPerformingDeferredAction())
+			CancelDeferredAction();
 		TriggerGCD();
+	}
 
 	if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
 	{
