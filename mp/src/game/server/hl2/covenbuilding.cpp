@@ -667,9 +667,9 @@ int CCovenBuilding::OnTakeDamage(const CTakeDamageInfo &info)
 		WakeUp();
 
 	CTakeDamageInfo newInfo = info;
-	newInfo.SetDamage((1.0f - sv_coven_building_strength.GetFloat() / 60.0f) * newInfo.GetDamage());
+	newInfo.SetDamage(clamp(1.0f - sv_coven_building_strength.GetFloat() / 60.0f, 0.0f, 1.0f) * newInfo.GetDamage());
 
-	return BaseClass::OnTakeDamage(info);
+	return BaseClass::OnTakeDamage(newInfo);
 }
 
 void CCovenBuilding::EnableUprightController(void)

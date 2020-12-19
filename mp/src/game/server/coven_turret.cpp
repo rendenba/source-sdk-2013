@@ -1676,9 +1676,10 @@ int CCoven_Turret::OnTakeDamage(const CTakeDamageInfo &info)
 		SetThink(&CCoven_Turret::Deploy);
 	}
 
-	newInfo.SetDamage((1.0f - sv_coven_building_strength.GetFloat() / 60.0f) * newInfo.GetDamage());
+	newInfo.SetDamage(clamp(1.0f - sv_coven_building_strength.GetFloat() / 60.0f, 0.0f, 1.0f) * newInfo.GetDamage());
 
-	return BaseClass::OnTakeDamage(newInfo);
+	//BB: must call explicitly so that strength calc doesnt occur twice
+	return CBaseCombatCharacter::OnTakeDamage(newInfo);
 }
 
 void CCoven_Turret::ToggleLight(bool bToggle)

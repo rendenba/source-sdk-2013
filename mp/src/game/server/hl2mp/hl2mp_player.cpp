@@ -4752,7 +4752,7 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 		}
 		else
 		{
-			inputInfoAdjust.SetDamage((1.0f - GetStrength() / 60.0f) * inputInfoAdjust.GetDamage());
+			inputInfoAdjust.SetDamage(clamp(1.0f - GetStrength() / 60.0f, 0.0f, 1.0f) * inputInfoAdjust.GetDamage());
 		}
 	}
 	
