@@ -120,7 +120,11 @@ void CTargetID::Paint()
 {
 #define MAX_ID_STRING 256
 	wchar_t sIDString[ MAX_ID_STRING ];
+	wchar_t sIDString_line2[ MAX_ID_STRING ];
+	wchar_t sIDString_line3[ MAX_ID_STRING ];
 	sIDString[0] = 0;
+	sIDString_line2[0] = 0;
+	sIDString_line3[0] = 0;
 
 	C_HL2MP_Player *pPlayer = C_HL2MP_Player::GetLocalHL2MPPlayer();
 
@@ -257,7 +261,14 @@ void CTargetID::Paint()
 								bldg->ForceGlowEffect(clr, true, true, 750.0f);
 								lastGlowObject = bldg;
 							}
-							g_pVGuiLocalize->ConstructString(sIDString, sizeof(sIDString), g_pVGuiLocalize->Find("#BuildingID"), 2, wszLevelString, wszHealthString);
+							if (IsPlayerIndex(bldg->mOwner->entindex()))
+							{
+								C_BasePlayer *pOwner = static_cast<C_BasePlayer*>(cl_entitylist->GetEnt(bldg->mOwner->entindex()));
+								g_pVGuiLocalize->ConvertANSIToUnicode(pOwner->GetPlayerName(), wszPlayerName, sizeof(wszPlayerName));
+								g_pVGuiLocalize->ConstructString(sIDString, sizeof(sIDString), g_pVGuiLocalize->Find("#BuildingID1"), 1, wszLevelString);
+								g_pVGuiLocalize->ConstructString(sIDString_line2, sizeof(sIDString_line2), g_pVGuiLocalize->Find("#BuildingID2"), 1, wszPlayerName);
+								g_pVGuiLocalize->ConstructString(sIDString_line3, sizeof(sIDString_line3), g_pVGuiLocalize->Find("#BuildingID3"), 1, wszHealthString);
+							}
 						}
 					}
 				}
@@ -344,6 +355,22 @@ void CTargetID::Paint()
 			vgui::surface()->DrawSetTextPos( xpos, ypos );
 			vgui::surface()->DrawSetTextColor( c );
 			vgui::surface()->DrawPrintText( sIDString, wcslen(sIDString) );
+			ypos += tall;
+			if (sIDString_line2[0])
+			{
+				vgui::surface()->GetTextSize(m_hFont, sIDString_line2, wide, tall);
+				xpos = (ScreenWidth() - wide) / 2;
+				vgui::surface()->DrawSetTextPos(xpos, ypos);
+				vgui::surface()->DrawPrintText(sIDString_line2, wcslen(sIDString_line2));
+				ypos += tall;
+			}
+			if (sIDString_line3[0])
+			{
+				vgui::surface()->GetTextSize(m_hFont, sIDString_line3, wide, tall);
+				xpos = (ScreenWidth() - wide) / 2;
+				vgui::surface()->DrawSetTextPos(xpos, ypos);
+				vgui::surface()->DrawPrintText(sIDString_line3, wcslen(sIDString_line3));
+			}
 		}
 	}
 }
