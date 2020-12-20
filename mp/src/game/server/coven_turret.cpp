@@ -1577,7 +1577,7 @@ bool CCoven_Turret::CheckLevel(void)
 //-----------------------------------------------------------------------------
 int CCoven_Turret::OnTakeDamage(const CTakeDamageInfo &info)
 {
-	if (mOwner.Get() == NULL || (info.GetAttacker() != NULL && info.GetAttacker()->GetTeamNumber() == GetTeamNumber() && !(info.GetDamageType() & DMG_SHOCK)))
+	if (mOwner.Get() == NULL || info.GetDamageType() & DMG_HOLY || (info.GetAttacker() != NULL && info.GetAttacker()->GetTeamNumber() == GetTeamNumber() && !(info.GetDamageType() & DMG_SHOCK)))
 		return 0;
 
 	CTakeDamageInfo	newInfo = info;
@@ -1656,7 +1656,7 @@ int CCoven_Turret::OnTakeDamage(const CTakeDamageInfo &info)
 	}
 	else if (info.GetDamageType() & DMG_BLAST)
 	{
-		newInfo.ScaleDamageForce(1.25f);
+		newInfo.ScaleDamageForce(0.25f);
 	}
 	/*else if ( (info.GetDamageType() & DMG_BULLET) && !(info.GetDamageType() & DMG_BUCKSHOT) )
 	{
