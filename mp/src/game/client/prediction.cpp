@@ -951,6 +951,10 @@ void CPrediction::SetIdealPitch ( C_BasePlayer *player, const Vector& origin, co
 	AngleVectors( angles, &forward );
 	forward[2] = 0;
 
+	int collisionGroup = COLLISION_GROUP_PLAYER_MOVEMENT;
+	if (player->GetCollisionGroup() == COLLISION_GROUP_BUILDINGPT)
+		collisionGroup = COLLISION_GROUP_BPT_MOVEMENT;
+
 	// Now move forward by 36, 48, 60, etc. units from the eye position and drop lines straight down
 	//  160 or so units to see what's below
 	for (i=0 ; i<MAX_FORWARD ; i++)
@@ -963,7 +967,7 @@ void CPrediction::SetIdealPitch ( C_BasePlayer *player, const Vector& origin, co
 
 		bottom[2] -= 160;
 
-		UTIL_TraceLine( top, bottom, MASK_SOLID, NULL, COLLISION_GROUP_PLAYER_MOVEMENT, &tr );
+		UTIL_TraceLine( top, bottom, MASK_SOLID, NULL, collisionGroup, &tr );
 
 		// looking at a wall, leave ideal the way it was
 		if ( tr.allsolid )

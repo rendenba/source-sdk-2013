@@ -421,6 +421,9 @@ enum Collision_Group_t
 	COLLISION_GROUP_NPC_SCRIPTED,	// USed for NPCs in scripts that should not collide with each other
 
 	COLLISION_GROUP_VEHICLE_WHEEL,	// Vehicle wheel/tire
+	COLLISION_GROUP_BUILDING,		// Coven building
+	COLLISION_GROUP_BUILDINGPT,	// Temporary override to pass through buildings
+	COLLISION_GROUP_BPT_MOVEMENT,	// Temporary override to pass through buildings
 
 	LAST_SHARED_COLLISION_GROUP
 };

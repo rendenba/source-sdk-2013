@@ -1545,7 +1545,12 @@ void CGameMovement::StepMove( Vector &vecDestination, trace_t &trace )
 		vecEndPos.z += player->m_Local.m_flStepSize + DIST_EPSILON;
 	}
 	
-	TracePlayerBBox( mv->GetAbsOrigin(), vecEndPos, PlayerSolidMask(), COLLISION_GROUP_PLAYER_MOVEMENT, trace );
+	int collisionGroup = COLLISION_GROUP_PLAYER_MOVEMENT;
+	if (player->GetCollisionGroup() == COLLISION_GROUP_BUILDINGPT)
+		collisionGroup = COLLISION_GROUP_BPT_MOVEMENT;
+
+	TracePlayerBBox(mv->GetAbsOrigin(), vecEndPos, PlayerSolidMask(), collisionGroup, trace);
+
 	if ( !trace.startsolid && !trace.allsolid )
 	{
 		mv->SetAbsOrigin( trace.endpos );
@@ -1561,8 +1566,8 @@ void CGameMovement::StepMove( Vector &vecDestination, trace_t &trace )
 		vecEndPos.z -= player->m_Local.m_flStepSize + DIST_EPSILON;
 	}
 		
-	TracePlayerBBox( mv->GetAbsOrigin(), vecEndPos, PlayerSolidMask(), COLLISION_GROUP_PLAYER_MOVEMENT, trace );
-	
+	TracePlayerBBox(mv->GetAbsOrigin(), vecEndPos, PlayerSolidMask(), collisionGroup, trace);
+
 	// If we are not on the ground any more then use the original movement attempt.
 	if ( trace.plane.normal[2] < 0.7 )
 	{
@@ -1868,14 +1873,18 @@ void CGameMovement::StayOnGround( void )
 
 	// See how far up we can go without getting stuck
 
-	TracePlayerBBox( mv->GetAbsOrigin(), start, PlayerSolidMask(), COLLISION_GROUP_PLAYER_MOVEMENT, trace );
+	int collisionGroup = COLLISION_GROUP_PLAYER_MOVEMENT;
+	if (player->GetCollisionGroup() == COLLISION_GROUP_BUILDINGPT)
+		collisionGroup = COLLISION_GROUP_BPT_MOVEMENT;
+
+	TracePlayerBBox(mv->GetAbsOrigin(), start, PlayerSolidMask(), collisionGroup, trace);
 	start = trace.endpos;
 
 	// using trace.startsolid is unreliable here, it doesn't get set when
 	// tracing bounding box vs. terrain
 
 	// Now trace down from a known safe position
-	TracePlayerBBox( start, end, PlayerSolidMask(), COLLISION_GROUP_PLAYER_MOVEMENT, trace );
+	TracePlayerBBox(start, end, PlayerSolidMask(), collisionGroup, trace);
 	if ( trace.fraction > 0.0f &&			// must go somewhere
 		trace.fraction < 1.0f &&			// must hit something
 		!trace.startsolid &&				// can't be embedded in a solid
@@ -1981,8 +1990,12 @@ void CGameMovement::WalkMove( void )
 	dest[1] = mv->GetAbsOrigin()[1] + mv->m_vecVelocity[1]*gpGlobals->frametime;	
 	dest[2] = mv->GetAbsOrigin()[2];
 
+	int collisionGroup = COLLISION_GROUP_PLAYER_MOVEMENT;
+	if (player->GetCollisionGroup() == COLLISION_GROUP_BUILDINGPT)
+		collisionGroup = COLLISION_GROUP_BPT_MOVEMENT;
+
 	// first try moving directly to the next spot
-	TracePlayerBBox( mv->GetAbsOrigin(), dest, PlayerSolidMask(), COLLISION_GROUP_PLAYER_MOVEMENT, pm );
+	TracePlayerBBox(mv->GetAbsOrigin(), dest, PlayerSolidMask(), collisionGroup, pm);
 
 	// If we made it all the way, then copy trace end as new player position.
 	mv->m_outWishVel += wishdir * wishspeed;
@@ -2606,6 +2619,10 @@ int CGameMovement::TryPlayerMove( Vector *pFirstDest, trace_t *pFirstTrace )
 
 	new_velocity.Init();
 
+	int collisionGroup = COLLISION_GROUP_PLAYER_MOVEMENT;
+	if (player->GetCollisionGroup() == COLLISION_GROUP_BUILDINGPT)
+		collisionGroup = COLLISION_GROUP_BPT_MOVEMENT;
+
 	for (bumpcount=0 ; bumpcount < numbumps; bumpcount++)
 	{
 		if ( mv->m_vecVelocity.Length() == 0.0 )
@@ -2631,12 +2648,12 @@ int CGameMovement::TryPlayerMove( Vector *pFirstDest, trace_t *pFirstTrace )
 					Msg( "bah\n" );
 				}
 #endif
-				TracePlayerBBox( mv->GetAbsOrigin(), end, PlayerSolidMask(), COLLISION_GROUP_PLAYER_MOVEMENT, pm );
+				TracePlayerBBox(mv->GetAbsOrigin(), end, PlayerSolidMask(), collisionGroup, pm);
 			}
 		}
 		else
 		{
-			TracePlayerBBox( mv->GetAbsOrigin(), end, PlayerSolidMask(), COLLISION_GROUP_PLAYER_MOVEMENT, pm );
+			TracePlayerBBox(mv->GetAbsOrigin(), end, PlayerSolidMask(), collisionGroup, pm);
 		}
 
 		allFraction += pm.fraction;
@@ -2663,8 +2680,8 @@ int CGameMovement::TryPlayerMove( Vector *pFirstDest, trace_t *pFirstTrace )
 				// case until the bug is fixed.
 				// If we detect getting stuck, don't allow the movement
 				trace_t stuck;
-				TracePlayerBBox( pm.endpos, pm.endpos, PlayerSolidMask(), COLLISION_GROUP_PLAYER_MOVEMENT, stuck );
-				if ( stuck.startsolid || stuck.fraction != 1.0f )
+				TracePlayerBBox(pm.endpos, pm.endpos, PlayerSolidMask(), collisionGroup, stuck);
+				if (stuck.startsolid || stuck.fraction != 1.0f)
 				{
 					//Msg( "Player will become stuck!!!\n" );
 					VectorCopy (vec3_origin, mv->m_vecVelocity);
@@ -3147,9 +3164,13 @@ void CGameMovement::AddGravity( void )
 void CGameMovement::PushEntity( Vector& push, trace_t *pTrace )
 {
 	Vector	end;
+
+	int collisionGroup = COLLISION_GROUP_PLAYER_MOVEMENT;
+	if (player->GetCollisionGroup() == COLLISION_GROUP_BUILDINGPT)
+		collisionGroup = COLLISION_GROUP_BPT_MOVEMENT;
 		
 	VectorAdd (mv->GetAbsOrigin(), push, end);
-	TracePlayerBBox( mv->GetAbsOrigin(), end, PlayerSolidMask(), COLLISION_GROUP_PLAYER_MOVEMENT, *pTrace );
+	TracePlayerBBox( mv->GetAbsOrigin(), end, PlayerSolidMask(), collisionGroup, *pTrace );
 	mv->SetAbsOrigin( pTrace->endpos );
 
 	// So we can run impact function afterwards.
@@ -3413,7 +3434,12 @@ int CGameMovement::CheckStuck( void )
 
 	CreateStuckTable();
 
-	hitent = TestPlayerPosition( mv->GetAbsOrigin(), COLLISION_GROUP_PLAYER_MOVEMENT, traceresult );
+	int collisionGroup = COLLISION_GROUP_PLAYER_MOVEMENT;
+	if (player->GetCollisionGroup() == COLLISION_GROUP_BUILDINGPT)
+		collisionGroup = COLLISION_GROUP_BPT_MOVEMENT;
+
+	hitent = TestPlayerPosition(mv->GetAbsOrigin(), collisionGroup, traceresult);
+
 	if ( hitent == INVALID_ENTITY_HANDLE )
 	{
 		ResetStuckOffsets( player );
@@ -3448,7 +3474,7 @@ int CGameMovement::CheckStuck( void )
 				GetRandomStuckOffsets( player, offset );
 				VectorAdd( base, offset, test );
 				
-				if ( TestPlayerPosition( test, COLLISION_GROUP_PLAYER_MOVEMENT, traceresult ) == INVALID_ENTITY_HANDLE )
+				if ( TestPlayerPosition( test, collisionGroup, traceresult ) == INVALID_ENTITY_HANDLE )
 				{
 					ResetStuckOffsets( player );
 					mv->SetAbsOrigin( test );
@@ -3474,7 +3500,7 @@ int CGameMovement::CheckStuck( void )
 	GetRandomStuckOffsets( player, offset );
 	VectorAdd( base, offset, test );
 
-	if ( TestPlayerPosition( test, COLLISION_GROUP_PLAYER_MOVEMENT, traceresult ) == INVALID_ENTITY_HANDLE)
+	if ( TestPlayerPosition( test, collisionGroup, traceresult ) == INVALID_ENTITY_HANDLE)
 	{
 		ResetStuckOffsets( player );
 		mv->SetAbsOrigin( test );
@@ -3864,14 +3890,18 @@ void CGameMovement::CategorizePosition( void )
 	}
 	else
 	{
+		int collisionGroup = COLLISION_GROUP_PLAYER_MOVEMENT;
+		if (player->GetCollisionGroup() == COLLISION_GROUP_BUILDINGPT)
+			collisionGroup = COLLISION_GROUP_BPT_MOVEMENT;
+
 		// Try and move down.
-		TryTouchGround( bumpOrigin, point, GetPlayerMins(), GetPlayerMaxs(), MASK_PLAYERSOLID, COLLISION_GROUP_PLAYER_MOVEMENT, pm );
+		TryTouchGround( bumpOrigin, point, GetPlayerMins(), GetPlayerMaxs(), MASK_PLAYERSOLID, collisionGroup, pm );
 		
 		// Was on ground, but now suddenly am not.  If we hit a steep plane, we are not on ground
 		if ( !pm.m_pEnt || pm.plane.normal[2] < 0.7 )
 		{
 			// Test four sub-boxes, to see if any of them would have found shallower slope we could actually stand on
-			TryTouchGroundInQuadrants( bumpOrigin, point, MASK_PLAYERSOLID, COLLISION_GROUP_PLAYER_MOVEMENT, pm );
+			TryTouchGroundInQuadrants( bumpOrigin, point, MASK_PLAYERSOLID, collisionGroup, pm );
 
 			if ( !pm.m_pEnt || pm.plane.normal[2] < 0.7 )
 			{
@@ -4052,7 +4082,11 @@ void CGameMovement::FixPlayerCrouchStuck( bool upward )
 
 	int direction = upward ? 1 : 0;
 
-	hitent = TestPlayerPosition( mv->GetAbsOrigin(), COLLISION_GROUP_PLAYER_MOVEMENT, dummy );
+	int collisionGroup = COLLISION_GROUP_PLAYER_MOVEMENT;
+	if (player->GetCollisionGroup() == COLLISION_GROUP_BUILDINGPT)
+		collisionGroup = COLLISION_GROUP_BPT_MOVEMENT;
+
+	hitent = TestPlayerPosition( mv->GetAbsOrigin(), collisionGroup, dummy );
 	if (hitent == INVALID_ENTITY_HANDLE )
 		return;
 	
@@ -4062,7 +4096,7 @@ void CGameMovement::FixPlayerCrouchStuck( bool upward )
 		Vector org = mv->GetAbsOrigin();
 		org.z += direction;
 		mv->SetAbsOrigin( org );
-		hitent = TestPlayerPosition( mv->GetAbsOrigin(), COLLISION_GROUP_PLAYER_MOVEMENT, dummy );
+		hitent = TestPlayerPosition( mv->GetAbsOrigin(), collisionGroup, dummy );
 		if (hitent == INVALID_ENTITY_HANDLE )
 			return;
 	}
@@ -4098,7 +4132,12 @@ bool CGameMovement::CanUnduck()
 
 	bool saveducked = player->m_Local.m_bDucked;
 	player->m_Local.m_bDucked = false;
-	TracePlayerBBox( mv->GetAbsOrigin(), newOrigin, PlayerSolidMask(), COLLISION_GROUP_PLAYER_MOVEMENT, trace );
+
+	int collisionGroup = COLLISION_GROUP_PLAYER_MOVEMENT;
+	if (player->GetCollisionGroup() == COLLISION_GROUP_BUILDINGPT)
+		collisionGroup = COLLISION_GROUP_BPT_MOVEMENT;
+
+	TracePlayerBBox( mv->GetAbsOrigin(), newOrigin, PlayerSolidMask(), collisionGroup, trace );
 	player->m_Local.m_bDucked = saveducked;
 	if ( trace.startsolid || ( trace.fraction != 1.0f ) )
 		return false;	
@@ -4340,7 +4379,12 @@ bool CGameMovement::CanUnDuckJump( trace_t &trace )
 	// Trace down to the stand position and see if we can stand.
 	Vector vecEnd( mv->GetAbsOrigin() );
 	vecEnd.z -= 36.0f;						// This will have to change if bounding hull change!
-	TracePlayerBBox( mv->GetAbsOrigin(), vecEnd, PlayerSolidMask(), COLLISION_GROUP_PLAYER_MOVEMENT, trace );
+
+	int collisionGroup = COLLISION_GROUP_PLAYER_MOVEMENT;
+	if (player->GetCollisionGroup() == COLLISION_GROUP_BUILDINGPT)
+		collisionGroup = COLLISION_GROUP_BPT_MOVEMENT;
+
+	TracePlayerBBox( mv->GetAbsOrigin(), vecEnd, PlayerSolidMask(), collisionGroup, trace );
 	if ( trace.fraction < 1.0f )
 	{
 		// Find the endpoint.
@@ -4350,7 +4394,7 @@ bool CGameMovement::CanUnDuckJump( trace_t &trace )
 		trace_t traceUp;
 		bool bWasDucked = player->m_Local.m_bDucked;
 		player->m_Local.m_bDucked = false;
-		TracePlayerBBox( vecEnd, vecEnd, PlayerSolidMask(), COLLISION_GROUP_PLAYER_MOVEMENT, traceUp );
+		TracePlayerBBox( vecEnd, vecEnd, PlayerSolidMask(), collisionGroup, traceUp );
 		player->m_Local.m_bDucked = bWasDucked;
 		if ( !traceUp.startsolid  )
 			return true;	

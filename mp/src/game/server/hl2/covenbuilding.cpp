@@ -119,7 +119,7 @@ void CCovenBuilding::Spawn(void)
 
 	SetNextThink(gpGlobals->curtime + 0.1f);
 
-	SetCollisionGroup(COLLISION_GROUP_PLAYER);
+	SetCollisionGroup(COLLISION_GROUP_BUILDING);
 }
 
 //-----------------------------------------------------------------------------
@@ -592,20 +592,31 @@ void CCovenBuilding::Use(CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE
 	if (!IsDoneBuilding())
 		return;
 
-	if (m_bGoneToSleep)
-		WakeUp();
-
 	CBasePlayer *pPlayer = ToBasePlayer(pActivator);
 
 	if (pPlayer == NULL)
 		return;
 
-	if (mOwner.Get() != NULL && mOwner.Get() == pPlayer && !m_bSelfDestructing)
+	if (mOwner.Get() != NULL && mOwner.Get() == pPlayer)
 	{
-		m_OnUsed.FireOutput(pActivator, this);
-		SetCollisionGroup(COLLISION_GROUP_DEBRIS_TRIGGER);
-		//BB: TODO: DISABLE ON USE!!!
-		PlayerPickupObject(pPlayer, this);
+		if (!m_bSelfDestructing)
+		{
+			if (m_bGoneToSleep)
+				WakeUp();
+			m_OnUsed.FireOutput(pActivator, this);
+			SetCollisionGroup(COLLISION_GROUP_DEBRIS_TRIGGER);
+			//BB: TODO: DISABLE ON USE!!!
+			PlayerPickupObject(pPlayer, this);
+		}
+	}
+	else if (pPlayer->GetCollisionGroup() != COLLISION_GROUP_BUILDINGPT && pPlayer->GetTeamNumber() == GetTeamNumber())
+	{
+		CHL2_Player *pHL2Player = ToHL2Player(pPlayer);
+		if (pHL2Player)
+		{
+			pHL2Player->coven_timer_buildingclip = gpGlobals->curtime + 3.0f;
+			pHL2Player->SetCollisionGroup(COLLISION_GROUP_BUILDINGPT);
+		}
 	}
 }
 
@@ -819,7 +830,7 @@ void CCovenBuilding::OnPhysGunDrop(CBasePlayer *pPhysGunUser, PhysGunDrop_t Reas
 	// If this is a friendly turret, remember that it was just dropped
 	m_flPlayerDropTime = gpGlobals->curtime + 2.0;
 
-	SetCollisionGroup(COLLISION_GROUP_PLAYER);
+	SetCollisionGroup(COLLISION_GROUP_BUILDING);
 
 	// Restore our mass to the original value
 	Assert(VPhysicsGetObject());

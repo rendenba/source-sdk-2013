@@ -128,7 +128,10 @@ static void RestorePlayerTo( CBasePlayer *pPlayer, const Vector &vWantedPos )
 	// Try to move to the wanted position from our current position.
 	trace_t tr;
 	VPROF_BUDGET( "RestorePlayerTo", "CLagCompensationManager" );
-	UTIL_TraceEntity( pPlayer, vWantedPos, vWantedPos, MASK_PLAYERSOLID, pPlayer, COLLISION_GROUP_PLAYER_MOVEMENT, &tr );
+	int collisionGroup = COLLISION_GROUP_PLAYER_MOVEMENT;
+	if (pPlayer->GetCollisionGroup() == COLLISION_GROUP_BUILDINGPT)
+		collisionGroup = COLLISION_GROUP_BPT_MOVEMENT;
+	UTIL_TraceEntity( pPlayer, vWantedPos, vWantedPos, MASK_PLAYERSOLID, pPlayer, collisionGroup, &tr );
 	if ( tr.startsolid || tr.allsolid )
 	{
 		if ( sv_unlag_debug.GetBool() )
@@ -137,7 +140,7 @@ static void RestorePlayerTo( CBasePlayer *pPlayer, const Vector &vWantedPos )
 					pPlayer->GetPlayerName(), vWantedPos.x, vWantedPos.y, vWantedPos.z );
 		}
 
-		UTIL_TraceEntity( pPlayer, pPlayer->GetLocalOrigin(), vWantedPos, MASK_PLAYERSOLID, pPlayer, COLLISION_GROUP_PLAYER_MOVEMENT, &tr );
+		UTIL_TraceEntity( pPlayer, pPlayer->GetLocalOrigin(), vWantedPos, MASK_PLAYERSOLID, pPlayer, collisionGroup, &tr );
 		if ( tr.startsolid || tr.allsolid )
 		{
 			// In this case, the guy got stuck back wherever we lag compensated him to. Nasty.

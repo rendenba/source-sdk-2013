@@ -2368,6 +2368,26 @@ bool CHL2MPRules::ShouldCollide( int collisionGroup0, int collisionGroup1 )
 		V_swap(collisionGroup0,collisionGroup1);
 	}
 
+	if (collisionGroup0 == COLLISION_GROUP_BUILDING && (collisionGroup1 == COLLISION_GROUP_BUILDINGPT || collisionGroup1 == COLLISION_GROUP_BPT_MOVEMENT))
+		return false;
+
+	//BB: Remap coven collision groups
+	if (collisionGroup0 == COLLISION_GROUP_BUILDING || collisionGroup0 == COLLISION_GROUP_BUILDINGPT)
+		collisionGroup0 = COLLISION_GROUP_PLAYER;
+	if (collisionGroup1 == COLLISION_GROUP_BUILDING || collisionGroup1 == COLLISION_GROUP_BUILDINGPT)
+		collisionGroup1 = COLLISION_GROUP_PLAYER;
+
+	if (collisionGroup0 == COLLISION_GROUP_BPT_MOVEMENT)
+		collisionGroup0 = COLLISION_GROUP_PLAYER_MOVEMENT;
+	if (collisionGroup1 == COLLISION_GROUP_BPT_MOVEMENT)
+		collisionGroup1 = COLLISION_GROUP_PLAYER_MOVEMENT;
+
+	if (collisionGroup0 > collisionGroup1)
+	{
+		// swap so that lowest is always first
+		V_swap(collisionGroup0, collisionGroup1);
+	}
+
 	if ( (collisionGroup0 == COLLISION_GROUP_PLAYER || collisionGroup0 == COLLISION_GROUP_PLAYER_MOVEMENT) &&
 		collisionGroup1 == COLLISION_GROUP_WEAPON )
 	{

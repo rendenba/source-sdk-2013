@@ -1889,6 +1889,7 @@ void CHL2MP_Player::Spawn(void)
 	coven_timer_innerlight = -1.0f;
 	coven_timer_dash = -1.0f;
 	coven_timer_pushback = -1.0f;
+	coven_timer_buildingclip = -1.0f;
 #ifdef COVEN_DEVELOPER_MODE
 	Msg("Spawn location: %f %f %f\n", GetAbsOrigin().x, GetAbsOrigin().y, GetAbsOrigin().z);
 #endif
@@ -2436,6 +2437,7 @@ void CHL2MP_Player::PreThink( void )
 		CheckGore();
 		DashHandler();
 		GrappingHookHandler();
+		BuildingMoveHandler();
 	}
 }
 
@@ -2496,7 +2498,15 @@ void CHL2MP_Player::RemoveStatBoost()
 	SuitPower_Charge(0.0f);
 }
 
+void CHL2MP_Player::BuildingMoveHandler()
 {
+	if (coven_timer_buildingclip > 0.0f && gpGlobals->curtime > coven_timer_buildingclip)
+	{
+		coven_timer_buildingclip = -1.0f;
+		SetCollisionGroup(COLLISION_GROUP_PLAYER);
+	}
+}
+
 void CHL2MP_Player::PushbackThink()
 {
 	if (GetFlags() & FL_PARTFROZEN && gpGlobals->curtime > coven_timer_pushback)

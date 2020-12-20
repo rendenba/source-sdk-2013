@@ -4477,10 +4477,13 @@ void FixPlayerCrouchStuck( CBasePlayer *pPlayer )
 	// Move up as many as 18 pixels if the player is stuck.
 	int i;
 	Vector org = pPlayer->GetAbsOrigin();;
+	int collisionGroup = COLLISION_GROUP_PLAYER_MOVEMENT;
+	if (pPlayer->GetCollisionGroup() == COLLISION_GROUP_BUILDINGPT)
+		collisionGroup = COLLISION_GROUP_BPT_MOVEMENT;
 	for ( i = 0; i < 18; i++ )
 	{
 		UTIL_TraceHull( pPlayer->GetAbsOrigin(), pPlayer->GetAbsOrigin(), 
-			VEC_DUCK_HULL_MIN, VEC_DUCK_HULL_MAX, MASK_PLAYERSOLID, pPlayer, COLLISION_GROUP_PLAYER_MOVEMENT, &trace );
+			VEC_DUCK_HULL_MIN, VEC_DUCK_HULL_MAX, MASK_PLAYERSOLID, pPlayer, collisionGroup, &trace );
 		if ( trace.startsolid )
 		{
 			Vector origin = pPlayer->GetAbsOrigin();
@@ -4496,7 +4499,7 @@ void FixPlayerCrouchStuck( CBasePlayer *pPlayer )
 	for ( i = 0; i < 18; i++ )
 	{
 		UTIL_TraceHull( pPlayer->GetAbsOrigin(), pPlayer->GetAbsOrigin(), 
-			VEC_DUCK_HULL_MIN, VEC_DUCK_HULL_MAX, MASK_PLAYERSOLID, pPlayer, COLLISION_GROUP_PLAYER_MOVEMENT, &trace );
+			VEC_DUCK_HULL_MIN, VEC_DUCK_HULL_MAX, MASK_PLAYERSOLID, pPlayer, collisionGroup, &trace );
 		if ( trace.startsolid )
 		{
 			Vector origin = pPlayer->GetAbsOrigin();
@@ -4723,6 +4726,10 @@ void CBasePlayer::PostThinkVPhysics( void )
 		g_pMoveData->m_outWishVel.Init( maxSpeed, maxSpeed, maxSpeed );
 	}
 
+	int collisionGroup = COLLISION_GROUP_PLAYER_MOVEMENT;
+	if (GetCollisionGroup() == COLLISION_GROUP_BUILDINGPT)
+		collisionGroup = COLLISION_GROUP_BPT_MOVEMENT;
+
 	// teleport the physics object up by stepheight (game code does this - reflect in the physics)
 	if ( g_pMoveData->m_outStepHeight > 0.1f )
 	{
@@ -4738,7 +4745,7 @@ void CBasePlayer::PostThinkVPhysics( void )
 			end = position;
 			end.z += g_pMoveData->m_outStepHeight;
 			trace_t trace;
-			UTIL_TraceEntity( this, position, end, MASK_PLAYERSOLID, this, COLLISION_GROUP_PLAYER_MOVEMENT, &trace );
+			UTIL_TraceEntity( this, position, end, MASK_PLAYERSOLID, this, collisionGroup, &trace );
 			if ( trace.DidHit() )
 			{
 				g_pMoveData->m_outStepHeight = trace.endpos.z - position.z;
@@ -8238,6 +8245,10 @@ void CBasePlayer::VPhysicsShadowUpdate( IPhysicsObject *pPhysics )
 		maxVelErrorSqr *= 0.25;
 	}
 
+	int collisionGroup = COLLISION_GROUP_PLAYER_MOVEMENT;
+	if (GetCollisionGroup() == COLLISION_GROUP_BUILDINGPT)
+		collisionGroup = COLLISION_GROUP_BPT_MOVEMENT;
+
 	// player's physics was frozen, try moving to the game's simulated position if possible
 	if ( m_pPhysicsController->WasFrozen() )
 	{
@@ -8245,12 +8256,12 @@ void CBasePlayer::VPhysicsShadowUpdate( IPhysicsObject *pPhysics )
 		// check my position (physics object could have simulated into my position
 		// physics is not very far away, check my position
 		trace_t trace;
-		UTIL_TraceEntity( this, GetAbsOrigin(), GetAbsOrigin(), MASK_PLAYERSOLID, this, COLLISION_GROUP_PLAYER_MOVEMENT, &trace );
+		UTIL_TraceEntity( this, GetAbsOrigin(), GetAbsOrigin(), MASK_PLAYERSOLID, this, collisionGroup, &trace );
 		if ( !trace.startsolid )
 			return;
 
 		// The physics shadow position is probably not in solid, try to move from there to the desired position
-		UTIL_TraceEntity( this, newPosition, GetAbsOrigin(), MASK_PLAYERSOLID, this, COLLISION_GROUP_PLAYER_MOVEMENT, &trace );
+		UTIL_TraceEntity( this, newPosition, GetAbsOrigin(), MASK_PLAYERSOLID, this, collisionGroup, &trace );
 		if ( !trace.startsolid )
 		{
 			// found a valid position between the two?  take it.
@@ -8298,7 +8309,7 @@ void CBasePlayer::VPhysicsShadowUpdate( IPhysicsObject *pPhysics )
 			}
 			
 			trace_t trace;
-			UTIL_TraceEntity( this, newPosition, newPosition, MASK_PLAYERSOLID, this, COLLISION_GROUP_PLAYER_MOVEMENT, &trace );
+			UTIL_TraceEntity( this, newPosition, newPosition, MASK_PLAYERSOLID, this, collisionGroup, &trace );
 			if ( !trace.allsolid && !trace.startsolid )
 			{
 				SetAbsOrigin( newPosition );
@@ -8317,7 +8328,7 @@ void CBasePlayer::VPhysicsShadowUpdate( IPhysicsObject *pPhysics )
 			// physics is not very far away, check my position
 			trace_t trace;
 			UTIL_TraceEntity( this, GetAbsOrigin(), GetAbsOrigin(),
-				MASK_PLAYERSOLID, this, COLLISION_GROUP_PLAYER_MOVEMENT, &trace );
+				MASK_PLAYERSOLID, this, collisionGroup, &trace );
 			
 			// is current position ok?
 			if ( trace.allsolid || trace.startsolid )
@@ -8333,7 +8344,7 @@ void CBasePlayer::VPhysicsShadowUpdate( IPhysicsObject *pPhysics )
 	if ( bCheckStuck )
 	{
 		trace_t trace;
-		UTIL_TraceEntity( this, GetAbsOrigin(), GetAbsOrigin(), MASK_PLAYERSOLID, this, COLLISION_GROUP_PLAYER_MOVEMENT, &trace );
+		UTIL_TraceEntity( this, GetAbsOrigin(), GetAbsOrigin(), MASK_PLAYERSOLID, this, collisionGroup, &trace );
 
 		// current position is not ok, fixup
 		if ( trace.allsolid || trace.startsolid )

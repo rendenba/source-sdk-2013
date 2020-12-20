@@ -197,6 +197,7 @@ public:
 	int GetXPCap();
 
 	int totalXP;
+	float coven_timer_buildingclip;
 
 	// Locator
 	void UpdateLocatorPosition( const Vector &vecPosition );
