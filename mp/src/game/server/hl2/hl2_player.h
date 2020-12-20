@@ -424,6 +424,7 @@ private:
 
 protected:	// Jeep: Portal_Player needs access to this variable to overload PlayerUse for picking up objects through portals
 	bool				m_bPlayUseDenySound;		// Signaled by PlayerUse, but can be unset by HL2 ladder code...
+	bool				m_bUseOverrideSwallow;
 
 private:
 

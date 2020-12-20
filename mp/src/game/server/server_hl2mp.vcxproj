@@ -860,6 +860,7 @@ exit 1
   <ItemGroup>
     <ClCompile Include="..\shared\covenlib.cpp" />
     <ClCompile Include="..\shared\coven_parse.cpp" />
+    <ClCompile Include="..\shared\hl2mp\weapon_harpoon.cpp" />
     <ClCompile Include="..\shared\hl2mp\weapon_holywater.cpp" />
     <ClCompile Include="..\shared\hl2mp\weapon_stunfrag.cpp" />
     <ClCompile Include="covenbuilderlocaldata.cpp" />

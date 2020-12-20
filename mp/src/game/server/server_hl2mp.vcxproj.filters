@@ -3634,6 +3634,9 @@
     <ClCompile Include="..\shared\hl2mp\weapon_stunfrag.cpp">
       <Filter>Source Files\HL2MP\Weapons</Filter>
     </ClCompile>
+    <ClCompile Include="..\shared\hl2mp\weapon_harpoon.cpp">
+      <Filter>Source Files\HL2MP\Weapons</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
   </ItemGroup>

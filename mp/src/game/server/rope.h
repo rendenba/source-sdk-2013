@@ -108,6 +108,7 @@ public:
 	void			SetMaterial( const char *pName );
 
 	CBaseEntity*	GetEndPoint() { return m_hEndPoint.Get(); }
+	CBaseEntity*	GetStartPoint() { return m_hStartPoint.Get(); }
 	int				GetEndAttachment() { return m_iStartAttachment; };
 
 	void			SetStartPoint( CBaseEntity *pStartPoint, int attachment = 0 );

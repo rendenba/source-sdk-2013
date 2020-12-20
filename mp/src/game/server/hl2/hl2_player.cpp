@@ -3859,8 +3859,26 @@ void CHL2_Player::PlayerUse ( void )
 		// Signal that we want to play the deny sound, unless the user is +USEing on a ladder!
 		// The sound is emitted in ItemPostFrame, since that occurs after GameMovement::ProcessMove which
 		// lets the ladder code unset this flag.
+		//BB: allow override for hook
 		if (!IsPerformingDeferredAction())
-			m_bPlayUseDenySound = true;
+		{
+			if (!UseOverride())
+				m_bUseOverrideSwallow = m_bPlayUseDenySound = true;
+			else
+				m_bUseOverrideSwallow = false;
+		}
+	}
+	else if (m_nButtons & IN_USE)
+	{
+		if (!UseOverride())
+		{
+			if (!m_bUseOverrideSwallow)
+				m_bUseOverrideSwallow = m_bPlayUseDenySound = true;
+		}
+		else
+		{
+			m_bUseOverrideSwallow = false;
+		}
 	}
 
 	// Debounce the use key

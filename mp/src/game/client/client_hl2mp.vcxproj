@@ -896,6 +896,7 @@ exit 1
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="..\shared\coven_parse.cpp" />
+    <ClCompile Include="..\shared\hl2mp\weapon_harpoon.cpp" />
     <ClCompile Include="..\shared\hl2mp\weapon_holywater.cpp" />
     <ClCompile Include="..\shared\hl2mp\weapon_stunfrag.cpp" />
     <ClCompile Include="c_covenbuilderlocaldata.cpp" />
@@ -904,6 +905,7 @@ exit 1
     <ClCompile Include="hl2mp\ui\hl2mpclientitemmenu.cpp" />
     <ClCompile Include="hl2mp\ui\hl2mpwheelmenu.cpp" />
     <ClCompile Include="hl2\c_purchaseitem.cpp" />
+    <ClCompile Include="hl2\c_weapon_harpoon.cpp" />
     <ClCompile Include="hud_buildings.cpp" />
     <ClCompile Include="hud_roundtimer.cpp" />
     <ClCompile Include="hud_usetimer.cpp" />

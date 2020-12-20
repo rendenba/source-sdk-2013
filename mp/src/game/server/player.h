@@ -249,6 +249,8 @@ public:
 	CBasePlayer();
 	~CBasePlayer();
 
+	virtual bool UseOverride() { return false; }
+
 	// IPlayerInfo passthrough (because we can't do multiple inheritance)
 	IPlayerInfo *GetPlayerInfo() { return &m_PlayerInfo; }
 	IBotController *GetBotController() { return &m_PlayerInfo; }

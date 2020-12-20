@@ -772,6 +772,20 @@ bool CHL2MP_Player::DoGorePhase(int iAbilityNum)
 	return true;
 }
 
+bool CHL2MP_Player::UseOverride()
+{
+	if (coven_hook_state > COVEN_HOOK_FIRED)
+	{
+		if (coven_rope_constant < 600.0f)
+		{
+			//absurd length... break it (or just stop letting it out)
+			coven_rope_constant += 2.5f;
+			return true;
+		}
+	}
+	return false;
+}
+
 void CHL2MP_Player::UnDodge()
 {
 	CovenAbilityInfo_t *info = GetCovenAbilityData(COVEN_ABILITY_DODGE);
@@ -1744,6 +1758,10 @@ void CHL2MP_Player::Spawn(void)
 	rezsound = false;
 	solidcooldown = -1.0f;
 
+	coven_hook_state = COVEN_HOOK_NONE;
+	pCovenRope = NULL;
+	coven_rope_constant = 0.0f;
+
 	gorelock = GORELOCK_NONE;
 	m_floatCloakFactor = 0.0f;
 	/*if (myServerRagdoll)
@@ -2413,6 +2431,7 @@ void CHL2MP_Player::PreThink( void )
 		GutcheckThink();
 		CheckGore();
 		DashHandler();
+		GrappingHookHandler();
 	}
 }
 
@@ -3585,6 +3604,41 @@ bool CHL2MP_Player::HandleCommand_JoinTeam( int team )
 	return true;
 }
 
+void CHL2MP_Player::GrappingHookHandler()
+{
+	if (coven_hook_state == COVEN_HOOK_WORLD)
+	{
+		//attached to world
+		if (pCovenRope != NULL)
+		{
+			Vector diff = GetAbsOrigin() - coven_hook_anchor;
+			float length = VectorNormalize(diff);
+			if (length > (pCovenRope->m_RopeLength + coven_rope_constant)) //added rope_constant post version 2.5
+			{
+				float prop = length - pCovenRope->m_RopeLength - coven_rope_constant;
+				Vector vel = GetAbsVelocity();
+				if (prop < 125.0f && prop > -125.0f)
+				{
+					VectorAdd(vel, -1.0f * prop * diff, vel);
+					SetAbsVelocity(vel);
+				}
+				//try 2.0?
+			}
+			if (length > (pCovenRope->m_RopeLength + coven_rope_constant) * 1.5f) //hook slingshot exploit
+			{
+				coven_hook_state = COVEN_HOOK_NONE;
+				if (pCovenRope != NULL)
+				{
+					pCovenRope->DetachPoint(0);
+					pCovenRope->SetThink(&CRopeKeyframe::SUB_Remove);
+					pCovenRope->SetNextThink(gpGlobals->curtime + 5.0f);
+					pCovenRope = NULL;
+				}
+			}
+		}
+	}
+}
+
 int CHL2MP_Player::PointsToSpend()
 {
 	if (covenLevelCounter > COVEN_MAX_LEVEL)
@@ -4108,6 +4162,20 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 
 	RemoveEffects( EF_NODRAW );	// still draw player body
 	StopZooming();
+
+	CleanUpGrapplingHook();
+	
+}
+
+void CHL2MP_Player::CleanUpGrapplingHook(void)
+{
+	if (pCovenRope != NULL)
+	{
+		pCovenRope->DetachPoint(0);
+		pCovenRope->SetThink(&CRopeKeyframe::SUB_Remove);
+		pCovenRope->SetNextThink(gpGlobals->curtime + 5.0f);
+		pCovenRope = NULL;
+	}
 }
 
 #ifdef COVEN_DEVELOPER_MODE

@@ -1468,9 +1468,23 @@ bool CBaseCombatWeapon::DefaultDeploy( char *szViewModel, char *szWeaponModel, i
 		if ( pOwner->IsAlive() == false )
 			return false;
 #ifndef CLIENT_DLL
-		CHL2_Player *pHL2Owner = ToHL2Player(pOwner);
-		if (pHL2Owner && pHL2Owner->IsPerformingDeferredAction())
-			pHL2Owner->CancelDeferredAction();
+		CHL2MP_Player *pHL2MPOwner = ToHL2MPPlayer(pOwner);
+		if (pHL2MPOwner)
+		{
+			if (pHL2MPOwner->IsPerformingDeferredAction())
+				pHL2MPOwner->CancelDeferredAction();
+			if (pHL2MPOwner->coven_hook_state != COVEN_HOOK_NONE)
+			{
+				pHL2MPOwner->coven_hook_state = COVEN_HOOK_NONE;
+				if (pHL2MPOwner->pCovenRope != NULL)
+				{
+					pHL2MPOwner->pCovenRope->DetachPoint(0);
+					pHL2MPOwner->pCovenRope->SetThink(&CRopeKeyframe::SUB_Remove);
+					pHL2MPOwner->pCovenRope->SetNextThink(gpGlobals->curtime + 5.0f);
+					pHL2MPOwner->pCovenRope = NULL;
+				}
+			}
+		}
 #endif
 		pOwner->SetAnimationExtension( szAnimExt );
 

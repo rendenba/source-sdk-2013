@@ -19,6 +19,7 @@ class CHL2MP_Player;
 #include "hl2mp_player_shared.h"
 #include "hl2mp_gamerules.h"
 #include "utldict.h"
+#include "rope.h"
 
 //=============================================================================
 // >> HL2MP_Player
@@ -63,7 +64,9 @@ public:
 	virtual bool LevelUp(int lvls, bool bBoostStats = false, bool bSound = false, bool bAutoLevel = false, bool bResetHP = false, bool bEffect = false);
 	int XPForKill(CHL2MP_Player *pAttacker);
 
+	virtual bool	UseOverride();
 	virtual void	DestroyAllBuildings(void);
+	virtual void	CleanUpGrapplingHook(void);
 	virtual void	Precache( void );
 	virtual void	Spawn( void );
 	virtual void	PostThink( void );
@@ -193,6 +196,7 @@ public:
 	void Dash(int iAbilityNum);
 	void DoInnerLight(int iAbilityNum);
 	//void SlayerLightHandler(); This is handled higher up now.
+	void GrappingHookHandler();
 	void EnergyHandler();
 	bool ToggleHaste(int iAbilityNum);
 	void RevengeCheck();
@@ -231,6 +235,12 @@ public:
 
 	bool rezsound;
 	float solidcooldown;
+
+	//BB: grapping hook containers
+	CHandle<CRopeKeyframe> pCovenRope;
+	CovenHookState_t coven_hook_state;
+	float coven_rope_constant; //extra length
+	Vector coven_hook_anchor;
 
 	CUtlVector<CItem *> medkits;
 

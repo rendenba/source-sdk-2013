@@ -3610,6 +3610,12 @@
     <ClCompile Include="hud_usetimer.cpp">
       <Filter>Source Files\HL2MP\UI</Filter>
     </ClCompile>
+    <ClCompile Include="..\shared\hl2mp\weapon_harpoon.cpp">
+      <Filter>Source Files\HL2MP\Weapons</Filter>
+    </ClCompile>
+    <ClCompile Include="hl2\c_weapon_harpoon.cpp">
+      <Filter>Source Files\HL2 DLL</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
   </ItemGroup>

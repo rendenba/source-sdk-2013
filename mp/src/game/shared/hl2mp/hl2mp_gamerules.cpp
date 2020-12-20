@@ -2099,6 +2099,7 @@ void CHL2MPRules::ClientDisconnected( edict_t *pClient )
 			play->myServerRagdoll = NULL;
 		}
 		play->DestroyAllBuildings();
+		play->CleanUpGrapplingHook();
 		// Remove the player from his team
 		if ( pPlayer->GetTeam() )
 		{
