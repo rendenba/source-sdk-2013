@@ -1788,7 +1788,8 @@ void CGameMovement::AirMove( void )
 		wishspeed = mv->m_flMaxSpeed;
 	}
 	
-	AirAccelerate( wishdir, wishspeed, sv_airaccelerate.GetFloat() );
+	if ((player->GetFlags() & FL_PARTFROZEN) == 0)
+		AirAccelerate( wishdir, wishspeed, sv_airaccelerate.GetFloat() );
 
 	// Add in any base velocity to the current velocity.
 	VectorAdd(mv->m_vecVelocity, player->GetBaseVelocity(), mv->m_vecVelocity );
@@ -2747,11 +2748,15 @@ int CGameMovement::TryPlayerMove( Vector *pFirstDest, trace_t *pFirstTrace )
 					// floor or slope
 					ClipVelocity( original_velocity, planes[i], new_velocity, 1 );
 					VectorCopy( new_velocity, original_velocity );
+					//BB: we are dealing with some EXTREME velocities, and we need to keep them from multiplying insanely
+					new_velocity.z = clamp(new_velocity.z, -600.0f, 600.0f);
 				}
 				else
 				{
 					//BB: comment this out for wall sticking!
 					ClipVelocity( original_velocity, planes[i], new_velocity, 1.0 + sv_bounce.GetFloat() * (1 - player->m_surfaceFriction) );
+					//BB: we are dealing with some EXTREME velocities, and we need to keep them from multiplying insanely
+					new_velocity.z = clamp(new_velocity.z, -600.0f, 600.0f);
 				}
 			}
 

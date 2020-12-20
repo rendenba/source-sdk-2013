@@ -1031,7 +1031,8 @@ void CHL2MP_Player::DoInnerLight(int iAbilityNum)
 		if (pPlayer && pPlayer->IsAlive() && !pPlayer->KO)
 		{
 			Vector dir = pPlayer->GetLocalOrigin() - GetLocalOrigin();
-			if (VectorNormalize(dir) > info->flRange)
+			float dist = VectorNormalize(dir);
+			if (dist > info->flRange)
 				continue;
 			trace_t tr;
 			UTIL_TraceLine(EyePosition(), pPlayer->GetPlayerMidPoint(), MASK_SHOT, this, COLLISION_GROUP_PLAYER, &tr);
@@ -1044,8 +1045,9 @@ void CHL2MP_Player::DoInnerLight(int iAbilityNum)
 				}
 				else
 				{
-					dir.z = 0.2f;
-					pPlayer->Pushback(&dir, sv_coven_light_bump.GetFloat());
+					float factor = max(1.0f - dist / info->flRange, 0.0f);
+					dir.z = 0.0f;
+					pPlayer->Pushback(&dir, sv_coven_light_bump.GetFloat() * factor, 250.0f * factor, false);
 					pPlayer->AddStatus(COVEN_STATUS_WEAKNESS, info->iMagnitude, gpGlobals->curtime + info->flDuration, true);
 					pPlayer->TakeDamage(dmg);
 				}
@@ -1886,6 +1888,7 @@ void CHL2MP_Player::Spawn(void)
 	coven_timer_holywater = -1.0f;
 	coven_timer_innerlight = -1.0f;
 	coven_timer_dash = -1.0f;
+	coven_timer_pushback = -1.0f;
 #ifdef COVEN_DEVELOPER_MODE
 	Msg("Spawn location: %f %f %f\n", GetAbsOrigin().x, GetAbsOrigin().y, GetAbsOrigin().z);
 #endif
@@ -2425,6 +2428,7 @@ void CHL2MP_Player::PreThink( void )
 
 	if (IsAlive())
 	{
+		PushbackThink();
 		EnergyHandler();
 		DodgeHandler();
 		StealthCalc();
@@ -2492,12 +2496,27 @@ void CHL2MP_Player::RemoveStatBoost()
 	SuitPower_Charge(0.0f);
 }
 
-void CHL2MP_Player::Pushback(const Vector *direction, float flMagnitude)
 {
-	ApplyAbsVelocityImpulse((IsBot() ? flMagnitude * 1.5f : flMagnitude) * (*direction));
-	Vector temp = GetAbsVelocity();
-	temp.z = clamp(temp.z, -COVEN_ABS_MAX_VELOCITY, COVEN_ABS_MAX_VELOCITY);
+void CHL2MP_Player::PushbackThink()
+{
+	if (GetFlags() & FL_PARTFROZEN && gpGlobals->curtime > coven_timer_pushback)
+	{
+		RemoveFlag(FL_PARTFROZEN);
+	}
+}
+
+void CHL2MP_Player::Pushback(const Vector *direction, float flMagnitude, float flPopVelocity, bool bDoFreeze)
+{
+	SetGroundEntity(NULL);
+	RemoveFlag(FL_ONGROUND);
+	Vector temp(0, 0, flPopVelocity);
 	SetAbsVelocity(temp);
+	ApplyAbsVelocityImpulse(flMagnitude * (*direction));
+	if (bDoFreeze)
+	{
+		AddFlag(FL_PARTFROZEN);
+		coven_timer_pushback = gpGlobals->curtime + 0.75f;
+	}
 }
 
 void CHL2MP_Player::Touch(CBaseEntity *pOther)
@@ -2507,13 +2526,17 @@ void CHL2MP_Player::Touch(CBaseEntity *pOther)
 		CHL2MP_Player *pPlayer = ToHL2MPPlayer(pOther);
 		if (coven_timer_dash > 0.0f && pPlayer->GetTeamNumber() != GetTeamNumber())
 		{
-			Vector temp = pOther->GetLocalOrigin() - GetLocalOrigin();
-			VectorNormalize(temp);
-			temp.z = 0.2f;
-			pPlayer->Pushback(&temp, sv_coven_dash_bump.GetFloat());
-			CovenAbilityInfo_t *abilityInfo = GetCovenAbilityData(COVEN_ABILITY_DASH);
-			pPlayer->AddStatus(COVEN_STATUS_SLOW, abilityInfo->flDrain, gpGlobals->curtime + abilityInfo->flDuration, true, false); //BB: we have to be careful here... multiple touch can get out of hand.
-			pPlayer->EmitSound(abilityInfo->aSounds[COVEN_SND_STOP]);
+			Vector dir = pOther->GetLocalOrigin() - GetLocalOrigin();
+			VectorNormalize(dir);
+			dir.z = 0.0f;
+			float flDot = DotProduct(dir, lock_dash);
+			if (flDot > 0.0f)
+			{
+				pPlayer->Pushback(&dir, sv_coven_dash_bump.GetFloat() * flDot, 320.0f * flDot);
+				CovenAbilityInfo_t *abilityInfo = GetCovenAbilityData(COVEN_ABILITY_DASH);
+				pPlayer->AddStatus(COVEN_STATUS_SLOW, abilityInfo->flDrain, gpGlobals->curtime + abilityInfo->flDuration, true, false); //BB: we have to be careful here... multiple touch can get out of hand.
+				pPlayer->EmitSound(abilityInfo->aSounds[COVEN_SND_STOP]);
+			}
 		}
 	}
 	//BB: HACK! HACK! HACK! I am tired of APCs running over players.
@@ -2522,9 +2545,10 @@ void CHL2MP_Player::Touch(CBaseEntity *pOther)
 		if (HL2MPRules()->pAPC->IsRunning())
 		{
 			Vector temp = GetLocalOrigin() - pOther->GetLocalOrigin();
+			temp.z = 0.0f;
 			float dist = VectorNormalize(temp);
 			//BB: TODO: fix this... bots dont seem to make touch events here appropriately!
-			Pushback(&temp, 125.0f);
+			Pushback(&temp, 150.0f, 200.0f);
 			TakeDamage(CTakeDamageInfo(this, this, vec3_origin, GetAbsOrigin(), (dist < 100.0f ? 1.5f : 0.25f), DMG_GENERIC));
 		}
 	}
@@ -4035,6 +4059,13 @@ bool CHL2MP_Player::DropItem(void)
 
 void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 {
+	if (GetFlags() & FL_PARTFROZEN)
+	{
+		RemoveFlag(FL_PARTFROZEN);
+		if (IsBot())
+			RemoveFlag(FL_FROZEN);
+	}
+
 	if (coven_ignore_respawns.GetInt() == 0)
 	{
 		covenRespawnTimer = HL2MPRules()->GetRespawnTime((CovenTeamID_t)GetTeamNumber());
