@@ -4072,8 +4072,6 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 	if (GetFlags() & FL_PARTFROZEN)
 	{
 		RemoveFlag(FL_PARTFROZEN);
-		if (IsBot())
-			RemoveFlag(FL_FROZEN);
 	}
 
 	if (coven_ignore_respawns.GetInt() == 0)
