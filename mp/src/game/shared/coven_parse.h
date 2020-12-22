@@ -197,6 +197,7 @@ public:
 	int						iMaxLevel;
 	CUtlVector<int>			iControllerStrengths;
 	CUtlVector<int>			iMaxAngVel;
+	CUtlVector<float>		flScaleForce;
 	CUtlVector<int>			iHealths;
 	CUtlVector<int>			iXPs;
 	CUtlVector<int>			iCosts;

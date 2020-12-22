@@ -226,6 +226,7 @@ CovenBuildingInfo_t::CovenBuildingInfo_t()
 	iMaxAngVel.AddToTail(8100); //90 x 90
 	iHealths.AddToTail(150);
 	iXPs.AddToTail(200);
+	flScaleForce.AddToTail(0.5f);
 }
 
 CovenItemInfo_t::CovenItemInfo_t()
@@ -507,6 +508,15 @@ void CovenBuildingInfo_t::Parse(KeyValues *pKeyValuesData)
 		for (KeyValues *sub = pMaxAngVels->GetFirstSubKey(); sub != NULL; sub = sub->GetNextKey())
 		{
 			iMaxAngVel.AddToTail(sub->GetInt());
+		}
+	}
+	KeyValues *pScaleForce = pKeyValuesData->FindKey("scaleforce");
+	if (pScaleForce)
+	{
+		flScaleForce.Purge();
+		for (KeyValues *sub = pScaleForce->GetFirstSubKey(); sub != NULL; sub = sub->GetNextKey())
+		{
+			flScaleForce.AddToTail(sub->GetFloat());
 		}
 	}
 }

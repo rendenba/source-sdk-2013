@@ -1648,8 +1648,11 @@ int CCoven_Turret::OnTakeDamage(const CTakeDamageInfo &info)
 
 	if (info.GetDamageType() & (DMG_CLUB))
 	{
-		// Take extra force from melee hits
-		newInfo.ScaleDamageForce(0.5f);
+		CovenBuildingInfo_t *bldgInfo = GetCovenBuildingData(BUILDING_TURRET);
+		if (m_iLevel < bldgInfo->flScaleForce.Count())
+		{
+			newInfo.ScaleDamageForce(bldgInfo->flScaleForce[m_iLevel]);
+		}
 
 		// Disable our upright controller for some time
 		//SuspendUprightController(0.5f);
