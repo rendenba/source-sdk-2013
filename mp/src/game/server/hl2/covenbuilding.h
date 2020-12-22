@@ -79,6 +79,7 @@ public:
 	void			EnableUprightController(void);
 	void			DisableUprightController(void);
 	void			SuspendUprightController(float duration);
+	void			WakeUp(float flWaitTime = -1.0f);
 
 	virtual int		OnTakeDamage(const CTakeDamageInfo &info);
 
@@ -105,6 +106,7 @@ private:
 	float									m_flBottom; //to get around buildings with legs
 	float									m_flTop;
 	bool									m_bGoneToSleep;
+	float									m_flNextSleep;
 	float									m_flSparkTimer;
 
 protected:
@@ -124,7 +126,6 @@ protected:
 	virtual void	DoSelfDestructEffects(float percentage);
 
 	// physics influence
-	void					WakeUp(void);
 	void					UpdateControllerGoalAxis(const Vector &vecNewGoal);
 	CHandle<CBasePlayer>	m_hPhysicsAttacker;
 	float					m_flLastPhysicsInfluenceTime;

@@ -760,6 +760,11 @@ public:
 	void	NotePlayerTalked() { m_fLastPlayerTalkTime = gpGlobals->curtime; }
 	float	LastTimePlayerTalked() { return m_fLastPlayerTalkTime; }
 
+	//BB: building clipping
+	void	BuildingMoveHandler();
+	bool	IsBuildingClipping() { return coven_timer_buildingclip > 0.0f; }
+	void	StartBuildingClip(float flDuration);
+
 	void	DisableButtons( int nButtons );
 	void	EnableButtons( int nButtons );
 	void	ForceButtons( int nButtons );
@@ -808,6 +813,9 @@ public:
 	}
 
 private:
+	//BB: building clipping timer
+	float coven_timer_buildingclip;
+
 	// How much of a movement time buffer can we process from this user?
 	float				m_flMovementTimeForUserCmdProcessingRemaining;
 

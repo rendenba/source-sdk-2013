@@ -4935,6 +4935,15 @@ void CBasePlayer::InitialSpawn( void )
 	gamestats->Event_PlayerConnected( this );
 }
 
+void CBasePlayer::BuildingMoveHandler()
+{
+	if (coven_timer_buildingclip > 0.0f && gpGlobals->curtime > coven_timer_buildingclip)
+	{
+		coven_timer_buildingclip = -1.0f;
+		SetCollisionGroup(COLLISION_GROUP_PLAYER);
+	}
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: Called everytime the player respawns
 //-----------------------------------------------------------------------------
@@ -4950,6 +4959,8 @@ void CBasePlayer::Spawn( void )
 
 	// Shared spawning code..
 	SharedSpawn();
+
+	coven_timer_buildingclip = -1.0f;
 	
 	SetSimulatedEveryTick( true );
 	SetAnimatedEveryTick( true );
@@ -8144,6 +8155,12 @@ unsigned int CBasePlayer::PlayerSolidMask( bool brushOnly ) const
 	}
 
 	return MASK_PLAYERSOLID;
+}
+
+void CBasePlayer::StartBuildingClip(float flDuration)
+{
+	coven_timer_buildingclip = gpGlobals->curtime + flDuration;
+	SetCollisionGroup(COLLISION_GROUP_BUILDINGPT);
 }
 
 //-----------------------------------------------------------------------------

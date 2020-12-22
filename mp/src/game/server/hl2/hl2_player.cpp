@@ -1569,6 +1569,9 @@ void CHL2_Player::PreThink(void)
 		return;
 	}
 
+	//BB: technically this is derived up at BasePlayer
+	BuildingMoveHandler();
+
 #ifdef HL2_EPISODIC
 	CheckFlashlight();
 #endif	// HL2_EPISODIC

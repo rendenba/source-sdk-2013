@@ -803,7 +803,7 @@ static bool IsDebris( int collisionGroup )
 	return false;
 }
 
-static void UpdateEntityPenetrationFlag( CBaseEntity *pEntity, bool isPenetrating )
+void UpdateEntityPenetrationFlag( CBaseEntity *pEntity, bool isPenetrating )
 {
 	if ( !pEntity )
 		return;

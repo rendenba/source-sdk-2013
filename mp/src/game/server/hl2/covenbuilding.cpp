@@ -112,6 +112,7 @@ void CCovenBuilding::Spawn(void)
 	}
 
 	m_bGoneToSleep = false;
+	m_flNextSleep = -1.0f;
 
 	ComputeExtents();
 	
@@ -265,8 +266,12 @@ bool CCovenBuilding::PreThink(void)
 		IPhysicsObject *pObj = VPhysicsGetObject();
 		if (pObj && pObj->IsAsleep())
 		{
-			m_bGoneToSleep = true;
-			pObj->EnableMotion(false);
+			if (gpGlobals->curtime > m_flNextSleep)
+			{
+				m_flNextSleep = -1.0f;
+				m_bGoneToSleep = true;
+				pObj->EnableMotion(false);
+			}
 		}
 	}
 
@@ -558,12 +563,14 @@ void CCovenBuilding::Activate(void)
 	BaseClass::Activate();
 }
 
-void CCovenBuilding::WakeUp(void)
+void CCovenBuilding::WakeUp(float flWaitTime)
 {
 	m_bGoneToSleep = false;
 	IPhysicsObject *pObj = VPhysicsGetObject();
 	if (pObj)
 		pObj->EnableMotion(true);
+	if (flWaitTime > 0.0f)
+		m_flNextSleep = gpGlobals->curtime + flWaitTime;
 }
 
 void CCovenBuilding::VPhysicsCollision(int index, gamevcollisionevent_t *pEvent)
@@ -609,14 +616,9 @@ void CCovenBuilding::Use(CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE
 			PlayerPickupObject(pPlayer, this);
 		}
 	}
-	else if (pPlayer->GetCollisionGroup() != COLLISION_GROUP_BUILDINGPT && pPlayer->GetTeamNumber() == GetTeamNumber())
+	else if (mOwner.Get() != NULL && pPlayer->GetCollisionGroup() != COLLISION_GROUP_BUILDINGPT && pPlayer->GetTeamNumber() == GetTeamNumber())
 	{
-		CHL2_Player *pHL2Player = ToHL2Player(pPlayer);
-		if (pHL2Player)
-		{
-			pHL2Player->coven_timer_buildingclip = gpGlobals->curtime + 3.0f;
-			pHL2Player->SetCollisionGroup(COLLISION_GROUP_BUILDINGPT);
-		}
+		pPlayer->StartBuildingClip(3.0f);
 	}
 }
 

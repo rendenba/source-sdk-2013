@@ -198,7 +198,6 @@ public:
 	void DoInnerLight(int iAbilityNum);
 	//void SlayerLightHandler(); This is handled higher up now.
 	void GrappingHookHandler();
-	void BuildingMoveHandler();
 	void EnergyHandler();
 	bool ToggleHaste(int iAbilityNum);
 	void RevengeCheck();

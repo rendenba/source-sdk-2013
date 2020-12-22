@@ -130,6 +130,8 @@ void PhysTeleportConstrainedEntity( CBaseEntity *pTeleportSource, IPhysicsObject
 void PhysGetListOfPenetratingEntities( CBaseEntity *pSearch, CUtlVector<CBaseEntity *> &list );
 bool PhysShouldCollide( IPhysicsObject *pObj0, IPhysicsObject *pObj1 );
 
+void UpdateEntityPenetrationFlag(CBaseEntity *pEntity, bool isPenetrating);
+
 // returns true when processing a callback - so we can defer things that can't be done inside a callback
 bool PhysIsInCallback();
 bool PhysIsFinalTick();
