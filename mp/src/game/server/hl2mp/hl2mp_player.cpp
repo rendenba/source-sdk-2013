@@ -1848,15 +1848,13 @@ void CHL2MP_Player::Spawn(void)
 	{
 		if (IsBot())
 			AddEFlags(EFL_BOT_FROZEN);
-		else
-			AddFlag(FL_FROZEN);
+		AddFlag(FL_FROZEN);
 	}
 	else
 	{
 		if (IsBot())
 			RemoveEFlags(EFL_BOT_FROZEN);
-		else
-			RemoveFlag(FL_FROZEN);
+		RemoveFlag(FL_FROZEN);
 	}
 
 	m_impactEnergyScale = HL2MPPLAYER_PHYSDAMAGE_SCALE;
