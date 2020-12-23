@@ -94,6 +94,7 @@ ConVar sv_coven_dropboxtime("sv_coven_dropboxtime", "60.0", FCVAR_GAMEDLL | FCVA
 ConVar sv_coven_flamedamage("sv_coven_flamedamage", "6.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Flame damage inflicted per second.");
 ConVar sv_coven_dodge_alpha("sv_coven_dodge_alpha", "100", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Dodge effect alpha.");
 ConVar sv_coven_regen_percent("sv_coven_regen_percent", "0.05", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Regen percentage per tick.");
+ConVar sv_coven_feed_percent("sv_coven_feed_percent", "5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Feed percentage/amount per tick.");
 
 extern ConVar mp_chattime;
 extern ConVar bot_debug_visual;
@@ -115,7 +116,7 @@ ConVar sv_coven_gcd("sv_coven_gcd", "1.0", FCVAR_NOTIFY | FCVAR_REPLICATED);
 ConVar sv_coven_hp_per_con("sv_coven_hp_per_con", "4.0", FCVAR_NOTIFY | FCVAR_REPLICATED);
 ConVar sv_coven_alarm_time("sv_coven_alarm_time", "60.0", FCVAR_NOTIFY | FCVAR_REPLICATED, "APC alarm timer.");
 ConVar sv_coven_refuel_distance("sv_coven_refuel_distance", "250.0", FCVAR_NOTIFY | FCVAR_REPLICATED, "Distance before refuel cancels.");
-ConVar sv_coven_hp_per_ragdoll("sv_coven_hp_per_ragdoll", "100", FCVAR_NOTIFY | FCVAR_REPLICATED, "HP allowed per player to feed upon.");
+ConVar sv_coven_hp_per_ragdoll("sv_coven_hp_per_ragdoll", "60", FCVAR_NOTIFY | FCVAR_REPLICATED, "HP allowed per player to feed upon.");
 ConVar sv_coven_max_slam("sv_coven_max_slam", "6", FCVAR_NOTIFY | FCVAR_REPLICATED, "Maximum number of TOTAL deployed slams.");
 
 REGISTER_GAMERULES_CLASS( CHL2MPRules );

@@ -68,6 +68,7 @@ extern ConVar sv_coven_manachargerate;
 extern ConVar sv_coven_hp_per_con;
 extern ConVar sv_coven_gcd;
 extern ConVar sv_coven_hp_per_ragdoll;
+extern ConVar sv_coven_feed_percent;
 
 // Do not touch with without seeing me, please! (sjb)
 // For consistency's sake, enemy gunfire is traced against a scaled down
@@ -1045,28 +1046,28 @@ float CHL2_Player::Feed(int iIndex)
 	if (iIndex < 0 || iIndex >= COVEN_MAX_RAGDOLLS)
 		return 0.0f;
 
-	int temp = min(0.05f * GetMaxHealth(), sv_coven_hp_per_ragdoll.GetInt() - m_HL2Local.m_iDollHP[iIndex]);
+	int temp = min(sv_coven_feed_percent.GetInt(), sv_coven_hp_per_ragdoll.GetInt() - m_HL2Local.m_iDollHP[iIndex]);
 	int xp = 0;
 	//BB: Coven GORGE implementation
 	if (HasAbility(COVEN_ABILITY_GORGE))
 	{
 		CovenAbilityInfo_t *abilityInfo = GetCovenAbilityData(COVEN_ABILITY_GORGE);
-		int newmax = GetMaxHealth() * (1.0f + 0.01f * abilityInfo->iMagnitude);
-		temp = min(0.04f * GetMaxHealth(), sv_coven_hp_per_ragdoll.GetInt() - m_HL2Local.m_iDollHP[iIndex]);
-		if (GetHealth() + temp <= newmax)
-			SetHealth(GetHealth() + temp);
+		int newmax = (1.0f + 0.01f * abilityInfo->iMagnitude) * GetMaxHealth();
+		int newhealth = (0.01f * temp) * newmax;
+		if (GetHealth() + newhealth <= newmax)
+			SetHealth(newhealth + GetHealth());
 		else
 		{
+			temp = (newmax - GetHealth()) / (float)newmax;
 			SetHealth(newmax);
-			temp = 0;
 		}
 
 	}
 	else
-		temp = TakeHealth(temp, DMG_GENERIC);
+		temp = round(100.0f * TakeHealth(0.01f * temp * GetMaxHealth(), DMG_GENERIC) / GetMaxHealth());
 
 	if (temp == 0)
-		xp = min(0.04f * GetXPCap(), sv_coven_hp_per_ragdoll.GetInt() - m_HL2Local.m_iDollHP[iIndex]);
+		xp = min(sv_coven_feed_percent.GetInt(), sv_coven_hp_per_ragdoll.GetInt() - m_HL2Local.m_iDollHP[iIndex]);
 	if (xp > 0)
 		GiveXP(xp);
 	if (temp > 0 || xp > 0)
