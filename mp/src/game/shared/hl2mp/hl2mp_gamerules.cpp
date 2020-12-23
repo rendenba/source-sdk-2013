@@ -93,6 +93,7 @@ ConVar sv_coven_item_respawn_time("sv_coven_item_respawn_time", "30", FCVAR_GAME
 ConVar sv_coven_dropboxtime("sv_coven_dropboxtime", "60.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Dropped item existance time.");
 ConVar sv_coven_flamedamage("sv_coven_flamedamage", "6.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Flame damage inflicted per second.");
 ConVar sv_coven_dodge_alpha("sv_coven_dodge_alpha", "100", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Dodge effect alpha.");
+ConVar sv_coven_regen_percent("sv_coven_regen_percent", "0.05", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Regen percentage per tick.");
 
 extern ConVar mp_chattime;
 extern ConVar bot_debug_visual;

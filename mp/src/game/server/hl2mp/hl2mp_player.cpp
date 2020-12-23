@@ -78,6 +78,7 @@ extern ConVar sv_coven_usedynamicspawns;
 extern ConVar sv_coven_xp_slayerstart;
 extern ConVar sv_coven_dropboxtime;
 extern ConVar sv_coven_dodge_alpha;
+extern ConVar sv_coven_regen_percent;
 
 #define HL2MP_COMMAND_MAX_RATE 0.3
 
@@ -2876,7 +2877,7 @@ void CHL2MP_Player::VampireCheckRegen(float maxpercent)
 	if (IsAlive() && GetHealth() < midhealth && gpGlobals->curtime > coven_timer_regen)
 	{
 		coven_timer_regen = gpGlobals->curtime + 1.5f;
-		int hp = 0.04f * GetMaxHealth();
+		int hp = sv_coven_regen_percent.GetFloat() * GetMaxHealth();
 		TakeHealth(hp, DMG_GENERIC);
 		EmitSound("Vampire.Regen");
 		if (GetHealth() > midhealth)
