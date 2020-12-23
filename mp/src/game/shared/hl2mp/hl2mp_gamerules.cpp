@@ -92,6 +92,7 @@ ConVar sv_coven_respawn_vampire_base("sv_coven_respawn_vampire_base", "10.0", FC
 ConVar sv_coven_item_respawn_time("sv_coven_item_respawn_time", "30", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Dropped item respawn time.");
 ConVar sv_coven_dropboxtime("sv_coven_dropboxtime", "60.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Dropped item existance time.");
 ConVar sv_coven_flamedamage("sv_coven_flamedamage", "6.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Flame damage inflicted per second.");
+ConVar sv_coven_dodge_alpha("sv_coven_dodge_alpha", "100", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Dodge effect alpha.");
 
 extern ConVar mp_chattime;
 extern ConVar bot_debug_visual;

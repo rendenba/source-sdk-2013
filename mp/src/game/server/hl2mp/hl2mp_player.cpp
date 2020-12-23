@@ -77,6 +77,7 @@ extern ConVar sv_coven_light_bump;
 extern ConVar sv_coven_usedynamicspawns;
 extern ConVar sv_coven_xp_slayerstart;
 extern ConVar sv_coven_dropboxtime;
+extern ConVar sv_coven_dodge_alpha;
 
 #define HL2MP_COMMAND_MAX_RATE 0.3
 
@@ -956,11 +957,11 @@ bool CHL2MP_Player::ToggleDodge(int iAbilityNum)
 		SetRenderColorA(info->iMagnitude);
 		if (GetActiveWeapon())
 		{
-			GetActiveWeapon()->SetRenderColorA(info->iMagnitude);
+			GetActiveWeapon()->SetRenderColorA(sv_coven_dodge_alpha.GetInt());
 		}
 		if (GetViewModel())
 		{
-			GetViewModel()->SetRenderColorA(info->iMagnitude);
+			GetViewModel()->SetRenderColorA(sv_coven_dodge_alpha.GetInt());
 		}
 		AddStatus(COVEN_STATUS_DODGE);
 		SuitPower_AddDrain(info->flDrain);
@@ -4777,7 +4778,7 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 		if (random->RandomFloat() <= abilityInfo->flRange)
 			inputInfoAdjust.SetDamage(0.0f);
 		float flMitigated = flPreDmg - inputInfoAdjust.GetDamage();
-		SuitPower_Drain(flMitigated);
+		SuitPower_Drain(flMitigated * abilityInfo->iMagnitude / 100.0f);
 	}
 
 	//INNERLIGHT
