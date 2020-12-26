@@ -1838,7 +1838,7 @@ void CHL2MP_Player::Spawn(void)
 	SetNumAnimOverlays( 3 );
 	ResetAnimation();
 
-	//m_nRenderFX = kRenderNormal;
+	m_nRenderFX = kRenderNormal;
 	//SetRenderMode(kRenderTransTexture);
 
 	m_Local.m_iHideHUD = 0;

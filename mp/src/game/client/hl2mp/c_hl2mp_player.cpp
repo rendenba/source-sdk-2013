@@ -1098,6 +1098,12 @@ void C_HL2MP_Player::PostThink( void )
 {
 	BaseClass::PostThink();
 
+	//BB: this is rediculous... this is causing prediction errors, and should be fixed in the base game code!
+	if (GetFlags() & FL_DUCKING)
+	{
+		SetCollisionBounds(VEC_CROUCH_TRACE_MIN, VEC_CROUCH_TRACE_MAX);
+	}
+
 	// Store the eye angles pitch so the client can compute its animation state correctly.
 	m_angEyeAngles = EyeAngles();
 }

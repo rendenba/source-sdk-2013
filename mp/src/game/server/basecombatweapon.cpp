@@ -99,12 +99,9 @@ int CBaseCombatWeapon::UpdateTransmitState( void)
 	CBaseCombatCharacter *pOwner = GetOwner();
 	if ( pOwner )
 	{	
-		//BB: HACK HACK! Is there a better way to do this? FL_EDICT_ALWAYS is necessary to prevent motion sickness when spectating players with weapons using EF_NODRAW, kRenderModeNone (when implemented).
-		//BB: I suspect it has something to do with decoupling the VM from the weapon?
-		//if (GetRenderMode() == kRenderTransTexture)
-		//BB: I have punted in the meantime. Crowbar will just use translucency and alpha maps. There are still some oddities if you don't always trasmit the entity.
-		if (Q_stricmp(GetClassname(), "weapon_crowbar") == 0)
-			return SetTransmitState( FL_EDICT_ALWAYS );
+		//BB: HACK HACK! Is there a better way to do this? FL_EDICT_ALWAYS is necessary to prevent motion sickness when spectating players with weapons using EF_NODRAW, kRenderNone (when implemented).
+		//BB: I have punted in the meantime. Crowbar will just use translucency and alpha maps.
+		//BB: Solved. Prediction was being used on the cloak factor, and has been properly removed. EF_NODRAW will still cause prediction errors, but using kRenderNone works for now.
 		return SetTransmitState( FL_EDICT_PVSCHECK );
 	}
 	else
