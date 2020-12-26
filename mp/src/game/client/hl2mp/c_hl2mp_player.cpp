@@ -245,15 +245,36 @@ void C_HL2MP_Player::ClientThink( void )
 			if (!IsClientSideGlowEnabled())
 			{
 				SetClientSideGlowEnabled(true);
-				color32 clr;
-				clr.b = clr.r = 0;
-				clr.g = clr.a = 255;
+				m_clrOldGlowColor.b = m_clrOldGlowColor.r = 0;
+				m_clrOldGlowColor.g = m_clrOldGlowColor.a = 255;
 				if (CBasePlayer::GetLocalPlayer()->GetTeamNumber() == COVEN_TEAMID_SPECTATOR)
 				{
-					clr.r = 255;
-					clr.g = 0;
+					m_clrOldGlowColor.r = 255;
+					m_clrOldGlowColor.g = 0;
 				}
-				ForceGlowEffect(clr, false, true, 250.0f);
+				ForceGlowEffect(m_clrOldGlowColor, false, true, 250.0f);
+			}
+			else
+			{
+				//Double check color
+				if (CBasePlayer::GetLocalPlayer()->GetTeamNumber() == COVEN_TEAMID_SPECTATOR)
+				{
+					if (m_clrOldGlowColor.r == 0)
+					{
+						m_clrOldGlowColor.r = 255;
+						m_clrOldGlowColor.g = 0;
+						ForceGlowEffect(m_clrOldGlowColor, false, true, 250.0f);
+					}
+				}
+				else
+				{
+					if (m_clrOldGlowColor.r == 255)
+					{
+						m_clrOldGlowColor.r = 0;
+						m_clrOldGlowColor.g = 255;
+						ForceGlowEffect(m_clrOldGlowColor, false, true, 250.0f);
+					}
+				}
 			}
 		}
 		else if (IsClientSideGlowEnabled())

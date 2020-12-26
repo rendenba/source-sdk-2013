@@ -467,6 +467,7 @@ protected:
 #ifdef GLOWS_ENABLE	
 	virtual void		UpdateGlowEffect(void);
 	virtual void		DestroyGlowEffect(void);
+	color32				m_clrOldGlowColor;
 #endif // GLOWS_ENABLE
 	// View models scale their attachment positions to account for FOV. To get the unmodified
 	// attachment position (like if you're rendering something else during the view model's DrawModel call),
@@ -507,7 +508,6 @@ private:
 	bool				m_bOldGlowEnabled;
 	int					m_iOldGlowFlags;
 	CGlowObject			*m_pGlowEffect;
-	color32				m_clrOldGlowColor;
 	CNetworkColor32(m_clrGlowColor);
 #endif // GLOWS_ENABLE
 
