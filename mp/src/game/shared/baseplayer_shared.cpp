@@ -147,12 +147,7 @@ float CBasePlayer::GetTimeBase( void ) const
 
 float CBasePlayer::GetPlayerMaxSpeed()
 {
-	// player max speed is the lower limit of m_flMaxSpeed and sv_maxspeed
-	float fMaxSpeed = sv_maxspeed.GetFloat();
-	if ( MaxSpeed() > 0.0f && MaxSpeed() < fMaxSpeed )
-		fMaxSpeed = MaxSpeed();
-
-	return fMaxSpeed;
+	return MaxSpeed();
 }
 
 //-----------------------------------------------------------------------------

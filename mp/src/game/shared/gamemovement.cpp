@@ -2494,7 +2494,7 @@ bool CGameMovement::CheckJumpButton( void )
 	float speed = sqrt(mv->m_vecVelocity[0]*mv->m_vecVelocity[0] + mv->m_vecVelocity[1]*mv->m_vecVelocity[1]);
 	if (speed > COVEN_ABS_MAX_VELOCITY)//320... allow a little
 	{
-		VectorScale(mv->m_vecVelocity, 380.0f/speed, mv->m_vecVelocity);
+		VectorScale(mv->m_vecVelocity, COVEN_ABS_MAX_VELOCITY / speed, mv->m_vecVelocity);
 	}
 
 	// Add a little forward velocity based on your current forward velocity - if you are not sprinting.
