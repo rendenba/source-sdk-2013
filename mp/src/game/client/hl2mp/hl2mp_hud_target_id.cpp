@@ -272,15 +272,16 @@ void CTargetID::Paint()
 						}
 					}
 				}
-				else if (pEnt->IsServerdoll() && pEnt->GetTeamNumber() != pLocalPlayer->GetTeamNumber() && pLocalPlayer->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+				else if (pEnt->IsServerdoll() && pEnt->GetTeamNumber() == COVEN_TEAMID_SLAYERS && pLocalPlayer->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
 				{
 					C_BaseHLPlayer *pHL2Player = static_cast<C_BaseHLPlayer *>(pLocalPlayer);
 					C_ServerRagdoll *pDoll = static_cast<C_ServerRagdoll *>(pEnt);
 					int iLeft = sv_coven_hp_per_ragdoll.GetInt() - pHL2Player->m_HL2Local.m_iDollHP[pDoll->iSlot];
 					if (iLeft > 0)
 					{
+						float flPercentLeft = (float)iLeft / sv_coven_hp_per_ragdoll.GetInt() * 100.0f;
 						wchar_t wszVitalityText[4];
-						V_swprintf_safe(wszVitalityText, L"%d", iLeft);
+						V_swprintf_safe(wszVitalityText, L"%.0f", flPercentLeft);
 						g_pVGuiLocalize->ConstructString(sIDString, sizeof(sIDString), g_pVGuiLocalize->Find("#FeedID"), 1, wszVitalityText);
 						c = GetColorForTargetTeam(pLocalPlayer->GetTeamNumber());
 						if (!pEnt->IsClientSideGlowEnabled())
