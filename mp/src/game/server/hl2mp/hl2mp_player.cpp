@@ -4792,7 +4792,7 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 
 	//Stun Damage
 	//Direct damage indicates a flat duration, otherwise it is treated as a max possible damage
-	if (inputInfoAdjust.GetDamageType() & DMG_STUN)
+	if (inputInfoAdjust.GetDamageType() & DMG_STUN && !KO)
 	{
 		int bits = inputInfoAdjust.GetDamageType() & ~DMG_STUN & ~DMG_DIRECT;
 		float duration = 0.0f;
@@ -4805,10 +4805,13 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 	}
 
 	//BB: only one packaged damage type is possible...
-	//Weakness Damage
-	if (!CovenStatusDamageHandle(inputInfoAdjust, DMG_WEAKNESS, COVEN_STATUS_WEAKNESS))
-		//Slow Damage
-		CovenStatusDamageHandle(inputInfoAdjust, DMG_SLOW, COVEN_STATUS_SLOW);
+	if (!KO)
+	{
+		//Weakness Damage
+		if (!CovenStatusDamageHandle(inputInfoAdjust, DMG_WEAKNESS, COVEN_STATUS_WEAKNESS))
+			//Slow Damage
+			CovenStatusDamageHandle(inputInfoAdjust, DMG_SLOW, COVEN_STATUS_SLOW);
+	}
 
 	if (GetTeamNumber() == COVEN_TEAMID_SLAYERS && HasStatus(COVEN_STATUS_HOLYWATER))
 	{
@@ -4858,6 +4861,8 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 	//BB: handle strength calc & gutcheck
 	if (inputInfoAdjust.GetDamageType() & DMG_CLUB && inputInfo.GetAttacker() && inputInfo.GetAttacker()->IsPlayer() && inputInfo.GetAttacker() != this)
 	{
+		inputInfoAdjust.SetDamage(clamp(1.0f - GetStrength() / 60.0f, 0.0f, 1.0f) * inputInfoAdjust.GetDamage());
+
 		if (HasStatus(COVEN_STATUS_GUTCHECK))
 		{
 			CovenAbilityInfo_t *abilityInfo = GetCovenAbilityData(COVEN_ABILITY_GUTCHECK);
@@ -4865,10 +4870,6 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 			SetCooldown(AbilityKey(COVEN_ABILITY_GUTCHECK), gpGlobals->curtime + abilityInfo->flCooldown);
 			EmitSound(abilityInfo->aSounds[COVEN_SND_START]);
 			inputInfoAdjust.SetDamage(0.01f * abilityInfo->iMagnitude * inputInfoAdjust.GetDamage());
-		}
-		else
-		{
-			inputInfoAdjust.SetDamage(clamp(1.0f - GetStrength() / 60.0f, 0.0f, 1.0f) * inputInfoAdjust.GetDamage());
 		}
 	}
 	
