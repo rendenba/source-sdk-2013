@@ -102,6 +102,9 @@ CPPFILES= \
     ../../game/shared/hl2mp/weapon_smg1.cpp \
     ../../game/shared/hl2mp/weapon_stake.cpp \
     ../../game/shared/hl2mp/weapon_stunstick.cpp \
+    ../../game/shared/hl2mp/weapon_stunfrag.cpp \
+    ../../game/shared/hl2mp/weapon_holywater.cpp \
+    ../../game/shared/hl2mp/weapon_harpoon.cpp \
     ../../game/shared/igamesystem.cpp \
     ../../game/shared/interval.cpp \
     ../../game/shared/mapentities_shared.cpp \
@@ -417,6 +420,7 @@ CPPFILES= \
     hl2/c_vehicle_prisoner_pod.cpp \
     hl2/c_waterbullet.cpp \
     hl2/c_weapon_crossbow.cpp \
+    hl2/c_weapon_harpoon.cpp \
     hl2/c_weapon__stubs_hl2.cpp \
     hl2/fx_antlion.cpp \
     hl2/fx_bugbait.cpp \
@@ -911,6 +915,18 @@ $(OBJ_DIR)/weapon_stake.o : $(PWD)/../../game/shared/hl2mp/weapon_stake.cpp $(PW
 	$(COMPILE_FILE) $(POST_COMPILE_FILE)
 
 $(OBJ_DIR)/weapon_stunstick.o : $(PWD)/../../game/shared/hl2mp/weapon_stunstick.cpp $(PWD)/client_linux32_hl2mp.mak $(SRCROOT)/devtools/makefile_base_posix.mak
+	$(PRE_COMPILE_FILE)
+	$(COMPILE_FILE) $(POST_COMPILE_FILE)
+
+$(OBJ_DIR)/weapon_stunfrag.o : $(PWD)/../../game/shared/hl2mp/weapon_stunfrag.cpp $(PWD)/client_linux32_hl2mp.mak $(SRCROOT)/devtools/makefile_base_posix.mak
+	$(PRE_COMPILE_FILE)
+	$(COMPILE_FILE) $(POST_COMPILE_FILE)
+
+$(OBJ_DIR)/weapon_holywater.o : $(PWD)/../../game/shared/hl2mp/weapon_holywater.cpp $(PWD)/client_linux32_hl2mp.mak $(SRCROOT)/devtools/makefile_base_posix.mak
+	$(PRE_COMPILE_FILE)
+	$(COMPILE_FILE) $(POST_COMPILE_FILE)
+
+$(OBJ_DIR)/weapon_harpoon.o : $(PWD)/../../game/shared/hl2mp/weapon_harpoon.cpp $(PWD)/client_linux32_hl2mp.mak $(SRCROOT)/devtools/makefile_base_posix.mak
 	$(PRE_COMPILE_FILE)
 	$(COMPILE_FILE) $(POST_COMPILE_FILE)
 
@@ -2171,6 +2187,10 @@ $(OBJ_DIR)/c_waterbullet.o : $(PWD)/hl2/c_waterbullet.cpp $(PWD)/client_linux32_
 	$(COMPILE_FILE) $(POST_COMPILE_FILE)
 
 $(OBJ_DIR)/c_weapon_crossbow.o : $(PWD)/hl2/c_weapon_crossbow.cpp $(PWD)/client_linux32_hl2mp.mak $(SRCROOT)/devtools/makefile_base_posix.mak
+	$(PRE_COMPILE_FILE)
+	$(COMPILE_FILE) $(POST_COMPILE_FILE)
+
+$(OBJ_DIR)/c_weapon_harpoon.o : $(PWD)/hl2/c_weapon_harpoon.cpp $(PWD)/client_linux32_hl2mp.mak $(SRCROOT)/devtools/makefile_base_posix.mak
 	$(PRE_COMPILE_FILE)
 	$(COMPILE_FILE) $(POST_COMPILE_FILE)
 

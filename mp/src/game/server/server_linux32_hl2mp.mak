@@ -104,6 +104,7 @@ CPPFILES= \
     ../../game/shared/hl2mp/weapon_stunstick.cpp \
     ../../game/shared/hl2mp/weapon_holywater.cpp \
     ../../game/shared/hl2mp/weapon_stunfrag.cpp \
+    ../../game/shared/hl2mp/weapon_harpoon.cpp \
     ../../game/shared/igamesystem.cpp \
     ../../game/shared/interval.cpp \
     ../../game/shared/mapentities_shared.cpp \
@@ -951,6 +952,10 @@ $(OBJ_DIR)/weapon_holywater.o : $(PWD)/../../game/shared/hl2mp/weapon_holywater.
 	$(COMPILE_FILE) $(POST_COMPILE_FILE)
 
 $(OBJ_DIR)/weapon_stunfrag.o : $(PWD)/../../game/shared/hl2mp/weapon_stunfrag.cpp $(PWD)/server_linux32_hl2mp.mak $(SRCROOT)/devtools/makefile_base_posix.mak
+	$(PRE_COMPILE_FILE)
+	$(COMPILE_FILE) $(POST_COMPILE_FILE)
+
+$(OBJ_DIR)/weapon_harpoon.o : $(PWD)/../../game/shared/hl2mp/weapon_harpoon.cpp $(PWD)/server_linux32_hl2mp.mak $(SRCROOT)/devtools/makefile_base_posix.mak
 	$(PRE_COMPILE_FILE)
 	$(COMPILE_FILE) $(POST_COMPILE_FILE)
 
