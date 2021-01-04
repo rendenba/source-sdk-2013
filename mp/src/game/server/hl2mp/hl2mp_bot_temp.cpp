@@ -981,7 +981,7 @@ void BotRespawn(CHL2MP_Player *pBot)
 	if (pBot->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
 	{
 		botdata->m_bHasNotPurchasedItems = true;
-		botdata->m_bIsPurchasingItems = random->RandomInt(0, 9) < 8; //80% chance to purchase items
+		botdata->m_bIsPurchasingItems = random->RandomInt(0, 9) < 9; //90% chance to purchase items
 	}
 }
 
@@ -1069,7 +1069,7 @@ void PurchaseCheck(CHL2MP_Player *pBot)
 		{
 			CovenItemID_t item = (CovenItemID_t)random->RandomInt(COVEN_ITEM_STIMPACK, COVEN_ITEM_SLAM);
 			if (pBot->PurchaseCovenItem(item))
-				botdata->m_bHasNotPurchasedItems = random->RandomInt(0, 9) < 8; //80% chance to keep purchasing
+				botdata->m_bHasNotPurchasedItems = random->RandomInt(0, 9) < 9; //90% chance to keep purchasing
 			else
 				botdata->m_bHasNotPurchasedItems = false;
 		}

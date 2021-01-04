@@ -692,6 +692,7 @@ bool CHL2MP_Player::DoGorePhase(int iAbilityNum)
 		SetCooldown(iAbilityNum, abilityInfo->flCooldown);
 		EmitSound(abilityInfo->aSounds[COVEN_SND_START]);
 		SuitPower_AddDrain(abilityInfo->flDrain);
+		RemoveAllDecals();
 		//AddEffects(EF_NODRAW);
 	}
 	else
@@ -1842,7 +1843,7 @@ void CHL2MP_Player::Spawn(void)
 	AddFlag(FL_ONGROUND); // set the player on the ground at the start of the round.
 
 	//BB: need to move this to prevent unfreezing accidentally
-	if ( HL2MPRules()->IsIntermission() || (HL2MPRules()->covenGameState == COVEN_GAMESTATE_FREEZE && sv_coven_freezetime.GetInt() > 0))
+	if ( HL2MPRules()->IsIntermission() || (GetTeamNumber() > COVEN_TEAMID_SPECTATOR && HL2MPRules()->covenGameState == COVEN_GAMESTATE_FREEZE && sv_coven_freezetime.GetInt() > 0))
 	{
 		if (IsBot())
 			AddEFlags(EFL_BOT_FROZEN);
@@ -4085,9 +4086,6 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 	else
 		covenRespawnTimer = HL2MPRules()->GetRespawnTime((CovenTeamID_t)GetTeamNumber());
 
-	if (IsBot())
-		BotDeath(this);
-
 	if (covenClassID == COVEN_CLASSID_AVENGER)
 	{
 		coven_timer_soul = -1.0f;
@@ -4122,6 +4120,9 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 	CreateRagdollEntity(info.GetDamageType());
 
 	BaseClass::Event_Killed( subinfo );
+
+	if (IsBot())
+		BotDeath(this);
 
 	if ( info.GetDamageType() & DMG_DISSOLVE )
 	{
