@@ -208,6 +208,25 @@ void CRagdollProp::Spawn( void )
 	}
 }
 
+void CRagdollProp::SprayBlood()
+{
+	if (gpGlobals->curtime < m_flNextBloodTime)
+		return;
+
+	m_flNextBloodTime = gpGlobals->curtime + 0.2f;
+
+	Vector bloodDir = RandomVector(-1.0f, 1.0f);
+	bloodDir.z = fabs(bloodDir.z);
+
+	Vector jitterPos = RandomVector(-8, 8);
+	jitterPos.z = 0.0f;
+
+	Vector vecBloodPos = GetAbsOrigin();
+	//CollisionProp()->NormalizedToWorldSpace(Vector(0.5f, 0.5f, 0.0f), &vecBloodPos);
+
+	UTIL_BloodSpray(vecBloodPos + jitterPos, bloodDir, BLOOD_COLOR_RED, RandomInt(4, 8), (RandomInt(0, 2) == 0 ? FX_BLOODSPRAY_DROPS | FX_BLOODSPRAY_GORE : FX_BLOODSPRAY_GORE) | FX_IGNORE_LIGHT);
+}
+
 //BB: the use function for bodies
 void CRagdollProp::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
@@ -228,7 +247,8 @@ void CRagdollProp::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE 
 	{
 		if (pPlayer->GetFedHP(iSlot) <= sv_coven_hp_per_ragdoll.GetFloat())
 		{
-			pPlayer->Feed(iSlot);
+			if (pPlayer->Feed(iSlot) > 0.0f)
+				SprayBlood();
 			/*if (feedhp[index] >= COVEN_HP_PER_RAGDOLL)
 			{
 				flClearTime = gpGlobals->curtime + 4.5f;
@@ -314,6 +334,7 @@ CRagdollProp::CRagdollProp( void )
 	block = true;
 	flClearTime = -1.0f;
 	iSlot = -1;
+	m_flNextBloodTime = 0.0f;
 }
 
 CRagdollProp::~CRagdollProp( void )

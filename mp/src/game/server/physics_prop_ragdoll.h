@@ -41,6 +41,7 @@ public:
 	{
 		return true;
 	};
+	void SprayBlood();
 	//BB: the override for Use which ultimately lets us feed
 	virtual void Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value );
 	//BB: force collisions with player blocks
@@ -164,6 +165,7 @@ private:
 	CNetworkVar( float, m_flBlendWeight );
 	CNetworkVar( int, m_nOverlaySequence );
 	float	m_flDefaultFadeScale;
+	float	m_flNextBloodTime;
 	
 	Vector				m_ragdollMins[RAGDOLL_MAX_ELEMENTS];
 	Vector				m_ragdollMaxs[RAGDOLL_MAX_ELEMENTS];

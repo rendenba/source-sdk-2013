@@ -85,6 +85,9 @@ void FX_BloodSpray( const Vector &origin, const Vector &normal, float scale, uns
 	
 	//Find area ambient light color and use it to tint smoke
 	Vector worldLight = WorldGetLightForPoint( origin, true );
+	if (flags & FX_IGNORE_LIGHT)
+		worldLight.Init(245.0f, 245.0f, 245.0f);
+
 	Vector color = Vector( (float)(worldLight[0] * r) / 255.0f, (float)(worldLight[1] * g) / 255.0f, (float)(worldLight[2] * b) / 255.0f );
 	float colorRamp;
 

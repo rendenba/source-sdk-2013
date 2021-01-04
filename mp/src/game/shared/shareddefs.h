@@ -884,7 +884,8 @@ enum
 const int FX_BLOODSPRAY_DROPS	= 0x01;
 const int FX_BLOODSPRAY_GORE	= 0x02;
 const int FX_BLOODSPRAY_CLOUD	= 0x04;
-const int FX_BLOODSPRAY_ALL		= 0xFF;
+const int FX_BLOODSPRAY_ALL		= 0x0F;
+const int FX_IGNORE_LIGHT		= 0x10;
 
 //-----------------------------------------------------------------------------
 #define MAX_SCREEN_OVERLAYS		10
