@@ -256,53 +256,6 @@ static ConCommand toggle_zoom("toggle_zoom", CC_ToggleZoom, "Toggles zoom displa
 ConVar xc_crouch_range( "xc_crouch_range", "0.85", FCVAR_ARCHIVE, "Percentarge [1..0] of joystick range to allow ducking within" );	// Only 1/2 of the range is used
 ConVar xc_use_crouch_limiter( "xc_use_crouch_limiter", "0", FCVAR_ARCHIVE, "Use the crouch limiting logic on the controller" );
 
-//------------------------------------------------------------------------------
-//------------------------------------------------------------------------------
-void CC_ToggleDuck( void )
-{
-	CBasePlayer* pPlayer = UTIL_GetCommandClient();
-	if ( pPlayer == NULL )
-		return;
-
-	// Cannot be frozen
-	if ( pPlayer->GetFlags() & FL_FROZEN )
-		return;
-
-	static bool		bChecked = false;
-	static ConVar *pCVcl_forwardspeed = NULL;
-	if ( !bChecked )
-	{
-		bChecked = true;
-		pCVcl_forwardspeed = ( ConVar * )cvar->FindVar( "cl_forwardspeed" );
-	}
-
-
-	// If we're not ducked, do extra checking
-	if ( xc_use_crouch_limiter.GetBool() )
-	{
-		if ( pPlayer->GetToggledDuckState() == false )
-		{
-			float flForwardSpeed = 400.0f;
-			if ( pCVcl_forwardspeed )
-			{
-				flForwardSpeed = pCVcl_forwardspeed->GetFloat();
-			}
-
-			flForwardSpeed = MAX( 1.0f, flForwardSpeed );
-
-			// Make sure we're not in the blindspot on the crouch detection
-			float flStickDistPerc = ( pPlayer->GetStickDist() / flForwardSpeed ); // Speed is the magnitude
-			if ( flStickDistPerc > xc_crouch_range.GetFloat() )
-				return;
-		}
-	}
-
-	// Toggle the duck
-	pPlayer->ToggleDuck();
-}
-
-static ConCommand toggle_duck("toggle_duck", CC_ToggleDuck, "Toggles duck" );
-
 #ifndef HL2MP
 #ifndef PORTAL
 LINK_ENTITY_TO_CLASS( player, CHL2_Player );

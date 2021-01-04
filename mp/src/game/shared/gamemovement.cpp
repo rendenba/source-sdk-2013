@@ -4405,9 +4405,9 @@ bool CGameMovement::CanUnDuckJump( trace_t &trace )
 
 void CGameMovement::Walk(void)
 {
-	if (mv->m_nButtons & IN_SPEED)
+	if (mv->m_nButtons & IN_WALK)
 	{
-		mv->m_nOldButtons |= IN_SPEED;
+		mv->m_nOldButtons |= IN_WALK;
 		if (!(m_iSpeedCropped & SPEED_CROPPED_WALK) && (player->GetGroundEntity() != NULL))
 		{
 			float frac = 0.6f;
@@ -4419,7 +4419,7 @@ void CGameMovement::Walk(void)
 	}
 	else
 	{
-		mv->m_nOldButtons &= ~IN_SPEED;
+		mv->m_nOldButtons &= ~IN_WALK;
 	}
 }
 
@@ -4477,6 +4477,20 @@ void CGameMovement::Duck( void )
 			{
 				player->m_Local.m_flDucktime = GAMEMOVEMENT_DUCK_TIME;
 				player->m_Local.m_bDucking = true;
+			}
+			else if ((buttonsPressed & IN_DUCK) && bInDuck)
+			{
+				float unduckMilliseconds = 1000.0f * TIME_TO_UNDUCK;
+				float duckMilliseconds = 1000.0f * TIME_TO_DUCK;
+				float elapsedMilliseconds = GAMEMOVEMENT_DUCK_TIME - player->m_Local.m_flDucktime;
+
+				float fracUnDucked = elapsedMilliseconds / unduckMilliseconds;
+				float remainingDuckMilliseconds = fracUnDucked * duckMilliseconds;
+
+				player->m_Local.m_flDucktime = GAMEMOVEMENT_DUCK_TIME - duckMilliseconds + remainingDuckMilliseconds;
+				player->m_Local.m_bDucking = true;
+				bInDuck = false;
+				player->RemoveFlag(FL_DUCKING);
 			}
 			
 			// The player is in duck transition and not duck-jumping.

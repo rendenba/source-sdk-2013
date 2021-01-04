@@ -78,6 +78,8 @@ ConVar cl_backspeed( "cl_backspeed", "450", FCVAR_REPLICATED | FCVAR_CHEAT );
 ConVar lookspring( "lookspring", "0", FCVAR_ARCHIVE );
 ConVar lookstrafe( "lookstrafe", "0", FCVAR_ARCHIVE );
 ConVar in_joystick( "joystick","0", FCVAR_ARCHIVE );
+ConVar cl_duckmode("cl_duckmode", "0", FCVAR_ARCHIVE);
+ConVar cl_walkmode("cl_walkmode", "0", FCVAR_ARCHIVE);
 
 ConVar thirdperson_platformer( "thirdperson_platformer", "0", 0, "Player will aim in the direction they are moving." );
 ConVar thirdperson_screenspace( "thirdperson_screenspace", "0", 0, "Movement will be relative to the camera, eg: left means screen-left" );
@@ -144,7 +146,6 @@ static	kbutton_t	in_item;
 static  kbutton_t   in_grenade;
 static  kbutton_t   in_grenade2;
 static	kbutton_t	in_attack3;
-kbutton_t	in_ducktoggle;
 
 static	kbutton_t	in_abil1;
 static	kbutton_t	in_abil2;
@@ -467,8 +468,6 @@ void IN_MoveleftDown( const CCommand &args ) {KeyDown(&in_moveleft, args[1] );}
 void IN_MoveleftUp( const CCommand &args ) {KeyUp(&in_moveleft, args[1] );}
 void IN_MoverightDown( const CCommand &args ) {KeyDown(&in_moveright, args[1] );}
 void IN_MoverightUp( const CCommand &args ) {KeyUp(&in_moveright, args[1] );}
-void IN_WalkDown( const CCommand &args ) {KeyDown(&in_walk, args[1] );}
-void IN_WalkUp( const CCommand &args ) {KeyUp(&in_walk, args[1] );}
 void IN_SpeedDown( const CCommand &args ) {KeyDown(&in_speed, args[1] );}
 void IN_SpeedUp( const CCommand &args ) {KeyUp(&in_speed, args[1] );}
 void IN_StrafeDown( const CCommand &args ) {KeyDown(&in_strafe, args[1] );}
@@ -479,8 +478,6 @@ void IN_UseDown ( const CCommand &args ) {KeyDown(&in_use, args[1] );}
 void IN_UseUp ( const CCommand &args ) {KeyUp(&in_use, args[1] );}
 void IN_JumpDown ( const CCommand &args ) {KeyDown(&in_jump, args[1] );}
 void IN_JumpUp ( const CCommand &args ) {KeyUp(&in_jump, args[1] );}
-void IN_DuckDown( const CCommand &args ) {KeyDown(&in_duck, args[1] );}
-void IN_DuckUp( const CCommand &args ) {KeyUp(&in_duck, args[1] );}
 void IN_ReloadDown( const CCommand &args ) {KeyDown(&in_reload, args[1] );}
 void IN_ReloadUp( const CCommand &args ) {KeyUp(&in_reload, args[1] );}
 void IN_Alt1Down( const CCommand &args ) {KeyDown(&in_alt1, args[1] );}
@@ -497,15 +494,49 @@ void IN_XboxStub( const CCommand &args ) { /*do nothing*/ }
 void IN_Attack3Down( const CCommand &args ) { KeyDown(&in_attack3, args[1] );}
 void IN_Attack3Up( const CCommand &args ) { KeyUp(&in_attack3, args[1] );}
 
-void IN_DuckToggle( const CCommand &args ) 
-{ 
-	if ( ::input->KeyState(&in_ducktoggle) )
+void IN_DuckDown(const CCommand &args)
+{
+	if (cl_duckmode.GetInt() == 0)
 	{
-		KeyUp( &in_ducktoggle, args[1] ); 
+		KeyDown(&in_duck, args[1]);
 	}
 	else
 	{
-		KeyDown( &in_ducktoggle, args[1] ); 
+		if (::input->KeyState(&in_duck))
+			KeyUp(&in_duck, args[1]);
+		else
+			KeyDown(&in_duck, args[1]);
+	}
+}
+
+void IN_DuckUp(const CCommand &args)
+{
+	if (cl_duckmode.GetInt() == 0)
+	{
+		KeyUp(&in_duck, args[1]);
+	}
+}
+
+void IN_WalkDown(const CCommand &args)
+{
+	if (cl_walkmode.GetInt() == 0)
+	{
+		KeyDown(&in_walk, args[1]);
+	}
+	else
+	{
+		if (::input->KeyState(&in_walk))
+			KeyUp(&in_walk, args[1]);
+		else
+			KeyDown(&in_walk, args[1]);
+	}
+}
+
+void IN_WalkUp(const CCommand &args)
+{
+	if (cl_walkmode.GetInt() == 0)
+	{
+		KeyUp(&in_walk, args[1]);
 	}
 }
 
@@ -1585,11 +1616,6 @@ int CInput::GetButtonBits( int bResetState )
 	//CalcButtonBits( bits, IN_ATTACK3, s_ClearInputState, &in_attack3, bResetState );
 	//CalcButtonBits( bits, IN_ATTACK3, s_ClearInputState, &in_attack3, bResetState );
 
-	if ( KeyState(&in_ducktoggle) )
-	{
-		bits |= IN_DUCK;
-	}
-
 	// Cancel is a special flag
 	if (in_cancel)
 	{
@@ -1757,10 +1783,6 @@ static ConCommand startmap("+map", IN_MapDown);
 static ConCommand endmap("-map", IN_MapUp);
 static ConCommand startshowmap("+showmap", IN_MapDown);
 static ConCommand endshowmap("-showmap", IN_MapUp);
-
-//#ifdef TF_CLIENT_DLL
-static ConCommand toggle_duck( "toggle_duck", IN_DuckToggle );
-//#endif
 
 // Xbox 360 stub commands
 static ConCommand xboxmove("xmove", IN_XboxStub);
