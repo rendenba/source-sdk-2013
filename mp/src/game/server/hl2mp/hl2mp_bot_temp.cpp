@@ -169,6 +169,8 @@ typedef struct
 
 	int				m_lastCheckedItem;
 
+	float			m_flClassChange; //duration before checking to see if we want to change teams when dead
+
 	BotRole_t		m_role;
 	int				RN;
 
@@ -376,7 +378,7 @@ CBasePlayer *BotPutInServer(bool bFrozen, CovenTeamID_t iTeam)
 		g_BotData[pPlayer->entindex() - 1].m_lastCheckedItem = 0;
 		g_BotData[pPlayer->entindex() - 1].m_lastCheckedRagdoll = 0;
 		g_BotData[pPlayer->entindex() - 1].bNotIgnoringStrikes = true;
-
+		g_BotData[pPlayer->entindex() - 1].m_flClassChange = gpGlobals->curtime + random->RandomInt(60, 120); //check class change every 60 - 120 seconds
 
 		Set_Bot_Base_Velocity(pPlayer);
 
@@ -979,6 +981,18 @@ void BotRespawn(CHL2MP_Player *pBot)
 	{
 		botdata->m_bHasNotPurchasedItems = true;
 		botdata->m_bIsPurchasingItems = random->RandomInt(0, 9) < 8; //80% chance to purchase items
+	}
+}
+
+void BotDeath(CHL2MP_Player *pBot)
+{
+	botdata_t *botdata = &g_BotData[ENTINDEX(pBot->edict()) - 1];
+
+	if (gpGlobals->curtime > botdata->m_flClassChange)
+	{
+		botdata->m_flClassChange = gpGlobals->curtime + random->RandomInt(60, 120); //check class change every 60 - 120 seconds
+		if (random->RandomInt(0, 9) < 4) //50% chance to change class
+			pBot->HandleCommand_SelectClass(0);
 	}
 }
 

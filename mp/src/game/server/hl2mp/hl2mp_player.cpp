@@ -4084,6 +4084,9 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 	else
 		covenRespawnTimer = HL2MPRules()->GetRespawnTime((CovenTeamID_t)GetTeamNumber());
 
+	if (IsBot())
+		BotDeath(this);
+
 	if (covenClassID == COVEN_CLASSID_AVENGER)
 	{
 		coven_timer_soul = -1.0f;
