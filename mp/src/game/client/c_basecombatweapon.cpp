@@ -20,6 +20,8 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+extern ConVar sv_fov_min;
+
 //-----------------------------------------------------------------------------
 // Purpose: Gets the local client's active weapon, if any.
 //-----------------------------------------------------------------------------
@@ -268,7 +270,7 @@ void C_BaseCombatWeapon::DrawCrosshair()
 	// Find out if this weapon's auto-aimed onto a target
 	bool bOnTarget = ( m_iState == WEAPON_IS_ONTARGET );
 	
-	if ( player->GetFOV() >= 90 )
+	if ( player->GetFOV() >= sv_fov_min.GetInt() )
 	{ 
 		// normal crosshairs
 		if ( bOnTarget && GetWpnData().iconAutoaim )

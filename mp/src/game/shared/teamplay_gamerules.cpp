@@ -23,6 +23,8 @@
 #include "tier0/memdbgon.h"
 
 #ifdef GAME_DLL
+extern ConVar sv_fov_max;
+extern ConVar sv_fov_min;
 static char team_names[MAX_TEAMS][MAX_TEAMNAME_LENGTH];
 static int team_scores[MAX_TEAMS];
 static int num_teams = 0;
@@ -287,6 +289,14 @@ void CTeamplayRules::ClientSettingsChanged( CBasePlayer *pPlayer )
 		}
 		
 		pPlayer->SetPlayerName( pszName );
+	}
+
+	const char *pszFov = engine->GetClientConVarValue( pPlayer->entindex(), "fov_desired" );
+	if ( pszFov )
+	{
+		int iFov = atoi(pszFov);
+		iFov = clamp( iFov, sv_fov_min.GetInt(), sv_fov_max.GetInt() );
+		pPlayer->SetDefaultFOV( iFov );
 	}
 
 	// NVNT see if this user is still or has began using a haptic device

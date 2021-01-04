@@ -37,9 +37,14 @@
 ConVar g_Language( "g_Language", "0", FCVAR_REPLICATED );
 ConVar sk_autoaim_mode( "sk_autoaim_mode", "1", FCVAR_ARCHIVE | FCVAR_REPLICATED );
 
+ConVar sv_fov_max("sv_fov_max", "90", FCVAR_NOTIFY | FCVAR_REPLICATED, "Maximum allowed client fov");
+ConVar sv_fov_min("sv_fov_min", "75", FCVAR_NOTIFY | FCVAR_REPLICATED, "Minimum allowed client fov");
+
 #ifndef CLIENT_DLL
 ConVar log_verbose_enable( "log_verbose_enable", "0", FCVAR_GAMEDLL, "Set to 1 to enable verbose server log on the server." );
 ConVar log_verbose_interval( "log_verbose_interval", "3.0", FCVAR_GAMEDLL, "Determines the interval (in seconds) for the verbose server log." );
+#else
+ConVar fov_desired("fov_desired", "90", FCVAR_ARCHIVE | FCVAR_USERINFO);
 #endif // CLIENT_DLL
 
 static CViewVectors g_DefaultViewVectors(

@@ -735,6 +735,9 @@ void CViewRender::SetUpViews()
 	float fDefaultFov = default_fov.GetFloat();
 	float flFOVOffset = fDefaultFov - view.fov;
 
+	if (pPlayer && pPlayer->GetObserverMode() == OBS_MODE_IN_EYE)
+		flFOVOffset = 0.0f;
+
 	//Adjust the viewmodel's FOV to move with any FOV offsets on the viewer's end
 	view.fovViewmodel = g_pClientMode->GetViewModelFOV() - flFOVOffset;
 
