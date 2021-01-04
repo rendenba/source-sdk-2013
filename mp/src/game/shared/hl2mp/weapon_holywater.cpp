@@ -19,7 +19,7 @@
 
 #include "weapon_ar2.h"
 #include "effect_dispatch_data.h"
-#include "weapon_hl2mpbasehlmpcombatweapon.h"
+#include "weapon_frag.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -39,9 +39,9 @@
 //-----------------------------------------------------------------------------
 // Fragmentation grenades
 //-----------------------------------------------------------------------------
-class CWeaponHolywater : public CBaseHL2MPCombatWeapon
+class CWeaponHolywater : public CWeaponFrag
 {
-	DECLARE_CLASS(CWeaponHolywater, CBaseHL2MPCombatWeapon);
+	DECLARE_CLASS(CWeaponHolywater, CWeaponFrag);
 public:
 
 	DECLARE_NETWORKCLASS();
@@ -50,81 +50,29 @@ public:
 	CWeaponHolywater();
 
 	void	Precache(void);
-	void	PrimaryAttack(void);
-	void	SecondaryAttack(void);
-	void	DecrementAmmo(CBaseCombatCharacter *pOwner);
 	void	ItemPostFrame(void);
-	virtual bool CanFire();
-	virtual bool IsGrenade() const { return true; }
-
-	bool	Deploy(void);
-	bool	Holster(CBaseCombatWeapon *pSwitchingTo = NULL);
-
-	bool	Reload(void);
-
-#ifndef CLIENT_DLL
-	void Operator_HandleAnimEvent(animevent_t *pEvent, CBaseCombatCharacter *pOperator);
-#endif
 
 	void	ThrowGrenade(CBasePlayer *pPlayer);
-	bool	IsPrimed(void) { return (m_AttackPaused != 0); }
 
 private:
 
 	void	LobGrenade(CBasePlayer *pPlayer);
+	void	RollGrenade(CBasePlayer *pPlayer) { LobGrenade(pPlayer); }
 	// check a throw from vecSrc.  If not valid, move the position back along the line to vecEye
 	void	CheckThrowPosition(CBasePlayer *pPlayer, const Vector &vecEye, Vector &vecSrc);
 
-	CNetworkVar(bool, m_bRedraw);	//Draw the weapon again after throwing a grenade
-
-	CNetworkVar(int, m_AttackPaused);
-	CNetworkVar(bool, m_fDrawbackFinished);
-
 	CWeaponHolywater(const CWeaponHolywater &);
-
-#ifndef CLIENT_DLL
-	DECLARE_ACTTABLE();
-#endif
 };
 
-#ifndef CLIENT_DLL
-
-acttable_t	CWeaponHolywater::m_acttable[] =
-{
-	{ ACT_HL2MP_IDLE, ACT_HL2MP_IDLE_GRENADE, false },
-	{ ACT_HL2MP_RUN, ACT_HL2MP_RUN_GRENADE, false },
-	{ ACT_HL2MP_IDLE_CROUCH, ACT_HL2MP_IDLE_CROUCH_GRENADE, false },
-	{ ACT_HL2MP_WALK_CROUCH, ACT_HL2MP_WALK_CROUCH_GRENADE, false },
-	{ ACT_HL2MP_GESTURE_RANGE_ATTACK, ACT_HL2MP_GESTURE_RANGE_ATTACK_GRENADE, false },
-	{ ACT_HL2MP_GESTURE_RELOAD, ACT_HL2MP_GESTURE_RELOAD_GRENADE, false },
-	{ ACT_HL2MP_JUMP, ACT_HL2MP_JUMP_GRENADE, false },
-};
-
-IMPLEMENT_ACTTABLE(CWeaponHolywater);
-
-#endif
 
 IMPLEMENT_NETWORKCLASS_ALIASED(WeaponHolywater, DT_WeaponHolywater)
 
 BEGIN_NETWORK_TABLE(CWeaponHolywater, DT_WeaponHolywater)
 
-#ifdef CLIENT_DLL
-RecvPropBool(RECVINFO(m_bRedraw)),
-RecvPropBool(RECVINFO(m_fDrawbackFinished)),
-RecvPropInt(RECVINFO(m_AttackPaused)),
-#else
-SendPropBool(SENDINFO(m_bRedraw)),
-SendPropBool(SENDINFO(m_fDrawbackFinished)),
-SendPropInt(SENDINFO(m_AttackPaused)),
-#endif
-
 END_NETWORK_TABLE()
 
 #ifdef CLIENT_DLL
 BEGIN_PREDICTION_DATA(CWeaponHolywater)
-DEFINE_PRED_FIELD(m_bRedraw, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE),
-DEFINE_PRED_FIELD(m_fDrawbackFinished, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE),
-DEFINE_PRED_FIELD(m_AttackPaused, FIELD_INTEGER, FTYPEDESC_INSENDTABLE),
 END_PREDICTION_DATA()
 #endif
 
@@ -132,9 +80,9 @@ LINK_ENTITY_TO_CLASS(weapon_holywater, CWeaponHolywater);
 PRECACHE_WEAPON_REGISTER(weapon_holywater);
 
 CWeaponHolywater::CWeaponHolywater(void) :
-CBaseHL2MPCombatWeapon()
+CWeaponFrag()
 {
-	m_bRedraw = false;
+	m_GrenadeType = GRENADE_TYPE_HOLYWATER;
 }
 
 //-----------------------------------------------------------------------------
@@ -147,186 +95,6 @@ void CWeaponHolywater::Precache(void)
 #ifndef CLIENT_DLL
 	UTIL_PrecacheOther("grenade_hh");
 #endif
-
-	PrecacheScriptSound("WeaponFrag.Throw");
-	PrecacheScriptSound("WeaponFrag.Roll");
-}
-
-bool CWeaponHolywater::CanFire()
-{
-	return !IsPrimed();
-}
-
-#ifndef CLIENT_DLL
-//-----------------------------------------------------------------------------
-// Purpose: 
-// Input  : *pEvent - 
-//			*pOperator - 
-//-----------------------------------------------------------------------------
-void CWeaponHolywater::Operator_HandleAnimEvent(animevent_t *pEvent, CBaseCombatCharacter *pOperator)
-{
-	CBasePlayer *pOwner = ToBasePlayer(GetOwner());
-	bool fThrewGrenade = false;
-
-	switch (pEvent->event)
-	{
-	case EVENT_WEAPON_SEQUENCE_FINISHED:
-		m_fDrawbackFinished = true;
-		break;
-
-	case EVENT_WEAPON_THROW:
-		ThrowGrenade(pOwner);
-		DecrementAmmo(pOwner);
-		fThrewGrenade = true;
-		break;
-
-	case EVENT_WEAPON_THROW2:
-		LobGrenade(pOwner);
-		DecrementAmmo(pOwner);
-		fThrewGrenade = true;
-		break;
-
-	case EVENT_WEAPON_THROW3:
-		LobGrenade(pOwner);
-		DecrementAmmo(pOwner);
-		fThrewGrenade = true;
-		break;
-
-	default:
-		BaseClass::Operator_HandleAnimEvent(pEvent, pOperator);
-		break;
-	}
-
-#define RETHROW_DELAY	0.5
-	if (fThrewGrenade)
-	{
-		m_flNextPrimaryAttack = gpGlobals->curtime + RETHROW_DELAY;
-		m_flNextSecondaryAttack = gpGlobals->curtime + RETHROW_DELAY;
-		m_flTimeWeaponIdle = FLT_MAX; //NOTE: This is set once the animation has finished up!
-	}
-}
-
-#endif
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-bool CWeaponHolywater::Deploy(void)
-{
-	m_bRedraw = false;
-	m_fDrawbackFinished = false;
-
-	return BaseClass::Deploy();
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-// Output : Returns true on success, false on failure.
-//-----------------------------------------------------------------------------
-bool CWeaponHolywater::Holster(CBaseCombatWeapon *pSwitchingTo)
-{
-	m_bRedraw = false;
-	m_fDrawbackFinished = false;
-
-	return BaseClass::Holster(pSwitchingTo);
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-// Output : Returns true on success, false on failure.
-//-----------------------------------------------------------------------------
-bool CWeaponHolywater::Reload(void)
-{
-	if (!HasPrimaryAmmo())
-		return false;
-
-	if ((m_bRedraw) && (m_flNextPrimaryAttack <= gpGlobals->curtime) && (m_flNextSecondaryAttack <= gpGlobals->curtime))
-	{
-		//Redraw the weapon
-		SendWeaponAnim(ACT_VM_DRAW);
-
-		//Update our times
-		m_flNextPrimaryAttack = gpGlobals->curtime + SequenceDuration();
-		m_flNextSecondaryAttack = gpGlobals->curtime + SequenceDuration();
-		m_flTimeWeaponIdle = gpGlobals->curtime + SequenceDuration();
-
-		//Mark this as done
-		m_bRedraw = false;
-	}
-
-	return true;
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-void CWeaponHolywater::SecondaryAttack(void)
-{
-	if (m_bRedraw)
-		return;
-
-	if (!HasPrimaryAmmo())
-		return;
-
-	CBaseCombatCharacter *pOwner = GetOwner();
-
-	if (pOwner == NULL)
-		return;
-
-	CBasePlayer *pPlayer = ToBasePlayer(pOwner);
-
-	if (pPlayer == NULL)
-		return;
-
-	// Note that this is a secondary attack and prepare the grenade attack to pause.
-	m_AttackPaused = GRENADE_HH_PAUSED_SECONDARY;
-	SendWeaponAnim(ACT_VM_PULLBACK_LOW);
-
-	// Don't let weapon idle interfere in the middle of a throw!
-	m_flTimeWeaponIdle = FLT_MAX;
-	m_flNextSecondaryAttack = FLT_MAX;
-
-	// If I'm now out of ammo, switch away
-	if (!HasPrimaryAmmo())
-	{
-		pPlayer->SwitchToNextBestWeapon(this);
-	}
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-//-----------------------------------------------------------------------------
-void CWeaponHolywater::PrimaryAttack(void)
-{
-	if (m_bRedraw)
-		return;
-
-	CBaseCombatCharacter *pOwner = GetOwner();
-
-	if (pOwner == NULL)
-	{
-		return;
-	}
-
-	CBasePlayer *pPlayer = ToBasePlayer(GetOwner());;
-
-	if (!pPlayer)
-		return;
-
-	// Note that this is a primary attack and prepare the grenade attack to pause.
-	m_AttackPaused = GRENADE_HH_PAUSED_PRIMARY;
-	SendWeaponAnim(ACT_VM_PULLBACK_HIGH);
-
-	// Put both of these off indefinitely. We do not know how long
-	// the player will hold the grenade.
-	m_flTimeWeaponIdle = FLT_MAX;
-	m_flNextPrimaryAttack = FLT_MAX;
-
-	// If I'm now out of ammo, switch away
-	if (!HasPrimaryAmmo())
-	{
-		pPlayer->SwitchToNextBestWeapon(this);
-	}
 }
 
 void DropPrimedHolyWaterGrenade(CHL2MP_Player *pPlayer, CBaseCombatWeapon *pGrenade)
@@ -338,15 +106,6 @@ void DropPrimedHolyWaterGrenade(CHL2MP_Player *pPlayer, CBaseCombatWeapon *pGren
 		pWeaponHW->ThrowGrenade(pPlayer);
 		pWeaponHW->DecrementAmmo(pPlayer);
 	}
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: 
-// Input  : *pOwner - 
-//-----------------------------------------------------------------------------
-void CWeaponHolywater::DecrementAmmo(CBaseCombatCharacter *pOwner)
-{
-	pOwner->RemoveAmmo(1, m_iPrimaryAmmoType);
 }
 
 //-----------------------------------------------------------------------------
@@ -367,6 +126,7 @@ void CWeaponHolywater::ItemPostFrame(void)
 				{
 					SendWeaponAnim(ACT_VM_THROW);
 					m_fDrawbackFinished = false;
+					m_AttackPaused = GRENADE_HH_PAUSED_NO;
 				}
 				break;
 
@@ -386,6 +146,7 @@ void CWeaponHolywater::ItemPostFrame(void)
 					}
 
 					m_fDrawbackFinished = false;
+					m_AttackPaused = GRENADE_HH_PAUSED_NO;
 				}
 				break;
 
@@ -395,7 +156,8 @@ void CWeaponHolywater::ItemPostFrame(void)
 		}
 	}
 
-	BaseClass::ItemPostFrame();
+	//HACK! skip base frag grenade call
+	CBaseHL2MPCombatWeapon::ItemPostFrame();
 
 	if (m_bRedraw)
 	{

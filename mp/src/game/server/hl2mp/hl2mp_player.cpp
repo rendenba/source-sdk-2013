@@ -82,7 +82,8 @@ extern ConVar sv_coven_regen_percent;
 
 #define HL2MP_COMMAND_MAX_RATE 0.3
 
-void DropPrimedFragGrenade( CHL2MP_Player *pPlayer, CBaseCombatWeapon *pGrenade );
+void DropPrimedFragGrenade(CHL2MP_Player *pPlayer, CBaseCombatWeapon *pGrenade);
+void DropPrimedStunFragGrenade(CHL2MP_Player *pPlayer, CBaseCombatWeapon *pGrenade);
 void DropPrimedHolyWaterGrenade(CHL2MP_Player *pPlayer, CBaseCombatWeapon *pGrenade);
 
 LINK_ENTITY_TO_CLASS( player, CHL2MP_Player );
@@ -3972,7 +3973,7 @@ void CHL2MP_Player::Weapon_Drop( CBaseCombatWeapon *pWeapon, const Vector *pvecT
 		{
 			if (((m_nButtons & IN_ATTACK) || (m_nButtons & IN_ATTACK2)) && pGrenade->IsPrimed())
 			{
-				DropPrimedFragGrenade(this, pGrenade);
+				DropPrimedStunFragGrenade(this, pGrenade);
 			}
 		}
 

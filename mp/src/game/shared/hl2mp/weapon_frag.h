@@ -3,6 +3,7 @@
 
 #include "cbase.h"
 #include "weapon_hl2mpbasehlmpcombatweapon.h"
+#include "basegrenade_shared.h"
 
 #ifdef CLIENT_DLL
 #define CWeaponFrag C_WeaponFrag
@@ -25,7 +26,7 @@ public:
 	void	PrimaryAttack(void);
 	void	SecondaryAttack(void);
 	void	DecrementAmmo(CBaseCombatCharacter *pOwner);
-	void	ItemPostFrame(void);
+	virtual void	ItemPostFrame(void);
 	virtual bool CanFire();
 
 	bool	Deploy(void);
@@ -33,26 +34,23 @@ public:
 
 	virtual bool	IsGrenade() const { return true; }
 
+	GrenadeType_t	GrenadeType() const { return m_GrenadeType; }
+
 	bool	Reload(void);
 
 #ifndef CLIENT_DLL
 	void Operator_HandleAnimEvent(animevent_t *pEvent, CBaseCombatCharacter *pOperator);
 #endif
 
-	void	ThrowGrenade(CBasePlayer *pPlayer);
+	virtual void	ThrowGrenade(CBasePlayer *pPlayer);
 	bool	IsPrimed(void) { return (m_AttackPaused != 0); }
 
 private:
 
-	void	RollGrenade(CBasePlayer *pPlayer);
-	void	LobGrenade(CBasePlayer *pPlayer);
+	virtual void	RollGrenade(CBasePlayer *pPlayer);
+	virtual void	LobGrenade(CBasePlayer *pPlayer);
 	// check a throw from vecSrc.  If not valid, move the position back along the line to vecEye
-	void	CheckThrowPosition(CBasePlayer *pPlayer, const Vector &vecEye, Vector &vecSrc);
-
-	CNetworkVar(bool, m_bRedraw);	//Draw the weapon again after throwing a grenade
-
-	CNetworkVar(int, m_AttackPaused);
-	CNetworkVar(bool, m_fDrawbackFinished);
+	virtual void	CheckThrowPosition(CBasePlayer *pPlayer, const Vector &vecEye, Vector &vecSrc);
 
 	float m_flCookTime;
 	float m_flNextBlipTime;
@@ -69,6 +67,11 @@ protected:
 	GrenadeType_t m_GrenadeType;
 	float	m_flGrenadeRadius;
 	float	m_flGrenadeDamageRadius;
+
+	CNetworkVar(bool, m_bRedraw);	//Draw the weapon again after throwing a grenade
+
+	CNetworkVar(int, m_AttackPaused);
+	CNetworkVar(bool, m_fDrawbackFinished);
 };
 
 #endif

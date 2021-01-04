@@ -20,6 +20,7 @@
 #include "hl2mp_bot_temp.h"
 #include "covenbuilding.h"
 #include "coven_turret.h"
+#include "weapon_frag.h"
 
 void ClientPutInServer( edict_t *pEdict, const char *playername );
 void Bot_Think( CHL2MP_Player *pBot );
@@ -893,29 +894,29 @@ unsigned int WeaponCheck(CHL2MP_Player *pBot)
 						}
 						else if (pActiveWeapon == pHolyWater)
 						{
-							if (botdata->m_flLastCombatDist < 350.0f)
+							if (botdata->m_flLastCombatDist < 250.0f)
 							{
 								pBot->SwitchToNextBestWeapon(pActiveWeapon);
 							}
 						}
 						else if (pActiveWeapon == pFrag || pActiveWeapon == pStunFrag)
 						{
-							if (botdata->m_flLastCombatDist < 550.0f)
+							if (botdata->m_flLastCombatDist < 400.0f)
 							{
 								pBot->SwitchToNextBestWeapon(pActiveWeapon);
 							}
 						}
 						else
 						{
-							if (pHolyWater && pHolyWater->HasAmmo() && botdata->m_flLastCombatDist >= 350.0f && botdata->m_flLastCombatDist < 500.0f)
+							if (pHolyWater && pHolyWater->HasAmmo() && botdata->m_flLastCombatDist >= 250.0f && botdata->m_flLastCombatDist < 450.0f)
 							{
 								pBot->Weapon_Switch(pHolyWater);
 							}
-							else if (pFrag && pFrag->HasAmmo() && botdata->m_flLastCombatDist >= 550.0f)
+							else if (pFrag && pFrag->HasAmmo() && botdata->m_flLastCombatDist >= 400.0f)
 							{
 								pBot->Weapon_Switch(pFrag);
 							}
-							else if (pStunFrag && pStunFrag->HasAmmo() && botdata->m_flLastCombatDist >= 550.0f)
+							else if (pStunFrag && pStunFrag->HasAmmo() && botdata->m_flLastCombatDist >= 400.0f)
 							{
 								pBot->Weapon_Switch(pStunFrag);
 							}
@@ -2197,8 +2198,9 @@ void Bot_Think( CHL2MP_Player *pBot )
 				VectorAngles(forward, botdata->combatAngle);
 				if (!isVampDoll)
 				{
+					CBaseCombatWeapon *pActiveWeapon = pBot->GetActiveWeapon();
 					UTIL_TraceLine(pBot->EyePosition(), pPlayer->GetPlayerMidPoint(), MASK_SHOT, pBot, COLLISION_GROUP_PLAYER, &trace);
-					float attackDot = pBot->GetTeamNumber() == COVEN_TEAMID_VAMPIRES ? DOT_45DEGREE : pBot->GetActiveWeapon()->IsGrenade() ? DOT_25DEGREE : BOT_ATTACK_DOT_STRICT;
+					float attackDot = pBot->GetTeamNumber() == COVEN_TEAMID_VAMPIRES ? DOT_45DEGREE : (pActiveWeapon && pActiveWeapon->IsGrenade()) ? DOT_25DEGREE : BOT_ATTACK_DOT_STRICT;
 					if ((trace.DidHitNonWorldEntity() || trace.fraction == 1.0f) && (botdata->m_lastPlayerDot > attackDot || !pPlayer->IsPlayer()))
 					{
 						bool bSwing = true;
@@ -2212,10 +2214,41 @@ void Bot_Think( CHL2MP_Player *pBot )
 							if (pBot->HasStatus(COVEN_STATUS_DODGE) && (gpGlobals->curtime < botdata->m_flAbilityTimer[pBot->AbilityKey(COVEN_ABILITY_DODGE)] || botdata->m_flLastCombatDist > 64.0f))
 								bSwing = false;
 						}
-						if (bSwing)
+						if (bSwing && pActiveWeapon)
 						{
-							CBaseCombatWeapon *pActiveWeapon = pBot->GetActiveWeapon();
-							if (pActiveWeapon && pActiveWeapon->CanFire())
+							
+							if (pActiveWeapon->IsGrenade())
+							{
+								CWeaponFrag *pGrenade = static_cast<CWeaponFrag *>(pActiveWeapon);
+								if (pGrenade)
+								{
+									if (pGrenade->CanFire())
+									{
+										switch (pGrenade->GrenadeType())
+										{
+										case GRENADE_TYPE_FRAG:
+										case GRENADE_TYPE_STUN:
+											if (botdata->m_flLastCombatDist < 475.0f)
+												buttons |= IN_ATTACK2;
+											else
+												buttons |= IN_ATTACK;
+											break;
+										case GRENADE_TYPE_HOLYWATER:
+											if (botdata->m_flLastCombatDist < 300.0f)
+												buttons |= IN_ATTACK2;
+											else
+												buttons |= IN_ATTACK;
+											break;
+										default:
+											break;
+										}
+
+									}
+									else
+										buttons &= ~(IN_ATTACK | IN_ATTACK2);
+								}
+							}
+							else if (pActiveWeapon->CanFire())
 								buttons |= IN_ATTACK;
 						}
 					}
