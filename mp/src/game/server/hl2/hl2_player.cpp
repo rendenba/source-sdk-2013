@@ -518,7 +518,7 @@ bool CHL2_Player::UseCovenItem(CovenItemID_t iItemType)
 			CancelDeferredAction();
 		if (info->flUseTime > 0.0f)
 		{
-			if (QueueDeferredAction((CovenDeferredAction_t)iItemType, (info->iFlags & ITEM_FLAG_MOVEMENT_CANCEL) > 0, gpGlobals->curtime + info->flUseTime))
+			if (QueueDeferredAction((CovenDeferredAction_t)iItemType, (info->iFlags & ITEM_FLAG_MOVEMENT_CANCEL) > 0, info->flUseTime))
 			{
 				EmitSound(info->aSounds[COVEN_SND_START]);
 			}
@@ -551,7 +551,8 @@ void CHL2_Player::ActivateCovenItem(CovenItemID_t iItemType)
 		}
 		case COVEN_ITEM_PILLS:
 		{
-			AddStatus(COVEN_STATUS_HASTE, GetStatusMagnitude(COVEN_STATUS_HASTE) + info->iMagnitude, gpGlobals->curtime + info->flDuration, false, false);
+			int iMagnitude = min(GetStatusMagnitude(COVEN_STATUS_HASTE) + info->iMagnitude, info->flMaximum);
+			AddStatus(COVEN_STATUS_HASTE, iMagnitude, gpGlobals->curtime + info->flDuration, false, false);
 			break;
 		}
 		default:
@@ -657,13 +658,15 @@ bool CHL2_Player::IsDistanceRestricted(void)
 	return m_hRestrictedUseObj != NULL;
 }
 
-bool CHL2_Player::QueueDeferredAction(CovenDeferredAction_t iAction, bool bMoveCancel, float flTime, bool bSwallowUseKey, CBaseEntity *pUseEnt, float flRestrictDistance)
+bool CHL2_Player::QueueDeferredAction(CovenDeferredAction_t iAction, bool bMoveCancel, float flDuration, bool bSwallowUseKey, CBaseEntity *pUseEnt, float flRestrictDistance)
 {
 	CBaseCombatWeapon *pWeap = GetActiveWeapon();
 	if (pWeap && pWeap->Holster())
 	{
 		m_HL2Local.covenAction = iAction;
-		m_HL2Local.covenActionTimer = flTime;
+		if (HasStatus(COVEN_STATUS_HASTE))
+			flDuration *= 1.0f - 0.01f * GetStatusMagnitude(COVEN_STATUS_HASTE);
+		m_HL2Local.covenActionTimer = gpGlobals->curtime + flDuration;
 		m_bMoveCancelAction = bMoveCancel;
 		m_bBlockUse = bSwallowUseKey;
 		m_flRestrictedUseDistance = flRestrictDistance;
@@ -800,9 +803,11 @@ void CHL2_Player::ResetCovenStatus()
 }
 
 
-void CHL2_Player::SetCooldown(int iAbilityNum, float flTime)
+void CHL2_Player::SetCooldown(int iAbilityNum, float flDuration)
 {
-	m_HL2Local.covenCooldownTimers.Set(iAbilityNum, flTime);
+	if (HasStatus(COVEN_STATUS_HASTE))
+		flDuration *= 1.0f - 0.01f * GetStatusMagnitude(COVEN_STATUS_HASTE);
+	m_HL2Local.covenCooldownTimers.Set(iAbilityNum, gpGlobals->curtime + flDuration);
 }
 
 float CHL2_Player::GetCooldown(int iAbilityNum)
@@ -1028,7 +1033,10 @@ void CHL2_Player::ResetVitals(void)
 
 void CHL2_Player::TriggerGCD(void)
 {
-	m_HL2Local.covenGCD = gpGlobals->curtime + sv_coven_gcd.GetFloat();
+	float GCD = sv_coven_gcd.GetFloat();
+	if (HasStatus(COVEN_STATUS_HASTE))
+		GCD *= 1.0f - 0.01f * GetStatusMagnitude(COVEN_STATUS_HASTE);
+	m_HL2Local.covenGCD = gpGlobals->curtime + GCD;
 }
 
 void CHL2_Player::ResetFedHP(int iIndex)

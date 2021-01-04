@@ -36,7 +36,7 @@ void CCoven_APCProp::Use(CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE
 				if (pHL2Player->IsPerformingDeferredAction())
 					pHL2Player->CancelDeferredAction();
 				CovenItemInfo_t *info = GetCovenItemData(COVEN_ITEM_GASOLINE);
-				pHL2Player->QueueDeferredAction(COVEN_ACTION_REFUEL, (info->iFlags & ITEM_FLAG_MOVEMENT_CANCEL) > 0, gpGlobals->curtime + info->flUseTime, true, this, sv_coven_refuel_distance.GetFloat());
+				pHL2Player->QueueDeferredAction(COVEN_ACTION_REFUEL, (info->iFlags & ITEM_FLAG_MOVEMENT_CANCEL) > 0, info->flUseTime, true, this, sv_coven_refuel_distance.GetFloat());
 				pHL2Player->EmitSound(info->aSounds[COVEN_SND_START]);
 			}
 			else

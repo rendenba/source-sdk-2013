@@ -425,7 +425,7 @@ void CHL2MP_Player::SlayerSoulThink()
 		{
 			coven_timer_soul = -1.0f;
 			SuitPower_RemoveDeviceBits( bits_COVEN_VENGE );
-			SetCooldown(3, gpGlobals->curtime + 3.0f);
+			SetCooldown(3, 3.0f);
 			UnleashSoul();
 			coven_soul_power = 0;
 		}
@@ -513,7 +513,7 @@ bool CHL2MP_Player::BuildDispenser(int iAbilityNum)
 		return false;
 
 	SuitPower_Drain(info->flCost);
-	SetCooldown(iAbilityNum, gpGlobals->curtime + info->flCooldown);
+	SetCooldown(iAbilityNum, info->flCooldown);
 	if (m_hDispenser != NULL)
 	{
 		CCovenBuilding *building = ToCovenBuilding(m_hDispenser);
@@ -551,7 +551,7 @@ bool CHL2MP_Player::BuildTurret(int iAbilityNum)
 		return false;
 
 	SuitPower_Drain(info->flCost);
-	SetCooldown(iAbilityNum, gpGlobals->curtime + info->flCooldown);
+	SetCooldown(iAbilityNum, info->flCooldown);
 	if (m_hTurret != NULL)
 	{
 		CCovenBuilding *building = ToCovenBuilding(m_hTurret);
@@ -614,7 +614,7 @@ void CHL2MP_Player::BoostStats(CovenAbility_t iReason, int iAbilityNum)
 	{
 		AddStatus(COVEN_STATUS_STATBOOST, info->iMagnitude, gpGlobals->curtime + info->flDuration, true, false);//BB: reset time if same magnitude
 		SuitPower_Drain(info->flCost);
-		SetCooldown(iAbilityNum, gpGlobals->curtime + info->flCooldown);
+		SetCooldown(iAbilityNum, info->flCooldown);
 	}
 
 	EmitSound(info->aSounds[COVEN_SND_START]);
@@ -688,7 +688,7 @@ bool CHL2MP_Player::DoGorePhase(int iAbilityNum)
 	float cloak = 1.0f;
 	if (gorephased)
 	{
-		SetCooldown(iAbilityNum, gpGlobals->curtime + abilityInfo->flCooldown);
+		SetCooldown(iAbilityNum, abilityInfo->flCooldown);
 		EmitSound(abilityInfo->aSounds[COVEN_SND_START]);
 		SuitPower_AddDrain(abilityInfo->flDrain);
 		//AddEffects(EF_NODRAW);
@@ -788,7 +788,7 @@ void CHL2MP_Player::UnDodge()
 	CovenAbilityInfo_t *info = GetCovenAbilityData(COVEN_ABILITY_DODGE);
 	RemoveStatus(COVEN_STATUS_DODGE);
 	SuitPower_RemoveDrain(info->flDrain);
-	SetCooldown(AbilityKey(COVEN_ABILITY_DODGE), gpGlobals->curtime + info->flCooldown);
+	SetCooldown(AbilityKey(COVEN_ABILITY_DODGE), info->flCooldown);
 	SetRenderColorA(255);
 	if (GetActiveWeapon())
 	{
@@ -973,7 +973,7 @@ bool CHL2MP_Player::ToggleHaste(int iAbilityNum)
 	if (HasStatus(COVEN_STATUS_HASTE))
 	{
 		RemoveStatus(COVEN_STATUS_HASTE);
-		SetCooldown(iAbilityNum, gpGlobals->curtime + info->flCooldown);
+		SetCooldown(iAbilityNum, info->flCooldown);
 		SuitPower_RemoveDrain(info->flDrain);
 		ComputeSpeed();
 		return true;
@@ -994,7 +994,7 @@ void CHL2MP_Player::DoRadiusAbility(CovenAbility_t iAbility, int iAbilityNum, in
 	int iTeam = bSameTeam ? GetTeamNumber() : (GetTeamNumber() == COVEN_TEAMID_SLAYERS ? COVEN_TEAMID_VAMPIRES : COVEN_TEAMID_SLAYERS);
 	CovenAbilityInfo_t *info = GetCovenAbilityData(iAbility);
 	EmitSound(info->aSounds[COVEN_SND_START]);
-	SetCooldown(iAbilityNum, gpGlobals->curtime + info->flCooldown);
+	SetCooldown(iAbilityNum, info->flCooldown);
 	GiveBuffInRadius(iTeam, iBuff, info->iMagnitude, info->flDuration, info->flRange);
 	SuitPower_Drain(info->flCost);
 }
@@ -1002,7 +1002,7 @@ void CHL2MP_Player::DoRadiusAbility(CovenAbility_t iAbility, int iAbilityNum, in
 void CHL2MP_Player::Dash(int iAbilityNum)
 {
 	CovenAbilityInfo_t *abilityInfo = GetCovenAbilityData(COVEN_ABILITY_DASH);
-	SetCooldown(iAbilityNum, gpGlobals->curtime + abilityInfo->flCooldown);
+	SetCooldown(iAbilityNum, abilityInfo->flCooldown);
 	AngleVectors(EyeAngles(), &lock_dash);
 	VectorNormalize(lock_dash);
 	lock_dash.z = 0.0f;
@@ -1017,7 +1017,7 @@ void CHL2MP_Player::DoInnerLight(int iAbilityNum)
 {
 	CovenAbilityInfo_t *info = GetCovenAbilityData(COVEN_ABILITY_INNERLIGHT);
 	EmitSound(info->aSounds[COVEN_SND_START]);
-	SetCooldown(iAbilityNum, gpGlobals->curtime + info->flCooldown);
+	SetCooldown(iAbilityNum, info->flCooldown);
 	Vector vecReported = GetLocalOrigin();
 	CTakeDamageInfo dmg(this, this, vec3_origin, GetAbsOrigin(), info->flCost * random->RandomFloat(0.6f, 2.2f), DMG_GENERIC, 0, &vecReported);
 	AddStatusMagDur(COVEN_STATUS_INNERLIGHT, info->flDrain);
@@ -1111,7 +1111,7 @@ void CHL2MP_Player::BloodExplode(int iAbilityNum)
 	float magnitude = abilityInfo->flDrain;
 	if (SuitPower_GetCurrentPercentage() < magnitude)
 		magnitude = SuitPower_GetCurrentPercentage();
-	SetCooldown(iAbilityNum, gpGlobals->curtime + abilityInfo->flCooldown);
+	SetCooldown(iAbilityNum, abilityInfo->flCooldown);
 	SuitPower_Drain(magnitude);
 
 	float m_DmgRadius = 51.2f;
@@ -1190,7 +1190,7 @@ void CHL2MP_Player::BloodExplode(int iAbilityNum)
 void CHL2MP_Player::DoBerserk(int iAbilityNum)
 {
 	CovenAbilityInfo_t *info = GetCovenAbilityData(COVEN_ABILITY_BERSERK);
-	SetCooldown(iAbilityNum, gpGlobals->curtime + info->flCooldown);
+	SetCooldown(iAbilityNum, info->flCooldown);
 	AddStatus(COVEN_STATUS_BERSERK, info->iMagnitude, gpGlobals->curtime + info->flDuration, true);
 	EmitSound(info->aSounds[COVEN_SND_START]);
 	SuitPower_Drain(info->flCost);
@@ -1327,7 +1327,7 @@ bool CHL2MP_Player::SpendPoint(int on)
 				covenLevelsSpent[t][covenClassID - 1]++;
 				covenLoadouts[t][covenClassID - 1][on]++;
 			}
-			SetCooldown(on, gpGlobals->curtime);
+			SetCooldown(on, 0.0f);
 		}
 	}
 	else
@@ -1363,7 +1363,7 @@ bool CHL2MP_Player::SpendPointBOT(int on)
 				covenLevelsSpent[t][covenClassID - 1]++;
 				covenLoadouts[t][covenClassID - 1][on]++;
 			}
-			SetCooldown(on, gpGlobals->curtime);
+			SetCooldown(on, 0.0f);
 		}
 	}
 
@@ -1440,7 +1440,7 @@ bool CHL2MP_Player::AttachTripmine(int iAbilityNum)
 
 			AddTripmine();
 			SuitPower_Drain(info->flCost);
-			SetCooldown(iAbilityNum, gpGlobals->curtime + info->flCooldown);
+			SetCooldown(iAbilityNum, info->flCooldown);
 			return true;
 		}
 	}
@@ -1605,7 +1605,7 @@ void CHL2MP_Player::CovenGiveAmmo(float flAmount, int iMin, float fCrateLevel)
 			}
 
 			if (iGiven > 0)
-				SetCooldown(key, gpGlobals->curtime + abilInfo->flCooldown);
+				SetCooldown(key, abilInfo->flCooldown);
 		}
 	}
 }
@@ -2225,7 +2225,7 @@ void CHL2MP_Player::DoLeap(int iAbilityNum)
 	//Msg("%f\n", force.z);
 	force.z = force.z*0.92f;
 	EmitSound(info->aSounds[COVEN_SND_START]);
-	SetCooldown(iAbilityNum, gpGlobals->curtime + info->flCooldown);
+	SetCooldown(iAbilityNum, info->flCooldown);
 	//force = 780 * force;
 	//VectorAdd(GetLocalVelocity(), force, force);
 	//force.z += 1.5*sqrt(2 * 800.0f * 21.0f);
@@ -2492,7 +2492,7 @@ void CHL2MP_Player::CheckGore()
 			SuitPower_RemoveDrain(abilityInfo->flDrain);
 			gorelock = GORELOCK_NONE;
 			ComputeSpeed();
-			SetCooldown(slot, gpGlobals->curtime + abilityInfo->flCooldown);
+			SetCooldown(slot, abilityInfo->flCooldown);
 			zContrib.z = MIN(zContrib.z, 0);
 			if (GetGroundEntity() == NULL)
 				SetAbsVelocity(COVEN_ABS_MAX_VELOCITY * lock_ts + zContrib);
@@ -4523,7 +4523,7 @@ void CHL2MP_Player::EnergyHandler()
 	{
 		RemoveEffects( EF_DIMLIGHT );
 		SuitPower_ResetDrain();
-		SetCooldown(3, gpGlobals->curtime + 3.0f);
+		SetCooldown(3, 3.0f);
 	
 		if( IsAlive() )
 		{
@@ -4535,7 +4535,7 @@ void CHL2MP_Player::EnergyHandler()
 	{
 		RemoveStatus(COVEN_STATUS_HASTE);
 		ComputeSpeed();
-		SetCooldown(0, gpGlobals->curtime + 3.0f);
+		SetCooldown(0, 3.0f);
 		SuitPower_ResetDrain();
 		if (IsAlive())
 		{
@@ -4755,7 +4755,7 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 		{
 			CovenAbilityInfo_t *abilityInfo = GetCovenAbilityData(COVEN_ABILITY_GUTCHECK);
 			RemoveStatus(COVEN_STATUS_GUTCHECK);
-			SetCooldown(AbilityKey(COVEN_ABILITY_GUTCHECK), gpGlobals->curtime + abilityInfo->flCooldown);
+			SetCooldown(AbilityKey(COVEN_ABILITY_GUTCHECK), abilityInfo->flCooldown);
 			EmitSound(abilityInfo->aSounds[COVEN_SND_START]);
 			inputInfoAdjust.SetDamage(0.01f * abilityInfo->iMagnitude * inputInfoAdjust.GetDamage());
 		}

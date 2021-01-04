@@ -338,7 +338,7 @@ public:
 	void ClearCovenAbilities();
 	void SetCovenAbility(int iAbilityNum, CovenAbility_t iValue);
 	CovenAbility_t GetCovenAbility(int iAbilityNum);
-	void SetCooldown(int iAbilityNum, float flTime);
+	void SetCooldown(int iAbilityNum, float flDuration);
 	float GetCooldown(int iAbilityNum);
 	bool IsInCooldown(int iAbilityNum);
 	void SetStatusTime(CovenStatus_t iStatusNum, float flTime);
@@ -381,7 +381,7 @@ public:
 	bool			MovementCancelActionCheck(void);
 	bool			DistanceCancelActionCheck(void);
 	bool			IsDistanceRestricted(void);
-	bool			QueueDeferredAction(CovenDeferredAction_t iAction, bool bMoveCancel, float flTime, bool bSwallowUseKey = false, CBaseEntity *pUseEnt = NULL, float flRestrictDistance = FLT_MAX);
+	bool			QueueDeferredAction(CovenDeferredAction_t iAction, bool bMoveCancel, float flDuration, bool bSwallowUseKey = false, CBaseEntity *pUseEnt = NULL, float flRestrictDistance = FLT_MAX);
 
 	bool gorephased;
 	CHandle<CItem> hCarriedItem;
