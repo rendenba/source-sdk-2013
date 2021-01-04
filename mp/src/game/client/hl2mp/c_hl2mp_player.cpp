@@ -259,20 +259,18 @@ void C_HL2MP_Player::ClientThink( void )
 				//Double check color
 				if (CBasePlayer::GetLocalPlayer()->GetTeamNumber() == COVEN_TEAMID_SPECTATOR)
 				{
-					if (m_clrOldGlowColor.r == 0)
+					if (m_clrOldGlowColor.r != 255)
 					{
-						m_clrOldGlowColor.r = 255;
+						m_clrOldGlowColor.a = m_clrOldGlowColor.r = 255;
 						m_clrOldGlowColor.g = 0;
-						ForceGlowEffect(m_clrOldGlowColor, false, true, 250.0f);
 					}
 				}
 				else
 				{
-					if (m_clrOldGlowColor.r == 255)
+					if (m_clrOldGlowColor.g != 255)
 					{
 						m_clrOldGlowColor.r = 0;
-						m_clrOldGlowColor.g = 255;
-						ForceGlowEffect(m_clrOldGlowColor, false, true, 250.0f);
+						m_clrOldGlowColor.a = m_clrOldGlowColor.g = 255;
 					}
 				}
 			}
