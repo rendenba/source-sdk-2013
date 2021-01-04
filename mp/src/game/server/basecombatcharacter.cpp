@@ -379,7 +379,7 @@ bool CBaseCombatCharacter::FVisible( CBaseEntity *pEntity, int traceMask, CBaseE
 				}
 			}
 			if (pEntity->IsPlayer())
-				return bCachedResult && pEntity->MyCombatCharacterPointer()->m_floatCloakFactor < 0.9f;
+				return bCachedResult && pEntity->MyCombatCharacterPointer()->m_floatCloakFactor.Get() < 1.0f - COVEN_MIN_CLOAK_CROUCH * 1.2f;
 			return bCachedResult;
 		}
 	}
@@ -393,7 +393,7 @@ bool CBaseCombatCharacter::FVisible( CBaseEntity *pEntity, int traceMask, CBaseE
 		{
 			if (pEntity->IsPlayer())
 			{
-				return BaseClass::FVisible(pEntity, traceMask, ppBlocker) && pEntity->MyCombatCharacterPointer()->m_floatCloakFactor < 0.9f;
+				return BaseClass::FVisible(pEntity, traceMask, ppBlocker) && pEntity->MyCombatCharacterPointer()->m_floatCloakFactor.Get() < 1.0f - COVEN_MIN_CLOAK_CROUCH * 1.2f;
 			}
 
 			return BaseClass::FVisible( pEntity, traceMask, ppBlocker );
@@ -409,7 +409,7 @@ bool CBaseCombatCharacter::FVisible( CBaseEntity *pEntity, int traceMask, CBaseE
 	bool bResult = BaseClass::FVisible( pEntity, traceMask, ppBlocker );
 	if (pEntity->IsPlayer())
 	{
-		bResult = bResult && pEntity->MyCombatCharacterPointer()->m_floatCloakFactor < 0.9f;
+		bResult = bResult && pEntity->MyCombatCharacterPointer()->m_floatCloakFactor.Get() < 1.0f - COVEN_MIN_CLOAK_CROUCH * 1.2f;
 	}
 
 	if ( !bResult )

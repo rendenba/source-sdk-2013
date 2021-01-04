@@ -897,7 +897,7 @@ void CCoven_Turret::Shoot(const Vector &vecSrc, const Vector &vecDirToEnemy, boo
 		//BB: this hangs
 		//Vector vecDir = GetActualShootTrajectory( vecSrc );
 		//BB: this is too accurate?
-		int accuracy = pPlayer->m_floatCloakFactor * 32 + 32 - m_iLevel * 8;
+		int accuracy = pPlayer->m_floatCloakFactor.Get() * 32 + 32 - m_iLevel * 8;
 		AngleVectors(GetLocalAngles(), &vecDir);
 		//vecDir = GetEnemy()->GetLocalOrigin() + Vector(0,0,42) - vecSrc;
 		vecDir = pPlayer->GetPlayerMidPoint() + Vector(random->RandomInt(-accuracy, accuracy), random->RandomInt(-accuracy, accuracy), random->RandomInt(-accuracy, accuracy)) - vecSrc;

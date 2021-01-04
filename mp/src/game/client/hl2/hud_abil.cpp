@@ -227,7 +227,7 @@ float CHudAbils::DrawAbility(int iAbilityNum, float y, float wide, float inset, 
 		DrawTextTitle(wide - minset, y, UTIL_ComputeStringWidth(m_hFontNumerals, wNumTM) - minset, minset, wNumTM, false, m_hFontNumerals);
 	}*/
 
-	if (cl_coven_abilitytitles.GetInt() > 0)
+	if (cl_coven_abilitytitles.GetBool())
 	{
 		wchar_t *tempString = g_pVGuiLocalize->Find(info->szPrintName);
 		if (tempString)
@@ -403,7 +403,7 @@ void CHudAbils::CheckCooldown(int iAbilityNum)
 	{
 		max_duration[iAbilityNum] = 0.0f;
 		cooledDown[iAbilityNum] = true;
-		if (pPlayer->IsAlive() && cl_coven_cooldownblips.GetInt() > 0)
+		if (pPlayer->IsAlive() && cl_coven_cooldownblips.GetBool())
 		{
 			CLocalPlayerFilter filter;
 			EmitSound_t params;

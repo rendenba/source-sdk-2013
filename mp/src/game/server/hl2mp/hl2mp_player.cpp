@@ -222,11 +222,6 @@ CHL2MP_Player::CHL2MP_Player() : m_PlayerAnimState( this )
 
 	m_iLevel = 1;
 
-#ifdef COVEN_DEVELOPER_MODE
-	coven_debug_nodeloc = -1;
-	coven_debug_prevnode = -1;
-#endif
-
 	coven_display_autolevel = false;
 
 	m_iLastWeaponFireUsercmd = 0;
@@ -1890,7 +1885,7 @@ void CHL2MP_Player::Spawn(void)
 	coven_timer_dash = -1.0f;
 	coven_timer_pushback = -1.0f;
 #ifdef COVEN_DEVELOPER_MODE
-	Msg("Spawn location: %f %f %f\n", GetAbsOrigin().x, GetAbsOrigin().y, GetAbsOrigin().z);
+	Msg("Spawn location player %d: %f %f %f\n", entindex(), GetAbsOrigin().x, GetAbsOrigin().y, GetAbsOrigin().z);
 #endif
 	//BB: lets try to stop the burning...
 	EmitSound("General.StopBurning");
@@ -2047,19 +2042,18 @@ void CHL2MP_Player::StealthCalc()
 
 		if (IsAlive() && !KO && GetFlags() & FL_ONGROUND)
 		{
-			
 			float speed = GetAbsVelocity().Length();
 			float min = 0.0f;
 			int factor = 3;
 			if (speed > sv_coven_max_stealth_velocity.GetFloat())
 			{
 				factor = 1;
-				min = 0.07f;
+				min = COVEN_MIN_CLOAK_WALK;
 			}
 			else if (speed > 0)
 			{
 				factor = 2;
-				min = 0.01f;
+				min = COVEN_MIN_CLOAK_CROUCH;
 			}
 			if (/*m_Local.m_bDucked && */coven_timer_vstealth == 0.0f && speed <= sv_coven_min_stealth_velocity.GetFloat())
 			{
@@ -4083,12 +4077,12 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 		RemoveFlag(FL_PARTFROZEN);
 	}
 
-	if (coven_ignore_respawns.GetInt() == 0)
+	if (coven_ignore_respawns.GetBool())
 	{
-		covenRespawnTimer = HL2MPRules()->GetRespawnTime((CovenTeamID_t)GetTeamNumber());
+		covenRespawnTimer = gpGlobals->curtime;
 	}
 	else
-		covenRespawnTimer = gpGlobals->curtime;
+		covenRespawnTimer = HL2MPRules()->GetRespawnTime((CovenTeamID_t)GetTeamNumber());
 
 	if (covenClassID == COVEN_CLASSID_AVENGER)
 	{
@@ -4226,33 +4220,7 @@ void CHL2MP_Player::CleanUpGrapplingHook(void)
 	}
 }
 
-#ifdef COVEN_DEVELOPER_MODE
-CON_COMMAND(test, "test")
-{
-	CHL2MP_Player *pPlayer = ToHL2MPPlayer(UTIL_GetCommandClient());
-	if (!pPlayer)
-		return;
-	
-	trace_t	tr;
-	QAngle angle = pPlayer->EyeAngles();
-	Vector forward, right, up;
-	AngleVectors(angle, &forward, &right, &up);
-	UTIL_TraceLine(pPlayer->EyePosition(), pPlayer->EyePosition() + forward * 256, MASK_PLAYERSOLID, pPlayer, COLLISION_GROUP_NONE, &tr);
-	if (tr.fraction < 1.0)
-	{
-		if (tr.DidHitWorld())
-		{
-			CCoven_SupplyDepot *pEnt = static_cast<CCoven_SupplyDepot *>(CreateEntityByName("coven_supplydepot"));
-			pEnt->SetAbsOrigin(tr.endpos + Vector(0, 0, 0));
-			pEnt->SetAbsAngles(QAngle(0, angle.y - 90, 0));
-			pEnt->iDepotType = 2;
-			pEnt->Spawn();
-			pEnt->ChangeTeam(COVEN_TEAMID_SLAYERS);
-		}
-	}
-}
-
-CON_COMMAND(testprobe, "test probe")
+CON_COMMAND_F(testprobe, "test probe", FCVAR_CHEAT)
 {
 	CHL2MP_Player *pPlayer = ToHL2MPPlayer( UTIL_GetCommandClient() );
 	if (!pPlayer)
@@ -4300,89 +4268,8 @@ CON_COMMAND(testprobe, "test probe")
 		Msg("Air Left\n");
 	}
 }
-//BB: BOT PATH DEBUGGING
 
-void GoToNode(CHL2MP_Player *pPlayer, int node)
-{
-	if (HL2MPRules()->pBotNet[node] != NULL)
-	{
-		int c = HL2MPRules()->pBotNet[node]->connectors.Count();
-		pPlayer->SetLocalOrigin(HL2MPRules()->pBotNet[node]->location);
-		Msg("At node %d. %d connectors: ", HL2MPRules()->pBotNet[node]->ID, c);
-		for (int j = 0; j < c; j++)
-		{
-			Msg("%d,", HL2MPRules()->pBotNet[node]->connectors[j]);
-		}
-		Msg("\n");
-		pPlayer->coven_debug_nodeloc = node;
-	}
-	else
-		Msg("INVALID NODE: %d!\n", node);
-}
-
-CON_COMMAND(next_node, "Move to next node")
-{
-	CHL2MP_Player *pPlayer = ToHL2MPPlayer( UTIL_GetCommandClient() );
-	if (!pPlayer)
-		return;
-	if (pPlayer->coven_debug_nodeloc < 0)
-		return;
-	if (pPlayer->coven_debug_prevnode < 0)
-		pPlayer->coven_debug_prevnode = 0;
-	
-	/*int con_count = HL2MPRules()->botnet[pPlayer->coven_debug_nodeloc]->connectors.Count();
-	int redflag = HL2MPRules()->botnet[pPlayer->coven_debug_prevnode]->ID;
-
-	if (con_count == 2)
-	{
-		int i = 0;
-		if (redflag == HL2MPRules()->botnet[pPlayer->coven_debug_nodeloc]->connectors[i])
-			i++;
-		int id = HL2MPRules()->botnet[pPlayer->coven_debug_nodeloc]->connectors[i];
-		int sel = 0;
-		for (int j = 0; j < HL2MPRules()->bot_node_count; j++)
-		{
-			if (HL2MPRules()->botnet[j]->ID == id)
-			{
-				sel = j;
-				break;
-			}
-		}
-		pPlayer->SetLocalOrigin(HL2MPRules()->botnet[sel]->location);
-		pPlayer->coven_debug_prevnode = pPlayer->coven_debug_nodeloc;
-		pPlayer->coven_debug_nodeloc = sel;
-		int c = HL2MPRules()->botnet[pPlayer->coven_debug_nodeloc]->connectors.Count();
-		Msg("At node %d. %d connectors: ", HL2MPRules()->botnet[pPlayer->coven_debug_nodeloc]->ID, c);
-		for (int j = 0; j < c; j++)
-		{
-			Msg("%d,", HL2MPRules()->botnet[pPlayer->coven_debug_nodeloc]->connectors[j]);
-		}
-		Msg("\n");
-	}*/
-	GoToNode(pPlayer, ++pPlayer->coven_debug_nodeloc);
-}
-
-CON_COMMAND(prev_node, "Go to previous node")
-{
-	CHL2MP_Player *pPlayer = ToHL2MPPlayer( UTIL_GetCommandClient() );
-	if (!pPlayer)
-		return;
-	if (pPlayer->coven_debug_prevnode < 0)
-		return;
-	int temp = pPlayer->coven_debug_prevnode;
-	pPlayer->coven_debug_prevnode = pPlayer->coven_debug_nodeloc;
-	pPlayer->coven_debug_nodeloc = temp;
-	pPlayer->SetLocalOrigin(HL2MPRules()->pBotNet[temp]->location);
-	int c = HL2MPRules()->pBotNet[pPlayer->coven_debug_nodeloc]->connectors.Count();
-	Msg("At node %d. %d connectors: ", HL2MPRules()->pBotNet[pPlayer->coven_debug_nodeloc]->ID, c);
-	for (int j = 0; j < c; j++)
-	{
-		Msg("%d,", HL2MPRules()->pBotNet[pPlayer->coven_debug_nodeloc]->connectors[j]);
-	}
-	Msg("\n");
-}
-
-CON_COMMAND(give_buff, "Grant a buff <id> <mag> <duration>")
+CON_COMMAND_F(give_buff, "Grant a buff <id> <mag> <duration>", FCVAR_CHEAT)
 {
 	CHL2MP_Player *pPlayer = ToHL2MPPlayer(UTIL_GetCommandClient());
 	if (!pPlayer)
@@ -4396,41 +4283,29 @@ CON_COMMAND(give_buff, "Grant a buff <id> <mag> <duration>")
 	pPlayer->AddStatus((CovenStatus_t)buff, magnitude, gpGlobals->curtime + duration, true);
 }
 
-CON_COMMAND(go_to_node, "Go to a node <id>")
+CON_COMMAND_F(level, "level up <int>", FCVAR_CHEAT)
 {
 	CHL2MP_Player *pPlayer = ToHL2MPPlayer( UTIL_GetCommandClient() );
 	if (!pPlayer)
 		return;
-	if ( args.ArgC() != 2 )
-		return;
-	int temp = atoi(args[ 1 ]);
-	//if (temp > HL2MPRules()->botnet.Count())
-	//	return;
-	//int sel = 0;
-	/*for (int i = 0; i < HL2MPRules()->botnet.Count(); i++)
-	{
-		if (HL2MPRules()->botnet[i]->ID == temp)
-		{
-			sel = i;
-			break;
-		}
-	}
-	pPlayer->coven_debug_prevnode = pPlayer->coven_debug_nodeloc;
-	pPlayer->coven_debug_nodeloc = sel;
-	pPlayer->SetLocalOrigin(HL2MPRules()->botnet[sel]->location);
-	//Msg("At node %d.\n", HL2MPRules()->botnet[sel]->ID);*/
-	GoToNode(pPlayer, temp);
+	int levels = 1;
+	if (args.ArgC() > 1)
+		levels = atoi(args[1]);
+	pPlayer->LevelUp(levels);
 }
 
-CON_COMMAND(level, "give me some XP")
+CON_COMMAND_F(give_xp, "give me some XP <float>", FCVAR_CHEAT)
 {
-	CHL2MP_Player *pPlayer = ToHL2MPPlayer( UTIL_GetCommandClient() );
+	CHL2MP_Player *pPlayer = ToHL2MPPlayer(UTIL_GetCommandClient());
 	if (!pPlayer)
 		return;
-	pPlayer->LevelUp(1);
+	float xp = 1.0f;
+	if (args.ArgC() > 1)
+		xp = atof(args[1]);
+	pPlayer->GiveXP(xp);
 }
 
-CON_COMMAND(location, "print current location")
+CON_COMMAND_F(location, "print current location", FCVAR_CHEAT)
 {
 	CHL2MP_Player *pPlayer = ToHL2MPPlayer( UTIL_GetCommandClient() );
 	if (!pPlayer)
@@ -4447,7 +4322,7 @@ CON_COMMAND(location, "print current location")
 	ClientPrint(pPlayer, HUD_PRINTCONSOLE, szReturnString);
 }
 
-CON_COMMAND(moveto, "move to location")
+CON_COMMAND_F(moveto, "move to location <x> <y> <z>", FCVAR_CHEAT)
 {
 	CHL2MP_Player *pPlayer = ToHL2MPPlayer(UTIL_GetCommandClient());
 	if (!pPlayer)
@@ -4458,36 +4333,16 @@ CON_COMMAND(moveto, "move to location")
 	pPlayer->SetAbsOrigin(temp);
 }
 
-CON_COMMAND(store_loc, "store location for distance")
-{
-	CHL2MP_Player *pPlayer = ToHL2MPPlayer( UTIL_GetCommandClient() );
-	if (!pPlayer)
-		return;
-	char szReturnString[512];
-	Vector temp = pPlayer->GetLocalOrigin();
-	pPlayer->store_loc = temp;
-	Q_snprintf( szReturnString, sizeof( szReturnString ), "Location Stored: \"%f %f %f\"\n", temp.x, temp.y, temp.z);
-	ClientPrint( pPlayer, HUD_PRINTCONSOLE, szReturnString );
-}
-
-CON_COMMAND(distance, "distance from store_loc")
-{
-	CHL2MP_Player *pPlayer = ToHL2MPPlayer( UTIL_GetCommandClient() );
-	if (!pPlayer)
-		return;
-	char szReturnString[512];
-	Vector temp = pPlayer->GetLocalOrigin();
-	Q_snprintf(szReturnString, sizeof(szReturnString), "Distance from: \"%f %f %f\"\n%f %f %f\n%f\n", temp.x, temp.y, temp.z, abs(temp.x - pPlayer->store_loc.x), abs(temp.y - pPlayer->store_loc.y), abs(temp.z - pPlayer->store_loc.z), (temp - pPlayer->store_loc).Length());
-	ClientPrint( pPlayer, HUD_PRINTCONSOLE, szReturnString );
-}
-
-CON_COMMAND(tracert, "Trace hit")
+CON_COMMAND_F(tracert, "Trace hit <duration>", FCVAR_CHEAT)
 {
 	CHL2MP_Player *pPlayer = ToHL2MPPlayer(UTIL_GetCommandClient());
 	if (!pPlayer)
 		return;
 
 	float duration = 10.0f;
+	if (args.ArgC() > 1)
+		duration = atof(args[1]);
+
 	trace_t	tr;
 	QAngle angle = pPlayer->EyeAngles();
 	Vector forward;
@@ -4503,8 +4358,8 @@ CON_COMMAND(tracert, "Trace hit")
 	}
 	else if (tr.m_pEnt)
 	{
-		Msg("Hit: %s\n", tr.m_pEnt->GetClassname());
-		Q_snprintf(sTemp, sizeof(sTemp), "%s: ", tr.m_pEnt->GetClassname());
+		Msg("Hit: (%d) %s\n", tr.m_pEnt->entindex(), tr.m_pEnt->GetClassname());
+		Q_snprintf(sTemp, sizeof(sTemp), "(%d) %s: ", tr.m_pEnt->entindex(), tr.m_pEnt->GetClassname());
 	}
 	if (tr.fraction != 1.0f)
 	{
@@ -4517,12 +4372,19 @@ CON_COMMAND(tracert, "Trace hit")
 			NDebugOverlay::Text(tr.endpos + Vector(0, 0, 8), sTemp2, false, duration);
 			Q_snprintf(sTemp2, sizeof(sTemp2), "%.2f %.2f %.2f", abs(tr.endpos.x - pPlayer->store_loc.x), abs(tr.endpos.y - pPlayer->store_loc.y), abs(tr.endpos.z - pPlayer->store_loc.z));
 			NDebugOverlay::Text(pPlayer->store_loc + Vector(0, 0, 8), sTemp2, false, duration);
-			Msg("%f %f %f\n", tr.endpos.x - pPlayer->store_loc.x, tr.endpos.y - pPlayer->store_loc.y, tr.endpos.z - pPlayer->store_loc.z);
+			Msg("Start: %f %f %f\n", pPlayer->store_loc.x, pPlayer->store_loc.y, pPlayer->store_loc.z);
+			Vector dir = tr.endpos - pPlayer->store_loc;
+			float len = dir.NormalizeInPlace();
+			Msg("Distance: %f\n x: %f y: %f z: %f\n", len, tr.endpos.x - pPlayer->store_loc.x, tr.endpos.y - pPlayer->store_loc.y, tr.endpos.z - pPlayer->store_loc.z);
+			Msg("Direction: %f %f %f\n", dir.x, dir.y, dir.z);
+			QAngle ang;
+			VectorAngles(dir, ang);
+			Msg("Angle: %f %f %f\n", ang.x, ang.y, ang.z);
 		}
 		NDebugOverlay::Cross3D(tr.endpos, -Vector(2, 2, 2), Vector(2, 2, 2), 255, 255, 255, false, duration);
 		Q_snprintf(sTemp, sizeof(sTemp), "%s%.2f %.2f %.2f", sTemp, tr.endpos.x, tr.endpos.y, tr.endpos.z);
 		NDebugOverlay::Text(tr.endpos, sTemp, true, duration);
-		Msg("%f %f %f\n", tr.endpos.x, tr.endpos.y, tr.endpos.z);
+		Msg("End: %f %f %f\n", tr.endpos.x, tr.endpos.y, tr.endpos.z);
 		Vector x = tr.endpos + Vector(16, 0, 0);
 		Vector y = tr.endpos + Vector(0, 16, 0);
 		Vector z = tr.endpos + Vector(0, 0, 16);
@@ -4535,11 +4397,37 @@ CON_COMMAND(tracert, "Trace hit")
 		pPlayer->store_loc = tr.endpos;
 	}
 }
+
+#ifdef COVEN_DEVELOPER_MODE
+CON_COMMAND(test, "test")
+{
+	CHL2MP_Player *pPlayer = ToHL2MPPlayer(UTIL_GetCommandClient());
+	if (!pPlayer)
+		return;
+	
+	trace_t	tr;
+	QAngle angle = pPlayer->EyeAngles();
+	Vector forward, right, up;
+	AngleVectors(angle, &forward, &right, &up);
+	UTIL_TraceLine(pPlayer->EyePosition(), pPlayer->EyePosition() + forward * 256, MASK_PLAYERSOLID, pPlayer, COLLISION_GROUP_NONE, &tr);
+	if (tr.fraction < 1.0)
+	{
+		if (tr.DidHitWorld())
+		{
+			CCoven_SupplyDepot *pEnt = static_cast<CCoven_SupplyDepot *>(CreateEntityByName("coven_supplydepot"));
+			pEnt->SetAbsOrigin(tr.endpos + Vector(0, 0, 0));
+			pEnt->SetAbsAngles(QAngle(0, angle.y - 90, 0));
+			pEnt->iDepotType = 2;
+			pEnt->Spawn();
+			pEnt->ChangeTeam(COVEN_TEAMID_SLAYERS);
+		}
+	}
+}
 #endif
 
-#ifdef DEBUG_BOTS
-extern ConVar bot_debug;
-CON_COMMAND(teleportbot, "Teleport BOT")
+//BB: BOT DEBUG
+extern ConVar bot_debug_select;
+CON_COMMAND_F(teleportbot, "Teleport BOT", FCVAR_CHEAT)
 {
 	CHL2MP_Player *pPlayer = ToHL2MPPlayer(UTIL_GetCommandClient());
 	if (!pPlayer)
@@ -4552,12 +4440,12 @@ CON_COMMAND(teleportbot, "Teleport BOT")
 	VectorNormalize(forward);
 	Vector vecEnd = pPlayer->EyePosition() + forward * 1200.0f;
 	UTIL_TraceLine(pPlayer->EyePosition(), vecEnd, MASK_ALL, pPlayer, COLLISION_GROUP_NONE, &tr);
-	if (tr.fraction != 1.0f && bot_debug.GetInt() > 0)
+	if (tr.fraction != 1.0f && bot_debug_select.GetInt() > 0)
 	{
 		for (int i = 0; i < gpGlobals->maxClients; i++)
 		{
 			CHL2MP_Player *pPlayer = ToHL2MPPlayer(UTIL_PlayerByIndex(i));
-			if (pPlayer && pPlayer->entindex() == bot_debug.GetInt())
+			if (pPlayer && pPlayer->entindex() == bot_debug_select.GetInt())
 			{
 				pPlayer->SetAbsOrigin(tr.endpos + Vector(0, 0, 8));
 				break;
@@ -4565,7 +4453,8 @@ CON_COMMAND(teleportbot, "Teleport BOT")
 		}
 	}
 }
-CON_COMMAND(selectbotnode, "Select BOT or Node")
+
+CON_COMMAND_F(selectbotnode, "Select BOT or Node", FCVAR_CHEAT)
 {
 	CHL2MP_Player *pPlayer = ToHL2MPPlayer(UTIL_GetCommandClient());
 	if (!pPlayer)
@@ -4585,7 +4474,7 @@ CON_COMMAND(selectbotnode, "Select BOT or Node")
 			CHL2MP_Player *targetPlayer = ToHL2MPPlayer(tr.m_pEnt);
 			if (targetPlayer && targetPlayer->IsBot())
 			{
-				bot_debug.SetValue(targetPlayer->entindex());
+				bot_debug_select.SetValue(targetPlayer->entindex());
 			}
 		}
 		else
@@ -4619,7 +4508,6 @@ CON_COMMAND(selectbotnode, "Select BOT or Node")
 		}
 	}
 }
-#endif
 
 void CHL2MP_Player::DodgeHandler()
 {
@@ -4783,7 +4671,7 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 	}
 
 	//INNERLIGHT
-	if (HasStatus(COVEN_STATUS_INNERLIGHT) && inputInfo.GetAttacker() && inputInfo.GetAttacker()->IsPlayer() && inputInfo.GetAttacker() != this)
+	if (HasStatus(COVEN_STATUS_INNERLIGHT) && inputInfo.GetAttacker() && inputInfo.GetDamageType() & DMG_CLUB && inputInfo.GetAttacker()->IsPlayer() && inputInfo.GetAttacker() != this)
 	{
 		inputInfo.GetAttacker()->TakeDamage(CTakeDamageInfo(this, this, vec3_origin, vec3_origin, GetStatusMagnitude(COVEN_STATUS_INNERLIGHT), DMG_GENERIC));
 		RemoveStatus(COVEN_STATUS_INNERLIGHT);

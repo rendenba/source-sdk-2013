@@ -54,20 +54,27 @@ ConVar sv_report_client_settings("sv_report_client_settings", "0", FCVAR_GAMEDLL
 
 //BB: Coven ConVars
 #if defined(COVEN_DEVELOPER_MODE)
+//BB: xp scaling for testing or just tom foolery... set to 1 for normal
+ConVar coven_xp_scale( "coven_xp_scale", "4", FCVAR_GAMEDLL | FCVAR_NOTIFY | FCVAR_CHEAT );
+//BB: >0 = ignore respawn timers for testing or just tom foolery... set to 0 for normal
+ConVar coven_ignore_respawns( "coven_ignore_respawns", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY | FCVAR_CHEAT );
 ConVar sv_coven_minplayers("sv_coven_minplayers", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY );//3
 ConVar sv_coven_freezetime("sv_coven_freezetime", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY );//5
-ConVar sv_coven_usects("sv_coven_usects", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_coven_warmuptime("sv_coven_warmuptime", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY );//10
 ConVar sv_coven_xp_slayerstart("sv_coven_xp_slayerstart", "80.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Slayer starting money.");
 #else
+//BB: xp scaling for testing or just tom foolery... set to 1 for normal
+ConVar coven_xp_scale( "coven_xp_scale", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY | FCVAR_CHEAT );
+//BB: >0 = ignore respawn timers for testing or just tom foolery... set to 0 for normal
+ConVar coven_ignore_respawns( "coven_ignore_respawns", "0", FCVAR_GAMEDLL | FCVAR_NOTIFY | FCVAR_CHEAT );
 ConVar sv_coven_minplayers("sv_coven_minplayers", "4", FCVAR_GAMEDLL | FCVAR_NOTIFY );//3
 ConVar sv_coven_freezetime("sv_coven_freezetime", "5", FCVAR_GAMEDLL | FCVAR_NOTIFY );//5
-ConVar sv_coven_usects("sv_coven_usects", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_coven_warmuptime("sv_coven_warmuptime", "20", FCVAR_GAMEDLL | FCVAR_NOTIFY );//10
 ConVar sv_coven_xp_slayerstart("sv_coven_xp_slayerstart", "15.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Slayer starting money.");
 #endif
-ConVar sv_coven_roundtime("sv_coven_roundtime", "120", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Round time limit in seconds.");
 
+ConVar sv_coven_usects("sv_coven_usects", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY );
+ConVar sv_coven_roundtime("sv_coven_roundtime", "120", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Round time limit in seconds.");
 ConVar sv_coven_gamemode("sv_coven_gamemode", "3", FCVAR_GAMEDLL | FCVAR_NOTIFY, "1 = Rounds,  2 = Capture Points, 3 = COVEN");
 ConVar sv_coven_usedynamicspawns("sv_coven_usedynamicspawns", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY);
 ConVar sv_coven_usexpitems("sv_coven_usexpitems", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY);
@@ -97,7 +104,7 @@ ConVar sv_coven_regen_percent("sv_coven_regen_percent", "0.05", FCVAR_GAMEDLL | 
 ConVar sv_coven_feed_percent("sv_coven_feed_percent", "5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Feed percentage/amount per tick.");
 
 extern ConVar mp_chattime;
-extern ConVar bot_debug_visual;
+extern ConVar coven_debug_visual;
 
 extern CBaseEntity	 *g_pLastSlayerSpawn;
 extern CBaseEntity	 *g_pLastVampireSpawn;
@@ -324,6 +331,8 @@ CHL2MPRules::CHL2MPRules()
 	flRoundTimer = -1.0f;
 
 	covenFlashTimer = 0.0f;
+
+	m_nSlayers = m_nVampires = 0;
 #endif
 }
 
@@ -388,8 +397,6 @@ bool CHL2MPRules::CanUseCovenItem(CBasePlayer *pPlayer, CovenItemID_t iItemType)
 		return pPlayer->GetHealth() < info->flMaximum * pPlayer->GetMaxHealth();
 	case COVEN_ITEM_MEDKIT:
 		return pPlayer->GetHealth() < info->flMaximum * pPlayer->GetMaxHealth();
-	case COVEN_ITEM_PILLS:
-		return pHL2Player->GetStatusMagnitude(COVEN_STATUS_HASTE) < info->flMaximum;
 	case COVEN_ITEM_SLAM:
 #ifndef CLIENT_DLL
 		return pHL2Player->NumSatchels() > 0;
@@ -938,7 +945,7 @@ bool CHL2MPRules::LoadCowFile(IBaseFileSystem *filesystem, const char *resourceN
 									RemoveEntity("coven_apc");
 									RemoveEntity("item_gas");
 								}
-								else
+								else if (mp_timelimit.GetInt() > 0)
 								{
 									flTimelimit = ceil(flTimelimit / 60.0f);
 									if (mp_timelimit.GetInt() < flTimelimit)
@@ -1278,21 +1285,19 @@ void CHL2MPRules::RestartRound(bool bFullReset)
 #endif
 }
 
+int CHL2MPRules::PlayerCount()
+{
+#ifndef CLIENT_DLL
+	return m_nSlayers + m_nVampires;
+#endif
+	return -1;
+}
+
 void CHL2MPRules::PlayerCount(int &slayers, int &vampires)
 {
 #ifndef CLIENT_DLL
-	for (int i = 1; i <= gpGlobals->maxClients; i++)
-	{
-		CBasePlayer *pPlayer = UTIL_PlayerByIndex(i);
-
-		if (pPlayer)
-		{
-			if (pPlayer->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
-				slayers++;
-			else if (pPlayer->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
-				vampires++;
-		}
-	}
+	slayers = m_nSlayers;
+	vampires = m_nVampires;
 #endif
 }
 
@@ -1501,6 +1506,9 @@ void CHL2MPRules::Think( void )
 		}
 	}
 
+	m_nVampires = numVampires;
+	m_nSlayers = numSlayers;
+
 	//BB: add team scores and reset
 	if (covenActiveGameMode == COVEN_GAMEMODE_CAPPOINT)
 	{
@@ -1563,7 +1571,7 @@ void CHL2MPRules::Think( void )
 	}
 
 	/*BOTS_DEBUG_VISUAL*****************************************************************************/
-	if (bot_debug_visual.GetInt() > 0 && cowsloaded)
+	if (coven_debug_visual.GetBool() && cowsloaded)
 	{
 		for (int i = 0; i < bot_node_count; i++)
 		{
@@ -2472,25 +2480,6 @@ CAmmoDef *GetAmmoDef()
 		"Automatically switch to picked up weapons (if more powerful)" );
 
 #else
-
-//BB: BOTS!
-#ifdef DEBUG
-
-#endif
-
-#if defined(COVEN_DEVELOPER_MODE)
-	//BB: xp scaling for testing or just tom foolery... set to 1 for normal
-	ConVar coven_xp_scale( "coven_xp_scale", "4", FCVAR_NOTIFY | FCVAR_CHEAT );
-
-	//BB: >0 = ignore respawn timers for testing or just tom foolery... set to 0 for normal
-	ConVar coven_ignore_respawns( "coven_ignore_respawns", "0", FCVAR_NOTIFY | FCVAR_CHEAT );
-#else
-	//BB: xp scaling for testing or just tom foolery... set to 1 for normal
-	ConVar coven_xp_scale( "coven_xp_scale", "1", FCVAR_NOTIFY | FCVAR_CHEAT );
-
-	//BB: >0 = ignore respawn timers for testing or just tom foolery... set to 0 for normal
-	ConVar coven_ignore_respawns( "coven_ignore_respawns", "0", FCVAR_NOTIFY | FCVAR_CHEAT );
-#endif
 
 	bool CHL2MPRules::FShouldSwitchWeapon( CBasePlayer *pPlayer, CBaseCombatWeapon *pWeapon )
 	{		

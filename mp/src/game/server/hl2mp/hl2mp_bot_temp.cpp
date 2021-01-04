@@ -24,8 +24,8 @@
 void ClientPutInServer( edict_t *pEdict, const char *playername );
 void Bot_Think( CHL2MP_Player *pBot );
 
-ConVar bot_debug("bot_debug", "2", 0, "Selected entindex bot to debug.");
-ConVar bot_debug_visual("bot_debug_visual", "0", 0, "Debug coven bots visually.");
+ConVar bot_debug_select("bot_debug_select", "2", 0, "Selected entindex bot to debug.");
+ConVar coven_debug_visual("coven_debug_visual", "0", 0, "Debug coven visually.");
 
 extern ConVar sv_coven_refuel_distance;
 extern ConVar sv_coven_hp_per_ragdoll;
@@ -858,10 +858,10 @@ unsigned int WeaponCheck(CHL2MP_Player *pBot)
 		botdata_t *botdata = &g_BotData[ENTINDEX(pBot->edict()) - 1];
 		if (botdata->bCombat)
 		{
-			CHL2MP_Player *pPlayer = ToHL2MPPlayer(UTIL_PlayerByIndex(botdata->m_lastPlayerCheck));
-			if (pPlayer)
+			CHL2MP_Player *pEnemy = ToHL2MPPlayer(UTIL_PlayerByIndex(botdata->m_lastPlayerCheck));
+			if (pEnemy)
 			{
-				bool isVampDoll = pPlayer->KO && pPlayer->myServerRagdoll != NULL;
+				bool isVampDoll = pEnemy->KO && pEnemy->myServerRagdoll != NULL;
 				CBaseCombatWeapon *pStake = pBot->Weapon_OwnsThisType("weapon_stake");
 				CBaseCombatWeapon *pHolyWater = pBot->Weapon_OwnsThisType("weapon_holywater");
 				CBaseCombatWeapon *pFrag = pBot->Weapon_OwnsThisType("weapon_frag");
@@ -935,6 +935,7 @@ unsigned int WeaponCheck(CHL2MP_Player *pBot)
 			{
 				CBaseCombatWeapon *pStake = pBot->Weapon_OwnsThisType("weapon_stake");
 				CBaseCombatWeapon *pStunStick = pBot->Weapon_OwnsThisType("weapon_stunstick");
+				CBaseCombatWeapon *pHarpoon = pBot->Weapon_OwnsThisType("weapon_harpoon");
 				CBaseCombatWeapon *pActiveWeapon = pBot->GetActiveWeapon();
 				if (pStunStick && pActiveWeapon == pStunStick && botdata->m_objectiveType != BOT_OBJECTIVE_BUILD)
 				{
@@ -947,6 +948,10 @@ unsigned int WeaponCheck(CHL2MP_Player *pBot)
 					if (pActiveWeapon == pStake)
 					{
 						pBot->SwitchToNextBestWeapon(pStake);
+					}
+					else if (pHarpoon && pBot->coven_hook_state > COVEN_HOOK_FIRED)
+					{
+						return IN_ATTACK2;
 					}
 					else if (pActiveWeapon != pStake && pActiveWeapon->HasAmmo())
 					{
@@ -1026,7 +1031,7 @@ void HealthCheck(CHL2MP_Player *pBot)
 			if (pBot->HasPills() && !pBot->IsPerformingDeferredAction() && !pBot->IsReloading())
 			{
 				CovenItemInfo_t *info = GetCovenItemData(COVEN_ITEM_PILLS);
-				if (!pBot->HasStatus(COVEN_STATUS_HASTE) || (pBot->GetStatusTime(COVEN_STATUS_HASTE) < (info->flUseTime * 1.1f) && pBot->GetStatusMagnitude(COVEN_STATUS_HASTE) < info->flMaximum))
+				if (!pBot->HasStatus(COVEN_STATUS_HASTE) || pBot->GetStatusMagnitude(COVEN_STATUS_HASTE) < info->flMaximum || pBot->GetStatusTime(COVEN_STATUS_HASTE) < info->flUseTime)
 					pBot->UseCovenItem(COVEN_ITEM_PILLS);
 			}
 		}
@@ -1047,7 +1052,7 @@ void PurchaseCheck(CHL2MP_Player *pBot)
 		botdata_t *botdata = &g_BotData[ENTINDEX(pBot->edict()) - 1];
 		if (botdata->m_bIsPurchasingItems && botdata->m_bHasNotPurchasedItems)
 		{
-			CovenItemID_t item = (CovenItemID_t)random->RandomInt(COVEN_ITEM_STIMPACK, COVEN_ITEM_HOLYWATER);
+			CovenItemID_t item = (CovenItemID_t)random->RandomInt(COVEN_ITEM_STIMPACK, COVEN_ITEM_SLAM);
 			if (pBot->PurchaseCovenItem(item))
 				botdata->m_bHasNotPurchasedItems = random->RandomInt(0, 9) < 8; //80% chance to keep purchasing
 			else
@@ -1203,9 +1208,9 @@ void FindNearestNode( CHL2MP_Player *pBot )
 						trace_t trace;
 						UTIL_TraceLine(pBot->EyePosition(), temp->location + Vector(0, 0, 16), MASK_SOLID, pBot, COLLISION_GROUP_PLAYER, &trace);
 						/*BOTS_DEBUG_VISUAL*****************************************************************************/
-						if (bot_debug_visual.GetInt() > 0)
+						if (coven_debug_visual.GetBool())
 						{
-							if (bot_debug.GetInt() == pBot->entindex())
+							if (bot_debug_select.GetInt() == pBot->entindex())
 							{
 								NDebugOverlay::Line(pBot->EyePosition(), temp->location + Vector(0, 0, 16), 255, 255, 0, false, 1.5f);
 							}
@@ -1858,9 +1863,9 @@ void Bot_Reached_Node(CHL2MP_Player *pBot, const Vector *objLoc)
 		else
 			botdata->flTimeout = gpGlobals->curtime + 5.0f;
 		/*BOTS_DEBUG_VISUAL*****************************************************************************/
-		if (bot_debug_visual.GetInt() > 0)
+		if (coven_debug_visual.GetBool())
 		{
-			if (bot_debug.GetInt() == pBot->entindex())
+			if (bot_debug_select.GetInt() == pBot->entindex())
 			{
 				NDebugOverlay::Line(pBot->EyePosition(), *objLoc, 255, 255, 0, false, botdata->flTimeout - gpGlobals->curtime);
 			}
@@ -2100,9 +2105,9 @@ void Bot_Think( CHL2MP_Player *pBot )
 					GetLost(pBot, false, true);
 			}
 			/*BOTS_DEBUG_VISUAL*****************************************************************************/
-			if (bot_debug_visual.GetInt() > 0)
+			if (coven_debug_visual.GetBool())
 			{
-				if (pRules->pBotNet[botdata->m_targetNode] != NULL && bot_debug.GetInt() == pBot->entindex())
+				if (pRules->pBotNet[botdata->m_targetNode] != NULL && bot_debug_select.GetInt() == pBot->entindex())
 				{
 					NDebugOverlay::SweptBox(pRules->pBotNet[botdata->m_targetNode]->location, pRules->pBotNet[botdata->m_targetNode]->location + Vector(0, 0, 72), Vector(0, -16, -16), Vector(0, 16, 16), QAngle(90, 0, 0), 0, 255, 255, 50, 0.05f);
 					NDebugOverlay::Sphere(pRules->pBotNet[botdata->m_targetNode]->location, QAngle(0, 0, 0), BOT_NODE_TOLERANCE, 255, 0, 0, 0, false, 0.05f);
@@ -2140,7 +2145,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 				{
 					if (pBot->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
 					{
-						int accuracy = pPlayer->m_floatCloakFactor * 32 + 24 - bot_difficulty.GetInt() * 8;
+						int accuracy = pPlayer->m_floatCloakFactor.Get() * 32 + 24 - bot_difficulty.GetInt() * 8;
 						if (botdata->m_flLastCombat > 0.0f)
 							forward = (botdata->m_vCombatLKP + Vector(random->RandomInt(-accuracy, accuracy), random->RandomInt(-accuracy, accuracy), random->RandomInt(-accuracy, accuracy))) - pBot->EyePosition();
 						else
@@ -2311,9 +2316,9 @@ void Bot_Think( CHL2MP_Player *pBot )
 						//UTIL_TraceLine(vecSrc, vecEnd, MASK_PLAYERSOLID, pBot, COLLISION_GROUP_PLAYER, &trace);
 
 						/*BOTS_DEBUG_VISUAL*****************************************************************************/
-						if (bot_debug_visual.GetInt() > 0)
+						if (coven_debug_visual.GetBool())
 						{
-							if (bot_debug.GetInt() == pBot->entindex())
+							if (bot_debug_select.GetInt() == pBot->entindex())
 							{
 								//NDebugOverlay::Line(vecSrc, vecEnd, 255, 0, 0, false, 1.0f);
 								//NDebugOverlay::BoxDirection(vecSrc, VEC_HULL_MIN_SCALED(pBot), VEC_HULL_MAX_SCALED(pBot), forward, 255, 0, 0, 50, 1.0f);

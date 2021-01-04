@@ -131,6 +131,7 @@ public:
 	bool LoadCowFile( IBaseFileSystem *filesystem, const char *resourceName, const char *pathID );
 	bool LoadCowFile(IBaseFileSystem *filesystem, const char *resourceName);
 	void PlayerCount(int &slayers, int &vampires);
+	int	PlayerCount();
 
 	CUtlVector<CBaseEntity *> crates;
 	BotNode_t *pBotNet[COVEN_MAX_BOT_NODES];
@@ -260,6 +261,8 @@ private:
 	bool m_bAwaitingReadyRestart;
 	bool m_bHeardAllPlayersReady;
 	CUtlVector<CovenBuyZone_s *> m_hBuyZones;
+	int m_nSlayers;
+	int m_nVampires;
 
 #ifndef CLIENT_DLL
 	int		m_iPushedTimelimit;

@@ -1101,7 +1101,7 @@ bool CHL2_Player::GiveXP(float XP, bool bScale)
 {
 	int iXP = 0;
 	xp_part += XP;
-	if (xp_part > 1.0f)
+	if (xp_part >= 1.0f)
 	{
 		iXP = floor(xp_part);
 		xp_part -= iXP;

@@ -270,7 +270,7 @@ void CHudAuras::Paint()
 					size = clamp(size, 0.0f, inset);
 				}
 			}
-			if (cl_coven_statuseffecttitles.GetInt() > 0)
+			if (cl_coven_statuseffecttitles.GetBool())
 			{
 				wchar_t *tempString = NULL;
 				if ((info->iFlags & EFFECT_FLAG_SPLIT_DEF) > 0)

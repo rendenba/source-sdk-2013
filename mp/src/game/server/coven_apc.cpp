@@ -5,7 +5,7 @@
 #include "hl2mp_gamerules.h"
 #include "covenlib.h"
 
-extern ConVar bot_debug_visual;
+extern ConVar coven_debug_visual;
 extern ConVar sv_coven_refuel_distance;
 
 Vector	CCoven_APC::wheelOffset[] = { Vector(80, -50, -32), Vector(-72, -50, -32), Vector(80, 50, -32), Vector(-72, 50, -32) };
@@ -218,7 +218,7 @@ void CCoven_APC::APCThink(void)
 
 	if (HasValidGoal())
 	{
-		if (bot_debug_visual.GetInt() > 0)
+		if (coven_debug_visual.GetBool())
 			NDebugOverlay::Cross3D(HL2MPRules()->hAPCNet[m_iGoalNode]->location, -Vector(12, 12, 12), Vector(12, 12, 12), 0, 255, 0, false, 0.5f);
 
 		Vector directionDifference = HL2MPRules()->hAPCNet[m_iGoalNode]->location - GetAbsOrigin();
@@ -463,7 +463,7 @@ void CCoven_APC::MoveForward(void)
 			
 		}
 
-		if (bot_debug_visual.GetInt() > 0)
+		if (coven_debug_visual.GetBool())
 			NDebugOverlay::Cross3D(O, -Vector(12, 12, 12), Vector(12, 12, 12), 0, 0, 255, true, 1.0f);
 
 		Vector dir(0, 0, 0), newDir(0, 0, 0);

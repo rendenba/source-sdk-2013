@@ -269,11 +269,6 @@ public:
 	float coven_timer_dash;
 	float coven_timer_pushback;
 
-#ifdef COVEN_DEVELOPER_MODE
-	int coven_debug_nodeloc;
-	int coven_debug_prevnode;
-#endif
-
 	//BB: coven loadout/abil stuff
 	int GetLoadout(int n);
 	int SetLoadout(int n, int val);
