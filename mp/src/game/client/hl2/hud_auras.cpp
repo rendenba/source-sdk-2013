@@ -254,7 +254,7 @@ void CHudAuras::Paint()
 			surface()->DrawSetColor(blk);
 			int size = 0;
 			float timer = -1.0f;
-			if (info->iShowTimer == SHOW_ALWAYS || info->iShowTimer == pPlayer->GetTeamNumber() || ((info->iFlags & EFFECT_FLAG_MAG_AS_TIMER) > 0))//SPECIAL CASE!
+			if (info->iShowTimer == SHOW_ALWAYS || info->iShowTimer == SHOW_ALWAYS_POSITIVE || info->iShowTimer == pPlayer->GetTeamNumber() || ((info->iFlags & EFFECT_FLAG_MAG_AS_TIMER) > 0))//SPECIAL CASE!
 			{
 				timer = pPlayer->m_HL2Local.covenStatusTimers[iStatus] - gpGlobals->curtime;
 				if (timer < 4.2f && timer > 0.5f)
@@ -304,18 +304,18 @@ void CHudAuras::Paint()
 			int offsety = inset - size;
 			surface()->DrawTexturedRect(x + offsetx, offsety, x + offsetx + picheight + 2 * size, offsety + picheight + 2 * size);
 
-			if (info->iShowTimer == SHOW_ALWAYS || info->iShowTimer == pPlayer->GetTeamNumber() || ((info->iFlags & EFFECT_FLAG_MAG_AS_TIMER) > 0))//SPECIAL CASE!
+			if (info->iShowTimer == SHOW_ALWAYS || info->iShowTimer == SHOW_ALWAYS_POSITIVE || info->iShowTimer == pPlayer->GetTeamNumber() || ((info->iFlags & EFFECT_FLAG_MAG_AS_TIMER) > 0))//SPECIAL CASE!
 				if (timer >= 0.0f)
 					DrawCircleSegment(x + offsetx, offsety, picheight + 2 * size, picheight + 2 * size, 1.0f - timer / max_duration[iStatus], true);
 
-			if (info->iShowMagnitude == SHOW_ALWAYS || info->iShowMagnitude == pPlayer->GetTeamNumber())
+			if (info->iShowMagnitude == SHOW_ALWAYS || info->iShowMagnitude == SHOW_ALWAYS_POSITIVE || info->iShowMagnitude == pPlayer->GetTeamNumber())
 			{
 				wchar_t uc_text[4];
 				swprintf(uc_text, sizeof(uc_text), L"%d", pPlayer->m_HL2Local.covenStatusMagnitude[iStatus]);
 				int width = UTIL_ComputeStringWidth(m_hTextFont, L"100");
 				DrawBlipText(x + picheight + (thiswidth - maxpicwidth) / 2.0f - width, 0, uc_text, width, margin);
 			}
-			if (info->iShowTimer == SHOW_ALWAYS || info->iShowTimer == pPlayer->GetTeamNumber())
+			if (info->iShowTimer == SHOW_ALWAYS || (info->iShowTimer == SHOW_ALWAYS_POSITIVE && timer >= 0.0f) || info->iShowTimer == pPlayer->GetTeamNumber())
 			{
 				wchar_t uc_text[8];
 				if (timer > 60.0f)
@@ -323,7 +323,7 @@ void CHudAuras::Paint()
 				else if (timer > 10.0f)
 					swprintf(uc_text, sizeof(uc_text), L"%.0f", timer);
 				else
-					swprintf(uc_text, sizeof(uc_text), L"%.1f", timer);
+					swprintf(uc_text, sizeof(uc_text), L"%.1f", floor(timer * 10.0f) / 10.0f);
 				int width = UTIL_ComputeStringWidth(m_hTextFont, L"100.0");
 				DrawBlipText(x + picheight + (thiswidth - maxpicwidth) / 2.0f - width, picheight, uc_text, width, margin);
 			}

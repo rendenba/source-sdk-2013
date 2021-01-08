@@ -138,9 +138,10 @@ public:
 typedef enum
 {
 	SHOW_NEVER,
-	SHOW_ALWAYS,
-	SHOW_TEAM_SLAYERS,
-	SHOW_TEAM_VAMPIRES
+	SHOW_ALWAYS_POSITIVE,
+	SHOW_TEAM_SLAYERS, // This must be COVEN_TEAMID_SLAYERS!
+	SHOW_TEAM_VAMPIRES, // This must be COVEN_TEAMID_VAMPIRES!
+	SHOW_ALWAYS
 } StatusEffectShow_t;
 
 class CovenStatusEffectInfo_t

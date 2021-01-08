@@ -4641,17 +4641,24 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 				if (m_pFlame)
 				{
 					m_pFlame->creator = (CBasePlayer *)inputInfo.GetInflictor();
-					m_pFlame->SetLifetime(max(inputInfo.GetDamage() / 4.0f, 1.0f));//15.0f 10
+					float lifetime = max(inputInfo.GetDamage() * 0.67f, 1.0f);
+					if (lifetime > COVEN_MAX_HOLYWATER)
+					{
+						m_pFlame->flDamageFactor = lifetime / COVEN_MAX_HOLYWATER;
+						lifetime = COVEN_MAX_HOLYWATER;
+					}
+					lifetime = m_pFlame->SetLifetime(lifetime);
 					AddFlag(FL_ONFIRE);
 
 					SetEffectEntity(m_pFlame);
+					AddStatus(COVEN_STATUS_HOLYWATER, m_pFlame->flDamageFactor * 10.0f, gpGlobals->curtime + lifetime);
 				}
 			}
 			else
 			{
-				m_pFlame->SupplementDamage(inputInfo.GetDamage());
+				float lifetime = m_pFlame->SupplementDamage(inputInfo.GetDamage());
+				AddStatus(COVEN_STATUS_HOLYWATER, m_pFlame->flDamageFactor * 10.0f, gpGlobals->curtime + lifetime);
 			}
-			AddStatus(COVEN_STATUS_HOLYWATER, -1, gpGlobals->curtime + m_pFlame->GetRemainingLife());
 		}
 	}
 

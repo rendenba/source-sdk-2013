@@ -56,6 +56,7 @@ CEntityFlame::CEntityFlame( void )
 	m_flHitboxFireScale	= 1.0f;
 	m_flLifetime		= 0.0f;
 	m_bPlayingSound		= false;
+	flDamageFactor		= 1.0f;
 }
 
 void CEntityFlame::UpdateOnRemove()
@@ -182,9 +183,10 @@ void CEntityFlame::AttachToEntity( CBaseEntity *pTarget )
 // Purpose: 
 // Input  : lifetime - 
 //-----------------------------------------------------------------------------
-void CEntityFlame::SetLifetime( float lifetime )
+float CEntityFlame::SetLifetime( float lifetime )
 {
 	m_flLifetime = gpGlobals->curtime + lifetime;
+	return ceil((lifetime + GetNextThink() - gpGlobals->curtime) / FLAME_DAMAGE_INTERVAL) * FLAME_DAMAGE_INTERVAL;
 }
 
 //-----------------------------------------------------------------------------
@@ -224,9 +226,22 @@ int CEntityFlame::GetNumHitboxFires( void )
 	return m_iNumHitboxFires;
 }
 
-void CEntityFlame::SupplementDamage(float dmg)
+float CEntityFlame::SupplementDamage(float dmg)
 {
-	SetLifetime((m_flLifetime - gpGlobals->curtime) + max(dmg / 4.0f * 8.0f, 1.0f)); //15
+	float lifetime = max(dmg * 1.25f, 1.0f);
+	float currentlifetime = m_flLifetime - gpGlobals->curtime;
+	float difference = (COVEN_MAX_HOLYWATER - currentlifetime) * flDamageFactor;
+	if (difference >= lifetime)
+	{
+		lifetime /= flDamageFactor;
+	}
+	else
+	{
+		lifetime -= difference;
+		flDamageFactor += lifetime / COVEN_MAX_HOLYWATER;
+		return SetLifetime(COVEN_MAX_HOLYWATER);
+	}
+	return SetLifetime(currentlifetime + lifetime);
 }
 
 float CEntityFlame::GetHitboxFireScale( void )
@@ -314,7 +329,7 @@ void CEntityFlame::FlameThink( void )
 		// Directly harm the entity I'm attached to. This is so we can precisely control how much damage the entity
 		// that is on fire takes without worrying about the flame's position relative to the bodytarget (which is the
 		// distance that the radius damage code uses to determine how much damage to inflict)
-		m_hEntAttached->TakeDamage(CTakeDamageInfo(this, this, sv_coven_flamedamage.GetFloat() * FLAME_DAMAGE_INTERVAL, DMG_BURN | DMG_DIRECT));
+		m_hEntAttached->TakeDamage(CTakeDamageInfo(this, this, sv_coven_flamedamage.GetFloat() * flDamageFactor * FLAME_DAMAGE_INTERVAL, DMG_BURN | DMG_DIRECT));
 
 		if( !m_hEntAttached->IsNPC() && hl2_episodic.GetBool() )
 		{

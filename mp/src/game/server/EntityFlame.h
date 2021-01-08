@@ -30,7 +30,7 @@ public:
 	static CEntityFlame	*Create( CBaseEntity *pTarget, bool useHitboxes = true );
 
 	void	AttachToEntity( CBaseEntity *pTarget );
-	void	SetLifetime( float lifetime );
+	float	SetLifetime( float lifetime );
 	void	SetUseHitboxes( bool use );
 	void	SetNumHitboxFires( int iNumHitBoxFires );
 	void	SetHitboxFireScale( float flHitboxFireScale );
@@ -38,12 +38,14 @@ public:
 	float	GetRemainingLife( void );
 	int		GetNumHitboxFires( void );
 	float	GetHitboxFireScale( void );
-	void SupplementDamage(float dmg);
+	float	SupplementDamage(float dmg);
 
 	virtual void Precache();
 	virtual void UpdateOnRemove();
 
 	void	SetSize( float size ) { m_flSize = size; }
+
+	float	flDamageFactor;
 
 	DECLARE_DATADESC();
 
