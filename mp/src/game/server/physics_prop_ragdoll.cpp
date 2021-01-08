@@ -155,7 +155,6 @@ void CRagdollProp::DisableAutoFade()
 	m_flDefaultFadeScale = 0;
 }
 
-	
 void CRagdollProp::Spawn( void )
 {
 	BloodColor();
@@ -218,13 +217,35 @@ void CRagdollProp::SprayBlood()
 	Vector bloodDir = RandomVector(-1.0f, 1.0f);
 	bloodDir.z = fabs(bloodDir.z);
 
-	Vector jitterPos = RandomVector(-8, 8);
+	Vector jitterPos = RandomVector(-10, 10);
 	jitterPos.z = 0.0f;
 
 	Vector vecBloodPos = GetAbsOrigin();
-	//CollisionProp()->NormalizedToWorldSpace(Vector(0.5f, 0.5f, 0.0f), &vecBloodPos);
+	
+	vecBloodPos += jitterPos;
 
-	UTIL_BloodSpray(vecBloodPos + jitterPos, bloodDir, BLOOD_COLOR_RED, RandomInt(4, 8), (RandomInt(0, 2) == 0 ? FX_BLOODSPRAY_DROPS | FX_BLOODSPRAY_GORE : FX_BLOODSPRAY_GORE) | FX_IGNORE_LIGHT);
+	trace_t Bloodtr;
+
+	CDisablePredictionFiltering disabler;
+
+	UTIL_BloodSpray(vecBloodPos, bloodDir, BLOOD_COLOR_RED, RandomInt(4, 8), (RandomInt(0, 2) == 0 ? FX_BLOODSPRAY_DROPS | FX_BLOODSPRAY_GORE : FX_BLOODSPRAY_GORE) | FX_IGNORE_LIGHT);
+
+	AI_TraceLine(vecBloodPos, vecBloodPos + bloodDir * 24.0f, MASK_SOLID_BRUSHONLY & ~CONTENTS_GRATE, this, COLLISION_GROUP_NONE, &Bloodtr);
+
+	if (Bloodtr.fraction != 1.0)
+	{
+		UTIL_BloodDecalTrace(&Bloodtr, BLOOD_COLOR_RED);
+	}
+	else //Blood decal failed to find a wall, try the floor...
+	{
+		bloodDir.z = -random->RandomFloat(0.5f, 0.75f);
+		vecBloodPos.z += 12.0f;
+		AI_TraceLine(vecBloodPos, vecBloodPos + bloodDir * 36.0f, MASK_SOLID_BRUSHONLY & ~CONTENTS_GRATE, this, COLLISION_GROUP_NONE, &Bloodtr);
+		if (Bloodtr.fraction != 1.0)
+		{
+			UTIL_BloodDecalTrace(&Bloodtr, BLOOD_COLOR_RED);
+		}
+	}
 }
 
 //BB: the use function for bodies

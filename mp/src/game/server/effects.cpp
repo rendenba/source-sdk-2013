@@ -1151,7 +1151,6 @@ void UTIL_BloodSpray( const Vector &pos, const Vector &dir, int color, int amoun
 	if( color == DONT_BLEED )
 		return;
 
-	CDisablePredictionFiltering disabler;
 	CEffectData	data;
 
 	data.m_vOrigin = pos;
