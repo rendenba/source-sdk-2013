@@ -154,4 +154,6 @@ void RagdollApplyAnimationAsVelocity( ragdoll_t &ragdoll, const matrix3x4_t *pPr
 
 void RagdollSolveSeparation( ragdoll_t &ragdoll, CBaseEntity *pEntity );
 
+int RagdollMapIndexToParent(int iIndex);
+
 #endif // RAGDOLL_SHARED_H

@@ -133,7 +133,7 @@ protected:
 	ragdoll_t			m_ragdoll;
 
 private:
-	void UpdateNetworkDataFromVPhysics( IPhysicsObject *pPhysics, int index );
+	void UpdateNetworkDataFromVPhysics( IPhysicsObject *pPhysics, int index, Vector &vPosition );
 	void FadeOutThink();
 
 	bool				m_bStartDisabled;

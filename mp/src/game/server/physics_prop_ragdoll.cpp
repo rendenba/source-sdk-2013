@@ -59,8 +59,8 @@ LINK_ENTITY_TO_CLASS( prop_ragdoll, CRagdollProp );
 EXTERN_SEND_TABLE(DT_Ragdoll)
 
 IMPLEMENT_SERVERCLASS_ST(CRagdollProp, DT_Ragdoll)
-	SendPropArray	(SendPropQAngles(SENDINFO_ARRAY(m_ragAngles), 13, 0 ), m_ragAngles),
-	SendPropArray	(SendPropVector(SENDINFO_ARRAY(m_ragPos), -1, SPROP_COORD ), m_ragPos),
+	SendPropArray	(SendPropQAngles(SENDINFO_ARRAY(m_ragAngles), 10, SPROP_CHANGES_OFTEN ), m_ragAngles),
+	SendPropArray	(SendPropVector(SENDINFO_ARRAY(m_ragPos), 7, SPROP_ROUNDUP | SPROP_CHANGES_OFTEN, -17.858268f, 18.141732f ), m_ragPos),
 	SendPropEHandle(SENDINFO( m_hUnragdoll ) ),
 	SendPropFloat(SENDINFO(m_flBlendWeight), 8, SPROP_ROUNDDOWN, 0.0f, 1.0f ),
 	SendPropInt(SENDINFO(m_nOverlaySequence), 11),
@@ -831,12 +831,20 @@ void CRagdollProp::InitRagdoll( const Vector &forceVector, int forceBone, const 
 		RagdollActivate( m_ragdoll, params.pCollide, GetModelIndex(), bWakeRagdoll );
 	}
 
+	Vector vTempPosition[RAGDOLL_MAX_ELEMENTS];
+
 	for ( int i = 0; i < m_ragdoll.listCount; i++ )
 	{
-		UpdateNetworkDataFromVPhysics( m_ragdoll.list[i].pObject, i );
+		UpdateNetworkDataFromVPhysics( m_ragdoll.list[i].pObject, i, vTempPosition[i] );
 		g_pPhysSaveRestoreManager->AssociateModel( m_ragdoll.list[i].pObject, GetModelIndex() );
 		physcollision->CollideGetAABB( &m_ragdollMins[i], &m_ragdollMaxs[i], m_ragdoll.list[i].pObject->GetCollide(), vec3_origin, vec3_angle );
 	}
+
+	for (int i = 1; i < m_ragdoll.listCount; i++)
+	{
+		m_ragPos.Set(i, vTempPosition[i] - vTempPosition[RagdollMapIndexToParent(i)]);
+	}
+
 	VPhysicsSetObject( m_ragdoll.list[0].pObject );
 
 	CalcRagdollSize();
@@ -1031,6 +1039,8 @@ void CRagdollProp::Teleport( const Vector *newPosition, const QAngle *newAngles,
 	QAngle obj0Angles;
 	MatrixAngles( obj0Target, obj0Angles, obj0Pos );
 	BaseClass::Teleport( &obj0Pos, &obj0Angles, newVelocity );
+
+	Vector vTempPosition[RAGDOLL_MAX_ELEMENTS];
 	
 	for ( int i = 1; i < m_ragdoll.listCount; i++ )
 	{
@@ -1038,10 +1048,15 @@ void CRagdollProp::Teleport( const Vector *newPosition, const QAngle *newAngles,
 		m_ragdoll.list[i].pObject->GetPositionMatrix( &matrix );
 		ConcatTransforms( xform, matrix, newMatrix );
 		m_ragdoll.list[i].pObject->SetPositionMatrix( newMatrix, true );
-		UpdateNetworkDataFromVPhysics( m_ragdoll.list[i].pObject, i );
+		UpdateNetworkDataFromVPhysics( m_ragdoll.list[i].pObject, i, vTempPosition[i] );
 	}
 	// fixup/relink object 0
-	UpdateNetworkDataFromVPhysics( m_ragdoll.list[0].pObject, 0 );
+	UpdateNetworkDataFromVPhysics( m_ragdoll.list[0].pObject, 0, vTempPosition[0] );
+
+	for (int i = 1; i < m_ragdoll.listCount; i++)
+	{
+		m_ragPos.Set(i, vTempPosition[i] - vTempPosition[RagdollMapIndexToParent(i)]);
+	}
 }
 
 void CRagdollProp::VPhysicsUpdate( IPhysicsObject *pPhysics )
@@ -1056,6 +1071,9 @@ void CRagdollProp::VPhysicsUpdate( IPhysicsObject *pPhysics )
 	QAngle angles;
 	Vector surroundingMins, surroundingMaxs;
 
+	Vector vNewOrigin;
+	Vector vTempPosition[RAGDOLL_MAX_ELEMENTS];
+
 	int i;
 	for ( i = 0; i < m_ragdoll.listCount; i++ )
 	{
@@ -1064,14 +1082,24 @@ void CRagdollProp::VPhysicsUpdate( IPhysicsObject *pPhysics )
 		{
 			Vector vNewPos;
 			MatrixAngles( boneToWorld[m_ragdoll.boneIndex[i]], angles, vNewPos );
-			m_ragPos.Set( i, vNewPos );
-			m_ragAngles.Set( i, angles );
+			if (i == 0)
+			{
+				vNewOrigin = vNewPos;
+				m_ragPos.Set(i, Vector(0, 0, 0));
+			}
+			vTempPosition[i] = vNewPos;
+			m_ragAngles.Set(i, angles);
 		}
 		else
 		{
 			m_ragPos.GetForModify(i).Init();
 			m_ragAngles.GetForModify(i).Init();
 		}
+	}
+
+	for (i = 1; i < m_ragdoll.listCount; i++)
+	{
+		m_ragPos.Set(i, vTempPosition[i] - vTempPosition[RagdollMapIndexToParent(i)]);
 	}
 
 	// BUGBUG: Use the ragdollmins/maxs to do this instead of the collides
@@ -1099,8 +1127,8 @@ void CRagdollProp::VPhysicsUpdate( IPhysicsObject *pPhysics )
 	}
 
 	Vector vecFullMins, vecFullMaxs;
-	vecFullMins = m_ragPos[0];
-	vecFullMaxs = m_ragPos[0];
+	vecFullMins = vNewOrigin;
+	vecFullMaxs = vNewOrigin;
 	for ( i = 0; i < m_ragdoll.listCount; i++ )
 	{
 		Vector mins, maxs;
@@ -1126,7 +1154,7 @@ void CRagdollProp::VPhysicsUpdate( IPhysicsObject *pPhysics )
 		}
 	}
 
-	SetAbsOrigin( m_ragPos[0] );
+	SetAbsOrigin( vNewOrigin );
 	SetAbsAngles( vec3_angle );
 	const Vector &vecOrigin = CollisionProp()->GetCollisionOrigin();
 	CollisionProp()->AddSolidFlags( FSOLID_FORCE_WORLD_ALIGNED );
@@ -1150,14 +1178,14 @@ int CRagdollProp::VPhysicsGetObjectList( IPhysicsObject **pList, int listMax )
 	return m_ragdoll.listCount;
 }
 
-void CRagdollProp::UpdateNetworkDataFromVPhysics( IPhysicsObject *pPhysics, int index )
+void CRagdollProp::UpdateNetworkDataFromVPhysics( IPhysicsObject *pPhysics, int index, Vector &vPosition )
 {
 	Assert(index < m_ragdoll.listCount);
 
 	QAngle angles;
 	Vector vPos;
 	m_ragdoll.list[index].pObject->GetPosition( &vPos, &angles );
-	m_ragPos.Set( index, vPos );
+	vPosition = vPos;
 	m_ragAngles.Set( index, angles );
 
 	// move/relink if root moved

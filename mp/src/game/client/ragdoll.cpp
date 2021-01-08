@@ -372,7 +372,7 @@ CRagdoll *CreateRagdoll(
 EXTERN_RECV_TABLE(DT_Ragdoll);
 IMPLEMENT_CLIENTCLASS_DT(C_ServerRagdoll, DT_Ragdoll, CRagdollProp)
 	RecvPropArray(RecvPropQAngles(RECVINFO(m_ragAngles[0])), m_ragAngles),
-	RecvPropArray(RecvPropVector(RECVINFO(m_ragPos[0])), m_ragPos),
+	RecvPropArray(RecvPropVector(RECVINFO(m_ragPosNet[0])), m_ragPos),
 	RecvPropEHandle(RECVINFO(m_hUnragdoll)),
 	RecvPropFloat(RECVINFO(m_flBlendWeight)),
 	RecvPropInt(RECVINFO(m_nOverlaySequence)),
@@ -387,7 +387,7 @@ C_ServerRagdoll::C_ServerRagdoll( void ) :
 	m_elementCount = 0;
 	m_flLastBoneChangeTime = -FLT_MAX;
 
-	AddVar( m_ragPos, &m_iv_ragPos, LATCH_SIMULATION_VAR  );
+	AddVar( m_ragPosNet, &m_iv_ragPos, LATCH_SIMULATION_VAR  );
 	AddVar( m_ragAngles, &m_iv_ragAngles, LATCH_SIMULATION_VAR );
 
 	m_flBlendWeight = 0.0f;
@@ -404,6 +404,21 @@ void C_ServerRagdoll::PostDataUpdate( DataUpdateType_t updateType )
 	m_iv_ragAngles.NoteChanged( gpGlobals->curtime, true );
 	// this is the local client time at which this update becomes stale
 	m_flLastBoneChangeTime = gpGlobals->curtime + GetInterpolationAmount(m_iv_ragPos.GetType());
+}
+
+void C_ServerRagdoll::OnDataChanged(DataUpdateType_t updateType)
+{
+	BaseClass::OnDataChanged(updateType);
+
+	m_ragPos[0] = GetAbsOrigin();
+
+	//Msg("%d %d - %f %f %f - %f %f %f - %f\n", entindex(), 0, m_ragPosNet[0].x, m_ragPosNet[0].y, m_ragPosNet[0].z, m_ragPos[0].x, m_ragPos[0].y, m_ragPos[0].z, m_ragPosNet[0].Length());
+	for (int i = 1; i < m_elementCount; i++)
+	{
+		//BB: If bone order changes, this MUST be verified that no bone is evaluated prior to ALL of it's parent bones being evaluated
+		m_ragPos[i] = m_ragPosNet[i] + m_ragPos[RagdollMapIndexToParent(i)];
+		//Msg("%d %d - %f %f %f - %f %f %f - %f\n", entindex(), i, m_ragPosNet[i].x, m_ragPosNet[i].y, m_ragPosNet[i].z, m_ragPos[i].x, m_ragPos[i].y, m_ragPos[i].z, m_ragPosNet[i].Length());
+	}
 }
 
 float C_ServerRagdoll::LastBoneChangedTime()

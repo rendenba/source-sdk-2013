@@ -622,6 +622,47 @@ bool RagdollIsAsleep( const ragdoll_t &ragdoll )
 	return true;
 }
 
+#define RAGDOLL_BONE_PELVIS			0
+#define RAGDOLL_BONE_SPINE			1
+#define RAGDOLL_BONE_RIGHT_UPPERARM	2
+#define RAGDOLL_BONE_LEFT_UPPERARM	3
+#define RAGDOLL_BONE_LEFT_LOWERARM	4
+#define RAGDOLL_BONE_LEFT_HAND		5
+#define RAGDOLL_BONE_RIGHT_LOWERARM	6
+#define RAGDOLL_BONE_RIGHT_HAND		7
+#define RAGDOLL_BONE_RIGHT_THIGH	8
+#define RAGDOLL_BONE_RIGHT_CALF		9
+#define RAGDOLL_BONE_HEAD			10
+#define RAGDOLL_BONE_LEFT_THIGH		11
+#define RAGDOLL_BONE_LEFT_CALF		12
+#define RAGDOLL_BONE_LEFT_FOOT		13
+#define RAGDOLL_BONE_RIGHT_FOOT		14
+
+int RagdollMapIndexToParent(int iIndex)
+{
+	switch (iIndex)
+	{
+	case RAGDOLL_BONE_RIGHT_UPPERARM: case RAGDOLL_BONE_LEFT_UPPERARM: case RAGDOLL_BONE_HEAD:
+		return RAGDOLL_BONE_SPINE;
+	case RAGDOLL_BONE_LEFT_LOWERARM: case RAGDOLL_BONE_LEFT_HAND:
+		return iIndex - 1;
+	case RAGDOLL_BONE_RIGHT_LOWERARM:
+		return RAGDOLL_BONE_RIGHT_UPPERARM;
+	case RAGDOLL_BONE_RIGHT_HAND:
+		return RAGDOLL_BONE_RIGHT_LOWERARM;
+	case RAGDOLL_BONE_RIGHT_CALF:
+		return RAGDOLL_BONE_RIGHT_THIGH;
+	case RAGDOLL_BONE_LEFT_CALF: case RAGDOLL_BONE_LEFT_FOOT:
+		return iIndex - 1;
+	case RAGDOLL_BONE_RIGHT_FOOT:
+		return RAGDOLL_BONE_RIGHT_CALF;
+	default:
+		return RAGDOLL_BONE_PELVIS;
+	}
+
+	return RAGDOLL_BONE_PELVIS;
+}
+
 void RagdollSolveSeparation( ragdoll_t &ragdoll, CBaseEntity *pEntity )
 {
 	byte needsFix[256];

@@ -16,6 +16,7 @@ public:
 
 	C_ServerRagdoll(void);
 
+	virtual void OnDataChanged(DataUpdateType_t updateType);
 	virtual void PostDataUpdate(DataUpdateType_t updateType);
 
 	virtual int InternalDrawModel(int flags);
@@ -38,6 +39,8 @@ public:
 
 	CInterpolatedVarArray< Vector, RAGDOLL_MAX_ELEMENTS >	m_iv_ragPos;
 	CInterpolatedVarArray< QAngle, RAGDOLL_MAX_ELEMENTS >	m_iv_ragAngles;
+
+	Vector		m_ragPosNet[RAGDOLL_MAX_ELEMENTS];
 
 	int			m_elementCount;
 	int			m_boneIndex[RAGDOLL_MAX_ELEMENTS];
