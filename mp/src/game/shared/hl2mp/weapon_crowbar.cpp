@@ -76,6 +76,8 @@ IMPLEMENT_ACTTABLE(CWeaponCrowbar);
 //-----------------------------------------------------------------------------
 CWeaponCrowbar::CWeaponCrowbar( void )
 {
+	//BB: prediction catch
+	SetRenderMode(kRenderNone);
 }
 
 //-----------------------------------------------------------------------------

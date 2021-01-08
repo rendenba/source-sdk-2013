@@ -25,8 +25,8 @@
 void ClientPutInServer( edict_t *pEdict, const char *playername );
 void Bot_Think( CHL2MP_Player *pBot );
 
-ConVar bot_debug_select("bot_debug_select", "2", 0, "Selected entindex bot to debug.");
-ConVar coven_debug_visual("coven_debug_visual", "0", 0, "Debug coven visually.");
+ConVar bot_debug_select("bot_debug_select", "2", FCVAR_CHEAT, "Selected entindex bot to debug.");
+ConVar coven_debug_visual("coven_debug_visual", "0", FCVAR_CHEAT, "Debug coven visually.");
 
 extern ConVar sv_coven_refuel_distance;
 extern ConVar sv_coven_hp_per_ragdoll;

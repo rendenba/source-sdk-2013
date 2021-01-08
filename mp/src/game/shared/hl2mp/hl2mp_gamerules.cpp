@@ -2066,7 +2066,7 @@ bool CHL2MPRules::CanHavePlayerItem( CBasePlayer *pPlayer, CBaseCombatWeapon *pI
 			 return false;
 	}
 
-	if (pPlayer->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+	if (pPlayer->GetTeamNumber() == COVEN_TEAMID_VAMPIRES && !coven_debug_visual.GetBool())
 		return FClassnameIs(pItem, "weapon_crowbar");
 
 	return BaseClass::CanHavePlayerItem( pPlayer, pItem );
