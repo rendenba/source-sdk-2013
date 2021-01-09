@@ -1081,6 +1081,7 @@ void PlayerCheck( CHL2MP_Player *pBot )
 	botdata_t *botdata = &g_BotData[ ENTINDEX( pBot->edict() ) - 1 ];
 	
 	CBaseCombatCharacter *pPlayer = BotGetEnemy(pBot);
+	int num_players = HL2MPRules()->PlayerCount();
 	if (pPlayer && pPlayer->IsAlive() && pPlayer->GetTeamNumber() != pBot->GetTeamNumber())
 	{
 		Vector vecEnd;
@@ -1104,10 +1105,25 @@ void PlayerCheck( CHL2MP_Player *pBot )
 
 		if (botdata->bForceCombat || dist < 800.0f) //600
 		{
-			float check = 0.2f;
-			if (botdata->bForceCombat)
-				check = 0.9f;
-			if (isVampDoll || ((pPlayer->m_floatCloakFactor < check && !(pPlayer->GetFlags() & EF_NODRAW))))
+			float check = 1.0f;
+			//clear force combat if perfectly stealthed and/or fails check?
+			//is this right?
+			if (!botdata->bForceCombat)
+			{
+				float cloak = pPlayer->m_floatCloakFactor.Get();
+				if (!botdata->bCombat && cloak < 1.0f)
+				{
+					float alpha = 1.0f - cloak;
+					if (alpha <= COVEN_MIN_CLOAK_CROUCH * 1.2f) //some wiggle room for float error
+						check = 0.02f * (bot_difficulty.GetInt() + 1);
+					else if (alpha <= COVEN_MIN_CLOAK_WALK * 1.2f)
+						check = 0.08f + 0.04f * bot_difficulty.GetInt();
+					check *= 0.5f * num_players; //attempt to approximate the same probability per think
+				}
+				else if (cloak >= 1.0f)
+					check = 0.0f;
+			}
+			if (isVampDoll || ((random->RandomFloat() <= check && !(pPlayer->GetFlags() & EF_NODRAW))))
 			{
 				Vector forward;
 				AngleVectors(botdata->forwardAngle, &forward);
