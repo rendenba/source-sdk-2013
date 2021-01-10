@@ -78,9 +78,9 @@ ConVar sv_coven_roundtime("sv_coven_roundtime", "120", FCVAR_GAMEDLL | FCVAR_NOT
 ConVar sv_coven_gamemode("sv_coven_gamemode", "3", FCVAR_GAMEDLL | FCVAR_NOTIFY, "1 = Rounds,  2 = Capture Points, 3 = COVEN");
 ConVar sv_coven_usedynamicspawns("sv_coven_usedynamicspawns", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY);
 ConVar sv_coven_usexpitems("sv_coven_usexpitems", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY);
-ConVar sv_coven_xp_basekill("sv_coven_xp_basekill", "20", FCVAR_GAMEDLL | FCVAR_NOTIFY);
-ConVar sv_coven_xp_inckill("sv_coven_xp_inckill", "2", FCVAR_GAMEDLL | FCVAR_NOTIFY );
-ConVar sv_coven_xp_diffkill("sv_coven_xp_diffkill", "2", FCVAR_GAMEDLL | FCVAR_NOTIFY );
+ConVar sv_coven_xp_basekill_slayer("sv_coven_xp_basekill_slayer", "20", FCVAR_GAMEDLL | FCVAR_NOTIFY);
+ConVar sv_coven_xp_basekill_vampire("sv_coven_xp_basekill_vampire", "25", FCVAR_GAMEDLL | FCVAR_NOTIFY);
+ConVar sv_coven_xp_inckill("sv_coven_xp_inckill", "10", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_coven_xp_cappersec("sv_coven_xp_cappersec", "1.0", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_coven_pts_cappersec("sv_coven_pts_cappersec", "0.75", FCVAR_GAMEDLL | FCVAR_NOTIFY );
 ConVar sv_coven_pts_cts("sv_coven_pts_cts", "125", FCVAR_GAMEDLL | FCVAR_NOTIFY );
@@ -115,6 +115,9 @@ static char temparray[256];
 
 #endif
 
+ConVar sv_coven_max_money("sv_coven_max_money", "250", FCVAR_NOTIFY | FCVAR_REPLICATED, "Slayer maximum money.");
+ConVar sv_coven_base_xp("sv_coven_base_xp", "100", FCVAR_NOTIFY | FCVAR_REPLICATED, "Base XP required per level.");
+ConVar sv_coven_xp_increase_per_level("sv_coven_xp_increase_per_level", "100", FCVAR_NOTIFY | FCVAR_REPLICATED, "XP increase per level up.");
 ConVar sv_coven_capture_fraglimit("sv_coven_capture_fraglimit", "1600", FCVAR_NOTIFY | FCVAR_REPLICATED, "Capture point fraglimit.");
 ConVar sv_coven_fraglimit("sv_coven_fraglimit", "0", FCVAR_NOTIFY | FCVAR_REPLICATED, "Coven mode fraglimit.");
 ConVar sv_coven_round_fraglimit("sv_coven_round_fraglimit", "12", FCVAR_NOTIFY | FCVAR_REPLICATED, "Round mode fraglimit.");
@@ -1943,7 +1946,7 @@ void CHL2MPRules::ManageObjectRelocation( void )
 							{
 								covenCTSStatus = COVEN_CTS_STATUS_HOME;
 								GetGlobalTeam(COVEN_TEAMID_VAMPIRES)->AddScore(sv_coven_pts_cts.GetFloat() / 2.0f);
-								GiveItemXP(COVEN_TEAMID_VAMPIRES, sv_coven_xp_basekill.GetInt());
+								GiveItemXP(COVEN_TEAMID_VAMPIRES, sv_coven_xp_basekill_vampire.GetInt());
 
 								const char *killer_weapon_name = "cap_cts_vamp";
 								IGameEvent *event = gameeventmanager->CreateEvent("player_death");

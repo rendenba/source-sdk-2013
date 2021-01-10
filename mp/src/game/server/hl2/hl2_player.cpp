@@ -69,6 +69,9 @@ extern ConVar sv_coven_hp_per_con;
 extern ConVar sv_coven_gcd;
 extern ConVar sv_coven_hp_per_ragdoll;
 extern ConVar sv_coven_feed_percent;
+extern ConVar sv_coven_xp_increase_per_level;
+extern ConVar sv_coven_base_xp;
+extern ConVar sv_coven_max_money;
 
 // Do not touch with without seeing me, please! (sjb)
 // For consistency's sake, enemy gunfire is traced against a scaled down
@@ -2599,7 +2602,10 @@ void CHL2_Player::CheatImpulseCommands( int iImpulse )
 
 int CHL2_Player::GetXPCap()
 {
-	return COVEN_MAX_XP_PER_LEVEL + COVEN_XP_INCREASE_PER_LEVEL * (covenLevelCounter - 1);
+	if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+		return sv_coven_max_money.GetInt();
+
+	return sv_coven_base_xp.GetInt() + sv_coven_xp_increase_per_level.GetInt() * (covenLevelCounter - 1);
 }
 
 //-----------------------------------------------------------------------------

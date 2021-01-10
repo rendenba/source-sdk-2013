@@ -63,9 +63,9 @@ extern CBaseEntity				*g_pLastSpawn;
 extern ConVar sv_coven_freezetime;
 extern ConVar coven_ignore_respawns;
 extern ConVar sv_coven_pts_cts;
-extern ConVar sv_coven_xp_basekill;
+extern ConVar sv_coven_xp_basekill_slayer;
+extern ConVar sv_coven_xp_basekill_vampire;
 extern ConVar sv_coven_xp_inckill;
-extern ConVar sv_coven_xp_diffkill;
 extern ConVar sv_coven_cts_returntime;
 extern ConVar sv_coven_gas_returntime;
 extern ConVar sv_coven_hp_per_con;
@@ -2305,7 +2305,7 @@ void CHL2MP_Player::PreThink( void )
 			RemoveStatus(COVEN_STATUS_HAS_CTS);
 			RemoveGlowEffect();
 			HL2MPRules()->AddScore(COVEN_TEAMID_SLAYERS, sv_coven_pts_cts.GetInt());
-			HL2MPRules()->GiveItemXP(COVEN_TEAMID_SLAYERS, sv_coven_xp_basekill.GetInt()+sv_coven_xp_inckill.GetInt()*(covenLevelCounter-1));
+			HL2MPRules()->GiveItemXP(COVEN_TEAMID_SLAYERS, sv_coven_xp_basekill_slayer.GetInt() + sv_coven_xp_inckill.GetInt()*(covenLevelCounter - 1));
 			EmitSound( "ItemBattery.Touch" );
 
 			HL2MPRules()->covenCTSStatus = COVEN_CTS_STATUS_HOME;
@@ -4022,11 +4022,15 @@ void CHL2MP_Player::DetonateTripmines( void )
 int CHL2MP_Player::XPForKill(CHL2MP_Player *pAttacker)
 {
 	//BB: TODO: make this more ellaborate... based on player lvl difference
-	int retval = sv_coven_xp_basekill.GetInt();
+	int retval = sv_coven_xp_basekill_slayer.GetInt();
+	if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+	{
+		retval = sv_coven_xp_basekill_vampire.GetInt();
+	}
+	else
+		retval += sv_coven_xp_inckill.GetInt() * (covenLevelCounter - 1);
 
-	retval += sv_coven_xp_inckill.GetInt()*(covenLevelCounter-1);
-
-	retval += sv_coven_xp_diffkill.GetInt()*(covenLevelCounter-pAttacker->covenLevelCounter);
+	//retval += sv_coven_xp_diffkill.GetInt()*(covenLevelCounter - pAttacker->covenLevelCounter);
 	//Msg("XPForKill: %s %d\n",pAttacker->GetPlayerName(), retval);
 
 	return max(1, retval);

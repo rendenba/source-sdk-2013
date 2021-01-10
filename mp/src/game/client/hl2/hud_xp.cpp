@@ -24,6 +24,9 @@ DECLARE_HUDELEMENT( CHudXP );
 
 #define XP_INIT -1
 
+extern ConVar sv_coven_xp_increase_per_level;
+extern ConVar sv_coven_max_money;
+extern ConVar sv_coven_base_xp;
 //-----------------------------------------------------------------------------
 // Purpose: Constructor
 //-----------------------------------------------------------------------------
@@ -124,17 +127,19 @@ void CHudXP::Paint()
 	int wide, tall;
 	GetSize(wide, tall);
 
-	int max = (COVEN_MAX_XP_PER_LEVEL+(pPlayer->covenLevelCounter-1)*COVEN_XP_INCREASE_PER_LEVEL);
+	int max = sv_coven_max_money.GetInt();
+	int team = 0;
+	if (pPlayer->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+	{
+		max = (sv_coven_base_xp.GetInt() + (pPlayer->covenLevelCounter - 1) * sv_coven_xp_increase_per_level.GetInt());
+		team = 1;
+	}
 
 	float maxbar = wide - m_flBarInsetX;
 
-	float perc = ((float)m_XP)/((float)max)*maxbar;
+	float perc = maxbar * m_XP / max;
 	if (perc > maxbar)
 		perc = maxbar;
-
-	int team = 0;
-	if (pPlayer->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
-		team = 1;
 
 	surface()->DrawSetColor( m_AuxPowerColor );
 	surface()->DrawSetTexture(m_nGlassTex[team]);
