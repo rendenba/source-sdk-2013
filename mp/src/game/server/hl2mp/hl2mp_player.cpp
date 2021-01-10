@@ -1561,15 +1561,16 @@ void CHL2MP_Player::GiveAllItems( void )
 	
 }
 
-void CHL2MP_Player::CovenGiveAmmo(float flAmount, int iMin, float fCrateLevel)
+int CHL2MP_Player::CovenGiveAmmo(float flAmount, int iMin, float fCrateLevel)
 {
+	int iAmmoGiven = 0;
 	CovenClassInfo_t *info = GetCovenClassData(covenClassID);
 	for (int i = 0; i < info->tAmmo.Count(); i++)
 	{
 		int ammoIndex = GetAmmoDef()->Index(info->tAmmo[i]->szAmmoName);
 		int ammoCount = GetAmmoCount(ammoIndex);
 		if (ammoCount < info->tAmmo[i]->iAmmoCount)
-			CBasePlayer::GiveAmmo(min(info->tAmmo[i]->iAmmoCount - ammoCount, max(info->tAmmo[i]->iAmmoCount * flAmount, iMin)), ammoIndex);
+			iAmmoGiven = CBasePlayer::GiveAmmo(min(info->tAmmo[i]->iAmmoCount - ammoCount, max(info->tAmmo[i]->iAmmoCount * flAmount, iMin)), ammoIndex);
 	}
 
 	if (HasAbility(COVEN_ABILITY_DEMOLITION))
@@ -1608,18 +1609,24 @@ void CHL2MP_Player::CovenGiveAmmo(float flAmount, int iMin, float fCrateLevel)
 
 			if (iGiven > 0)
 				SetCooldown(key, abilInfo->flCooldown);
+			iAmmoGiven += iGiven;
 		}
 	}
+
+	return iAmmoGiven;
 }
 
-void CHL2MP_Player::CovenGiveWeaponAmmo(float flAmount)
+int CHL2MP_Player::CovenGiveWeaponAmmo(float flAmount)
 {
+	int iAmmoGiven = 0;
 	CovenClassInfo_t *info = GetCovenClassData(covenClassID);
 	for (int i = 0; i < info->szWeapons.Count(); i++)
 	{
 		FileWeaponInfo_t *weapInfo = GetFileWeaponInfoFromHandle(LookupWeaponInfoSlot(info->szWeapons[i]));
-		CBasePlayer::GiveAmmo(GetAmmoDef()->MaxCarry(weapInfo->iAmmoType) * flAmount, weapInfo->iAmmoType);
+		iAmmoGiven += CBasePlayer::GiveAmmo(GetAmmoDef()->MaxCarry(weapInfo->iAmmoType) * flAmount, weapInfo->iAmmoType);
 	}
+
+	return iAmmoGiven;
 }
 
 void CHL2MP_Player::GiveDefaultItems( void )

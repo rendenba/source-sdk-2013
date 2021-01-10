@@ -212,6 +212,7 @@ bool CCoven_AmmoCrate::GiveMetal(CHL2MP_Player *pPlayer)
 
 bool CCoven_AmmoCrate::GiveAmmo(int playerindex, bool &gaveMetal)
 {
+	bool bGaveAmmo = false;
 	CHL2MP_Player *pPlayer = ToHL2MPPlayer(UTIL_PlayerByIndex(playerindex));
 	if (pPlayer && pPlayer->GetTeamNumber() == GetTeamNumber() && pPlayer->IsAlive() && !pPlayer->KO)
 	{
@@ -225,12 +226,12 @@ bool CCoven_AmmoCrate::GiveAmmo(int playerindex, bool &gaveMetal)
 					gaveMetal |= GiveMetal(pPlayer);
 
 				if (HasSpawnFlags(SF_COVEN_CRATE_INFINITE))
-					pPlayer->CovenGiveAmmo(1.0f);
+					bGaveAmmo |= pPlayer->CovenGiveAmmo(1.0f) > 0;
 				else
 				{
 					CovenBuildingInfo_t *bldgInfo = GetCovenBuildingData(m_BuildingType);
 					int iLevel =  m_iLevel + 1;
-					pPlayer->CovenGiveAmmo(0.1f * iLevel, 1, (float)iLevel / bldgInfo->iMaxLevel);
+					bGaveAmmo |= pPlayer->CovenGiveAmmo(0.1f * iLevel, 1, (float)iLevel / bldgInfo->iMaxLevel) > 0;
 				}
 				/*for (int i = 0; i < info->szWeapons.Count(); i++)
 				{
@@ -243,7 +244,7 @@ bool CCoven_AmmoCrate::GiveAmmo(int playerindex, bool &gaveMetal)
 			}
 		}
 	}
-	return false;
+	return bGaveAmmo;
 }
 
 //-----------------------------------------------------------------------------
