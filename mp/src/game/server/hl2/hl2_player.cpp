@@ -604,7 +604,7 @@ bool CHL2_Player::MovementCancelActionCheck(void)
 bool CHL2_Player::DistanceCancelActionCheck(void)
 {
 	if (m_hRestrictedUseObj != NULL)
-		return (GetAbsOrigin() - m_hRestrictedUseObj->GetAbsOrigin()).Length() > m_flRestrictedUseDistance;
+		return (GetAbsOrigin() - m_hRestrictedUseObj->GetAbsOrigin()).LengthSqr() > m_flRestrictedUseDistance;
 
 	return false;
 }

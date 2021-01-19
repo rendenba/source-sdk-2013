@@ -350,6 +350,13 @@ void CovenClassInfo_t::ParseAbility(KeyValues *kv, const char *szName, CovenAbil
 	}
 }
 
+float CovenAbilityInfo_t::GetDataVariable(int iNum)
+{
+	if (iNum < flDataVariables.Count())
+		return flDataVariables[iNum];
+	return 0.0f;
+}
+
 void CovenAbilityInfo_t::Parse(KeyValues *pKeyValuesData)
 {
 	// Okay, we tried at least once to look this up...
@@ -366,10 +373,18 @@ void CovenAbilityInfo_t::Parse(KeyValues *pKeyValuesData)
 	iMagnitude = pKeyValuesData->GetInt("magnitude", 1);
 	flDuration = pKeyValuesData->GetFloat("duration", 5.0f);
 	flRange = pKeyValuesData->GetFloat("range", 300.0f);
+	flRange *= flRange;
 	flCost = pKeyValuesData->GetFloat("cost", 10.0f);
 	flDrain = pKeyValuesData->GetFloat("drain", 0.0f);
 	bPassive = (pKeyValuesData->GetInt("passive", 0) != 0) ? true : false;
-
+	KeyValues *pVariables = pKeyValuesData->FindKey("variables");
+	if (pVariables)
+	{
+		for (KeyValues *sub = pVariables->GetFirstSubKey(); sub != NULL; sub = sub->GetNextKey())
+		{
+			flDataVariables.AddToTail(sub->GetFloat());
+		}
+	}
 	// LAME old way to specify item flags.
 	// Weapon scripts should use the flag names.
 	iFlags = pKeyValuesData->GetInt("flags", 0);
@@ -402,6 +417,13 @@ void CovenAbilityInfo_t::Parse(KeyValues *pKeyValuesData)
 			}
 		}
 	}
+}
+
+float CovenStatusEffectInfo_t::GetDataVariable(int iNum)
+{
+	if (iNum < flDataVariables.Count())
+		return flDataVariables[iNum];
+	return 0.0f;
 }
 
 void CovenStatusEffectInfo_t::Parse(KeyValues *pKeyValuesData)

@@ -629,7 +629,7 @@ void CHL2MP_Player::RevengeCheck()
 		CHL2MP_Player *pPlayer = (CHL2MP_Player *)UTIL_PlayerByIndex( i );
 		if (pPlayer && pPlayer->IsAlive() && pPlayer->GetTeamNumber() == GetTeamNumber() && pPlayer->HasAbility(COVEN_ABILITY_REVENGE))
 		{
-			if ((pPlayer->GetLocalOrigin() - GetLocalOrigin()).Length() <= info->flRange)
+			if ((pPlayer->GetLocalOrigin() - GetLocalOrigin()).LengthSqr() <= info->flRange)
 			{
 				pPlayer->EmitSound(info->aSounds[COVEN_SND_START]);
 				pPlayer->BoostStats(COVEN_ABILITY_REVENGE, pPlayer->AbilityKey(COVEN_ABILITY_REVENGE));
@@ -648,7 +648,7 @@ void CHL2MP_Player::GiveBuffInRadius(int iTeam, CovenStatus_t iStatus, int iMagn
 			if (iClassID && pPlayer->covenClassID != iClassID)
 				continue;
 
-			if ((pPlayer->GetLocalOrigin() - GetLocalOrigin()).Length() > flDistance)
+			if ((pPlayer->GetLocalOrigin() - GetLocalOrigin()).LengthSqr() > flDistance)
 				continue;
 
 			pPlayer->AddStatus(iStatus, iMagnitude, gpGlobals->curtime + flDuration, true);
@@ -1031,7 +1031,7 @@ void CHL2MP_Player::DoInnerLight(int iAbilityNum)
 		{
 			Vector dir = pPlayer->GetLocalOrigin() - GetLocalOrigin();
 			float dist = VectorNormalize(dir);
-			if (dist > info->flRange)
+			if (dist > info->GetDataVariable(0))
 				continue;
 			trace_t tr;
 			UTIL_TraceLine(EyePosition(), pPlayer->GetPlayerMidPoint(), MASK_SHOT, this, COLLISION_GROUP_PLAYER, &tr);
@@ -1044,7 +1044,7 @@ void CHL2MP_Player::DoInnerLight(int iAbilityNum)
 				}
 				else
 				{
-					float factor = max(1.0f - dist / info->flRange, 0.0f);
+					float factor = max(1.0f - dist / info->GetDataVariable(0), 0.0f);
 					dir.z = 0.0f;
 					pPlayer->Pushback(&dir, sv_coven_light_bump.GetFloat() * factor, 250.0f * factor, false);
 					pPlayer->AddStatus(COVEN_STATUS_WEAKNESS, info->iMagnitude, gpGlobals->curtime + info->flDuration, true);
@@ -1168,20 +1168,20 @@ void CHL2MP_Player::BloodExplode(int iAbilityNum)
 	Vector vecReported = GetAbsOrigin();
 
 	int bits = DMG_CLUB | DMG_WEAKNESS;
-	float damn = 2.0f * magnitude;
+	float damn = abilityInfo->GetDataVariable(2) * magnitude;
 
 	CTakeDamageInfo info( this, this, vec3_origin, GetAbsOrigin(), abilityInfo->flDuration, bits, 0, &vecReported );
 	info.SetAmmoType(abilityInfo->iMagnitude);
 	info.CopyDamageToBaseDamage();
 	info.SetDamage(damn);
 
-	RadiusDamage( info, GetAbsOrigin(), abilityInfo->flRange, CLASS_NONE, this );
+	RadiusDamage( info, GetAbsOrigin(), abilityInfo->GetDataVariable(0), CLASS_NONE, this );
 
 	UTIL_DecalTrace( &pTrace, "Blood" );
 
 	bits = DMG_GENERIC;
 	damn = magnitude;
-	info.SetDamage(damn);
+	info.SetDamage(abilityInfo->GetDataVariable(1) * damn);
 	info.SetDamageType(bits);
 	TakeDamage(info);
 
@@ -2051,7 +2051,7 @@ void CHL2MP_Player::StealthCalc()
 
 		if (IsAlive() && !KO && GetFlags() & FL_ONGROUND)
 		{
-			float speed = GetAbsVelocity().Length();
+			float speed = GetAbsVelocity().LengthSqr();
 			float min = 0.0f;
 			int factor = 3;
 			if (speed > sv_coven_max_stealth_velocity.GetFloat())
@@ -2300,7 +2300,7 @@ void CHL2MP_Player::PreThink( void )
 	//BB: CTS logic
 	if (HL2MPRules()->covenCTSStatus > COVEN_CTS_STATUS_UNDEFINED && HasStatus(COVEN_STATUS_HAS_CTS))
 	{
-		if ((HL2MPRules()->cts_zone-GetLocalOrigin()).Length() < HL2MPRules()->cts_zone_radius)
+		if ((HL2MPRules()->cts_zone - GetLocalOrigin()).LengthSqr() < HL2MPRules()->cts_zone_radius)
 		{
 			RemoveStatus(COVEN_STATUS_HAS_CTS);
 			RemoveGlowEffect();
@@ -2338,7 +2338,7 @@ void CHL2MP_Player::PreThink( void )
 
 		RemoveStatus(COVEN_STATUS_CAPPOINT);
 
-		if (IsAlive() && !KO && ((tVec-GetLocalOrigin()).Length() < pRules->cap_point_distance[lastCheckedCapPoint]))
+		if (IsAlive() && !KO && ((tVec - GetLocalOrigin()).LengthSqr() < pRules->cap_point_distance[lastCheckedCapPoint]))
 		{
 			bool itsago = true;
 			if (pRules->cap_point_sightcheck[lastCheckedCapPoint])
@@ -3488,7 +3488,7 @@ void CHL2MP_Player::SlayerHolywaterThink()
 	if (IsAlive() && HasStatus(COVEN_STATUS_HOLYWATER) && gpGlobals->curtime > coven_timer_holywater)
 	{
 		CovenStatusEffectInfo_t *effectInfo = GetCovenStatusEffectData(COVEN_STATUS_HOLYWATER);
-		float divisor = max(effectInfo->flDataVariables[0], 1.0f);
+		float divisor = max(effectInfo->GetDataVariable(0), 1.0f);
 		int mag = GetStatusMagnitude(COVEN_STATUS_HOLYWATER);
 		float temp = ceil(mag / divisor);
 		int newtot = mag - temp;
@@ -3508,7 +3508,7 @@ void CHL2MP_Player::SlayerHolywaterThink()
 	if (IsAlive() && HasStatus(COVEN_STATUS_INNERLIGHT) && gpGlobals->curtime > coven_timer_innerlight)
 	{
 		CovenStatusEffectInfo_t *effectInfo = GetCovenStatusEffectData(COVEN_STATUS_INNERLIGHT);
-		float divisor = max(effectInfo->flDataVariables[0], 1.0f);
+		float divisor = max(effectInfo->GetDataVariable(0), 1.0f);
 		int mag = GetStatusMagnitude(COVEN_STATUS_INNERLIGHT);
 		float temp = ceil(mag / divisor);
 		int newtot = mag - temp;
@@ -3758,13 +3758,13 @@ bool CHL2MP_Player::ClientCommand( const CCommand &args )
 		{
 			Vector forward, forwardvel, pos;
 			forwardvel = GetAbsVelocity();
-			VectorNormalize(forwardvel);
 			forwardvel.z = 0;
+			float speed2D = VectorNormalize(forwardvel);
 			AngleVectors(GetAbsAngles(), &forward);
 			VectorNormalize(forward);
 			forward.z = 0;
 			trace_t tr;
-			if (forwardvel.Length() > 0)
+			if (speed2D > 0)
 			{
 				pos = GetAbsOrigin() - forwardvel * 64 + Vector(0, 0, 32);
 			}
@@ -4044,7 +4044,7 @@ void CHL2MP_Player::GiveTeamXPCentered(int team, int xp, CBasePlayer *ignore)
 	for (int i = 0; i < num; i++)
 	{
 		CBasePlayer *pTemp = theteam->GetPlayer(i);
-		if (pTemp && (pTemp->GetLocalOrigin()-GetLocalOrigin()).Length() <= COVEN_XP_ASSIST_RADIUS && pTemp != ignore)
+		if (pTemp && (pTemp->GetLocalOrigin()-GetLocalOrigin()).LengthSqr() <= COVEN_XP_ASSIST_RADIUS && pTemp != ignore)
 		{
 			//nearby.AddToTail(pTemp);
 			((CHL2_Player*)pTemp)->GiveXP(xp);
@@ -4747,7 +4747,7 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 		if (inputInfoAdjust.GetDamageType() == DMG_FALL)
 		{
 			CovenStatusEffectInfo_t *effectInfo = GetCovenStatusEffectData(COVEN_STATUS_HOLYWATER);
-			float divisor = max(effectInfo->flDataVariables[0], 1.0f);
+			float divisor = max(effectInfo->GetDataVariable(0), 1.0f);
 			int mag = GetStatusMagnitude(COVEN_STATUS_HOLYWATER);
 			float temp = floor((0.2f + 0.1f * mag / divisor) * inputInfoAdjust.GetDamage());
 			if (temp > mag)
@@ -4808,12 +4808,12 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 		//BLOOD EXPLODE increase
 		if (inputInfo.GetAttacker() && inputInfo.GetAttacker()->IsPlayer() && inputInfo.GetAttacker() == this)
 		{
-			add *= 2.0f;
+			add *= abilityInfo->GetDataVariable(1);
 			bResetDamageTimer = false;
 		}
-		status = min(status + add, abilityInfo->flRange);
-		AddStatus(COVEN_STATUS_MASOCHIST, status, gpGlobals->curtime + abilityInfo->flDuration);
 		ComputeSpeed();
+		status = min(status + add, abilityInfo->GetDataVariable(0));
+		AddStatus(COVEN_STATUS_MASOCHIST, status, gpGlobals->curtime + status * abilityInfo->GetDataVariable(3));
 	}
 
 	if (GetTeamNumber() == COVEN_TEAMID_VAMPIRES && !(inputInfoAdjust.GetDamageType() & DMG_NO) && bResetDamageTimer)

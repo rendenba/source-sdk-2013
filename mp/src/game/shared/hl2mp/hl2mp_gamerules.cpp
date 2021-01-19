@@ -90,8 +90,8 @@ ConVar sv_coven_xp_item_vampire("sv_coven_xp_item_vampire", "15.0", FCVAR_GAMEDL
 ConVar sv_coven_cts_returntime("sv_coven_cts_returntime", "16", FCVAR_GAMEDLL | FCVAR_NOTIFY);
 ConVar sv_coven_gas_returntime("sv_coven_gas_returntime", "60", FCVAR_GAMEDLL | FCVAR_NOTIFY);
 ConVar sv_coven_manachargerate("sv_coven_manachargerate", "5.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Intellect / X per second.");
-ConVar sv_coven_max_stealth_velocity("sv_coven_max_stealth_velocity", "150.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Lower boundary for stealth invisibility.");
-ConVar sv_coven_min_stealth_velocity("sv_coven_min_stealth_velocity", "280.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Minimum stealth velocity.");
+ConVar sv_coven_max_stealth_velocity("sv_coven_max_stealth_velocity", "22500.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Lower boundary for stealth invisibility. (squared)");
+ConVar sv_coven_min_stealth_velocity("sv_coven_min_stealth_velocity", "78400.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Minimum stealth velocity. (squared)");
 ConVar sv_coven_dash_bump("sv_coven_dash_bump", "1000.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Dash fling magnitude.");
 ConVar sv_coven_light_bump("sv_coven_light_bump", "350.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Inner light fling magnitude.");
 ConVar sv_coven_respawn_slayer_base("sv_coven_respawn_slayer_base", "5.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Base slayer respawn time.");
@@ -109,7 +109,7 @@ extern ConVar coven_debug_visual;
 extern CBaseEntity	 *g_pLastSlayerSpawn;
 extern CBaseEntity	 *g_pLastVampireSpawn;
 
-#define WEAPON_MAX_DISTANCE_FROM_SPAWN 64
+#define WEAPON_MAX_DISTANCE_FROM_SPAWN 4096
 
 static char temparray[256];
 
@@ -125,7 +125,7 @@ ConVar sv_coven_mana_per_int("sv_coven_mana_per_int", "10.0", FCVAR_NOTIFY | FCV
 ConVar sv_coven_gcd("sv_coven_gcd", "1.0", FCVAR_NOTIFY | FCVAR_REPLICATED);
 ConVar sv_coven_hp_per_con("sv_coven_hp_per_con", "4.0", FCVAR_NOTIFY | FCVAR_REPLICATED);
 ConVar sv_coven_alarm_time("sv_coven_alarm_time", "60.0", FCVAR_NOTIFY | FCVAR_REPLICATED, "APC alarm timer.");
-ConVar sv_coven_refuel_distance("sv_coven_refuel_distance", "250.0", FCVAR_NOTIFY | FCVAR_REPLICATED, "Distance before refuel cancels.");
+ConVar sv_coven_refuel_distance("sv_coven_refuel_distance", "62500.0", FCVAR_NOTIFY | FCVAR_REPLICATED, "Distance before refuel cancels. (squared)");
 ConVar sv_coven_hp_per_ragdoll("sv_coven_hp_per_ragdoll", "60", FCVAR_NOTIFY | FCVAR_REPLICATED, "HP allowed per player to feed upon.");
 ConVar sv_coven_max_slam("sv_coven_max_slam", "6", FCVAR_NOTIFY | FCVAR_REPLICATED, "Maximum number of TOTAL deployed slams.");
 
@@ -562,6 +562,7 @@ bool CHL2MPRules::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBa
 				int n;
 				UTIL_StringToIntArray(&n, 1, u);
 				cap_point_distance[num_cap_points] = n;
+				cap_point_distance[num_cap_points] *= cap_point_distance[num_cap_points];
 				buf.GetDelimitedString( GetNoEscCharConversion(), temparray, 256 );
 				const char *v = temparray;
 				Q_snprintf(cap_point_names[num_cap_points], sizeof(cap_point_names[num_cap_points]), "%s", v);
@@ -634,7 +635,7 @@ bool CHL2MPRules::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBa
 			UTIL_StringToIntArray(&n, 1, u);
 			if (sv_coven_usects.GetInt() > 0)
 			{
-				cts_zone_radius = n;
+				cts_zone_radius = n * n;
 			}
 		}
 	}
@@ -1013,6 +1014,7 @@ bool CHL2MPRules::LoadCowFile(IBaseFileSystem *filesystem, const char *resourceN
 								cts_zone.y = locs[1];
 								cts_zone.z = locs[2];
 								cts_zone_radius = pCTSZone->GetInt("radius");
+								cts_zone_radius *= cts_zone_radius;
 							}
 							else
 							{
@@ -1040,6 +1042,7 @@ bool CHL2MPRules::LoadCowFile(IBaseFileSystem *filesystem, const char *resourceN
 								cap_point_timers[num_cap_points] = 0.0f;
 								cap_point_state.Set(num_cap_points, 0);
 								cap_point_distance[num_cap_points] = sub->GetInt("radius", 100);
+								cap_point_distance[num_cap_points] *= cap_point_distance[num_cap_points];
 								Q_snprintf(cap_point_names[num_cap_points], sizeof(cap_point_names[num_cap_points]), "%s", sub->GetString("name", "MISSING_NAME"));
 								cap_point_sightcheck[num_cap_points] = (sub->GetInt("vischeck", 0) != 0) ? true : false;
 #ifdef COVEN_DEVELOPER_MODE
@@ -1923,7 +1926,7 @@ void CHL2MPRules::ManageObjectRelocation( void )
 
 				if ( GetObjectsOriginalParameters( pObject, vSpawOrigin, vSpawnAngles ) == true )
 				{
-					float flDistanceFromSpawn = (pObject->GetAbsOrigin() - vSpawOrigin ).Length();
+					float flDistanceFromSpawn = (pObject->GetAbsOrigin() - vSpawOrigin ).LengthSqr();
 
 					if ( flDistanceFromSpawn > WEAPON_MAX_DISTANCE_FROM_SPAWN )
 					{

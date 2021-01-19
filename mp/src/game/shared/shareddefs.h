@@ -479,7 +479,7 @@ static const char *sTeamNames[] =
 #define COVEN_MIN_CLOAK_CROUCH 0.01f
 //#define COVEN_XP_ITEM_SCALE 8.0f
 //#define COVEN_XP_LEVEL_DIFF_MULT 5
-#define COVEN_XP_ASSIST_RADIUS 600.0f
+#define COVEN_XP_ASSIST_RADIUS 360000.0f
 #define COVEN_ABS_MAX_VELOCITY 380.0f //used for jump velocity calcs
 
 #define COVEN_DAMAGE_PER_LEVEL_ADJUST 0.1f

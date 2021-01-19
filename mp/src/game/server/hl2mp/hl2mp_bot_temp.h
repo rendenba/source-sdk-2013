@@ -10,7 +10,7 @@
 #pragma once
 #endif
 
-#define BOT_NODE_TOLERANCE 20.0f
+#define BOT_NODE_TOLERANCE 400.0f
 
 // If iTeam or iClass is -1, then a team or class is randomly chosen.
 CBasePlayer *BotPutInServer( bool bFrozen, CovenTeamID_t iTeam );

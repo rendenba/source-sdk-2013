@@ -123,7 +123,8 @@ public:
 	float					flDrain;
 	bool					bPassive;
 	int						iFlags;									// miscellaneous flags
-
+	
+	float					GetDataVariable(int iNum);
 	// Sound blocks
 	char					aSounds[NUM_COVEN_SOUND_TYPES][MAX_COVEN_STRING];
 
@@ -133,6 +134,8 @@ public:
 	CHudTexture				*abilityIconActive;
 
 	// SERVER DLL
+private:
+	CUtlVector<float>		flDataVariables;
 };
 
 typedef enum
@@ -173,9 +176,11 @@ public:
 	int						iSpriteCount;
 	CHudTexture				*statusIcon;
 	CHudTexture				*altStatusIcon;
-	CUtlVector<float>		flDataVariables;
-
+	float					GetDataVariable(int iNum);
 	// SERVER DLL
+
+private:
+	CUtlVector<float>		flDataVariables;
 };
 
 class CovenBuildingInfo_t
