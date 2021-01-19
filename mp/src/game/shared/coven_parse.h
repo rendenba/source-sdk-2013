@@ -17,6 +17,7 @@
 typedef enum {
 	COVEN_SND_START,
 	COVEN_SND_STOP,
+	COVEN_SND_HIT,
 
 	// Add new shoot sound types here
 

@@ -4852,6 +4852,13 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 			EmitSound(abilityInfo->aSounds[COVEN_SND_START]);
 			inputInfoAdjust.SetDamage(0.01f * abilityInfo->iMagnitude * inputInfoAdjust.GetDamage());
 		}
+		//Dash damage mitigation
+		if (HasAbility(COVEN_ABILITY_DASH) && coven_timer_dash > 0.0f)
+		{
+			CovenAbilityInfo_t *abilityInfo = GetCovenAbilityData(COVEN_ABILITY_DASH);
+			EmitSound(abilityInfo->aSounds[COVEN_SND_HIT]);
+			inputInfoAdjust.SetDamage(0.01f * abilityInfo->GetDataVariable(0) * inputInfoAdjust.GetDamage());
+		}
 	}
 	
 	bool bResetDamageTimer = true;
