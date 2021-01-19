@@ -36,6 +36,7 @@
 #include "hl2mpclientminimap.h"
 #include "hl2mpclientitemmenu.h"
 #include "hl2mpclientgrenademenu.h"
+#include "hl2mpbuywheel.h"
 #include "spectatorgui.h"
 #include "teammenu.h"
 #include "classmenu.h"
@@ -263,7 +264,7 @@ void CBaseViewport::CreateDefaultPanels( void )
 	AddNewPanel( CreatePanelByName( PANEL_TEAM ), "PANEL_TEAM" );
 	AddNewPanel( CreatePanelByName( PANEL_CLASS ), "PANEL_CLASS" );
 	AddNewPanel( CreatePanelByName( PANEL_CLASS2 ), "PANEL_CLASS2" );
-	// AddNewPanel( CreatePanelByName( PANEL_BUY ), "PANEL_BUY" );
+	AddNewPanel( CreatePanelByName( PANEL_BUY ), "PANEL_BUY" );
 #endif // !TF_CLIENT_DLL
 #endif // !_XBOX
 }
@@ -303,6 +304,10 @@ IViewPortPanel* CBaseViewport::CreatePanelByName(const char *szPanelName)
 	else if (Q_strcmp(PANEL_ITEM, szPanelName) == 0)
 	{
 		newpanel = new CHL2MPClientItemMenuDialog(this);
+	}
+	else if (Q_strcmp(PANEL_BUY, szPanelName) == 0)
+	{
+		newpanel = new CHL2MPClientBuyWheelDialog(this);
 	}
 	else if (Q_strcmp(PANEL_GRENADE, szPanelName) == 0)
 	{

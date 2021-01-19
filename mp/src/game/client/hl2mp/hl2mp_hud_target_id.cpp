@@ -214,12 +214,16 @@ void CTargetID::Paint()
 			CBaseAnimating *pEnt = dynamic_cast<CBaseAnimating *>(cl_entitylist->GetEnt(iEntIndex));
 			if (pEnt != NULL)
 			{
-				CBasePlayer *pLocalPlayer = CBasePlayer::GetLocalPlayer();
+				CHL2MP_Player *pLocalPlayer = ToHL2MPPlayer(CBasePlayer::GetLocalPlayer());
 				if (pEnt->IsABuilding() && (pEnt->GetTeamNumber() == pLocalPlayer->GetTeamNumber() || pLocalPlayer->GetTeamNumber() < COVEN_TEAMID_SLAYERS))
 				{
 					CCovenBuilding *bldg = static_cast<CCovenBuilding *>(pEnt);
 					CovenBuildingInfo_t *info = GetCovenBuildingData(bldg->m_BuildingType);
 					int cost = HL2MPRules()->CovenItemCost(bldg->m_BuildingType);
+
+					if (cost > 0 && pLocalPlayer->HasStatus(COVEN_STATUS_BUYZONE))
+						cost = cost * pLocalPlayer->GetStatusMagnitude(COVEN_STATUS_BUYZONE) / 100.0f;
+
 					if (cost >= 0 && pLocalPlayer->GetTeamNumber() > COVEN_TEAMID_SPECTATOR)
 					{
 						c = GetColorForTargetTeam(pEnt->GetTeamNumber());

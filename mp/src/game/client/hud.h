@@ -170,6 +170,9 @@ public:
 #endif
 	float						m_flFOVSensitivityAdjust;
 
+	float						m_flMaxRotation;
+	QAngle						m_angLockAngle;
+
 	Color						m_clrNormal;
 	Color						m_clrCaution;
 	Color						m_clrYellowish;

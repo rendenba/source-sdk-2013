@@ -208,6 +208,7 @@ public:
 	bool AttachTripmine(int iAbilityNum);
 	void CheckThrowPosition(const Vector &vecEye, Vector &vecSrc);
 	void SlayerHolywaterThink();
+	void SlayerBuyZoneThink();
 	void GutcheckThink();
 	void SlayerSoulThink();
 	void SlayerVampLeapDetect();

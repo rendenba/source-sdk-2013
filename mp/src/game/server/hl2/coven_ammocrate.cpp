@@ -3,6 +3,7 @@
 #include "coven_ammocrate.h"
 #include "coven_parse.h"
 #include "weapon_parse.h"
+#include "hl2mp_gamerules.h"
 
 LINK_ENTITY_TO_CLASS(coven_ammocrate, CCoven_AmmoCrate);
 LINK_ENTITY_TO_CLASS(coven_ammocrate_infinite, CCoven_AmmoCrate);
@@ -53,6 +54,7 @@ void CCoven_AmmoCrate::Precache(void)
 void CCoven_AmmoCrate::SelfDestructThink(void)
 {
 	BaseClass::SelfDestructThink();
+	HL2MPRules()->crates.FindAndRemove(this);
 
 	if (m_flCloseTime > 0.0f)
 	{
@@ -100,6 +102,7 @@ void CCoven_AmmoCrate::OnBuildingComplete(void)
 {
 	SetBodygroup(1, true);
 	SetThink(&CCoven_AmmoCrate::AmmoCrateThink);
+	HL2MPRules()->crates.AddToTail(this);
 
 	BaseClass::OnBuildingComplete();
 }

@@ -284,10 +284,9 @@ void CHudAbils::DrawCircleSegment( int x, int y, int wide, int tall, float flEnd
 
 	float flEndProgressRadians = flEndProgress * M_PI * 2;
 
-	int cur_wedge = 0;
 	for ( int i=0;i<8;i++ )
 	{
-		if ( flEndProgressRadians > abilSegments[cur_wedge].minProgressRadians)
+		if ( flEndProgressRadians > abilSegments[i].minProgressRadians)
 		{
 			vgui::Vertex_t v[3];
 
@@ -295,7 +294,7 @@ void CHudAbils::DrawCircleSegment( int x, int y, int wide, int tall, float flEnd
 			v[0].m_Position.Init( c_x, c_y );
 			v[0].m_TexCoord.Init( 0.5f, 0.5f );
 
-			float flInternalProgress = flEndProgressRadians - abilSegments[cur_wedge].minProgressRadians;
+			float flInternalProgress = flEndProgressRadians - abilSegments[i].minProgressRadians;
 
 			if ( flInternalProgress < ( M_PI / 4 ) )
 			{
@@ -337,10 +336,6 @@ void CHudAbils::DrawCircleSegment( int x, int y, int wide, int tall, float flEnd
 
 			surface()->DrawTexturedPolygon( 3, v );
 		}
-
-		cur_wedge++;
-		if ( cur_wedge >= 8)
-			cur_wedge = 0;
 	}
 }
 

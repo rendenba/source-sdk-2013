@@ -143,6 +143,7 @@ static	kbutton_t	in_score;
 static	kbutton_t	in_break;
 static	kbutton_t	in_zoom;
 static	kbutton_t	in_item;
+static	kbutton_t	in_buy;
 static  kbutton_t   in_grenade;
 static  kbutton_t   in_grenade2;
 static	kbutton_t	in_attack3;
@@ -659,6 +660,25 @@ void IN_ItemUp(const CCommand &args)
 	if (gViewPortInterface)
 	{
 		gViewPortInterface->ShowPanel(PANEL_ITEM, false);
+		GetClientVoiceMgr()->StopSquelchMode();
+	}
+}
+
+void IN_BuyDown(const CCommand &args)
+{
+	KeyDown(&in_buy, args[1]);
+	if (gViewPortInterface)
+	{
+		gViewPortInterface->ShowPanel(PANEL_BUY, true);
+	}
+}
+
+void IN_BuyUp(const CCommand &args)
+{
+	KeyUp(&in_buy, args[1]);
+	if (gViewPortInterface)
+	{
+		gViewPortInterface->ShowPanel(PANEL_BUY, false);
 		GetClientVoiceMgr()->StopSquelchMode();
 	}
 }
@@ -1603,7 +1623,7 @@ int CInput::GetButtonBits( int bResetState )
 	CalcButtonBits( bits, IN_ALT2, s_ClearInputState, &in_alt2, bResetState );
 	CalcButtonBits( bits, IN_SCORE, s_ClearInputState, &in_score, bResetState );
 	CalcButtonBits( bits, IN_ZOOM, s_ClearInputState, &in_zoom, bResetState );
-	CalcButtonBits( bits, IN_ITEM, s_ClearInputState, &in_item, bResetState );
+	CalcButtonBits( bits, IN_BUY, s_ClearInputState, &in_buy, bResetState );
 	CalcButtonBits( bits, IN_GRENADE, s_ClearInputState, &in_grenade, bResetState );
 	CalcButtonBits( bits, IN_GRENADE2, s_ClearInputState, &in_grenade2, bResetState );
 	CalcButtonBits( bits, IN_ATTACK3, s_ClearInputState, &in_attack3, bResetState );
@@ -1763,6 +1783,8 @@ static ConCommand startzoom("+zoom", IN_ZoomDown);
 static ConCommand endzoom("-zoom", IN_ZoomUp);
 static ConCommand startitem( "+item", IN_ItemDown );
 static ConCommand enditem( "-item", IN_ItemUp );
+static ConCommand startbuy("+buymenu", IN_BuyDown);
+static ConCommand endbuy("-buymenu", IN_BuyUp);
 static ConCommand endgrenade( "-grenade", IN_GrenadeUp );
 static ConCommand startgrenade( "+grenade", IN_GrenadeDown );
 static ConCommand endgrenade2( "-grenade2", IN_Grenade2Up );

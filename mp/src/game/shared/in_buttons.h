@@ -33,7 +33,7 @@
 #define IN_ZOOM			(1 << 19)	// Zoom key for HUD zoom
 #define IN_WEAPON1		(1 << 20)	// weapon defines these bits
 #define IN_WEAPON2		(1 << 21)	// weapon defines these bits
-#define IN_ITEM			(1 << 22)	// item menu
+#define IN_BUY			(1 << 22)	// buy menu
 #define IN_GRENADE		(1 << 23)	// grenade menu
 #define IN_GRENADE2		(1 << 24)	// grenade 2
 #define	IN_ATTACK3		(1 << 25)

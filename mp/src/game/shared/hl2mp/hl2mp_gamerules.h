@@ -174,7 +174,7 @@ public:
 	int		CovenItemCost(CovenItemID_t iItemType);
 	int		CovenItemCost(BuildingType_t iBuildingType);
 	bool	PurchaseCovenItem(CovenItemID_t iItemType, CBasePlayer *pPlayer);
-	bool	IsInBuyZone(CBasePlayer *pPlayer);
+	int		IsInBuyZone(CBasePlayer *pPlayer);
 	bool	CanUseCovenItem(CBasePlayer *pPlayer, CovenItemID_t iItemType);
 
 	CovenGamestate_t covenGameState;

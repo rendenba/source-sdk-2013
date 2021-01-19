@@ -636,6 +636,9 @@ bool CHL2_Player::QueueDeferredAction(CovenDeferredAction_t iAction, bool bMoveC
 bool CHL2_Player::PurchaseCovenItem(CovenItemID_t iItemType)
 {
 	int cost = HL2MPRules()->CovenItemCost(iItemType);
+	if (HasStatus(COVEN_STATUS_BUYZONE))
+		cost = cost * GetStatusMagnitude(COVEN_STATUS_BUYZONE) / 100.0f;
+
 	if (cost > m_HL2Local.covenXPCounter)
 		return false;
 
@@ -1689,7 +1692,8 @@ void CHL2_Player::PreThink(void)
 	}
 	else
 	{
-		if ( m_nButtons & IN_ZOOM )
+		// Disallow shooting while buying
+		if ( m_nButtons & IN_ZOOM || m_nButtons & IN_BUY )
 		{
 			//FIXME: Held weapons like the grenade get sad when this happens
 	#ifdef HL2_EPISODIC

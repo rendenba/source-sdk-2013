@@ -166,7 +166,7 @@ CON_COMMAND( chooseclass, "Opens a menu for class choose" )
 	}
 }
 
-CON_COMMAND(buy, "Buy an item")
+CON_COMMAND(buy, "Buy an item <x>")
 {
 	CHL2MP_Player *pPlayer = ToHL2MPPlayer(UTIL_GetCommandClient());
 	if (!pPlayer)
@@ -181,6 +181,23 @@ CON_COMMAND(buy, "Buy an item")
 	int item = atoi(args[1]);
 	if (item > COVEN_ITEM_INVALID && item < COVEN_ITEM_MAXCOUNT)
 		HL2MPRules()->PurchaseCovenItem((CovenItemID_t)item, pPlayer);
+}
+
+CON_COMMAND(buyall, "Buy as much item <x> as you can afford and carry")
+{
+	CHL2MP_Player *pPlayer = ToHL2MPPlayer(UTIL_GetCommandClient());
+	if (!pPlayer)
+		return;
+
+	if (!pPlayer->IsAlive() || pPlayer->KO)
+		return;
+
+	if (args.ArgC() != 2 || pPlayer->GetTeamNumber() != COVEN_TEAMID_SLAYERS)
+		return;
+
+	int item = atoi(args[1]);
+	if (item > COVEN_ITEM_INVALID && item < COVEN_ITEM_MAXCOUNT)
+		while (HL2MPRules()->PurchaseCovenItem((CovenItemID_t)item, pPlayer));
 }
 
 CON_COMMAND(item, "Use an item")
@@ -2582,6 +2599,7 @@ void CHL2MP_Player::DoSlayerPreThink()
 	SlayerSoulThink();
 	SlayerLightHandler(DOT_20DEGREE, 250.0f, 225.0f, 100.0f);
 	SlayerHolywaterThink();
+	SlayerBuyZoneThink();
 }
 
 void CHL2MP_Player::DoVampirePostThink()
@@ -2592,6 +2610,27 @@ void CHL2MP_Player::DoVampirePostThink()
 void CHL2MP_Player::DoSlayerPostThink()
 {
 	SlayerVampLeapDetect();
+}
+
+void CHL2MP_Player::SlayerBuyZoneThink()
+{
+	//BB: TODO: change this to iterative (not every player every think)?
+	if (IsAlive())
+	{
+		int status = HL2MPRules()->IsInBuyZone(this);
+		if (HasStatus(COVEN_STATUS_BUYZONE))
+		{
+			if (status <= 0)
+				RemoveStatus(COVEN_STATUS_BUYZONE);
+			else if (status < GetStatusMagnitude(COVEN_STATUS_BUYZONE))
+				AddStatus(COVEN_STATUS_BUYZONE, status);
+		}
+		else if (status > 0)
+		{
+			AddStatus(COVEN_STATUS_BUYZONE, status);
+		}
+	}
+	
 }
 
 void CHL2MP_Player::SlayerVampLeapDetect()

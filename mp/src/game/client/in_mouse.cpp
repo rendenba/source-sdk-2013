@@ -481,7 +481,16 @@ void CInput::ApplyMouse( QAngle& viewangles, CUserCmd *cmd, float mouse_x, float
 			else
 			{
 				// Otherwize, use mouse to spin around vertical axis
-				viewangles[YAW] -= CAM_CapYaw( m_yaw.GetFloat() * mouse_x );
+				if (gHUD.m_flMaxRotation > 0.0f)
+				{
+					float maxYaw = AngleNormalize(gHUD.m_angLockAngle[YAW] + gHUD.m_flMaxRotation);
+					float minYaw = AngleNormalize(gHUD.m_angLockAngle[YAW] - gHUD.m_flMaxRotation);
+					float rot = AngleNormalize(viewangles[YAW] - CAM_CapYaw(m_yaw.GetFloat() * mouse_x));
+					if (AngleDiff(rot, minYaw) > 0.0f && AngleDiff(maxYaw, rot) > 0.0f)
+						viewangles[YAW] = rot;
+				}
+				else
+					viewangles[YAW] -= CAM_CapYaw(m_yaw.GetFloat() * mouse_x);
 			}
 		}
 	}
@@ -522,7 +531,17 @@ void CInput::ApplyMouse( QAngle& viewangles, CUserCmd *cmd, float mouse_x, float
 			}
 			else
 			{
-				viewangles[PITCH] += CAM_CapPitch( m_pitch->GetFloat() * mouse_y );
+				if (gHUD.m_flMaxRotation > 0.0f)
+				{
+					float maxPitch = AngleNormalize(gHUD.m_angLockAngle[PITCH] - gHUD.m_flMaxRotation);
+					float minPitch = AngleNormalize(gHUD.m_angLockAngle[PITCH] + gHUD.m_flMaxRotation);
+
+					float rot = AngleNormalize(viewangles[PITCH] + CAM_CapPitch(m_pitch->GetFloat() * mouse_y));
+					if (AngleDiff(minPitch, rot) > 0.0f && AngleDiff(rot, maxPitch) > 0.0f)
+						viewangles[PITCH] = rot;
+				}
+				else
+					viewangles[PITCH] += CAM_CapPitch(m_pitch->GetFloat() * mouse_y);
 			}
 
 			// Check pitch bounds

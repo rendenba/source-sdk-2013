@@ -1973,6 +1973,9 @@
     <ClInclude Include="c_serverragdoll.h">
       <Filter>Source Files</Filter>
     </ClInclude>
+    <ClInclude Include="hl2mp\ui\hl2mpbuywheel.h">
+      <Filter>Source Files\HL2MP\UI</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="mp3player.cpp">
@@ -3615,6 +3618,9 @@
     </ClCompile>
     <ClCompile Include="hl2\c_weapon_harpoon.cpp">
       <Filter>Source Files\HL2 DLL</Filter>
+    </ClCompile>
+    <ClCompile Include="hl2mp\ui\hl2mpbuywheel.cpp">
+      <Filter>Source Files\HL2MP\UI</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

@@ -37,6 +37,7 @@
 	#include "coven_supplydepot.h"
 	#include "item_itemcrate.h"
 	#include "covenlib.h"
+	#include "covenbuilding.h"
 
 //BB: BOTS!
 //#ifdef DEBUG	
@@ -102,6 +103,8 @@ ConVar sv_coven_flamedamage("sv_coven_flamedamage", "6.0", FCVAR_GAMEDLL | FCVAR
 ConVar sv_coven_dodge_alpha("sv_coven_dodge_alpha", "100", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Dodge effect alpha.");
 ConVar sv_coven_regen_percent("sv_coven_regen_percent", "0.05", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Regen percentage per tick.");
 ConVar sv_coven_feed_percent("sv_coven_feed_percent", "5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Feed percentage/amount per tick.");
+ConVar sv_coven_buyzone_radius("sv_coven_buyzone_radius", "62500.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Buyzone radius. (squared)");
+ConVar sv_coven_discount_per_level("sv_coven_discount_per_level", "10", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Percent price discount per level of crates.");
 
 extern ConVar mp_chattime;
 extern ConVar coven_debug_visual;
@@ -375,15 +378,31 @@ int CHL2MPRules::CovenItemCost(CovenItemID_t iItemType)
 	return -1;
 }
 
-bool CHL2MPRules::IsInBuyZone(CBasePlayer *pPlayer)
+int CHL2MPRules::IsInBuyZone(CBasePlayer *pPlayer)
 {
+	int lowest = 0;
 #ifndef CLIENT_DLL
 	Vector origin = pPlayer->GetAbsOrigin();
 	for (int i = 0; i < m_hBuyZones.Count(); i++)
+	{
 		if (LocationIsBetween(origin, m_hBuyZones[i]->low, m_hBuyZones[i]->high))
-			return true;
+		{
+			lowest = 100;
+			break;
+		}
+	}
+	for (int i = 0; i < crates.Count(); i++)
+	{
+		if ((origin - crates[i]->GetAbsOrigin()).LengthSqr() <= sv_coven_buyzone_radius.GetFloat())
+		{
+			if (lowest == 0)
+				lowest = 100;
+			CCovenBuilding *building = ToCovenBuilding(crates[i]);
+			lowest = min(lowest, 100 - sv_coven_discount_per_level.GetInt() * building->m_iLevel);
+		}
+	}
 #endif
-	return false;
+	return lowest;
 }
 
 bool CHL2MPRules::CanUseCovenItem(CBasePlayer *pPlayer, CovenItemID_t iItemType)
@@ -417,7 +436,10 @@ bool CHL2MPRules::PurchaseCovenItem(CovenItemID_t iItemType, CBasePlayer *pPlaye
 	if (pHL2Player)
 	{
 		int cost = CovenItemCost(iItemType);
-		if (cost >= 0 && pHL2Player->GetXP() >= cost && IsInBuyZone(pPlayer))
+		if (cost > 0 && pHL2Player->HasStatus(COVEN_STATUS_BUYZONE))
+			cost = cost * pHL2Player->GetStatusMagnitude(COVEN_STATUS_BUYZONE) / 100.0f;
+
+		if (cost >= 0 && pHL2Player->GetXP() >= cost && pHL2Player->HasStatus(COVEN_STATUS_BUYZONE))
 		{
 			return pHL2Player->PurchaseCovenItem(iItemType);
 		}

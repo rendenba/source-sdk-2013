@@ -986,6 +986,10 @@ bool CHud::IsHidden( int iHudFlags )
 			panel = gViewPortInterface->FindPanelByName(PANEL_GRENADE);
 			if (panel && panel->IsVisible())
 				return true;
+
+			panel = gViewPortInterface->FindPanelByName(PANEL_BUY);
+			if (panel && panel->IsVisible())
+				return true;
 		}
 	}
 
