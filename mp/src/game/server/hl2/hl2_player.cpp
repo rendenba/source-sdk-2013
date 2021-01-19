@@ -879,6 +879,12 @@ void CHL2_Player::HandleStatus(CovenStatus_t iStatusNum)
 				GiveStrength(-(classInfo->flStrength * (GetStatusMagnitude(iStatusNum) - m_iHandledEffect[iStatusNum]) * 0.01f));
 				break;
 			}
+			case COVEN_STATUS_MASOCHIST:
+			{
+				ComputeSpeed();
+				ResetVitals();
+				break;
+			}
 			case COVEN_STATUS_HASTE:
 			{
 				ComputeSpeed();
@@ -982,7 +988,12 @@ void CHL2_Player::ResetStats(void)
 
 void CHL2_Player::ResetMaxHealth(void)
 {
-	SetMaxHealth(ceil(m_HL2Local.covenConstitutionCounter * sv_coven_hp_per_con.GetFloat()) * (1.0f + 0.01f * GetStatusMagnitude(COVEN_STATUS_BERSERK)));
+	SetMaxHealth(GetBaseHealth() * (1.0f + 0.01f * (GetStatusMagnitude(COVEN_STATUS_BERSERK) + GetStatusMagnitude(COVEN_STATUS_MASOCHIST))));
+}
+
+int CHL2_Player::GetBaseHealth(void)
+{
+	return ceil(m_HL2Local.covenConstitutionCounter * sv_coven_hp_per_con.GetFloat());
 }
 
 void CHL2_Player::ResetVitals(void)

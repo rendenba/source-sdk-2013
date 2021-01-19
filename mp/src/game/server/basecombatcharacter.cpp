@@ -65,6 +65,7 @@ extern int	g_interactionBarnacleVictimReleased;
 #endif //HL2_DLL
 
 extern ConVar weapon_showproficiency;
+extern ConVar sv_coven_base_resurrect;
 
 ConVar ai_show_hull_attacks( "ai_show_hull_attacks", "0" );
 ConVar ai_force_serverside_ragdoll( "ai_force_serverside_ragdoll", "0" );
@@ -2553,7 +2554,17 @@ int CBaseCombatCharacter::OnTakeDamage( const CTakeDamageInfo &info )
 
 					m_floatCloakFactor = 0.0f;
 
-					timeofdeath = gpGlobals->curtime;
+					float restime = sv_coven_base_resurrect.GetFloat();
+
+					//BB: Masochist implementation
+					if (HasStatus(COVEN_STATUS_MASOCHIST))
+					{
+						CovenAbilityInfo_t *abilityInfo = GetCovenAbilityData(COVEN_ABILITY_MASOCHIST);
+						float factor = abilityInfo->GetDataVariable(2) * GetStatusMagnitude(COVEN_STATUS_MASOCHIST) / abilityInfo->GetDataVariable(0);
+						restime -= factor;
+					}
+
+					AddStatus(COVEN_STATUS_RESURRECT, 0, gpGlobals->curtime + restime);
 					AddFlag(FL_FROZEN);
 					AddEFlags(EFL_BOT_FROZEN);
 					//BB: WTF WHY DOESNT THIS WORK?!?!

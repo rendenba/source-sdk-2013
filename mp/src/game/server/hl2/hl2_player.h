@@ -355,6 +355,7 @@ public:
 	bool HasAbility(CovenAbility_t iAbility);
 	void ResetStats(void);
 	void ResetMaxHealth(void);
+	int GetBaseHealth(void);
 	void ResetVitals(void);
 	void TriggerGCD(void);
 	virtual float Feed(int iIndex);

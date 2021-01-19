@@ -485,7 +485,6 @@ public:
 	//BB: stores your flame object for vampires on fire (holy water)
 	CEntityFlame *m_pFlame;
 	CBaseEntity *mykiller;
-	float timeofdeath;
 
 	CBaseEntity *myServerRagdoll;
 

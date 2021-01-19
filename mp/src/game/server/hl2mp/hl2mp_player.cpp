@@ -1778,7 +1778,6 @@ void CHL2MP_Player::Spawn(void)
 	gorephased = false;
 	SuitPower_ResetDrain();
 	KO = false;
-	timeofdeath = -1.0f;
 	mykiller = NULL;
 	rezsound = false;
 	solidcooldown = -1.0f;
@@ -2711,27 +2710,13 @@ void CHL2MP_Player::VampireManageRagdoll()
 void CHL2MP_Player::VampireCheckResurrect()
 {
 	//BB: THIS IS HARDCODED SOUND LENGTHS! THIS MUST BE CHANGED IF THE SOUND FILE IS CHANGED!
-	float x = 4.268f;
-	float y = 5.0f;
-	//BB: UNDYING implementation
-	/*if (covenClassID == COVEN_CLASSID_DEGEN)
-	{
-		x -= 0.66f*GetLoadout(1);
-		y -= 0.66f*GetLoadout(1);
-	}*/
+	float x = 0.732f;
 
 	//BB: vampire ressurect... start the sound early...
-	if (timeofdeath > 0 && /*gpGlobals->curtime < timeofdeath + 4.9f &&*/ gpGlobals->curtime > timeofdeath + x && !rezsound)
+	if (HasStatus(COVEN_STATUS_RESURRECT) && gpGlobals->curtime > GetStatusTime(COVEN_STATUS_RESURRECT) - x && !rezsound)
 	{
 		EmitSound( "Resurrect" );
 		rezsound = true;
-		//BB: UNDYING implementation
-		/*if (covenClassID == COVEN_CLASSID_DEGEN)
-		{
-			float newhealth = GetMaxHealth()*(0.25f+0.1f*GetLoadout(1));
-			if (GetHealth() < newhealth)
-				SetHealth(newhealth);
-		}*/
 		if (myServerRagdoll != NULL && ((CRagdollProp *)myServerRagdoll)->flClearTime < 0.0f)
 		{
 			if (IsAlive())
@@ -2744,7 +2729,7 @@ void CHL2MP_Player::VampireCheckResurrect()
 	}
 	else
 	//BB: release the vampire player if enough time has passed (and not freezetime)
-	if (timeofdeath > 0 && gpGlobals->curtime > timeofdeath + y)
+	if (HasStatus(COVEN_STATUS_RESURRECT) && gpGlobals->curtime > GetStatusTime(COVEN_STATUS_RESURRECT))
 	{
 		if (myServerRagdoll != NULL && ((CRagdollProp *)myServerRagdoll)->flClearTime < 0.0f)
 		{
@@ -2896,7 +2881,7 @@ void CHL2MP_Player::VampireCheckResurrect()
 
 		KO = false;
 		pl.deadflag = false;
-		timeofdeath = -1.0f;
+		RemoveStatus(COVEN_STATUS_RESURRECT);
 		rezsound = false;
 	}
 }
@@ -2915,7 +2900,7 @@ void CHL2MP_Player::VampireCheckRegen(float maxpercent)
 		}
 		return;
 	}
-	int midhealth = GetMaxHealth()*maxpercent;
+	int midhealth = GetBaseHealth() * maxpercent;
 	if (IsAlive() && GetHealth() < midhealth && gpGlobals->curtime > coven_timer_regen)
 	{
 		coven_timer_regen = gpGlobals->curtime + 1.5f;
@@ -3345,7 +3330,7 @@ void CHL2MP_Player::ChangeTeam( int iTeam )
 	{
 		UTIL_Remove(m_hRagdoll);
 		m_hRagdoll = myServerRagdoll = NULL;
-		timeofdeath = 0.0f;
+		RemoveStatus(COVEN_STATUS_RESURRECT);
 	}
 
 	if (GetTeamNumber() < COVEN_TEAMID_SLAYERS)
@@ -3456,11 +3441,33 @@ void CHL2MP_Player::DoStatusThink()
 	//MASOCHISM
 	if (HasStatus(COVEN_STATUS_MASOCHIST))
 	{
-		if (gpGlobals->curtime > GetStatusTime(COVEN_STATUS_MASOCHIST))
+		CovenAbilityInfo_t *abilityInfo = GetCovenAbilityData(COVEN_ABILITY_MASOCHIST);
+		if (KO)
 		{
-			RemoveStatus(COVEN_STATUS_MASOCHIST);
-			ComputeSpeed();
+			int iMasochist = GetStatusMagnitude(COVEN_STATUS_MASOCHIST);
+			AddStatus(COVEN_STATUS_MASOCHIST, iMasochist, gpGlobals->curtime + iMasochist * abilityInfo->GetDataVariable(3));
 		}
+		else
+		{
+			if (gpGlobals->curtime > GetStatusTime(COVEN_STATUS_MASOCHIST))
+			{
+				RemoveStatus(COVEN_STATUS_MASOCHIST);
+				ResetVitals();
+				ComputeSpeed();
+			}
+			else
+			{
+				float timeleft = GetStatusTime(COVEN_STATUS_MASOCHIST) - gpGlobals->curtime + 1.0f * abilityInfo->GetDataVariable(3);
+				int expectedmagnitude = timeleft / abilityInfo->GetDataVariable(3);
+				if (expectedmagnitude < GetStatusMagnitude(COVEN_STATUS_MASOCHIST))
+				{
+					SetStatusMagnitude(COVEN_STATUS_MASOCHIST, expectedmagnitude);
+					ResetVitals();
+					ComputeSpeed();
+				}
+			}
+		}
+		HandleStatus(COVEN_STATUS_MASOCHIST);
 	}
 
 	//NEW PHASE
@@ -4631,7 +4638,18 @@ int CHL2MP_Player::OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo )
 		if (HasStatus(COVEN_STATUS_DODGE))
 			UnDodge();
 
+		//MASOCHIST persist through death
+		int iMasochist = 0;
+		if (HasStatus(COVEN_STATUS_MASOCHIST))
+			iMasochist = GetStatusMagnitude(COVEN_STATUS_MASOCHIST);
+
 		ResetCovenStatus();
+
+		if (iMasochist)
+		{
+			CovenAbilityInfo_t *abilityInfo = GetCovenAbilityData(COVEN_ABILITY_MASOCHIST);
+			AddStatus(COVEN_STATUS_MASOCHIST, iMasochist, gpGlobals->curtime + iMasochist * abilityInfo->GetDataVariable(3));
+		}
 	}
 
 	//BLOODLUST
@@ -4850,7 +4868,6 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 			add *= abilityInfo->GetDataVariable(1);
 			bResetDamageTimer = false;
 		}
-		ComputeSpeed();
 		status = min(status + add, abilityInfo->GetDataVariable(0));
 		AddStatus(COVEN_STATUS_MASOCHIST, status, gpGlobals->curtime + status * abilityInfo->GetDataVariable(3));
 	}

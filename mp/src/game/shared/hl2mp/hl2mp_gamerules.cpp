@@ -105,6 +105,7 @@ ConVar sv_coven_regen_percent("sv_coven_regen_percent", "0.05", FCVAR_GAMEDLL | 
 ConVar sv_coven_feed_percent("sv_coven_feed_percent", "5", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Feed percentage/amount per tick.");
 ConVar sv_coven_buyzone_radius("sv_coven_buyzone_radius", "62500.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Buyzone radius. (squared)");
 ConVar sv_coven_discount_per_level("sv_coven_discount_per_level", "10", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Percent price discount per level of crates.");
+ConVar sv_coven_base_resurrect("sv_coven_base_resurrect", "5.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Base resurrect time.");
 
 extern ConVar mp_chattime;
 extern ConVar coven_debug_visual;

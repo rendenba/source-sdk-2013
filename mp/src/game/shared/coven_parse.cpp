@@ -83,6 +83,7 @@ static const char *pCovenAbilities[COVEN_ABILITY_COUNT] =
 //BB: this must be in the same order as shareddefs
 static const char *pCovenStatusEffects[COVEN_STATUS_COUNT] =
 {
+	"resurrect",
 	"cappoint",
 	"levelup",
 	"haste",
