@@ -25,6 +25,27 @@ void VectorRotate2DPoint(const Vector &in, const Vector &point, float angle, Vec
 	}
 }
 
+void PointRotate2DPoint(float &x, float &y, float px, float py, float angle, bool bRadians)
+{
+	if (!bRadians)
+		angle = M_PI * angle / 180.0f;
+	float cs;
+	float sn;
+	SinCos(angle, &sn, &cs);
+
+	float translated_x = x - px;
+	float translated_y = y - py;
+
+	float result_x = translated_x * cs - translated_y * sn;
+	float result_y = translated_x * sn + translated_y * cs;
+
+	result_x += px;
+	result_y += py;
+
+	x = result_x;
+	y = result_y;
+}
+
 void VectorRotate2D(const Vector &in, float angle, Vector *out, bool bRadians)
 {
 	if (out)

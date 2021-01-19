@@ -4299,6 +4299,19 @@ CON_COMMAND_F(give_buff, "Grant a buff <id> <mag> <duration>", FCVAR_CHEAT)
 	pPlayer->AddStatus((CovenStatus_t)buff, magnitude, gpGlobals->curtime + duration, true);
 }
 
+CON_COMMAND_F(takedamage, "Take damage <x>", FCVAR_CHEAT)
+{
+	CHL2MP_Player *pPlayer = ToHL2MPPlayer(UTIL_GetCommandClient());
+	if (!pPlayer)
+		return;
+	if (args.ArgC() < 2)
+		return;
+	CTakeDamageInfo info;
+	info.SetDamage(atof(args[1]));
+	info.SetDamageType(DMG_GENERIC);
+	pPlayer->TakeDamage(info);
+}
+
 CON_COMMAND_F(level, "level up <int>", FCVAR_CHEAT)
 {
 	CHL2MP_Player *pPlayer = ToHL2MPPlayer( UTIL_GetCommandClient() );
