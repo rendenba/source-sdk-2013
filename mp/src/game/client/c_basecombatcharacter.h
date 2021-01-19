@@ -60,7 +60,7 @@ public:
 
 	virtual bool	IsBaseCombatCharacter( void ) { return true; };
 	virtual C_BaseCombatCharacter *MyCombatCharacterPointer( void ) { return this; }
-	virtual int		GetCovenStatusEffects( void ) { return 0; }
+	virtual bool		HasStatus(CovenStatus_t iEffectNum) { return false; }
 	virtual const Vector	GetPlayerMidPoint() const;
 	virtual bool	IsBuilderClass(void);
 

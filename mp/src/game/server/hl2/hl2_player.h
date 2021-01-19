@@ -326,7 +326,7 @@ public:
 
 	CNetworkVar( CovenClassID_t, covenClassID );
 	CNetworkVar( int, covenLevelCounter );
-	CNetworkVar( int, covenStatusEffects );
+	CNetworkArray( bool, covenStatusEffects, COVEN_STATUS_COUNT );
 	EHANDLE m_hTurret;
 	EHANDLE m_hDispenser;
 
@@ -348,7 +348,7 @@ public:
 	void AddStatus(CovenStatus_t iStatusNum, int iMagnitude = -1, float flTime = -1.0f, bool bSafeAdd = false, bool bCumulative = true);
 	void AddStatusMagDur(CovenStatus_t iStatusNum, int iAmount);
 	void RemoveStatus(CovenStatus_t iStatusNum);
-	inline bool HasStatus(CovenStatus_t iStatusNum) { return (covenStatusEffects & (1 << iStatusNum)) > 0; };
+	inline bool HasStatus(CovenStatus_t iStatusNum) { return covenStatusEffects[iStatusNum]; };
 	bool HasHandledStatus(CovenStatus_t iStatusNum, int iMagnitude);
 	void HandleStatus(CovenStatus_t iStatusNum);
 	int AbilityKey(CovenAbility_t iAbility, unsigned int *key = NULL);

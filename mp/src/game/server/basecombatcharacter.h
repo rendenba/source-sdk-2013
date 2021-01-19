@@ -261,6 +261,9 @@ public:
 	// -----------------------
 	// Don't override this for characters, override the per-life-state versions below
 	virtual int				OnTakeDamage( const CTakeDamageInfo &info );
+	virtual inline bool		HasStatus(CovenStatus_t iStatusNum) { return false; };
+	virtual int				GetStatusMagnitude(CovenStatus_t iStatusNum) { return 0; };
+	virtual void			AddStatus(CovenStatus_t iStatusNum, int iMagnitude = -1, float flTime = -1.0f, bool bSafeAdd = false, bool bCumulative = true) {};
 
 	// Override these to control how your character takes damage in different states
 	virtual int				OnTakeDamage_Alive( const CTakeDamageInfo &info );

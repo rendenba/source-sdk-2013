@@ -1742,7 +1742,7 @@ void CHL2MP_Player::Spawn(void)
 
 	covenRespawnTimer = -1.0f;
 
-	covenStatusEffects = 0;
+	ResetCovenStatus();
 
 	ResetItems();
 

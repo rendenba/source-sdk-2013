@@ -38,8 +38,7 @@ public:
 	void				Zoom( float FOVOffset, float time );
 	float				GetZoom( void );
 	bool				IsZoomed( void )	{ return m_HL2Local.m_bZooming; }
-	virtual int			GetCovenStatusEffects( void ) { return covenStatusEffects; }
-	inline bool			HasStatus(CovenStatus_t iEffectNum) { return (covenStatusEffects & (1 << iEffectNum)) > 0; };
+	inline bool			HasStatus(CovenStatus_t iEffectNum) { return covenStatusEffects[iEffectNum]; };
 	inline int			GetStatusMagnitude(CovenStatus_t iStatusNum) { return m_HL2Local.covenStatusMagnitude[iStatusNum]; };
 
 	bool				IsSprinting( void ) { return m_HL2Local.m_bitsActiveDevices & bits_SUIT_DEVICE_SPRINT; }
@@ -73,7 +72,7 @@ public:
 	bool				m_fIsSprinting;
 	int					covenClassID;
 	int					covenLevelCounter;
-	int					covenStatusEffects;
+	bool				covenStatusEffects[COVEN_STATUS_COUNT];
 
 private:
 	C_BaseHLPlayer( const C_BaseHLPlayer & ); // not defined, not accessible

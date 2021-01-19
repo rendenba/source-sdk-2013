@@ -206,7 +206,7 @@ int	C_BaseCombatCharacter::GetAmmoCount( char *szName ) const
 //-----------------------------------------------------------------------------
 void C_BaseCombatCharacter::GetGlowEffectColor(float *r, float *g, float *b)
 {
-	if (GetCovenStatusEffects() & (1 << COVEN_STATUS_HAS_CTS))
+	if (HasStatus(COVEN_STATUS_HAS_CTS))
 	{
 		*r = 1.0f;
 		*g = 1.0f;

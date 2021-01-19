@@ -364,7 +364,6 @@ CHL2_Player::CHL2_Player()
 	xp_part = 0.0f;
 	covenClassID = 0;
 	covenLevelCounter = 0;
-	covenStatusEffects = 0;
 
 	m_nNumMissPositions	= 0;
 	m_pPlayerAISquad = 0;
@@ -754,6 +753,8 @@ void CHL2_Player::ResetCovenStatus()
 		m_HL2Local.covenStatusMagnitude.Set(i, 0);
 	for (int i = 0; i < m_HL2Local.covenCooldownTimers.Count(); i++)
 		m_HL2Local.covenCooldownTimers.Set(i, 0);
+	for (int i = 0; i < covenStatusEffects.Count(); i++)
+		covenStatusEffects.Set(i, false);
 	m_HL2Local.covenGCD = 0.0f;
 	Q_memset(m_iHandledEffect, 0, sizeof(m_iHandledEffect));
 }
@@ -800,14 +801,14 @@ void CHL2_Player::AddStatus(CovenStatus_t iStatusNum, int iMagnitude, float flTi
 		SetStatusMagnitude(iStatusNum, iMagnitude);
 	if (flTime >= 0.0f)
 		SetStatusTime(iStatusNum, flTime);
-	covenStatusEffects |= (1 << iStatusNum);
+	covenStatusEffects.Set(iStatusNum, true);
 }
 
 //this is a special case! Magnitude is duration!
 void CHL2_Player::AddStatusMagDur(CovenStatus_t iStatusNum, int iAmount)
 {
 	CovenStatusEffectInfo_t *effectInfo = GetCovenStatusEffectData(iStatusNum);
-	float divisor = max(effectInfo->flDataVariables[0], 1.0f);
+	float divisor = max(effectInfo->GetDataVariable(0), 1.0f);
 	float flTime = 0.0f;
 	int magnitude = GetStatusMagnitude(iStatusNum) + iAmount;
 	for (int i = ceil(magnitude / divisor); i > 0; i--)
@@ -818,7 +819,7 @@ void CHL2_Player::AddStatusMagDur(CovenStatus_t iStatusNum, int iAmount)
 	}
 	SetStatusMagnitude(iStatusNum, GetStatusMagnitude(iStatusNum) + iAmount);
 	SetStatusTime(iStatusNum, gpGlobals->curtime + flTime);
-	covenStatusEffects |= (1 << iStatusNum);
+	covenStatusEffects.Set(iStatusNum, true);
 }
 
 bool CHL2_Player::HasHandledStatus(CovenStatus_t iStatusNum, int iMagnitude)
@@ -891,7 +892,7 @@ void CHL2_Player::HandleStatus(CovenStatus_t iStatusNum)
 
 void CHL2_Player::RemoveStatus(CovenStatus_t iStatusNum)
 {
-	covenStatusEffects &= covenStatusEffects & ~(1 << iStatusNum);
+	covenStatusEffects.Set(iStatusNum, false);
 	SetStatusMagnitude(iStatusNum, 0);
 	SetStatusTime(iStatusNum, 0.0f);
 	m_iHandledEffect[iStatusNum] = 0;
@@ -936,7 +937,7 @@ IMPLEMENT_SERVERCLASS_ST(CHL2_Player, DT_HL2_Player)
 	SendPropBool( SENDINFO(m_fIsSprinting) ),
 	SendPropInt( SENDINFO(covenClassID), 4, SPROP_UNSIGNED ),
 	SendPropInt( SENDINFO(covenLevelCounter), 5, SPROP_UNSIGNED ),
-	SendPropInt( SENDINFO(covenStatusEffects), COVEN_STATUS_COUNT, SPROP_UNSIGNED ),
+	SendPropArray3( SENDINFO_ARRAY3(covenStatusEffects), SendPropBool(SENDINFO_ARRAY(covenStatusEffects)) ),
 END_SEND_TABLE()
 
 void CHL2_Player::SetPointsSpent(int pts)
