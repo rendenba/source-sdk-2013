@@ -359,6 +359,13 @@ float CovenAbilityInfo_t::GetDataVariable(int iNum)
 	return 0.0f;
 }
 
+CovenEffectType_t CovenAbilityInfo_t::GetEffect(int iNum)
+{
+	if (iNum < Effects.Count())
+		return Effects[iNum];
+	return COVEN_EFFECT_NONE;
+}
+
 void CovenAbilityInfo_t::Parse(KeyValues *pKeyValuesData)
 {
 	// Okay, we tried at least once to look this up...
@@ -385,6 +392,14 @@ void CovenAbilityInfo_t::Parse(KeyValues *pKeyValuesData)
 		for (KeyValues *sub = pVariables->GetFirstSubKey(); sub != NULL; sub = sub->GetNextKey())
 		{
 			flDataVariables.AddToTail(sub->GetFloat());
+		}
+	}
+	KeyValues *pEffects = pKeyValuesData->FindKey("effects");
+	if (pEffects)
+	{
+		for (KeyValues *sub = pEffects->GetFirstSubKey(); sub != NULL; sub = sub->GetNextKey())
+		{
+			Effects.AddToTail((CovenEffectType_t)sub->GetInt());
 		}
 	}
 	// LAME old way to specify item flags.

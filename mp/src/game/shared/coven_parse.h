@@ -126,6 +126,7 @@ public:
 	int						iFlags;									// miscellaneous flags
 	
 	float					GetDataVariable(int iNum);
+	CovenEffectType_t		GetEffect(int iNum);
 	// Sound blocks
 	char					aSounds[NUM_COVEN_SOUND_TYPES][MAX_COVEN_STRING];
 
@@ -136,7 +137,8 @@ public:
 
 	// SERVER DLL
 private:
-	CUtlVector<float>		flDataVariables;
+	CUtlVector<float>				flDataVariables;
+	CUtlVector<CovenEffectType_t>	Effects;
 };
 
 typedef enum
