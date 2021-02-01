@@ -190,12 +190,13 @@ public:
 	void UnDodge();
 
 	//BB: slayer helper functions
-	void Pushback(const Vector *direction, float flMagnitude, float flPopVelocity = 320.0f, bool bDoFreeze = true);
+	void Pushback(const Vector *direction, float flMagnitude, float flPopVelocity = 320.0f, bool bFullStop = true, bool bDoFreeze = true);
 	void PushbackThink();
 	void UnleashSoul();
 	void DashHandler();
 	void Dash(int iAbilityNum);
 	void DoInnerLight(int iAbilityNum);
+	void DoLightwave(int iAbilityNum);
 	//void SlayerLightHandler(); This is handled higher up now.
 	void GrappingHookHandler();
 	void EnergyHandler();

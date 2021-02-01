@@ -32,6 +32,7 @@
 #include "item_itemcrate.h"
 #include "weapon_frag.h"
 #include "ammodef.h"
+#include "covenlib.h"
 
 #include "grenade_tripmine.h"
 #include "coven_apc.h"
@@ -79,6 +80,7 @@ extern ConVar sv_coven_xp_slayerstart;
 extern ConVar sv_coven_dropboxtime;
 extern ConVar sv_coven_dodge_alpha;
 extern ConVar sv_coven_regen_percent;
+extern ConVar sv_coven_wave_bump;
 
 #define HL2MP_COMMAND_MAX_RATE 0.3
 
@@ -925,6 +927,9 @@ bool CHL2MP_Player::DoAbilityThink()
 						case COVEN_ABILITY_INNERLIGHT:
 							DoInnerLight(i);
 							return true;
+						case COVEN_ABILITY_LIGHTWAVE:
+							DoLightwave(i);
+							return true;
 						case COVEN_ABILITY_BUILDDISPENSER:
 							if (BuildDispenser(i))
 								return true;
@@ -1054,13 +1059,12 @@ void CHL2MP_Player::Dash(int iAbilityNum)
 	EmitSound(abilityInfo->aSounds[COVEN_SND_START]);
 }
 
-void CHL2MP_Player::DoInnerLight(int iAbilityNum)
+void CHL2MP_Player::DoLightwave(int iAbilityNum)
 {
-	CovenAbilityInfo_t *info = GetCovenAbilityData(COVEN_ABILITY_INNERLIGHT);
+	CovenAbilityInfo_t *info = GetCovenAbilityData(COVEN_ABILITY_LIGHTWAVE);
 	EmitSound(info->aSounds[COVEN_SND_START]);
 	SetCooldown(iAbilityNum, info->flCooldown);
 	Vector vecReported = GetLocalOrigin();
-	CTakeDamageInfo dmg(this, this, vec3_origin, GetAbsOrigin(), info->flCost * random->RandomFloat(0.6f, 2.2f), DMG_GENERIC, 0, &vecReported);
 	AddStatusMagDur(COVEN_STATUS_INNERLIGHT, info->flDrain);
 	coven_timer_innerlight = gpGlobals->curtime + 1.0f;
 	for (int i = 1; i <= gpGlobals->maxClients; i++)
@@ -1083,10 +1087,64 @@ void CHL2MP_Player::DoInnerLight(int iAbilityNum)
 				}
 				else
 				{
-					float factor = max(1.0f - dist / info->GetDataVariable(0), 0.0f);
+					float factor = Hysteresis(dist / info->GetDataVariable(0), 0.2f);
 					dir.z = 0.0f;
-					pPlayer->Pushback(&dir, sv_coven_light_bump.GetFloat() * factor, 250.0f * factor, false);
-					pPlayer->AddStatus(COVEN_STATUS_WEAKNESS, info->iMagnitude, gpGlobals->curtime + info->flDuration, true);
+					pPlayer->Pushback(&dir, sv_coven_wave_bump.GetFloat() * factor, 250.0f * factor, false, false);
+					pPlayer->AddStatus(COVEN_STATUS_WEAKNESS, info->iMagnitude, gpGlobals->curtime + info->flDuration, true, false);
+					CTakeDamageInfo dmg(this, this, vec3_origin, GetAbsOrigin(), info->flCost * random->RandomFloat(info->GetDataVariable(1), info->GetDataVariable(2)) * factor, DMG_GENERIC, 0, &vecReported);
+					pPlayer->TakeDamage(dmg);
+				}
+			}
+		}
+	}
+
+	SuitPower_Drain(info->flCost);
+	// Since this code only runs on the server, make sure it shows the tempents it creates.
+	// This solves a problem with remote detonating the pipebombs (client wasn't seeing the explosion effect)
+	CDisablePredictionFiltering disabler;
+
+	//BB: no screen shake for now...
+	//UTIL_ScreenShake(GetAbsOrigin(), 20.0f, 150.0, 1.0, 1250.0f, SHAKE_START);
+
+	CBroadcastRecipientFilter filter2;
+	te->Burst(filter2, 0, &GetAbsOrigin(), { 255, 255, 64, 255 }, COVEN_BURST_TYPE_CSPHERE, this);
+}
+
+void CHL2MP_Player::DoInnerLight(int iAbilityNum)
+{
+	CovenAbilityInfo_t *info = GetCovenAbilityData(COVEN_ABILITY_INNERLIGHT);
+	EmitSound(info->aSounds[COVEN_SND_START]);
+	SetCooldown(iAbilityNum, info->flCooldown);
+	Vector vecReported = GetLocalOrigin();
+	AddStatusMagDur(COVEN_STATUS_INNERLIGHT, info->flDrain);
+	coven_timer_innerlight = gpGlobals->curtime + 1.0f;
+	for (int i = 1; i <= gpGlobals->maxClients; i++)
+	{
+		CHL2MP_Player *pPlayer = (CHL2MP_Player *)UTIL_PlayerByIndex(i);
+		if (pPlayer && pPlayer->IsAlive() && !pPlayer->KO)
+		{
+			Vector dir = pPlayer->GetLocalOrigin() - GetLocalOrigin();
+			float dist = VectorNormalize(dir);
+			if (dist > info->GetDataVariable(0))
+				continue;
+			trace_t tr;
+			UTIL_TraceLine(EyePosition(), pPlayer->GetPlayerMidPoint(), MASK_SHOT, this, COLLISION_GROUP_PLAYER, &tr);
+			if (tr.m_pEnt && tr.m_pEnt == pPlayer)
+			{
+				if (pPlayer->GetTeamNumber() == GetTeamNumber())
+				{
+					pPlayer->AddStatusMagDur(COVEN_STATUS_INNERLIGHT, info->flDrain);
+					pPlayer->coven_timer_innerlight = coven_timer_innerlight;
+				}
+				else
+				{
+					float factor = Hysteresis(dist / info->GetDataVariable(0), 0.2f);
+					dir.z = 0.0f;
+					Vector oppDir = -dir;
+					pPlayer->Pushback(&dir, sv_coven_light_bump.GetFloat() * factor, 250.0f * factor, factor <= info->GetDataVariable(1), false);
+					Pushback(&oppDir, sv_coven_light_bump.GetFloat() * factor, 250.0f * factor, false, false);
+					pPlayer->AddStatus(COVEN_STATUS_WEAKNESS, info->iMagnitude, gpGlobals->curtime + info->flDuration, true, false);
+					CTakeDamageInfo dmg(this, this, vec3_origin, GetAbsOrigin(), info->flCost * random->RandomFloat(info->GetDataVariable(2), info->GetDataVariable(3)) * factor, DMG_GENERIC, 0, &vecReported);
 					pPlayer->TakeDamage(dmg);
 				}
 			}
@@ -2558,12 +2616,22 @@ void CHL2MP_Player::PushbackThink()
 	}
 }
 
-void CHL2MP_Player::Pushback(const Vector *direction, float flMagnitude, float flPopVelocity, bool bDoFreeze)
+void CHL2MP_Player::Pushback(const Vector *direction, float flMagnitude, float flPopVelocity, bool bFullStop, bool bDoFreeze)
 {
-	SetGroundEntity(NULL);
-	RemoveFlag(FL_ONGROUND);
-	Vector temp(0, 0, flPopVelocity);
-	SetAbsVelocity(temp);
+	if (GetFlags() & FL_ONGROUND)
+	{
+		SetGroundEntity(NULL);
+		RemoveFlag(FL_ONGROUND);
+		Vector temp = GetAbsVelocity();
+		if (bFullStop)
+		{
+			temp.z = flPopVelocity;
+			temp.x = temp.y = 0;
+		}
+		else
+			temp.z += flPopVelocity;
+		SetAbsVelocity(temp);
+	}
 	ApplyAbsVelocityImpulse(flMagnitude * (*direction));
 	if (bDoFreeze)
 	{

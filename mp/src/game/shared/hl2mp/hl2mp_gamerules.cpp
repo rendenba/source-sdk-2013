@@ -94,7 +94,8 @@ ConVar sv_coven_manachargerate("sv_coven_manachargerate", "5.0", FCVAR_GAMEDLL |
 ConVar sv_coven_max_stealth_velocity("sv_coven_max_stealth_velocity", "22500.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Lower boundary for stealth invisibility. (squared)");
 ConVar sv_coven_min_stealth_velocity("sv_coven_min_stealth_velocity", "78400.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Minimum stealth velocity. (squared)");
 ConVar sv_coven_dash_bump("sv_coven_dash_bump", "1000.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Dash fling magnitude.");
-ConVar sv_coven_light_bump("sv_coven_light_bump", "350.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Inner light fling magnitude.");
+ConVar sv_coven_light_bump("sv_coven_light_bump", "800.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Inner light fling magnitude.");
+ConVar sv_coven_wave_bump("sv_coven_wave_bump", "150.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Lightwave fling magnitude.");
 ConVar sv_coven_respawn_slayer_base("sv_coven_respawn_slayer_base", "5.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Base slayer respawn time.");
 ConVar sv_coven_respawn_vampire_base("sv_coven_respawn_vampire_base", "10.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Base vampire respawn time.");
 ConVar sv_coven_item_respawn_time("sv_coven_item_respawn_time", "30", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Dropped item respawn time.");

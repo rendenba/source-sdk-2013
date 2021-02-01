@@ -1458,9 +1458,23 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot, unsigned int &buttons)
 					buttons |= key;
 			}
 		}
+	}
+	if (pBot->HasAbility(COVEN_ABILITY_LIGHTWAVE))
+	{
+		if (botdata->bCombat)
+		{
+			int abilityNum = pBot->AbilityKey(COVEN_ABILITY_LIGHTWAVE, &key);
+			CovenAbilityInfo_t *info = GetCovenAbilityData(COVEN_ABILITY_LIGHTWAVE);
+			if (!pBot->IsInCooldown(abilityNum) && botdata->m_flLastCombatDist < info->flRange * 0.9f)
+			{
+				CBaseCombatCharacter *pEnemy = BotGetEnemy(pBot);
+				if (pEnemy && pEnemy->IsPlayer() && pEnemy->IsAlive() && !pEnemy->KO)
+					buttons |= key;
+			}
+		}
 		else
 		{
-			int abilityNum = pBot->AbilityKey(COVEN_ABILITY_INNERLIGHT, &key);
+			int abilityNum = pBot->AbilityKey(COVEN_ABILITY_LIGHTWAVE, &key);
 			if (!pBot->IsInCooldown(abilityNum) && pBot->GetStatusMagnitude(COVEN_STATUS_INNERLIGHT) < 2)
 				buttons |= key;
 		}
@@ -1562,7 +1576,7 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot, unsigned int &buttons)
 				}
 			}
 		}
-		else
+		/*else
 		{
 			if (!botdata->bLost && botdata->m_pOverridePos == NULL)
 			{
@@ -1572,7 +1586,7 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot, unsigned int &buttons)
 					buttons |= key;
 				}
 			}
-		}
+		}*/
 	}
 	if (pBot->HasAbility(COVEN_ABILITY_LEAP))
 	{

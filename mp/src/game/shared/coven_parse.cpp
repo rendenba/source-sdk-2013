@@ -26,7 +26,8 @@ static CHudTexture *FindHudTextureInDict(CUtlDict< CHudTexture *, int >& list, c
 const char *pCovenSoundCategories[NUM_COVEN_SOUND_TYPES] =
 {
 	"start",
-	"stop"
+	"stop",
+	"hit"
 };
 
 //BB: this must be in the same order as shareddefs
@@ -77,7 +78,8 @@ static const char *pCovenAbilities[COVEN_ABILITY_COUNT] =
 	"darkwill",
 	"dash",
 	"innerlight",
-	"demolition"
+	"demolition",
+	"lightwave"
 };
 
 //BB: this must be in the same order as shareddefs
