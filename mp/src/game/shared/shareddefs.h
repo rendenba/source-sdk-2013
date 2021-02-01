@@ -447,6 +447,18 @@ typedef enum
 
 typedef enum
 {
+	COVEN_BURST_TYPE_DEFAULT, //middle, blast
+	COVEN_BURST_TYPE_SWOOSH, //middle, swoosh
+	COVEN_BURST_TYPE_CHARGE, //bottom, swoosh
+	COVEN_BURST_TYPE_SPIN, //bottom, spinning
+	COVEN_BURST_TYPE_SPHERE, //sphere
+	COVEN_BURST_TYPE_CSPHERE, //sphere, centered
+	COVEN_BURST_TYPE_DISC, //bottom/disc
+	COVEN_BURST_TYPE_MAX
+} CovenBurstType_t;
+
+typedef enum
+{
 	COVEN_EFFECT_NONE,
 	COVEN_EFFECT_CHARGE,
 	COVEN_EFFECT_EXPLODE,

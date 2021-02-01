@@ -3637,6 +3637,9 @@
     <ClCompile Include="..\shared\hl2mp\weapon_harpoon.cpp">
       <Filter>Source Files\HL2MP\Weapons</Filter>
     </ClCompile>
+    <ClCompile Include="te_burst.cpp">
+      <Filter>Source Files\temporary entities</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
   </ItemGroup>

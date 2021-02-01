@@ -80,6 +80,7 @@ void TE_MetalSparks( IRecipientFilter& filter, float delay,
 	const Vector* pos, const Vector* dir );
 void TE_EnergySplash( IRecipientFilter& filter, float delay,
 	const Vector* pos, const Vector* dir, bool bExplosive, float scale );
+void TE_Burst(IRecipientFilter& filter, float delay, const Vector* pos, color32 color, CovenBurstType_t type, CBaseEntity *pFollowEnt);
 void TE_PlayerDecal( IRecipientFilter& filter, float delay,
 	const Vector* pos, int player, int entity );
 void TE_ShowLine( IRecipientFilter& filter, float delay,
@@ -393,6 +394,13 @@ public:
 		{
 			TE_EnergySplash( filter, delay,
 				pos, dir, bExplosive, scale );
+		}
+	}
+	virtual void Burst(IRecipientFilter& filter, float delay, const Vector* pos, color32 color, CovenBurstType_t type, CBaseEntity *pFollowEnt)
+	{
+		if (!SuppressTE(filter))
+		{
+			TE_Burst(filter, delay, pos, color, type, pFollowEnt);
 		}
 	}
 	virtual void PlayerDecal( IRecipientFilter& filter, float delay,

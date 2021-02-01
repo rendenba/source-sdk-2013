@@ -33,6 +33,7 @@ public:
 	virtual void MuzzleFlash( const Vector &origin, const QAngle &angles, float fScale, int type );
 	virtual void MetalSparks( const Vector &position, const Vector &direction ); 
 	virtual void EnergySplash( const Vector &position, const Vector &direction, bool bExplosive = false, float scale = 1.0f );
+	virtual void Burst(const Vector &position, color32 color, CovenBurstType_t iFlags = COVEN_BURST_TYPE_DEFAULT, CBaseEntity *pFollowEnt = NULL);
 	virtual void Ricochet( const Vector &position, const Vector &direction );
 
 	// FIXME: Should these methods remain in this interface? Or go in some 
@@ -198,6 +199,15 @@ void CEffectsClient::EnergySplash( const Vector &position, const Vector &directi
 	if ( !SuppressTE( filter ) )
 	{
 		FX_EnergySplash( position, direction, bExplosive, scale );
+	}
+}
+
+void CEffectsClient::Burst(const Vector &position, color32 color, CovenBurstType_t iFlags, CBaseEntity *pFollowEnt)
+{
+	CPVSFilter filter(position);
+	if (!SuppressTE(filter))
+	{
+		FX_Burst(position, color, iFlags, pFollowEnt);
 	}
 }
 

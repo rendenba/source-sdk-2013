@@ -94,6 +94,7 @@ public:
 		const Vector* pos, const Vector* dir ) = 0;
 	virtual void EnergySplash( IRecipientFilter& filer, float delay,
 		const Vector* pos, const Vector* dir, bool bExplosive, float scale ) = 0;
+	virtual void Burst(IRecipientFilter& filer, float delay, const Vector* pos, color32 color, CovenBurstType_t type, CBaseEntity *pFollowEnt) = 0;
 	virtual void PlayerDecal( IRecipientFilter& filer, float delay,
 		const Vector* pos, int player, int entity ) = 0;
 	virtual void ShowLine( IRecipientFilter& filer, float delay,

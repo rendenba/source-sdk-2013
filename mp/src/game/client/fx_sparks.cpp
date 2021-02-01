@@ -287,6 +287,138 @@ void CTrailParticles::SimulateParticles( CParticleSimulateIterator *pIterator )
 }
 
 
+void FX_Burst(const Vector &pos, color32 color, CovenBurstType_t type, CBaseEntity *pFollowEnt)
+{
+	Vector position;
+
+	CSmartPtr<CSimpleEmitter> pSimple;
+	if (pFollowEnt != NULL && (pos - pFollowEnt->GetAbsOrigin()).LengthSqr() < 2500.0f)
+	{
+		pSimple = CFollowEmitter::CreateSimple("TEBurst", pFollowEnt);
+		position = pFollowEnt->GetAbsOrigin();
+	}
+	else
+	{
+		position = pos;
+		pSimple = CSimpleEmitter::Create("TEBurst");
+	}
+
+	if (!pSimple)
+	{
+		Assert(0);
+		return;
+	}
+
+	pSimple->SetSortOrigin(position);
+
+	SimpleParticle *pParticle;
+
+	Vector		vecDir;
+	Vector		vecDest;
+
+	//float ratio = 0.25;
+	//float invratio = 1 / ratio;
+
+	PMaterialHandle hMaterial;
+	if (type == COVEN_BURST_TYPE_DEFAULT)
+		hMaterial = pSimple->GetPMaterial("effects/spark");
+	else
+		hMaterial = pSimple->GetPMaterial("effects/blueflare1");
+
+	for (int i = 0; i < 22; i++)
+	{
+		for (int j = 0; j < 22; j++)
+		{
+			Vector offset;
+			/*this is too dense towards the middle
+			float x = random->RandomFloat(0.0f, 2.0f * M_PI);
+			float sn, cs;
+			SinCos(x, &sn, &cs);*/
+			switch (type)
+			{
+			case COVEN_BURST_TYPE_DISC:
+				offset.x = random->RandomFloat(-32.0f, 32.0f);
+				offset.y = (random->RandomInt(0, 1) > 0 ? -32 : 32) * random->RandomFloat(0.0f, FastSqrt(1.0f - (offset.x * offset.x) / 1024.0f));
+				offset.z = 0.0f;
+				break;
+			case COVEN_BURST_TYPE_SPHERE:
+			case COVEN_BURST_TYPE_CSPHERE:
+				offset.x = random->RandomFloat(-32.0f, 32.0f);
+				offset.y = (random->RandomInt(0, 1) > 0 ? -32 : 32) * random->RandomFloat(0.0f, FastSqrt(1.0f - (offset.x * offset.x) / 1024.0f));
+				offset.z = 32.0f + (random->RandomInt(0, 1) > 0 ? -32 : 32) * FastSqrt(1.0f - offset.Length2DSqr() / 1024.0f);
+				break;
+			default:
+				
+				if (j % 2 == 0)
+				{
+					offset.x = random->RandomInt(-32.0f, 32.0f);
+					float xsqr = offset.x * offset.x;
+					offset.y = (random->RandomInt(0, 1) > 0 ? -32 : 32) * max(0.0f, random->RandomFloat(FastSqrt(0.25f - xsqr / 4096.0f), FastSqrt(1.0f - xsqr / 1024.0f)));
+				}
+				else
+				{
+					offset.y = random->RandomInt(-32.0f, 32.0f);
+					float ysqr = offset.y * offset.y;
+					offset.x = (random->RandomInt(0, 1) > 0 ? -32 : 32) * max(0.0f, random->RandomFloat(FastSqrt(0.25f - ysqr / 4096.0f), FastSqrt(1.0f - ysqr / 1024.0f)));
+				}
+				//offset.x = (random->RandomInt(0, 1) > 0 ? -1 : 1) * random->RandomFloat(16.0f, 32.0f);
+				//offset.y = (random->RandomInt(0, 1) > 0 ? -32 : 32) * random->RandomFloat(0.5f, FastSqrt(1.0f - (offset.x * offset.x) / 1024.0f));
+				if (type == COVEN_BURST_TYPE_CHARGE)
+					offset.z = 0.0f;
+				else
+					offset.z = random->RandomFloat(16.0f, 48.0f);
+				break;
+			}
+
+			offset += position;
+
+			pParticle = (SimpleParticle *)pSimple->AddParticle(sizeof(SimpleParticle), hMaterial, offset);
+
+			if (pParticle == NULL)
+				return;
+
+			switch (type)
+			{
+			case COVEN_BURST_TYPE_CHARGE:
+				pParticle->m_vecVelocity.Init(0, 0, 0);
+				pParticle->m_vecVelocity.z = Helper_RandomFloat(0.0f, 384.0f);
+				break;
+			case COVEN_BURST_TYPE_SWOOSH:
+				pParticle->m_vecVelocity.Init(0, 0, 0);
+				pParticle->m_vecVelocity.z = Helper_RandomFloat(-384.0f, 384.0f);
+				break;
+			case COVEN_BURST_TYPE_SPHERE:
+			case COVEN_BURST_TYPE_DISC:
+				pParticle->m_vecVelocity = (offset - position) * 4.0f;
+				break;
+			case COVEN_BURST_TYPE_CSPHERE:
+				pParticle->m_vecVelocity = (offset - (position + Vector(0.0f, 0.0f, 32.0f))) * 24.0f; //16 need to make a speed option?
+				break;
+			default:
+				pParticle->m_vecVelocity = (offset - position) * 16.0f;
+				pParticle->m_vecVelocity.z = Helper_RandomFloat(-384.0f, 384.0f);
+				break;
+			}
+
+			pParticle->m_uchStartSize = random->RandomFloat(2, 4);
+
+			pParticle->m_flDieTime = random->RandomFloat(0.4f, 0.6f);
+
+			pParticle->m_flLifetime = 0.0f;
+
+			pParticle->m_flRoll = Helper_RandomInt(0, 360);
+
+			pParticle->m_flRollDelta = Helper_RandomFloat(-4.0f, 4.0f);
+			pParticle->m_uchColor[0] = color.r;
+			pParticle->m_uchColor[1] = color.g;
+			pParticle->m_uchColor[2] = color.b;
+			pParticle->m_uchStartAlpha = color.a;
+			pParticle->m_uchEndAlpha = 0;
+			pParticle->m_uchEndSize = 0;
+		}
+	}
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: Electric spark
 // Input  : &pos - origin point of effect

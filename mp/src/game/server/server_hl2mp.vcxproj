@@ -1304,6 +1304,7 @@ exit 1
     <ClCompile Include="testfunctions.cpp" />
     <ClCompile Include="testtraceline.cpp" />
     <ClCompile Include="textstatsmgr.cpp" />
+    <ClCompile Include="te_burst.cpp" />
     <ClCompile Include="timedeventmgr.cpp" />
     <ClCompile Include="trains.cpp" />
     <ClCompile Include="trigger_area_capture.cpp" />

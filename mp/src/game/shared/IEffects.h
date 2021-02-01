@@ -61,6 +61,8 @@ public:
 
 	virtual void EnergySplash( const Vector &position, const Vector &direction, bool bExplosive = false, float scale = 1.0f ) = 0;
 
+	virtual void Burst(const Vector &position, color32 color, CovenBurstType_t type, CBaseEntity *pFollowEnt) = 0;
+
 	virtual void Ricochet( const Vector &position, const Vector &direction ) = 0;
 
 	// FIXME: Should these methods remain in this interface? Or go in some 

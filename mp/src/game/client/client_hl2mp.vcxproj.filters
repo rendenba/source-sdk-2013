@@ -3622,6 +3622,9 @@
     <ClCompile Include="hl2mp\ui\hl2mpbuywheel.cpp">
       <Filter>Source Files\HL2MP\UI</Filter>
     </ClCompile>
+    <ClCompile Include="c_te_burst.cpp">
+      <Filter>Source Files\Temporary Entities</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
   </ItemGroup>

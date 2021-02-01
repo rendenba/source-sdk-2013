@@ -902,6 +902,7 @@ exit 1
     <ClCompile Include="..\shared\hl2mp\weapon_stunfrag.cpp" />
     <ClCompile Include="c_covenbuilderlocaldata.cpp" />
     <ClCompile Include="c_covenbuilding.cpp" />
+    <ClCompile Include="c_te_burst.cpp" />
     <ClCompile Include="hl2mp\ui\hl2mpbuywheel.cpp" />
     <ClCompile Include="hl2mp\ui\hl2mpclientgrenademenu.cpp" />
     <ClCompile Include="hl2mp\ui\hl2mpclientitemmenu.cpp" />
