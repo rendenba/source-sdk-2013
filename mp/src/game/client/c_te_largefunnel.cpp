@@ -31,6 +31,7 @@ public:
 
 	int				m_nModelIndex;
 	int				m_nReversed;
+	float			m_flSpeed;
 };
 
 //-----------------------------------------------------------------------------
@@ -40,6 +41,7 @@ C_TELargeFunnel::C_TELargeFunnel( void )
 {
 	m_nModelIndex = 0;
 	m_nReversed = 0;
+	m_flSpeed = 1.0f;
 }
 
 //-----------------------------------------------------------------------------
@@ -64,7 +66,7 @@ void C_TELargeFunnel::CreateFunnel( void )
 	float ratio = 0.25;
 	float invratio = 1 / ratio;
 
-	PMaterialHandle hMaterial = pSimple->GetPMaterial( "sprites/flare6" );
+	PMaterialHandle hMaterial = pSimple->GetPMaterial("effects/spark"); //pSimple->GetPMaterial("sprites/flare6");
 
 	for ( i = -256 ; i <= 256 ; i += 24 )	//24 from 32.. little more dense
 	{
@@ -98,6 +100,7 @@ void C_TELargeFunnel::CreateFunnel( void )
 				}
 
 				vecDir *= ratio;
+				vecDir *= m_flSpeed;
 
 				pParticle->m_vecVelocity = vecDir;			
 
@@ -147,15 +150,17 @@ void C_TELargeFunnel::PostDataUpdate( DataUpdateType_t updateType )
 IMPLEMENT_CLIENTCLASS_EVENT_DT(C_TELargeFunnel, DT_TELargeFunnel, CTELargeFunnel)
 	RecvPropInt( RECVINFO(m_nModelIndex)),
 	RecvPropInt( RECVINFO(m_nReversed)),
+	RecvPropFloat(RECVINFO(m_flSpeed)),
 END_RECV_TABLE()
 
 void TE_LargeFunnel( IRecipientFilter& filter, float delay,
-	const Vector* pos, int modelindex, int reversed )
+	const Vector* pos, int modelindex, int reversed, float speed )
 {
 	// Major hack to simulate receiving network message
 	__g_C_TELargeFunnel.m_vecOrigin = *pos;
 	__g_C_TELargeFunnel.m_nModelIndex = modelindex;
 	__g_C_TELargeFunnel.m_nReversed = reversed;
+	__g_C_TELargeFunnel.m_flSpeed = speed;
 
 	__g_C_TELargeFunnel.PostDataUpdate( DATA_UPDATE_CREATED );
 }

@@ -33,6 +33,7 @@ public:
 	Vector			m_vecPos;
 	Vector			m_vecDir;
 	bool			m_bExplosive;
+	float			m_flScale;
 
 	const struct model_t *m_pModel;
 };
@@ -46,6 +47,7 @@ C_TEEnergySplash::C_TEEnergySplash( void )
 	m_vecDir.Init();
 	m_bExplosive = false;
 	m_pModel = NULL;
+	m_flScale = 1.0f;
 }
 
 //-----------------------------------------------------------------------------
@@ -70,13 +72,13 @@ void C_TEEnergySplash::PostDataUpdate( DataUpdateType_t updateType )
 {
 	VPROF( "C_TEEnergySplash::PostDataUpdate" );
 
-	g_pEffects->EnergySplash( m_vecPos, m_vecDir, m_bExplosive );
+	g_pEffects->EnergySplash( m_vecPos, m_vecDir, m_bExplosive, m_flScale );
 }
 
 void TE_EnergySplash( IRecipientFilter& filter, float delay,
-	const Vector* pos, const Vector* dir, bool bExplosive )
+	const Vector* pos, const Vector* dir, bool bExplosive, float scale )
 {
-	g_pEffects->EnergySplash( *pos, *dir, bExplosive );
+	g_pEffects->EnergySplash( *pos, *dir, bExplosive, scale );
 }
 
 // Expose the TE to the engine.
@@ -86,5 +88,6 @@ BEGIN_RECV_TABLE_NOBASE(C_TEEnergySplash, DT_TEEnergySplash)
 	RecvPropVector(RECVINFO(m_vecPos)),
 	RecvPropVector(RECVINFO(m_vecDir)),
 	RecvPropInt(RECVINFO(m_bExplosive)),
+	RecvPropFloat(RECVINFO(m_flScale)),
 END_RECV_TABLE()
 

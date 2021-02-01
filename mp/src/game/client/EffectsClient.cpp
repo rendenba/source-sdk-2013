@@ -32,7 +32,7 @@ public:
 	virtual void Dust( const Vector &pos, const Vector &dir, float size, float speed );
 	virtual void MuzzleFlash( const Vector &origin, const QAngle &angles, float fScale, int type );
 	virtual void MetalSparks( const Vector &position, const Vector &direction ); 
-	virtual void EnergySplash( const Vector &position, const Vector &direction, bool bExplosive = false );
+	virtual void EnergySplash( const Vector &position, const Vector &direction, bool bExplosive = false, float scale = 1.0f );
 	virtual void Ricochet( const Vector &position, const Vector &direction );
 
 	// FIXME: Should these methods remain in this interface? Or go in some 
@@ -192,12 +192,12 @@ void CEffectsClient::MetalSparks( const Vector &position, const Vector &directio
 	}
 }
 
-void CEffectsClient::EnergySplash( const Vector &position, const Vector &direction, bool bExplosive )
+void CEffectsClient::EnergySplash( const Vector &position, const Vector &direction, bool bExplosive, float scale )
 {
 	CPVSFilter filter( position );
 	if ( !SuppressTE( filter ) )
 	{
-		FX_EnergySplash( position, direction, bExplosive );
+		FX_EnergySplash( position, direction, bExplosive, scale );
 	}
 }
 

@@ -1263,14 +1263,14 @@ END_DATADESC()
 
 void CEnvFunnel::Precache ( void )
 {
-	m_iSprite = PrecacheModel ( "sprites/flare6.vmt" );
+	m_iSprite = PrecacheModel("effects/blueflare1.vmt");// PrecacheModel("sprites/flare6.vmt");
 }
 
 void CEnvFunnel::Use( CBaseEntity *pActivator, CBaseEntity *pCaller, USE_TYPE useType, float value )
 {
 	CBroadcastRecipientFilter filter;
 	te->LargeFunnel( filter, 0.0,
-		&GetAbsOrigin(), m_iSprite, HasSpawnFlags( SF_FUNNEL_REVERSE ) ? 1 : 0 );
+		&GetAbsOrigin(), m_iSprite, HasSpawnFlags( SF_FUNNEL_REVERSE ) ? 1 : 0, 1.0f );
 
 	SetThink( &CEnvFunnel::SUB_Remove );
 	SetNextThink( gpGlobals->curtime );

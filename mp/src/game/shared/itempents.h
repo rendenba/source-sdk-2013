@@ -89,11 +89,11 @@ public:
 	virtual void KillPlayerAttachments( IRecipientFilter& filer, float delay,
 		int player ) = 0;
 	virtual void LargeFunnel( IRecipientFilter& filer, float delay,
-		const Vector* pos, int modelindex, int reversed ) = 0;
+		const Vector* pos, int modelindex, int reversed, float speed ) = 0;
 	virtual void MetalSparks( IRecipientFilter& filer, float delay,
 		const Vector* pos, const Vector* dir ) = 0;
 	virtual void EnergySplash( IRecipientFilter& filer, float delay,
-		const Vector* pos, const Vector* dir, bool bExplosive ) = 0;
+		const Vector* pos, const Vector* dir, bool bExplosive, float scale ) = 0;
 	virtual void PlayerDecal( IRecipientFilter& filer, float delay,
 		const Vector* pos, int player, int entity ) = 0;
 	virtual void ShowLine( IRecipientFilter& filer, float delay,

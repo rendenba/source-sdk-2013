@@ -75,11 +75,11 @@ void TE_Fizz( IRecipientFilter& filter, float delay,
 void TE_KillPlayerAttachments( IRecipientFilter& filter, float delay,
 	int player );
 void TE_LargeFunnel( IRecipientFilter& filter, float delay,
-	const Vector* pos, int modelindex, int reversed );
+	const Vector* pos, int modelindex, int reversed, float speed );
 void TE_MetalSparks( IRecipientFilter& filter, float delay,
 	const Vector* pos, const Vector* dir );
 void TE_EnergySplash( IRecipientFilter& filter, float delay,
-	const Vector* pos, const Vector* dir, bool bExplosive );
+	const Vector* pos, const Vector* dir, bool bExplosive, float scale );
 void TE_PlayerDecal( IRecipientFilter& filter, float delay,
 	const Vector* pos, int player, int entity );
 void TE_ShowLine( IRecipientFilter& filter, float delay,
@@ -371,11 +371,11 @@ public:
 		}
 	}
 	virtual void LargeFunnel( IRecipientFilter& filter, float delay,
-		const Vector* pos, int modelindex, int reversed )
+		const Vector* pos, int modelindex, int reversed, float speed )
 	{
 		if ( !SuppressTE( filter ) )
 		{
-			TE_LargeFunnel( filter, delay, pos, modelindex, reversed );
+			TE_LargeFunnel( filter, delay, pos, modelindex, reversed, speed );
 		}
 	}
 	virtual void MetalSparks( IRecipientFilter& filter, float delay,
@@ -387,12 +387,12 @@ public:
 		}
 	}
 	virtual void EnergySplash( IRecipientFilter& filter, float delay,
-		const Vector* pos, const Vector* dir, bool bExplosive )
+		const Vector* pos, const Vector* dir, bool bExplosive, float scale )
 	{
 		if ( !SuppressTE( filter ) )
 		{
 			TE_EnergySplash( filter, delay,
-				pos, dir, bExplosive );
+				pos, dir, bExplosive, scale );
 		}
 	}
 	virtual void PlayerDecal( IRecipientFilter& filter, float delay,

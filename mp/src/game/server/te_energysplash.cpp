@@ -35,6 +35,7 @@ public:
 	CNetworkVector( m_vecPos );
 	CNetworkVector( m_vecDir );
 	CNetworkVar( bool, m_bExplosive );
+	CNetworkVar( float, m_flScale );
 };
 
 //-----------------------------------------------------------------------------
@@ -47,6 +48,7 @@ CTEEnergySplash::CTEEnergySplash( const char *name ) :
 	m_vecPos.Init();
 	m_vecDir.Init();
 	m_bExplosive = false;
+	m_flScale = 1.0f;
 }
 
 //-----------------------------------------------------------------------------
@@ -86,6 +88,7 @@ IMPLEMENT_SERVERCLASS_ST_NOBASE( CTEEnergySplash, DT_TEEnergySplash)
 	SendPropVector( SENDINFO(m_vecPos), -1, SPROP_COORD),
 	SendPropVector( SENDINFO(m_vecDir), -1, SPROP_COORD),
 	SendPropInt( SENDINFO(m_bExplosive), 1, SPROP_UNSIGNED),
+	SendPropFloat(SENDINFO(m_flScale), 8, SPROP_ROUNDDOWN, 0.0f, 16.0f),
 END_SEND_TABLE()
 
 // Singleton to fire TEEnergySplash objects
@@ -101,11 +104,12 @@ static CTEEnergySplash g_TEEnergySplash( "Energy Splash" );
 //			scale - 
 //-----------------------------------------------------------------------------
 void TE_EnergySplash( IRecipientFilter& filter, float delay,
-	const Vector* pos, const Vector* dir, bool bExplosive )
+	const Vector* pos, const Vector* dir, bool bExplosive, float scale )
 {
 	g_TEEnergySplash.m_vecPos = *pos;
 	g_TEEnergySplash.m_vecDir = *dir;
 	g_TEEnergySplash.m_bExplosive = bExplosive;
+	g_TEEnergySplash.m_flScale = scale;
 
 	// Send it over the wire
 	g_TEEnergySplash.Create( filter, delay );

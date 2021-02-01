@@ -35,6 +35,7 @@ public:
 public:
 	CNetworkVar( int, m_nModelIndex );
 	CNetworkVar( int, m_nReversed );
+	CNetworkVar( float, m_flSpeed );
 };
 
 //-----------------------------------------------------------------------------
@@ -85,6 +86,7 @@ void CTELargeFunnel::Test( const Vector& current_origin, const QAngle& current_a
 IMPLEMENT_SERVERCLASS_ST(CTELargeFunnel, DT_TELargeFunnel)
 	SendPropModelIndex( SENDINFO(m_nModelIndex) ),
 	SendPropInt( SENDINFO(m_nReversed), 2, SPROP_UNSIGNED ),
+	SendPropFloat(SENDINFO(m_flSpeed)),
 END_SEND_TABLE()
 
 
@@ -92,11 +94,12 @@ END_SEND_TABLE()
 static CTELargeFunnel g_TELargeFunnel( "Large Funnel" );
 
 void TE_LargeFunnel( IRecipientFilter& filter, float delay,
-	const Vector* pos, int modelindex, int reversed )
+	const Vector* pos, int modelindex, int reversed, float speed )
 {
 	g_TELargeFunnel.m_vecOrigin		= *pos;
 	g_TELargeFunnel.m_nModelIndex	= modelindex;	
 	g_TELargeFunnel.m_nReversed		= reversed;
+	g_TELargeFunnel.m_flSpeed		= speed;
 
 	// Send it over the wire
 	g_TELargeFunnel.Create( filter, delay );

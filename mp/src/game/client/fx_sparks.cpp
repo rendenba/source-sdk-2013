@@ -852,7 +852,7 @@ void FX_Sparks( const Vector &pos, int nMagnitude, int nTrailLength, const Vecto
 #define	ENERGY_SPLASH_GRAVITY	800.0f
 #define	ENERGY_SPLASH_DAMPEN	0.3f
 
-void FX_EnergySplash( const Vector &pos, const Vector &normal, int nFlags )
+void FX_EnergySplash( const Vector &pos, const Vector &normal, int nFlags, float scale )
 {
 	VPROF_BUDGET( "FX_EnergySplash", VPROF_BUDGETGROUP_PARTICLE_RENDERING );
 	Vector	offset = pos + ( normal * 2.0f );
@@ -860,7 +860,7 @@ void FX_EnergySplash( const Vector &pos, const Vector &normal, int nFlags )
 	// Quick flash
 	FX_AddQuad( pos,
 				normal,
-				64.0f,
+				scale * 64.0f,
 				0,
 				0.75f, 
 				1.0f,
@@ -876,8 +876,8 @@ void FX_EnergySplash( const Vector &pos, const Vector &normal, int nFlags )
 	// Lingering burn
 	FX_AddQuad( pos,
 				normal, 
-				16,
-				32,
+				scale * 16,
+				scale * 32,
 				0.75f, 
 				1.0f,
 				0.0f,
@@ -908,6 +908,7 @@ void FX_EnergySplash( const Vector &pos, const Vector &normal, int nFlags )
 		offset.y = random->RandomFloat( -8.0f, 8.0f );
 		offset.z = random->RandomFloat( 0.0f, 4.0f );
 
+		offset *= scale;
 		offset += pos;
 
 		sParticle = (SimpleParticle *) pEmitter->AddParticle( sizeof(SimpleParticle), g_Material_Spark, offset );

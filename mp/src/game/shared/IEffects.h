@@ -59,7 +59,7 @@ public:
 	// like ricochet, but no sound
 	virtual void MetalSparks( const Vector &position, const Vector &direction ) = 0; 
 
-	virtual void EnergySplash( const Vector &position, const Vector &direction, bool bExplosive = false ) = 0;
+	virtual void EnergySplash( const Vector &position, const Vector &direction, bool bExplosive = false, float scale = 1.0f ) = 0;
 
 	virtual void Ricochet( const Vector &position, const Vector &direction ) = 0;
 
