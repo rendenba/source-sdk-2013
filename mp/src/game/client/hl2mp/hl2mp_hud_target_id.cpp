@@ -49,6 +49,7 @@ private:
 	Color			GetColorForTargetTeam( int iTeamNumber );
 
 	vgui::HFont		m_hFont;
+	vgui::HFont		m_hFontSmall;
 	int				m_iLastEntIndex;
 	CHandle<CBaseAnimating>			lastGlowObject;
 	byte			m_GlowGoalColor;
@@ -71,6 +72,7 @@ CTargetID::CTargetID( const char *pElementName ) :
 	SetParent( pParent );
 
 	m_hFont = g_hFontTrebuchet24;
+	m_hFontSmall = g_hFontTrebuchet24;
 	m_flLastChangeTime = 0;
 	m_iLastEntIndex = 0;
 	lastGlowObject = NULL;
@@ -93,6 +95,7 @@ void CTargetID::ApplySchemeSettings( vgui::IScheme *scheme )
 	BaseClass::ApplySchemeSettings( scheme );
 
 	m_hFont = scheme->GetFont( "TargetID", IsProportional() );
+	m_hFontSmall = scheme->GetFont( "TargetIDSmall", IsProportional() );
 
 	SetPaintBackgroundEnabled( false );
 }
@@ -207,6 +210,7 @@ void CTargetID::Paint()
 				//BB: dont show the % sign in the health... we use HP not %... NOT ANY MORE!
 				_snwprintf( wszHealthText, ARRAYSIZE(wszHealthText) - 1, L"%d / %d",  pPlayer->GetHealth(), pPlayer->GetMaxHealth());
 				wszHealthText[ ARRAYSIZE(wszHealthText)-1 ] = '\0';
+				g_pVGuiLocalize->ConstructString(sIDString_line2, sizeof(sIDString_line2), g_pVGuiLocalize->Find("#Playerid_sameteamL2"), 1, wszHealthText);
 			}
 		}
 		else
@@ -288,32 +292,6 @@ void CTargetID::Paint()
 						V_swprintf_safe(wszVitalityText, L"%.0f", flPercentLeft);
 						g_pVGuiLocalize->ConstructString(sIDString, sizeof(sIDString), g_pVGuiLocalize->Find("#FeedID"), 1, wszVitalityText);
 						c = GetColorForTargetTeam(pLocalPlayer->GetTeamNumber());
-						if (!pEnt->IsClientSideGlowEnabled())
-						{
-							pEnt->SetClientSideGlowEnabled(true);
-							m_GlowColor = 255 * (0.75f * (1.0f - pHL2Player->m_HL2Local.m_iDollHP[pDoll->iSlot] / (float)sv_coven_hp_per_ragdoll.GetInt()) + 0.25f);
-							lastGlowObject = pEnt;
-						}
-						color32 clr;
-						clr.b = clr.g = 0;
-						clr.a = 255;
-						clr.r = m_GlowColor;
-						m_GlowGoalColor = 255 * (0.75f * (1.0f - pHL2Player->m_HL2Local.m_iDollHP[pDoll->iSlot] / (float)sv_coven_hp_per_ragdoll.GetInt()) + 0.25f);
-						pEnt->ForceGlowEffect(clr, true, true, 750.0f);
-						if (m_GlowColor > m_GlowGoalColor && gpGlobals->curtime > m_flGlowTimer)
-						{
-							m_flGlowTimer = gpGlobals->curtime + 0.01f;
-							m_GlowColor--;
-						}
-					}
-					else
-					{
-						if (pEnt->IsClientSideGlowEnabled())
-						{
-							pEnt->SetClientSideGlowEnabled(false);
-							m_GlowColor = m_GlowGoalColor = 255;
-							lastGlowObject = NULL;
-						}
 					}
 				}
 			}
@@ -342,7 +320,7 @@ void CTargetID::Paint()
 		if ( sIDString[0] )
 		{
 			int wide, tall;
-			int ypos = YRES(260);
+			int ypos = YRES(300);
 			int xpos = XRES(10);
 
 			vgui::surface()->GetTextSize( m_hFont, sIDString, wide, tall );
@@ -363,7 +341,8 @@ void CTargetID::Paint()
 			ypos += tall;
 			if (sIDString_line2[0])
 			{
-				vgui::surface()->GetTextSize(m_hFont, sIDString_line2, wide, tall);
+				vgui::surface()->DrawSetTextFont(m_hFontSmall);
+				vgui::surface()->GetTextSize(m_hFontSmall, sIDString_line2, wide, tall);
 				xpos = (ScreenWidth() - wide) / 2;
 				vgui::surface()->DrawSetTextPos(xpos, ypos);
 				vgui::surface()->DrawPrintText(sIDString_line2, wcslen(sIDString_line2));
@@ -371,7 +350,8 @@ void CTargetID::Paint()
 			}
 			if (sIDString_line3[0])
 			{
-				vgui::surface()->GetTextSize(m_hFont, sIDString_line3, wide, tall);
+				vgui::surface()->DrawSetTextFont(m_hFontSmall);
+				vgui::surface()->GetTextSize(m_hFontSmall, sIDString_line3, wide, tall);
 				xpos = (ScreenWidth() - wide) / 2;
 				vgui::surface()->DrawSetTextPos(xpos, ypos);
 				vgui::surface()->DrawPrintText(sIDString_line3, wcslen(sIDString_line3));
