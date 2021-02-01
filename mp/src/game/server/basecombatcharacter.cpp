@@ -2562,6 +2562,7 @@ int CBaseCombatCharacter::OnTakeDamage( const CTakeDamageInfo &info )
 						CovenAbilityInfo_t *abilityInfo = GetCovenAbilityData(COVEN_ABILITY_MASOCHIST);
 						float factor = abilityInfo->GetDataVariable(2) * GetStatusMagnitude(COVEN_STATUS_MASOCHIST) / abilityInfo->GetDataVariable(0);
 						restime -= factor;
+						m_iHealth = GetMaxHealth() * (0.25f + abilityInfo->GetDataVariable(4) * GetStatusMagnitude(COVEN_STATUS_MASOCHIST) / abilityInfo->GetDataVariable(0));
 					}
 
 					AddStatus(COVEN_STATUS_RESURRECT, 0, gpGlobals->curtime + restime);
