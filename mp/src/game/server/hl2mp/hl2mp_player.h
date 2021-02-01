@@ -152,7 +152,7 @@ public:
 	void State_PreThink_OBSERVER_MODE();
 
 	void GiveTeamXPCentered(int team, int xp, CBasePlayer *ignore);
-	void GiveBuffInRadius(int iTeam, CovenStatus_t iStatus, int iMagnitude, float flDuration, float flDistance, int iClassID = 0);
+	void GiveBuffInRadius(int iTeam, CovenStatus_t iStatus, int iMagnitude, float flDuration, float flDistance, bool bSameTeam, int iClassID = 0, CovenEffectType_t effect = COVEN_EFFECT_NONE);
 	void ResetAbilities();
 	int GetAbilityNumber(int keyNum);
 

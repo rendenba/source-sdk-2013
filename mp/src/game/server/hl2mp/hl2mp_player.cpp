@@ -655,8 +655,17 @@ void CHL2MP_Player::RevengeCheck()
 	}
 }
 
-void CHL2MP_Player::GiveBuffInRadius(int iTeam, CovenStatus_t iStatus, int iMagnitude, float flDuration, float flDistance, int iClassID)
+void CHL2MP_Player::GiveBuffInRadius(int iTeam, CovenStatus_t iStatus, int iMagnitude, float flDuration, float flDistance, bool bSameTeam, int iClassID, CovenEffectType_t effect)
 {
+	color32 color;
+	if (bSameTeam)
+		if (iTeam == COVEN_TEAMID_SLAYERS)
+			color = { 153, 204, 255, 255 };
+		else
+			color = { 255, 64, 64, 255 };
+	else
+		color = { 255, 0, 255, 255 };
+
 	for ( int i = 1; i <= gpGlobals->maxClients; i++ )
 	{
 		CHL2MP_Player *pPlayer = (CHL2MP_Player *)UTIL_PlayerByIndex( i );
@@ -669,6 +678,19 @@ void CHL2MP_Player::GiveBuffInRadius(int iTeam, CovenStatus_t iStatus, int iMagn
 				continue;
 
 			pPlayer->AddStatus(iStatus, iMagnitude, gpGlobals->curtime + flDuration, true);
+
+			if (effect > COVEN_EFFECT_NONE && pPlayer->m_floatCloakFactor.Get() == 0.0f)
+			{
+				// Since this code only runs on the server, make sure it shows the tempents it creates.
+				// This solves a problem with remote detonating the pipebombs (client wasn't seeing the explosion effect)
+				switch (effect)
+				{
+				case COVEN_EFFECT_CHARGE:
+					break;
+				default:
+					break;
+				}
+			}
 		}
 	}
 }
@@ -1014,7 +1036,7 @@ void CHL2MP_Player::DoRadiusAbility(CovenAbility_t iAbility, int iAbilityNum, in
 	CovenAbilityInfo_t *info = GetCovenAbilityData(iAbility);
 	EmitSound(info->aSounds[COVEN_SND_START]);
 	SetCooldown(iAbilityNum, info->flCooldown);
-	GiveBuffInRadius(iTeam, iBuff, info->iMagnitude, info->flDuration, info->flRange);
+	GiveBuffInRadius(iTeam, iBuff, info->iMagnitude, info->flDuration, info->flRange, bSameTeam, 0, info->GetEffect(0));
 	SuitPower_Drain(info->flCost);
 }
 
@@ -1073,11 +1095,9 @@ void CHL2MP_Player::DoInnerLight(int iAbilityNum)
 	SuitPower_Drain(info->flCost);
 
 
-#if !defined( TF_DLL )
 	// Since this code only runs on the server, make sure it shows the tempents it creates.
 	// This solves a problem with remote detonating the pipebombs (client wasn't seeing the explosion effect)
 	CDisablePredictionFiltering disabler;
-#endif
 
 	//BB: no screen shake for now...
 	//UTIL_ScreenShake(GetAbsOrigin(), 20.0f, 150.0, 1.0, 1250.0f, SHAKE_START);
@@ -1140,16 +1160,12 @@ void CHL2MP_Player::BloodExplode(int iAbilityNum)
 	vecSpot = GetAbsOrigin() + Vector ( 0 , 0 , 8 );
 	UTIL_TraceLine ( vecSpot, vecSpot + Vector ( 0, 0, -32 ), MASK_SHOT_HULL, this, COLLISION_GROUP_NONE, & pTrace);
 
-#if !defined( CLIENT_DLL )
-
 	Vector vecAbsOrigin = GetAbsOrigin();
 	int contents = UTIL_PointContents ( vecAbsOrigin );
 
-#if !defined( TF_DLL )
 	// Since this code only runs on the server, make sure it shows the tempents it creates.
 	// This solves a problem with remote detonating the pipebombs (client wasn't seeing the explosion effect)
 	CDisablePredictionFiltering disabler;
-#endif
 
 	if ( pTrace.fraction != 1.0 )
 	{
@@ -1192,7 +1208,7 @@ void CHL2MP_Player::BloodExplode(int iAbilityNum)
 	info.CopyDamageToBaseDamage();
 	info.SetDamage(damn);
 
-	RadiusDamage( info, GetAbsOrigin(), abilityInfo->GetDataVariable(0), CLASS_NONE, this );
+	RadiusDamage(info, GetAbsOrigin(), abilityInfo->GetDataVariable(0), CLASS_NONE, this, COVEN_EFFECT_EXPLODE, { 255, 64, 64, 255 });
 
 	UTIL_DecalTrace( &pTrace, "Blood" );
 
@@ -1203,7 +1219,6 @@ void CHL2MP_Player::BloodExplode(int iAbilityNum)
 	TakeDamage(info);
 
 	EmitSound(abilityInfo->aSounds[COVEN_SND_START]);
-#endif
 }
 
 void CHL2MP_Player::DoBerserk(int iAbilityNum)

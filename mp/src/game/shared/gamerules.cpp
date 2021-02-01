@@ -323,7 +323,7 @@ bool IsExplosionTraceBlocked( trace_t *ptr )
 // Default implementation of radius damage
 //-----------------------------------------------------------------------------
 #define ROBUST_RADIUS_PROBE_DIST 16.0f // If a solid surface blocks the explosion, this is how far to creep along the surface looking for another way to the target
-void CGameRules::RadiusDamage( const CTakeDamageInfo &info, const Vector &vecSrcIn, float flRadius, int iClassIgnore, CBaseEntity *pEntityIgnore )
+void CGameRules::RadiusDamage( const CTakeDamageInfo &info, const Vector &vecSrcIn, float flRadius, int iClassIgnore, CBaseEntity *pEntityIgnore, CovenEffectType_t effect, color32 color )
 {
 	const int MASK_RADIUS_DAMAGE = MASK_SHOT&(~CONTENTS_HITBOX);
 	CBaseEntity *pEntity = NULL;
@@ -536,6 +536,19 @@ void CGameRules::RadiusDamage( const CTakeDamageInfo &info, const Vector &vecSrc
 
 		// Now hit all triggers along the way that respond to damage... 
 		pEntity->TraceAttackToTriggers( adjustedInfo, vecSrc, tr.endpos, dir );
+
+		if (effect > COVEN_EFFECT_NONE && pEntity->IsPlayer() && pEntity->IsAlive() && FPlayerCanTakeDamage((CBasePlayer *)pEntity, info.GetAttacker(), info))
+		{
+			switch (effect)
+			{
+			case COVEN_EFFECT_EXPLODE:
+			{
+				break;
+			}
+			default:
+				break;
+			}
+		}
 
 #if defined( GAME_DLL )
 		if ( info.GetAttacker() && info.GetAttacker()->IsPlayer() && ToBaseCombatCharacter( tr.m_pEnt ) )

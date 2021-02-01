@@ -448,6 +448,8 @@ typedef enum
 typedef enum
 {
 	COVEN_EFFECT_NONE,
+	COVEN_EFFECT_CHARGE,
+	COVEN_EFFECT_EXPLODE,
 	COVEN_EFFECT_MAX
 } CovenEffectType_t;
 
