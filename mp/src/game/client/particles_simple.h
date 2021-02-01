@@ -197,6 +197,25 @@ private:
 };
 
 //==================================================
+// FollowEmitter
+//==================================================
+
+class CFollowEmitter : public CSimpleEmitter
+{
+public:
+	CFollowEmitter(const char *pDebugName, CBaseEntity *pEnt);
+	static CSmartPtr<CFollowEmitter>	Create(const char *pDebugName, CBaseEntity *pEnt);
+	static CSmartPtr<CSimpleEmitter>	CreateSimple(const char *pDebugName, CBaseEntity *pEnt);
+
+	virtual void	SimulateParticles(CParticleSimulateIterator *pIterator);
+
+private:
+	EHANDLE m_pEnt;
+	Vector m_vecOrigin;
+	CFollowEmitter(const CFollowEmitter &); // not defined, not accessible
+};
+
+//==================================================
 // EmberEffect
 //==================================================
 

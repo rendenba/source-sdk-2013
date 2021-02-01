@@ -531,3 +531,54 @@ Vector CFireParticle::UpdateColor( const SimpleParticle *pParticle )
 
 	return CSimpleEmitter::UpdateColor( pParticle );
 }
+
+CFollowEmitter::CFollowEmitter(const char *pDebugName, CBaseEntity *pEnt) : CSimpleEmitter(pDebugName)
+{
+	m_pEnt = pEnt;
+	if (m_pEnt != NULL)
+		m_vecOrigin = pEnt->GetAbsOrigin();
+}
+
+CSmartPtr<CFollowEmitter> CFollowEmitter::Create(const char *pDebugName, CBaseEntity *pEnt)
+{
+	CFollowEmitter *pRet = new CFollowEmitter(pDebugName, pEnt);
+	pRet->SetDynamicallyAllocated(true);
+	return pRet;
+}
+
+CSmartPtr<CSimpleEmitter> CFollowEmitter::CreateSimple(const char *pDebugName, CBaseEntity *pEnt)
+{
+	CFollowEmitter *pRet = new CFollowEmitter(pDebugName, pEnt);
+	pRet->SetDynamicallyAllocated(true);
+	return pRet;
+}
+
+void CFollowEmitter::SimulateParticles(CParticleSimulateIterator *pIterator)
+{
+	float timeDelta = pIterator->GetTimeDelta();
+
+	Vector delta(0.0f, 0.0f, 0.0f);
+
+	if (m_pEnt != NULL)
+	{
+		delta = m_pEnt->GetAbsOrigin() - m_vecOrigin;
+		m_vecOrigin = m_pEnt->GetAbsOrigin();
+	}
+
+	SimpleParticle *pParticle = (SimpleParticle*)pIterator->GetFirst();
+	while (pParticle)
+	{
+		//Update velocity
+		UpdateVelocity(pParticle, timeDelta);
+		pParticle->m_Pos += delta + pParticle->m_vecVelocity * timeDelta;
+
+		//Should this particle die?
+		pParticle->m_flLifetime += timeDelta;
+		UpdateRoll(pParticle, timeDelta);
+
+		if (pParticle->m_flLifetime >= pParticle->m_flDieTime)
+			pIterator->RemoveParticle(pParticle);
+
+		pParticle = (SimpleParticle*)pIterator->GetNext();
+	}
+}
