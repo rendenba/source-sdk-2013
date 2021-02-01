@@ -392,7 +392,7 @@ bool CHL2MP_Player::CreateDeathBox(void)
 		pEnt->SetAbsOrigin(EyePosition());
 		pEnt->Spawn();
 		pEnt->ChangeTeam(GetTeamNumber());
-		pEnt->AddGlowEffect(false, true, true, true, true, 2000.0f);
+		pEnt->AddGlowEffect(false, true, true, true, true, false, 2000.0f);
 		pEnt->m_flLifetime = gpGlobals->curtime + sv_coven_dropboxtime.GetFloat();
 		return true;
 	}

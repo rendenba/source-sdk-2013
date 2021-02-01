@@ -906,7 +906,7 @@ bool CHL2MPRules::LoadCowFile(IBaseFileSystem *filesystem, const char *resourceN
 							CBaseEntity *pGasCan = CreateEntityByName("item_gas");
 							pGasCan->SetLocalOrigin(Vector(locs[0], locs[1], locs[2] + 10.0f));
 							pGasCan->SetLocalAngles(QAngle(random->RandomInt(0, 180), random->RandomInt(0, 180), random->RandomInt(0, 180)));
-							((CBaseAnimating *)pGasCan)->AddGlowEffect(true, true, true, false, false, 2000.0f);
+							((CBaseAnimating *)pGasCan)->AddGlowEffect(true, true, true, false, false, false, 2000.0f);
 							pGasCan->AddSpawnFlags(SF_NORESPAWN);
 							if (sv_coven_warmuptime.GetInt() == 0)
 								pGasCan->Spawn();
@@ -1020,7 +1020,7 @@ bool CHL2MPRules::LoadCowFile(IBaseFileSystem *filesystem, const char *resourceN
 							CBaseEntity *pEnt = CreateEntityByName("item_cts");
 							pEnt->SetLocalOrigin(Vector(locs[0], locs[1], locs[2] + 10.0f));
 							pEnt->SetLocalAngles(QAngle(random->RandomInt(0, 180), random->RandomInt(0, 90), random->RandomInt(0, 180)));
-							((CBaseAnimating *)pEnt)->AddGlowEffect(true, true, true, false, false, 3500.0f);
+							((CBaseAnimating *)pEnt)->AddGlowEffect(true, true, true, false, false, false, 3500.0f);
 							pEnt->AddSpawnFlags(SF_NORESPAWN);
 							pCTS = pEnt;
 							covenCTSStatus = COVEN_CTS_STATUS_EXISTS;
@@ -1128,7 +1128,7 @@ bool CHL2MPRules::LoadCowFile(IBaseFileSystem *filesystem, const char *resourceN
 								pEnt->ChangeTeam(COVEN_TEAMID_VAMPIRES);
 								hVampireXP.AddToTail(pEnt);
 							}
-							((CBaseAnimating *)pEnt)->AddGlowEffect(false, true, true, true, true, 2000.0f);
+							((CBaseAnimating *)pEnt)->AddGlowEffect(false, true, true, true, true, false, 2000.0f);
 							if (sv_coven_warmuptime.GetInt() == 0)
 								pEnt->Spawn();
 #ifdef COVEN_DEVELOPER_MODE

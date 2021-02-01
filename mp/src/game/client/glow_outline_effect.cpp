@@ -91,17 +91,27 @@ void CGlowObjectManager::UpdateGlowEffectsVisibility(void)
 		C_BasePlayer *pPlayer = CBasePlayer::GetLocalPlayer();
 		if (pPlayer && m_GlowObjectDefinitions[i].m_hEntity)
 		{
-			if (!m_GlowObjectDefinitions[i].m_bTeamOnly || (m_GlowObjectDefinitions[i].m_bTeamOnly && m_GlowObjectDefinitions[i].m_hEntity->GetTeamNumber() == pPlayer->GetTeamNumber()))
+			if (m_GlowObjectDefinitions[i].m_bUpdateColor)
+			{
+				m_GlowObjectDefinitions[i].m_hEntity->GetGlowEffectColor(&m_GlowObjectDefinitions[i].m_vGoalGlowColor[0], &m_GlowObjectDefinitions[i].m_vGoalGlowColor[1], &m_GlowObjectDefinitions[i].m_vGoalGlowColor[2], &m_GlowObjectDefinitions[i].m_flGoalGlowAlpha);
+				float speed = gpGlobals->frametime * 0.149f;
+				m_GlowObjectDefinitions[i].m_vGlowColor[0] = Approach(m_GlowObjectDefinitions[i].m_vGoalGlowColor[0], m_GlowObjectDefinitions[i].m_vGlowColor[0], speed);
+				m_GlowObjectDefinitions[i].m_vGlowColor[1] = Approach(m_GlowObjectDefinitions[i].m_vGoalGlowColor[1], m_GlowObjectDefinitions[i].m_vGlowColor[1], speed);
+				m_GlowObjectDefinitions[i].m_vGlowColor[2] = Approach(m_GlowObjectDefinitions[i].m_vGoalGlowColor[2], m_GlowObjectDefinitions[i].m_vGlowColor[2], speed);
+				m_GlowObjectDefinitions[i].m_flGlowAlpha = Approach(m_GlowObjectDefinitions[i].m_flGoalGlowAlpha, m_GlowObjectDefinitions[i].m_flGlowAlpha, speed);
+			}
+
+			if ((!m_GlowObjectDefinitions[i].m_bTeamOnly && !m_GlowObjectDefinitions[i].m_bOppTeamOnly) || (m_GlowObjectDefinitions[i].m_bOppTeamOnly && m_GlowObjectDefinitions[i].m_hEntity->GetTeamNumber() != pPlayer->GetTeamNumber()) || (m_GlowObjectDefinitions[i].m_bTeamOnly && m_GlowObjectDefinitions[i].m_hEntity->GetTeamNumber() == pPlayer->GetTeamNumber()))
 			{
 				trace_t tr;
 				Vector dt = m_GlowObjectDefinitions[i].m_hEntity->EyePosition();
-				UTIL_TraceLine(pPlayer->EyePosition(), dt, MASK_SOLID, pPlayer, COLLISION_GROUP_NONE, &tr);
-				bool bTraceCheck = tr.DidHitNonWorldEntity() && m_GlowObjectDefinitions[i].m_hEntity == tr.m_pEnt;
+				UTIL_TraceLine(pPlayer->EyePosition(), dt, MASK_NPCWORLDSTATIC, pPlayer, COLLISION_GROUP_DEBRIS, &tr);
+				bool bTraceCheck = !tr.DidHitWorld();
 
 				if (m_GlowObjectDefinitions[i].m_flViewDistance != FLT_MAX)
 				{
-					float flDistance = (pPlayer->GetAbsOrigin() - m_GlowObjectDefinitions[i].m_hEntity->GetAbsOrigin()).Length();
-					if (flDistance > m_GlowObjectDefinitions[i].m_flViewDistance)
+					m_GlowObjectDefinitions[i].m_flLastDistance = (pPlayer->GetAbsOrigin() - m_GlowObjectDefinitions[i].m_hEntity->GetAbsOrigin()).Length();
+					if (m_GlowObjectDefinitions[i].m_flLastDistance > m_GlowObjectDefinitions[i].m_flViewDistance)
 						m_GlowObjectDefinitions[i].m_bShow = false;
 					else
 					{
@@ -127,7 +137,7 @@ void CGlowObjectManager::UpdateGlowEffectsVisibility(void)
 							{
 								m_GlowObjectDefinitions[i].m_bPulsed = false;
 								if (m_GlowObjectDefinitions[i].m_bRenderWhenOccluded)
-									m_GlowObjectDefinitions[i].m_flGlowAlpha = min(1.0f, 1.3f - flDistance / m_GlowObjectDefinitions[i].m_flViewDistance);
+									m_GlowObjectDefinitions[i].m_flGlowAlpha = min(1.0f, 1.3f - m_GlowObjectDefinitions[i].m_flLastDistance / m_GlowObjectDefinitions[i].m_flViewDistance);
 								else
 									m_GlowObjectDefinitions[i].m_flGlowAlpha = 0.29f;
 							}
@@ -229,6 +239,8 @@ void CGlowObjectManager::RenderGlowModels( const CViewSetup *pSetup, int nSplitS
 
 void CGlowObjectManager::ApplyEntityGlowEffects( const CViewSetup *pSetup, int nSplitScreenSlot, CMatRenderContextPtr &pRenderContext, float flBloomScale, int x, int y, int w, int h )
 {
+	//BB: TODO: flBloomScale no longer functions in the 2013 SDK... FIXME!
+
 	//=======================================================//
 	// Render objects into stencil buffer					 //
 	//=======================================================//

@@ -2609,6 +2609,7 @@ int CBaseCombatCharacter::OnTakeDamage( const CTakeDamageInfo &info )
 						((CRagdollProp *)myServerRagdoll)->block = false;
 						((CRagdollProp *)myServerRagdoll)->ChangeTeam(COVEN_TEAMID_SLAYERS);
 						((CRagdollProp *)myServerRagdoll)->iSlot = HL2MPRules()->AddDoll(myServerRagdoll);
+						((CBaseAnimating *)myServerRagdoll)->AddGlowEffect(false, true, false, false, false, true, 3000.0f);
 					}
 				}
 
@@ -3397,13 +3398,13 @@ void CBaseCombatCharacter::VPhysicsShadowCollision( int index, gamevcollisioneve
 // Input  :
 // Output :
 //-----------------------------------------------------------------------------	
-void RadiusDamage( const CTakeDamageInfo &info, const Vector &vecSrc, float flRadius, int iClassIgnore, CBaseEntity *pEntityIgnore )
+void RadiusDamage( const CTakeDamageInfo &info, const Vector &vecSrc, float flRadius, int iClassIgnore, CBaseEntity *pEntityIgnore, CovenEffectType_t effect, color32 color  )
 {
 	// NOTE: I did this this way so I wouldn't have to change a whole bunch of
 	// code unnecessarily. We need TF2 specific rules for RadiusDamage, so I moved
 	// the implementation of radius damage into gamerules. All existing code calls
 	// this method, which calls the game rules method
-	g_pGameRules->RadiusDamage( info, vecSrc, flRadius, iClassIgnore, pEntityIgnore );
+	g_pGameRules->RadiusDamage( info, vecSrc, flRadius, iClassIgnore, pEntityIgnore, effect, color );
 
 	// Let the world know if this was an explosion.
 	if( info.GetDamageType() & DMG_BLAST )

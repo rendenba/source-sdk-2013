@@ -896,7 +896,10 @@ void C_BaseAnimating::UpdateGlowEffect(void)
 																	-1,
 																	m_iGlowFlags & (1 << GLOW_OUTLINE_DYNAMIC_ALPHA),
 																	m_iGlowFlags & (1 << GLOW_OUTLINE_TEAM_ONLY),
-																	m_flGlowDist);
+																	m_iGlowFlags & (1 << GLOW_OUTLINE_OPPOSING_TEAM_ONLY),
+																	m_flGlowDist,
+																	false,
+																	m_iGlowFlags & (1 << GLOW_OUTLINE_USE_PROP_WIDTH));
 	}
 }
 

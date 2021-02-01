@@ -162,7 +162,7 @@ public:
 
 #ifdef GLOWS_ENABLE
 	// Glows
-	void				AddGlowEffect(bool bRenderOccluded, bool bRenderUnoccluded, bool bDynamicAlpha, bool bUseTeamColors = false, bool bTeamOnly = false, float flViewDistance = FLT_MAX);
+	void				AddGlowEffect(bool bRenderOccluded, bool bRenderUnoccluded, bool bDynamicAlpha, bool bUseTeamColors = false, bool bTeamOnly = false, bool bOppTeamOnly = false, float flViewDistance = FLT_MAX, bool bUsePropWidth = true);
 	virtual void		SetGlowEffectColor(byte r, byte g, byte b, byte a);
 	void				RemoveGlowEffect(void);
 	bool				IsGlowEffectActive(void);

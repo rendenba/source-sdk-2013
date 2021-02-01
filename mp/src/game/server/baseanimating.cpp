@@ -1550,7 +1550,7 @@ void CBaseAnimating::SetGlowEffectColor(byte r, byte g, byte b, byte a)
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CBaseAnimating::AddGlowEffect(bool bRenderOccluded, bool bRenderUnoccluded, bool bDynamicAlpha, bool bUseTeamColors, bool bTeamOnly, float flViewDistance)
+void CBaseAnimating::AddGlowEffect(bool bRenderOccluded, bool bRenderUnoccluded, bool bDynamicAlpha, bool bUseTeamColors, bool bTeamOnly, bool bOppTeamOnly, float flViewDistance, bool bUsePropWidth)
 {
 	SetTransmitState(FL_EDICT_ALWAYS);
 	m_bGlowEnabled = true;
@@ -1565,6 +1565,10 @@ void CBaseAnimating::AddGlowEffect(bool bRenderOccluded, bool bRenderUnoccluded,
 		flags |= (1 << GLOW_OUTLINE_TEAM_ONLY);
 	if (bUseTeamColors)
 		flags |= (1 << GLOW_OUTLINE_USE_TEAM_COLORS);
+	if (bUsePropWidth)
+		flags |= (1 << GLOW_OUTLINE_USE_PROP_WIDTH);
+	if (bOppTeamOnly)
+		flags |= (1 << GLOW_OUTLINE_OPPOSING_TEAM_ONLY);
 	m_iGlowFlags = flags;
 	m_flGlowDist = flViewDistance;
 }

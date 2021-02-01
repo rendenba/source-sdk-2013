@@ -47,6 +47,15 @@ public:
 
 	CNetworkVar(int, iSlot);
 
+#ifdef GLOWS_ENABLE
+	void		GetGlowEffectColor(float *r, float *g, float *b, float *a);
+#endif
+
+protected:
+#ifdef GLOWS_ENABLE
+	void		UpdateGlowEffect(void);
+#endif
+
 private:
 	C_ServerRagdoll(const C_ServerRagdoll &src);
 

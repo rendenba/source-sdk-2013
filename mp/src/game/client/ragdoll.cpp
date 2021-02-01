@@ -17,12 +17,15 @@
 #include "view.h"
 #include "physics_saverestore.h"
 #include "vphysics/constraints.h"
+#include "c_basehlplayer.h"
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
 #ifdef _DEBUG
 extern ConVar r_FadeProps;
 #endif
+
+extern ConVar sv_coven_hp_per_ragdoll;
 
 CRagdoll::CRagdoll()
 {
@@ -634,6 +637,49 @@ void C_ServerRagdoll::UpdateOnRemove()
 
 	// Do last to mimic destrictor order
 	BaseClass::UpdateOnRemove();
+}
+
+void C_ServerRagdoll::GetGlowEffectColor(float *r, float *g, float *b, float *a)
+{
+	C_BasePlayer *pLocalPlayer = C_BasePlayer::GetLocalPlayer();
+	C_BaseHLPlayer *pHL2Player = static_cast<C_BaseHLPlayer *>(pLocalPlayer);
+	int iLeft = sv_coven_hp_per_ragdoll.GetInt() - pHL2Player->m_HL2Local.m_iDollHP[iSlot];
+	if (iLeft > 0)
+	{
+		//T_Red
+		*r = 0.75f * (1.0f - pHL2Player->m_HL2Local.m_iDollHP[iSlot] / (float)sv_coven_hp_per_ragdoll.GetInt()) + 0.25f;
+		*g = *b = 0.0f;
+		*a = 1.0f;
+	}
+	else
+	{
+		*r = *g = *b = *a = 0.0f;
+	}
+}
+
+void C_ServerRagdoll::UpdateGlowEffect(void)
+{
+	// destroy the existing effect
+	if (m_pGlowEffect)
+	{
+		DestroyGlowEffect();
+	}
+
+	// create a new effect
+	if (m_bGlowEnabled || m_bClientSideGlowEnabled)
+	{
+		float r, g, b, a;
+		GetGlowEffectColor(&r, &g, &b, &a);
+
+		m_pGlowEffect = new CGlowObject(this, Vector(r, g, b), a, m_iGlowFlags & (1 << GLOW_OUTLINE_RENDER_OCCLUDED),
+			m_iGlowFlags & (1 << GLOW_OUTLINE_RENDER_UNOCCLUDED),
+			-1,
+			m_iGlowFlags & (1 << GLOW_OUTLINE_DYNAMIC_ALPHA),
+			m_iGlowFlags & (1 << GLOW_OUTLINE_TEAM_ONLY),
+			m_iGlowFlags & (1 << GLOW_OUTLINE_OPPOSING_TEAM_ONLY),
+			m_flGlowDist,
+			true);
+	}
 }
 
 //-----------------------------------------------------------------------------

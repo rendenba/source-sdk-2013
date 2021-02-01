@@ -303,7 +303,7 @@ void CItem_ItemCrate::OnBreak( const Vector &vecVelocity, const AngularImpulse &
 				pWeap->SetOriginalSpawnOrigin(pSpawn->GetAbsOrigin());
 				pWeap->SetOriginalSpawnAngles(pSpawn->GetAbsAngles());
 				pWeap->m_flLifetime = gpGlobals->curtime + sv_coven_dropboxtime.GetFloat();
-				pWeap->AddGlowEffect(false, true, true, true, true, 2000.0f);
+				pWeap->AddGlowEffect(false, true, true, true, true, false, 2000.0f);
 			}
 			else
 			{
@@ -314,7 +314,7 @@ void CItem_ItemCrate::OnBreak( const Vector &vecVelocity, const AngularImpulse &
 					pItem->SetOriginalSpawnOrigin(pSpawn->GetAbsOrigin());
 					pItem->SetOriginalSpawnAngles(pSpawn->GetAbsAngles());
 					pItem->m_flLifetime = gpGlobals->curtime + sv_coven_dropboxtime.GetFloat();
-					pItem->AddGlowEffect(false, true, true, true, true, 2000.0f);
+					pItem->AddGlowEffect(false, true, true, true, true, false, 2000.0f);
 				}
 			}
 		}

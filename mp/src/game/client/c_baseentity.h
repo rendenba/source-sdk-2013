@@ -219,6 +219,10 @@ public:
 	virtual bool					KeyValue( const char *szKeyName, const Vector &vecValue );
 	virtual bool					GetKeyValue( const char *szKeyName, char *szValue, int iMaxLen );
 
+#ifdef GLOWS_ENABLE	
+	virtual void					GetGlowEffectColor(float *r, float *g, float *b, float *a) {}
+#endif // GLOWS_ENABLE
+
 		// Entities block Line-Of-Sight for NPCs by default.
 	// Set this to false if you want to change this behavior.
 	void							SetBlocksLOS( bool bBlocksLOS );

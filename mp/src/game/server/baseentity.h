@@ -1444,6 +1444,9 @@ public:
 	bool					IsPlayerSimulated( void ) const;
 	CBasePlayer				*GetSimulatingPlayer( void );
 #endif
+#ifdef GLOWS_ENABLE	
+	virtual void			GetGlowEffectColor(float *r, float *g, float *b, float *a) {}
+#endif // GLOWS_ENABLE
 	// FIXME: Make these private!
 	void					PhysicsCheckForEntityUntouch( void );
  	bool					PhysicsRunThink( thinkmethods_t thinkMethod = THINK_FIRE_ALL_FUNCTIONS );

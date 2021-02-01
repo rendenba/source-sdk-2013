@@ -468,6 +468,14 @@ protected:
 	virtual void		UpdateGlowEffect(void);
 	virtual void		DestroyGlowEffect(void);
 	color32				m_clrOldGlowColor;
+	bool				m_bClientSideGlowEnabled;	// client-side only value used for spectator
+	bool				m_bGlowEnabled;				// networked value
+	float				m_flGlowDist;				// networked value
+	int					m_iGlowFlags;				// networked value
+	bool				m_bOldGlowEnabled;
+	int					m_iOldGlowFlags;
+	CGlowObject			*m_pGlowEffect;
+	CNetworkColor32(m_clrGlowColor);
 #endif // GLOWS_ENABLE
 	// View models scale their attachment positions to account for FOV. To get the unmodified
 	// attachment position (like if you're rendering something else during the view model's DrawModel call),
@@ -500,16 +508,6 @@ private:
 	void							UpdateRelevantInterpolatedVars();
 	void							AddBaseAnimatingInterpolatedVars();
 	void							RemoveBaseAnimatingInterpolatedVars();
-#ifdef GLOWS_ENABLE
-	bool				m_bClientSideGlowEnabled;	// client-side only value used for spectator
-	bool				m_bGlowEnabled;				// networked value
-	float				m_flGlowDist;				// networked value
-	int					m_iGlowFlags;				// networked value
-	bool				m_bOldGlowEnabled;
-	int					m_iOldGlowFlags;
-	CGlowObject			*m_pGlowEffect;
-	CNetworkColor32(m_clrGlowColor);
-#endif // GLOWS_ENABLE
 
 public:
 	CRagdoll						*m_pRagdoll;

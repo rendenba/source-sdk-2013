@@ -30,7 +30,7 @@ public:
 	{
 	}
 
-	int RegisterGlowObject( C_BaseEntity *pEntity, const Vector &vGlowColor, float flGlowAlpha, bool bRenderWhenOccluded, bool bRenderWhenUnoccluded, int nSplitScreenSlot, bool bDynamicAlpha, bool bTeamOnly, float flViewDistance = FLT_MAX)
+	int RegisterGlowObject( C_BaseEntity *pEntity, const Vector &vGlowColor, float flGlowAlpha, bool bRenderWhenOccluded, bool bRenderWhenUnoccluded, int nSplitScreenSlot, bool bDynamicAlpha, bool bTeamOnly, bool bOppTeamOnly, float flViewDistance = FLT_MAX, bool bUpdateColor = false, bool bUsePropWidth = true )
 	{
 		int nIndex;
 		if ( m_nFirstFreeSlot == GlowObjectDefinition_t::END_OF_FREE_LIST )
@@ -50,9 +50,15 @@ public:
 		m_GlowObjectDefinitions[nIndex].m_flViewDistance = flViewDistance;
 		m_GlowObjectDefinitions[nIndex].m_bShow = true;
 		m_GlowObjectDefinitions[nIndex].m_bTeamOnly = bTeamOnly;
+		m_GlowObjectDefinitions[nIndex].m_bOppTeamOnly = bOppTeamOnly;
 		m_GlowObjectDefinitions[nIndex].m_bRenderWhenOccluded = bRenderWhenOccluded;
 		m_GlowObjectDefinitions[nIndex].m_bRenderWhenUnoccluded = bRenderWhenUnoccluded;
 		m_GlowObjectDefinitions[nIndex].m_nSplitScreenSlot = nSplitScreenSlot;
+		m_GlowObjectDefinitions[nIndex].m_bUpdateColor = bUpdateColor;
+		m_GlowObjectDefinitions[nIndex].m_vGoalGlowColor.Init();
+		m_GlowObjectDefinitions[nIndex].m_flGoalGlowAlpha = 0.0f;
+		m_GlowObjectDefinitions[nIndex].m_bUsePropWidth = bUsePropWidth;
+		m_GlowObjectDefinitions[nIndex].m_flLastDistance = 0.0f;
 		m_GlowObjectDefinitions[nIndex].m_nNextFreeSlot = GlowObjectDefinition_t::ENTRY_IN_USE;
 
 		return nIndex;
@@ -143,13 +149,19 @@ private:
 		EHANDLE m_hEntity;
 		Vector m_vGlowColor;
 		float m_flGlowAlpha;
+		Vector m_vGoalGlowColor;
+		float m_flGoalGlowAlpha;
+		float m_flLastDistance;
 
 		float m_flViewDistance;
 		bool m_bShow;
 		float m_flPulse;
 		bool m_bPulsed;
 		bool m_bTeamOnly;
+		bool m_bOppTeamOnly;
 		bool m_bDynamicAlpha;
+		bool m_bUpdateColor;
+		bool m_bUsePropWidth;
 
 		bool m_bRenderWhenOccluded;
 		bool m_bRenderWhenUnoccluded;
@@ -172,9 +184,9 @@ extern CGlowObjectManager g_GlowObjectManager;
 class CGlowObject
 {
 public:
-	CGlowObject( C_BaseEntity *pEntity, const Vector &vGlowColor = Vector( 1.0f, 1.0f, 1.0f ), float flGlowAlpha = 1.0f, bool bRenderWhenOccluded = false, bool bRenderWhenUnoccluded = false, int nSplitScreenSlot = GLOW_FOR_ALL_SPLIT_SCREEN_SLOTS, bool bDynamicAlpha = false, bool bTeamOnly = false, float flViewDistance = FLT_MAX )
+	CGlowObject( C_BaseEntity *pEntity, const Vector &vGlowColor = Vector( 1.0f, 1.0f, 1.0f ), float flGlowAlpha = 1.0f, bool bRenderWhenOccluded = false, bool bRenderWhenUnoccluded = false, int nSplitScreenSlot = GLOW_FOR_ALL_SPLIT_SCREEN_SLOTS, bool bDynamicAlpha = false, bool bTeamOnly = false, bool bOppTeamOnly = false, float flViewDistance = FLT_MAX, bool bUpdateColor = false, bool bUsePropWidth = true )
 	{
-		m_nGlowObjectHandle = g_GlowObjectManager.RegisterGlowObject( pEntity, vGlowColor, flGlowAlpha, bRenderWhenOccluded, bRenderWhenUnoccluded, nSplitScreenSlot, bDynamicAlpha, bTeamOnly, flViewDistance );
+		m_nGlowObjectHandle = g_GlowObjectManager.RegisterGlowObject( pEntity, vGlowColor, flGlowAlpha, bRenderWhenOccluded, bRenderWhenUnoccluded, nSplitScreenSlot, bDynamicAlpha, bTeamOnly, bOppTeamOnly, flViewDistance, bUpdateColor, bUsePropWidth );
 	}
 
 	~CGlowObject()
