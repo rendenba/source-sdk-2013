@@ -78,3 +78,10 @@ void OrderVectors(Vector &low, Vector &high)
 		high[i] = flHigh;
 	}
 }
+
+//Return 0 to range centered at range / 2
+float Hysteresis(float x, float factor, float range)
+{
+	float m = range / 2.0f;
+	return m - (x - m) * (factor + m) / (factor + abs(x - m));
+}
