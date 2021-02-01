@@ -543,6 +543,9 @@ void CGameRules::RadiusDamage( const CTakeDamageInfo &info, const Vector &vecSrc
 			{
 			case COVEN_EFFECT_EXPLODE:
 			{
+				CDisablePredictionFiltering disabler;
+				CBroadcastRecipientFilter filter2;
+				te->Burst(filter2, 0, &pEntity->GetAbsOrigin(), color, COVEN_BURST_TYPE_DEFAULT, pEntity);
 				break;
 			}
 			default:

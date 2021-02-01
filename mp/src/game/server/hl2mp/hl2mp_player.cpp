@@ -685,9 +685,12 @@ void CHL2MP_Player::GiveBuffInRadius(int iTeam, CovenStatus_t iStatus, int iMagn
 			{
 				// Since this code only runs on the server, make sure it shows the tempents it creates.
 				// This solves a problem with remote detonating the pipebombs (client wasn't seeing the explosion effect)
+				CDisablePredictionFiltering disabler;
+				CBroadcastRecipientFilter filter2;
 				switch (effect)
 				{
 				case COVEN_EFFECT_CHARGE:
+					te->Burst(filter2, 0, &pPlayer->GetAbsOrigin(), color, COVEN_BURST_TYPE_CHARGE, pPlayer);
 					break;
 				default:
 					break;
