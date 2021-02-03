@@ -35,7 +35,8 @@
 #define	HP_SKIN_NORMAL	0
 //#define BOLT_SKIN_GLOW		1
 
-#define MAX_HARPOON_LENGTH 300 //this used to be 600 in version 2.5
+#define MAX_HARPOON_LENGTH_SQR	90000.0f
+#define MAX_HARPOON_LENGTH		300.0f
 
 #ifndef CLIENT_DLL
 
@@ -332,8 +333,17 @@ void CHarpoonBolt::BoltTouch( CBaseEntity *pOther )
 			{
 				if (pRope != NULL && (pRope->m_fLockedPoints.Get() & 0x1))
 				{
+					//check rope length and break if too long
 					CHL2MP_Player *pHL2MPOwner = ToHL2MPPlayer(GetOwnerEntity());
-					if (pHL2MPOwner)
+					if (pHL2MPOwner && pRope != NULL && (pRope->GetStartPoint()->GetAbsOrigin() - pRope->GetEndPoint()->GetAbsOrigin()).LengthSqr() > MAX_HARPOON_LENGTH_SQR * 0.9f)
+					{
+						pRope->SetThink(&CRopeKeyframe::SUB_Remove);
+						pRope->SetNextThink(gpGlobals->curtime + 5.0f);
+						pHL2MPOwner->coven_hook_state = COVEN_HOOK_NONE;
+						pHL2MPOwner->pCovenRope = NULL;
+						pRope->DetachPoint(0);
+					}
+					else if (pHL2MPOwner)
 					{
 						pHL2MPOwner->coven_hook_state = COVEN_HOOK_WORLD;
 						pHL2MPOwner->coven_hook_anchor = GetAbsOrigin();
@@ -411,7 +421,7 @@ void CHarpoonBolt::BubbleThink( void )
 
 	//check rope length and break if too long
 	CHL2MP_Player *pHL2MPOwner = ToHL2MPPlayer(GetOwnerEntity());
-	if (pHL2MPOwner && pHL2MPOwner->coven_hook_state == COVEN_HOOK_FIRED && pRope != NULL && (pRope->GetStartPoint()->GetAbsOrigin() - pRope->GetEndPoint()->GetAbsOrigin()).Length() > MAX_HARPOON_LENGTH * 0.9f)
+	if (pHL2MPOwner && pHL2MPOwner->coven_hook_state == COVEN_HOOK_FIRED && pRope != NULL && (pRope->GetStartPoint()->GetAbsOrigin() - pRope->GetEndPoint()->GetAbsOrigin()).LengthSqr() > MAX_HARPOON_LENGTH_SQR * 0.9f)
 	{
 		pRope->SetThink( &CRopeKeyframe::SUB_Remove );
 		pRope->SetNextThink(gpGlobals->curtime + 5.0f);
