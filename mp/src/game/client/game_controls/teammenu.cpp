@@ -431,6 +431,11 @@ void CTeamMenu::OnKeyCodePressed(KeyCode code)
 		ShowPanel(false);
 		engine->ClientCmd("jointeam 3");
 	}
+	else if (code == KEY_3 || code == KEY_PAD_3)
+	{
+		ShowPanel(false);
+		engine->ClientCmd("jointeam 1");
+	}
 	else if( m_iJumpKey != BUTTON_CODE_INVALID && m_iJumpKey == code )
 	{
 		AutoAssign();

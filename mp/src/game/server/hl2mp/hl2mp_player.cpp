@@ -1135,6 +1135,7 @@ void CHL2MP_Player::DoInnerLight(int iAbilityNum)
 	Vector vecReported = GetLocalOrigin();
 	AddStatusMagDur(COVEN_STATUS_INNERLIGHT, info->flDrain);
 	coven_timer_innerlight = gpGlobals->curtime + 1.0f;
+	Vector oppDir(0, 0, 0);
 	for (int i = 1; i <= gpGlobals->maxClients; i++)
 	{
 		CHL2MP_Player *pPlayer = (CHL2MP_Player *)UTIL_PlayerByIndex(i);
@@ -1157,9 +1158,8 @@ void CHL2MP_Player::DoInnerLight(int iAbilityNum)
 				{
 					float factor = Hysteresis(dist / info->GetDataVariable(0), 0.2f);
 					dir.z = 0.0f;
-					Vector oppDir = -dir;
+					oppDir -= dir * factor;
 					pPlayer->Pushback(&dir, sv_coven_light_bump.GetFloat() * factor, 250.0f * factor, factor <= info->GetDataVariable(1), false);
-					Pushback(&oppDir, sv_coven_light_bump.GetFloat() * factor, 250.0f * factor, false, false);
 					pPlayer->AddStatus(COVEN_STATUS_WEAKNESS, info->iMagnitude, gpGlobals->curtime + info->flDuration, true, false);
 					CTakeDamageInfo dmg(this, this, vec3_origin, GetAbsOrigin(), info->flCost * random->RandomFloat(info->GetDataVariable(2), info->GetDataVariable(3)) * factor, DMG_GENERIC, 0, &vecReported);
 					pPlayer->TakeDamage(dmg);
@@ -1169,6 +1169,8 @@ void CHL2MP_Player::DoInnerLight(int iAbilityNum)
 	}
 	SuitPower_Drain(info->flCost);
 
+	float factor = min(oppDir.NormalizeInPlace(), sv_coven_light_bump.GetFloat());
+	Pushback(&oppDir, sv_coven_light_bump.GetFloat() * factor, 250.0f * factor, false, false);
 
 	// Since this code only runs on the server, make sure it shows the tempents it creates.
 	// This solves a problem with remote detonating the pipebombs (client wasn't seeing the explosion effect)
@@ -4976,7 +4978,7 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 		//BB: MASOCHIST implementation
 		CovenAbilityInfo_t *abilityInfo = GetCovenAbilityData(COVEN_ABILITY_MASOCHIST);
 		int status = GetStatusMagnitude(COVEN_STATUS_MASOCHIST);
-		float add = 0.01f * abilityInfo->iMagnitude * inputInfoAdjust.GetDamage();
+		float add = max(1.0f, 0.01f * abilityInfo->iMagnitude * inputInfoAdjust.GetDamage());
 		//BLOOD EXPLODE increase
 		if (inputInfo.GetAttacker() && inputInfo.GetAttacker()->IsPlayer() && inputInfo.GetAttacker() == this)
 		{

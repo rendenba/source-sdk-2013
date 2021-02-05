@@ -101,7 +101,7 @@ void CGlowObjectManager::UpdateGlowEffectsVisibility(void)
 				m_GlowObjectDefinitions[i].m_flGlowAlpha = Approach(m_GlowObjectDefinitions[i].m_flGoalGlowAlpha, m_GlowObjectDefinitions[i].m_flGlowAlpha, speed);
 			}
 
-			if ((!m_GlowObjectDefinitions[i].m_bTeamOnly && !m_GlowObjectDefinitions[i].m_bOppTeamOnly) || (m_GlowObjectDefinitions[i].m_bOppTeamOnly && m_GlowObjectDefinitions[i].m_hEntity->GetTeamNumber() != pPlayer->GetTeamNumber()) || (m_GlowObjectDefinitions[i].m_bTeamOnly && m_GlowObjectDefinitions[i].m_hEntity->GetTeamNumber() == pPlayer->GetTeamNumber()))
+			if ((!m_GlowObjectDefinitions[i].m_bTeamOnly && !m_GlowObjectDefinitions[i].m_bOppTeamOnly) || (m_GlowObjectDefinitions[i].m_bOppTeamOnly && m_GlowObjectDefinitions[i].m_hEntity->GetTeamNumber() != pPlayer->GetTeamNumber() && pPlayer->GetTeamNumber() > COVEN_TEAMID_SPECTATOR) || (m_GlowObjectDefinitions[i].m_bTeamOnly && m_GlowObjectDefinitions[i].m_hEntity->GetTeamNumber() == pPlayer->GetTeamNumber()))
 			{
 				trace_t tr;
 				Vector dt = m_GlowObjectDefinitions[i].m_hEntity->EyePosition();
