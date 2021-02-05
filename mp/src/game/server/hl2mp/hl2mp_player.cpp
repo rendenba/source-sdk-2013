@@ -94,6 +94,7 @@ LINK_ENTITY_TO_CLASS( info_player_combine, CPointEntity );
 LINK_ENTITY_TO_CLASS( info_player_rebel, CPointEntity );
 LINK_ENTITY_TO_CLASS( info_player_vampire, CPointEntity );
 LINK_ENTITY_TO_CLASS( info_player_slayer, CPointEntity );
+LINK_ENTITY_TO_CLASS( info_coven_capturepoint, CBaseAnimating );
 
 IMPLEMENT_SERVERCLASS_ST(CHL2MP_Player, DT_HL2MP_Player)
 	SendPropInt( SENDINFO(m_iLevel), 6, SPROP_UNSIGNED),
@@ -978,6 +979,7 @@ bool CHL2MP_Player::DoAbilityThink()
 					}
 					else if (!info->bPassive)
 					{
+						if (info->flCastTime > 0.0f)
 						{
 							if (QueueDeferredAction(CovenDeferredAction_t(COVEN_ACTION_ITEMS + iAbility), false, info->flCastTime))
 								TriggerGCD();
@@ -2434,15 +2436,21 @@ void CHL2MP_Player::PreThink( void )
 	if (HL2MPRules()->num_cap_points > 0 && gpGlobals->curtime > lastCapPointTime) //no spectators allowed
 	{
 		CHL2MPRules *pRules = HL2MPRules();
-		Vector tVec;
+		Vector tVec(0, 0, 0);
+		bool bCheck = false;
 		if (pRules)
 		{
-			tVec = pRules->cap_point_coords.Get(lastCheckedCapPoint);
+			CBaseEntity *pPoint = pRules->cap_points.Get(lastCheckedCapPoint);
+			if (pPoint != NULL)
+			{
+				bCheck = true;
+				tVec = pPoint->GetAbsOrigin();
+			}
 		}
 
 		RemoveStatus(COVEN_STATUS_CAPPOINT);
 
-		if (IsAlive() && !KO && ((tVec - GetLocalOrigin()).LengthSqr() < pRules->cap_point_distance[lastCheckedCapPoint]))
+		if (IsAlive() && !KO && bCheck && ((tVec - GetLocalOrigin()).LengthSqr() < pRules->cap_point_distance[lastCheckedCapPoint]))
 		{
 			bool itsago = true;
 			if (pRules->cap_point_sightcheck[lastCheckedCapPoint])

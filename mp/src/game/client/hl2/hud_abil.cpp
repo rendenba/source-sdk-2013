@@ -217,6 +217,13 @@ float CHudAbils::DrawAbility(int iAbilityNum, float y, float wide, float inset, 
 		swprintf(wNumTM, sizeof(wNumTM), L"%.0f", info->flDrain);
 		DrawTextTitle(1.25f * inset, y, UTIL_ComputeStringWidth(m_hFontNumerals, wNumTM), wide - 1.7f * minset, wNumTM, false, m_hFontNumerals);
 	}
+	if (info->flCastTime > 0.0f)
+	{
+		wchar_t wNumTM[8];
+		swprintf(wNumTM, sizeof(wNumTM), L"[ %.1f ]", info->flCastTime);
+		int width = UTIL_ComputeStringWidth(m_hFontNumerals, wNumTM);
+		DrawTextTitle(wide - minset - width, y, width, wide - 1.7f * minset, wNumTM, false, m_hFontNumerals);
+	}
 	//BB: TODO: HACK! fix this? This has moved to an item now.
 	/*if (pPlayer->m_HL2Local.covenAbilities[iAbilityNum] == COVEN_ABILITY_TRIPMINE && pPlayer->m_HL2Local.m_iNumTripmines > 0)
 	{

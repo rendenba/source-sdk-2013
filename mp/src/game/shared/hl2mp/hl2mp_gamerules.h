@@ -250,8 +250,8 @@ public:
 	CNetworkVar( float,  flRoundTimer);
 	CNetworkVar( int, num_cap_points );
 	CNetworkArray( int, cap_point_status, COVEN_MAX_CAP_POINTS );
-	CNetworkArray( Vector, cap_point_coords, COVEN_MAX_CAP_POINTS );
 	CNetworkArray( int, cap_point_state, COVEN_MAX_CAP_POINTS );
+	CNetworkArray(EHANDLE, cap_points, COVEN_MAX_CAP_POINTS);
 
 	CNetworkVar( CovenCTSStatus_t, covenCTSStatus);
 	Vector cts_zone;

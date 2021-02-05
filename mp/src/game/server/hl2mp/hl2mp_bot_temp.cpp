@@ -399,7 +399,7 @@ const Vector *CurrentObjectiveLoc( CHL2MP_Player *pBot )
 	if (botdata->m_objectiveType == BOT_OBJECTIVE_CAPPOINT)
 	{
 		if (botdata->m_objective > -1)
-			ret = &pRules->cap_point_coords.Get(botdata->m_objective);
+			ret = &pRules->cap_points.Get(botdata->m_objective)->GetAbsOrigin();
 	}
 	else if (botdata->m_objectiveType == BOT_OBJECTIVE_GET_GAS)
 	{
@@ -434,7 +434,7 @@ Vector GetObjectiveLoc(int locationIndex)
 	Vector ret(0, 0, 0);
 	if (locationIndex)
 	{
-		ret = HL2MPRules()->cap_point_coords.Get(locationIndex);
+		ret = HL2MPRules()->cap_points.Get(locationIndex)->GetAbsOrigin();
 	}
 	return ret;
 }

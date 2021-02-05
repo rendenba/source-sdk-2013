@@ -1064,32 +1064,36 @@ void CViewRender::DrawMissionIndicator()
 	int viewdist = coven_r_cappoint_dist.GetInt();
 	for (int i = 0; i < HL2MPRules()->num_cap_points; i++)
 	{
-		Vector temp2 = HL2MPRules()->cap_point_coords.Get(i) + Vector(0, 0, 40.0f);
-		Vector temp = CBasePlayer::GetLocalPlayer()->EyePosition()-temp2;
-		int dist = VectorNormalize(temp);
-		if (dist > viewdist && viewdist > 0)//0 means forever
-			continue;
-		Vector color(1.0f,1.0f,1.0f);
-		int lum = HL2MPRules()->cap_point_status.Get(i);
-		if (lum > 60)
+		CBaseEntity *pPoint = HL2MPRules()->cap_points.Get(i);
+		if (pPoint)
 		{
-			lum -= 60;
-			color.x = color.y = 1.0f-(lum*4)/255.0f;
+			Vector temp2 = pPoint->GetAbsOrigin() + Vector(0, 0, 40.0f);
+			Vector temp = CBasePlayer::GetLocalPlayer()->EyePosition() - temp2;
+			int dist = VectorNormalize(temp);
+			if (dist > viewdist && viewdist > 0)//0 means forever
+				continue;
+			Vector color(1.0f, 1.0f, 1.0f);
+			int lum = HL2MPRules()->cap_point_status.Get(i);
+			if (lum > 60)
+			{
+				lum -= 60;
+				color.x = color.y = 1.0f - (lum * 4) / 255.0f;
+			}
+			else
+			{
+				color.y = color.z = (lum * 4) / 255.0f;
+			}
+			//Color tmp_clr = HSL_RGB(hue, 255, lum);
+			//color.x = tmp_clr.r()/255.0;
+			//color.y = tmp_clr.g()/255.0;
+			//color.z = tmp_clr.b()/255.0;
+			CBasePlayer::GetLocalPlayer()->CreateObjectiveCircle();
+			CBasePlayer::GetLocalPlayer()->m_objectiveCircle->m_FXData.SetMaterial("effects/objective_marker");
+			CBasePlayer::GetLocalPlayer()->m_objectiveCircle->m_FXData.SetNormal(temp);
+			CBasePlayer::GetLocalPlayer()->m_objectiveCircle->m_FXData.m_flStartScale = 50.0f;
+			//CBasePlayer::GetLocalPlayer()->m_objectiveCircle->m_FXData.m_flStartAlpha = 200.0f;
+			CBasePlayer::GetLocalPlayer()->m_objectiveCircle->Update(temp2, color, true);
 		}
-		else
-		{
-			color.y = color.z = (lum*4)/255.0f;
-		}
-		//Color tmp_clr = HSL_RGB(hue, 255, lum);
-		//color.x = tmp_clr.r()/255.0;
-		//color.y = tmp_clr.g()/255.0;
-		//color.z = tmp_clr.b()/255.0;
-		CBasePlayer::GetLocalPlayer()->CreateObjectiveCircle();
-		CBasePlayer::GetLocalPlayer()->m_objectiveCircle->m_FXData.SetMaterial("effects/objective_marker");
-		CBasePlayer::GetLocalPlayer()->m_objectiveCircle->m_FXData.SetNormal( temp );
-		CBasePlayer::GetLocalPlayer()->m_objectiveCircle->m_FXData.m_flStartScale = 50.0f;
-		//CBasePlayer::GetLocalPlayer()->m_objectiveCircle->m_FXData.m_flStartAlpha = 200.0f;
-		CBasePlayer::GetLocalPlayer()->m_objectiveCircle->Update(temp2, color, true);
 	}
 
 	/*Vector temp2 = ((C_BaseHLPlayer *)CBasePlayer::GetLocalPlayer())->m_HL2Local.current_objective;

@@ -38,6 +38,7 @@
 	#include "item_itemcrate.h"
 	#include "covenlib.h"
 	#include "covenbuilding.h"
+	#include "baseentity.h"
 
 //BB: BOTS!
 //#ifdef DEBUG	
@@ -142,16 +143,16 @@ BEGIN_NETWORK_TABLE_NOBASE( CHL2MPRules, DT_HL2MPRules )
 		RecvPropInt( RECVINFO( num_cap_points ) ),
 		RecvPropBool( RECVINFO( m_bTeamPlayEnabled ) ),
 		RecvPropArray3( RECVINFO_ARRAY(cap_point_status), RecvPropInt( RECVINFO(cap_point_status[0]))),
-		RecvPropArray3( RECVINFO_ARRAY(cap_point_coords), RecvPropVector( RECVINFO(cap_point_coords[0]))),
 		RecvPropArray3( RECVINFO_ARRAY(cap_point_state), RecvPropInt( RECVINFO(cap_point_state[0]))),
+		RecvPropArray3(RECVINFO_ARRAY(cap_points), RecvPropEHandle(RECVINFO(cap_points[0]))),
 		RecvPropInt( RECVINFO(covenCTSStatus) ),
 		RecvPropTime( RECVINFO(flRoundTimer) ),
 	#else
 		SendPropInt( SENDINFO( num_cap_points ) ),
 		SendPropBool( SENDINFO( m_bTeamPlayEnabled ) ),
 		SendPropArray3( SENDINFO_ARRAY3(cap_point_status), SendPropInt( SENDINFO_ARRAY(cap_point_status), 8, SPROP_UNSIGNED ) ),
-		SendPropArray3( SENDINFO_ARRAY3(cap_point_coords), SendPropVector( SENDINFO_ARRAY(cap_point_coords), -1, SPROP_NOSCALE ) ),
 		SendPropArray3( SENDINFO_ARRAY3(cap_point_state), SendPropInt( SENDINFO_ARRAY(cap_point_state), 2, SPROP_UNSIGNED ) ),
+		SendPropArray3( SENDINFO_ARRAY3(cap_points), SendPropEHandle( SENDINFO_ARRAY(cap_points) )),
 		SendPropInt( SENDINFO(covenCTSStatus), 2, SPROP_UNSIGNED ),
 		SendPropTime( SENDINFO(flRoundTimer) ),
 	#endif
@@ -233,6 +234,7 @@ static const char *s_PreserveEnts[] =
 	"npc_depot_medkit",
 	"npc_depot_pills",
 	"npc_depot_slam",
+	"info_coven_capturepoint",
 	"", // END Marker
 };
 //BB: TODO: item_ammo_crate might need to come off this list once they are actually baked into maps...
@@ -577,7 +579,12 @@ bool CHL2MPRules::LoadFromBuffer( char const *resourceName, CUtlBuffer &buf, IBa
 				const char *t = temparray;
 				float locs[3];
 				UTIL_StringToVector(locs, t);
-				cap_point_coords.Set(num_cap_points, Vector(locs[0], locs[1], locs[2]));
+				CBaseEntity *pCapPoint = CreateEntityByName("info_coven_capturepoint");
+				pCapPoint->SetAbsOrigin(Vector(locs[0], locs[1], locs[2]));
+				pCapPoint->PrecacheModel("models/props_junk/rock001a.mdl");
+				pCapPoint->SetModel("models/props_junk/rock001a.mdl");
+				pCapPoint->Spawn();
+				cap_points.Set(num_cap_points, pCapPoint);
 				cap_point_status.Set(num_cap_points, 60);
 				cap_point_timers[num_cap_points] = 0.0f;
 				cap_point_state.Set(num_cap_points, 0);
@@ -1061,7 +1068,12 @@ bool CHL2MPRules::LoadCowFile(IBaseFileSystem *filesystem, const char *resourceN
 							{
 								float locs[3];
 								UTIL_StringToVector(locs, sub->GetString("location", "0 0 0"));
-								cap_point_coords.Set(num_cap_points, Vector(locs[0], locs[1], locs[2]));
+								CBaseEntity *pCapPoint = CreateEntityByName("info_coven_capturepoint");
+								pCapPoint->SetAbsOrigin(Vector(locs[0], locs[1], locs[2]));
+								pCapPoint->PrecacheModel("models/props_junk/rock001a.mdl");
+								pCapPoint->SetModel("models/props_junk/rock001a.mdl");
+								pCapPoint->Spawn();
+								cap_points.Set(num_cap_points, pCapPoint);
 								cap_point_status.Set(num_cap_points, 60);
 								cap_point_timers[num_cap_points] = 0.0f;
 								cap_point_state.Set(num_cap_points, 0);
@@ -1849,6 +1861,8 @@ CBaseEntity *CHL2MPRules::TranslateIndex(ObserverCategory_t iCategory, int iInde
 	{
 	case OBS_CAT_RAGDOLL:
 		return doll_collector[iIndex];
+	case OBS_CAT_CAPPOINT:
+		return cap_points.Get(iIndex);
 	case OBS_CAT_GASCAN:
 		if (iIndex >= 0 && iIndex < hGasCans.Count() && hGasCans[iIndex] != NULL && hGasCans[iIndex]->IsViewable())
 			return hGasCans[iIndex];
@@ -1873,6 +1887,8 @@ int CHL2MPRules::CategorySize(ObserverCategory_t iCategory)
 	{
 	case OBS_CAT_RAGDOLL:
 		return COVEN_MAX_RAGDOLLS;
+	case OBS_CAT_CAPPOINT:
+		return COVEN_MAX_CAP_POINTS;
 	case OBS_CAT_GASCAN:
 		return hGasCans.Count();
 	case OBS_CAT_APC:
