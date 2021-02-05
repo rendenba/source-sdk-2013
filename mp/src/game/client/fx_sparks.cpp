@@ -292,10 +292,18 @@ void FX_Burst(const Vector &pos, color32 color, CovenBurstType_t type, CBaseEnti
 	Vector position;
 
 	CSmartPtr<CSimpleEmitter> pSimple;
-	if (pFollowEnt != NULL && (pos - pFollowEnt->GetAbsOrigin()).LengthSqr() < 2500.0f)
+	if (pFollowEnt != NULL && (pos - pFollowEnt->GetAbsOrigin()).LengthSqr() < 160000.0f)
 	{
-		pSimple = CFollowEmitter::CreateSimple("TEBurst", pFollowEnt);
-		position = pFollowEnt->GetAbsOrigin();
+		if (type == COVEN_BURST_TYPE_SIPHON)
+		{
+			pSimple = CFollowIntoEmitter::CreateSimple("TEBurst", pFollowEnt);
+			position = pos;
+		}
+		else
+		{
+			pSimple = CFollowEmitter::CreateSimple("TEBurst", pFollowEnt);
+			position = pFollowEnt->GetAbsOrigin();
+		}
 	}
 	else
 	{
@@ -320,14 +328,22 @@ void FX_Burst(const Vector &pos, color32 color, CovenBurstType_t type, CBaseEnti
 	//float invratio = 1 / ratio;
 
 	PMaterialHandle hMaterial;
-	if (type == COVEN_BURST_TYPE_DEFAULT)
+	if (type == COVEN_BURST_TYPE_DEFAULT || type == COVEN_BURST_TYPE_SIPHON)
 		hMaterial = pSimple->GetPMaterial("effects/spark");
 	else
 		hMaterial = pSimple->GetPMaterial("effects/blueflare1");
 
-	for (int i = 0; i < 22; i++)
+	int particles = 22;
+	switch (type)
 	{
-		for (int j = 0; j < 22; j++)
+	case COVEN_BURST_TYPE_SIPHON:
+		particles = 11;
+		break;
+	}
+
+	for (int i = 0; i < particles; i++)
+	{
+		for (int j = 0; j < particles; j++)
 		{
 			Vector offset;
 			/*this is too dense towards the middle
@@ -346,6 +362,11 @@ void FX_Burst(const Vector &pos, color32 color, CovenBurstType_t type, CBaseEnti
 				offset.x = random->RandomFloat(-32.0f, 32.0f);
 				offset.y = (random->RandomInt(0, 1) > 0 ? -32 : 32) * random->RandomFloat(0.0f, FastSqrt(1.0f - (offset.x * offset.x) / 1024.0f));
 				offset.z = 32.0f + (random->RandomInt(0, 1) > 0 ? -32 : 32) * FastSqrt(1.0f - offset.Length2DSqr() / 1024.0f);
+				break;
+			case COVEN_BURST_TYPE_SIPHON:
+				offset.x = random->RandomFloat(-32.0f, 32.0f);
+				offset.y = random->RandomFloat(-32.0f, 32.0f);
+				offset.z = random->RandomFloat(0.0f, 80.0f);
 				break;
 			default:
 				
@@ -393,6 +414,9 @@ void FX_Burst(const Vector &pos, color32 color, CovenBurstType_t type, CBaseEnti
 				break;
 			case COVEN_BURST_TYPE_CSPHERE:
 				pParticle->m_vecVelocity = (offset - (position + Vector(0.0f, 0.0f, 32.0f))) * 24.0f; //16 need to make a speed option?
+				break;
+			case COVEN_BURST_TYPE_SIPHON:
+				pParticle->m_vecVelocity = (pFollowEnt->GetAbsOrigin() + Vector(0.0f, 0.0f, 48.0f) - offset) * random->RandomFloat(0.9f, 3.0f);
 				break;
 			default:
 				pParticle->m_vecVelocity = (offset - position) * 16.0f;

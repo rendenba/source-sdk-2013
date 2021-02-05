@@ -65,7 +65,7 @@ void CTEBurst::Test(const Vector& current_origin, const QAngle& current_angles)
 IMPLEMENT_SERVERCLASS_ST_NOBASE(CTEBurst, DT_TEBurst)
 	SendPropVector(SENDINFO(m_vecPos), -1, SPROP_COORD),
 	SendPropInt(SENDINFO(m_iClr), -1, SPROP_UNSIGNED),
-	SendPropInt(SENDINFO(m_type), 3, SPROP_UNSIGNED),
+	SendPropInt(SENDINFO(m_type), 4, SPROP_UNSIGNED),
 	SendPropEHandle(SENDINFO(m_pFollowEnt)),
 END_SEND_TABLE()
 

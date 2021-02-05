@@ -454,6 +454,7 @@ typedef enum
 	COVEN_BURST_TYPE_SPHERE, //sphere
 	COVEN_BURST_TYPE_CSPHERE, //sphere, centered
 	COVEN_BURST_TYPE_DISC, //bottom/disc
+	COVEN_BURST_TYPE_SIPHON, //siphon trail
 	COVEN_BURST_TYPE_MAX
 } CovenBurstType_t;
 
@@ -462,6 +463,7 @@ typedef enum
 	COVEN_EFFECT_NONE,
 	COVEN_EFFECT_CHARGE,
 	COVEN_EFFECT_EXPLODE,
+	COVEN_EFFECT_SIPHON,
 	COVEN_EFFECT_MAX
 } CovenEffectType_t;
 

@@ -582,3 +582,62 @@ void CFollowEmitter::SimulateParticles(CParticleSimulateIterator *pIterator)
 		pParticle = (SimpleParticle*)pIterator->GetNext();
 	}
 }
+
+CFollowIntoEmitter::CFollowIntoEmitter(const char *pDebugName, CBaseEntity *pEnt) : CFollowEmitter(pDebugName, pEnt)
+{
+}
+
+CSmartPtr<CFollowIntoEmitter> CFollowIntoEmitter::Create(const char *pDebugName, CBaseEntity *pEnt)
+{
+	CFollowIntoEmitter *pRet = new CFollowIntoEmitter(pDebugName, pEnt);
+	pRet->SetDynamicallyAllocated(true);
+	return pRet;
+}
+
+CSmartPtr<CSimpleEmitter> CFollowIntoEmitter::CreateSimple(const char *pDebugName, CBaseEntity *pEnt)
+{
+	CFollowIntoEmitter *pRet = new CFollowIntoEmitter(pDebugName, pEnt);
+	pRet->SetDynamicallyAllocated(true);
+	return pRet;
+}
+
+void CFollowIntoEmitter::SimulateParticles(CParticleSimulateIterator *pIterator)
+{
+	float timeDelta = pIterator->GetTimeDelta();
+
+
+	if (m_pEnt != NULL)
+	{
+		m_vecOrigin = m_pEnt->GetAbsOrigin() + Vector(0.0f, 0.0f, 48.0f);
+	}
+
+	SimpleParticle *pParticle = (SimpleParticle*)pIterator->GetFirst();
+	while (pParticle)
+	{
+		//Update velocity
+		UpdateVelocity(pParticle, timeDelta);
+		pParticle->m_Pos += pParticle->m_vecVelocity * timeDelta;
+
+		//Should this particle die?
+		pParticle->m_flLifetime += timeDelta;
+		UpdateRoll(pParticle, timeDelta);
+
+		if (pParticle->m_flLifetime >= pParticle->m_flDieTime)
+			pIterator->RemoveParticle(pParticle);
+
+		pParticle = (SimpleParticle*)pIterator->GetNext();
+	}
+}
+
+void CFollowIntoEmitter::UpdateVelocity(SimpleParticle *pParticle, float timeDelta)
+{
+	if (m_pEnt != NULL)
+	{
+		Vector dir = m_vecOrigin + RandomVector(-8.0f, 8.0f) - pParticle->m_Pos;
+		float length = dir.NormalizeInPlace();
+		if (length < 10.0f)
+			pParticle->m_flDieTime = 0.0f;
+		else
+			pParticle->m_vecVelocity = dir * random->RandomFloat(500.0f, 1000.0f);
+	}
+}

@@ -1283,7 +1283,7 @@ void CHL2MP_Player::BloodExplode(int iAbilityNum)
 	info.CopyDamageToBaseDamage();
 	info.SetDamage(damn);
 
-	RadiusDamage(info, GetAbsOrigin(), abilityInfo->GetDataVariable(0), CLASS_NONE, this, COVEN_EFFECT_EXPLODE, { 255, 64, 64, 255 });
+	RadiusDamage(info, GetAbsOrigin(), abilityInfo->GetDataVariable(0), CLASS_NONE, this, COVEN_EFFECT_SIPHON, { 255, 64, 64, 255 });
 
 	UTIL_DecalTrace( &pTrace, "Blood" );
 

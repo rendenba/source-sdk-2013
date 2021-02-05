@@ -27,6 +27,7 @@
 	#include "player_resource.h"
 	#include "tactical_mission.h"
 	#include "gamestats.h"
+	#include "coven_parse.h"
 
 #endif
 
@@ -546,6 +547,16 @@ void CGameRules::RadiusDamage( const CTakeDamageInfo &info, const Vector &vecSrc
 				CDisablePredictionFiltering disabler;
 				CBroadcastRecipientFilter filter2;
 				te->Burst(filter2, 0, &pEntity->GetAbsOrigin(), color, COVEN_BURST_TYPE_DEFAULT, pEntity);
+				break;
+			}
+			case COVEN_EFFECT_SIPHON:
+			{
+				CDisablePredictionFiltering disabler;
+				CBroadcastRecipientFilter filter2;
+				te->Burst(filter2, 0, &pEntity->GetAbsOrigin(), color, COVEN_BURST_TYPE_SIPHON, info.GetAttacker());
+				//BB: HACK! Blood Explode healing...
+				CovenAbilityInfo_t *abilityInfo = GetCovenAbilityData(COVEN_ABILITY_DETONATEBLOOD);
+				info.GetAttacker()->TakeHealth(info.GetDamage() * abilityInfo->GetDataVariable(3), DMG_GENERIC);
 				break;
 			}
 			default:

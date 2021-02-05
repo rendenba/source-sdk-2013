@@ -209,10 +209,30 @@ public:
 
 	virtual void	SimulateParticles(CParticleSimulateIterator *pIterator);
 
-private:
+protected:
 	EHANDLE m_pEnt;
 	Vector m_vecOrigin;
+
+private:
 	CFollowEmitter(const CFollowEmitter &); // not defined, not accessible
+};
+
+//==================================================
+// FollowIntoEmitter
+//==================================================
+
+class CFollowIntoEmitter : public CFollowEmitter
+{
+public:
+	CFollowIntoEmitter(const char *pDebugName, CBaseEntity *pEnt);
+	static CSmartPtr<CFollowIntoEmitter>	Create(const char *pDebugName, CBaseEntity *pEnt);
+	static CSmartPtr<CSimpleEmitter>	CreateSimple(const char *pDebugName, CBaseEntity *pEnt);
+	virtual void UpdateVelocity(SimpleParticle *pParticle, float timeDelta);
+
+	virtual void	SimulateParticles(CParticleSimulateIterator *pIterator);
+
+private:
+	CFollowIntoEmitter(const CFollowIntoEmitter &); // not defined, not accessible
 };
 
 //==================================================
