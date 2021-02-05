@@ -34,6 +34,7 @@ protected:
 	int		m_iEmptyTex;
 	int		m_iFullTex;
 	float	m_flMaxTime;
+	float	m_flMaxTimer;
 	wchar_t	m_wszItemName[MAX_PLAYER_NAME_LENGTH];
 
 	CPanelAnimationVar(Color, m_Color, "Color", "255 255 255 255");

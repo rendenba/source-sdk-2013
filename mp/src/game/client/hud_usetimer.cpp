@@ -46,6 +46,7 @@ CHudElement(pElementName), BaseClass(NULL, "HudUseTimer")
 	SetPaintBorderEnabled(false);
 
 	m_flMaxTime = 0.0f;
+	m_flMaxTimer = 0.0f;
 	m_wszItemName[0] = 0;
 
 	m_iEmptyTex = surface()->CreateNewTextureID();
@@ -67,12 +68,18 @@ void CHudUseTimer::OnThink()
 	{
 		if (pPlayer->m_HL2Local.covenActionTimer > 0.0f)
 		{
-			if (m_flMaxTime == 0.0f)
+			if (m_flMaxTime == 0.0f || m_flMaxTimer != pPlayer->m_HL2Local.covenActionTimer)
 			{
+				m_flMaxTimer = pPlayer->m_HL2Local.covenActionTimer;
 				m_flMaxTime = pPlayer->m_HL2Local.covenActionTimer - gpGlobals->curtime;
-				if (pPlayer->m_HL2Local.covenAction < COVEN_ITEM_COUNT)
+				if (pPlayer->m_HL2Local.covenAction < COVEN_ACTION_ITEMS)
 				{
 					CovenItemInfo_t *info = GetCovenItemData(CovenItemID_t(pPlayer->m_HL2Local.covenAction));
+					V_swprintf_safe(m_wszItemName, L"%s", g_pVGuiLocalize->Find(info->szPrintName));
+				}
+				else if (pPlayer->m_HL2Local.covenAction < COVEN_ACTION_ABILITIES)
+				{
+					CovenAbilityInfo_t *info = GetCovenAbilityData(CovenAbility_t(pPlayer->m_HL2Local.covenAction - COVEN_ACTION_ITEMS));
 					V_swprintf_safe(m_wszItemName, L"%s", g_pVGuiLocalize->Find(info->szPrintName));
 				}
 				else
@@ -90,7 +97,7 @@ void CHudUseTimer::OnThink()
 		}
 		else
 		{
-			m_flMaxTime = 0.0f;
+			m_flMaxTimer = m_flMaxTime = 0.0f;
 		}
 	}
 

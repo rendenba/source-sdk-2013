@@ -186,6 +186,7 @@ CovenAbilityInfo_t::CovenAbilityInfo_t()
 	iMagnitude = 0;
 	flRange = 0.0f;
 	flCost = 0.0f;
+	flCastTime = 0.0f;
 	flDrain = 0.0f;
 	bPassive = false;
 	iFlags = 0;
@@ -386,6 +387,7 @@ void CovenAbilityInfo_t::Parse(KeyValues *pKeyValuesData)
 	flRange = pKeyValuesData->GetFloat("range", 300.0f);
 	flRange *= flRange;
 	flCost = pKeyValuesData->GetFloat("cost", 10.0f);
+	flCastTime = pKeyValuesData->GetFloat("casttime", 0.0f);
 	flDrain = pKeyValuesData->GetFloat("drain", 0.0f);
 	bPassive = (pKeyValuesData->GetInt("passive", 0) != 0) ? true : false;
 	KeyValues *pVariables = pKeyValuesData->FindKey("variables");

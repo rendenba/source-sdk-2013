@@ -373,11 +373,13 @@ public:
 	bool			UseCovenItem(CovenItemID_t iItemType);
 	void			ActivateCovenItem(CovenItemID_t iItemType);
 	bool			PerformDeferredAction(CovenDeferredAction_t iAction = COVEN_ACTION_QUEUED);
-	bool			IsPerformingDeferredAction(void);
+	bool			IsPerformingDeferredAction(CovenDeferredAction_t iAction = COVEN_ACTION_ANY);
+	bool			IsPerformingDeferredAbility(void);
 	CovenDeferredAction_t CurrentDeferredAction(void);
+	virtual bool	DoAbility(int iAbilityNum, CovenAbility_t iAbility, unsigned int iKeyNum) { return false; }
 	bool			IsReloading(void);
 	bool			UseCancelAction(void);
-	void			CancelDeferredAction(void);
+	void			CancelDeferredAction(bool bPlaySound = true);
 	bool			DeferredActionComplete(void);
 	bool			MovementCancelActionCheck(void);
 	bool			DistanceCancelActionCheck(void);

@@ -36,7 +36,7 @@ BEGIN_SEND_TABLE_NOBASE( CHL2PlayerLocalData, DT_HL2Local )
 	//BB: coven will only support games up to 8192/60 = 136 minutes (1 << 13) with hundredths precision (1 << (20 bits - 13 bits = 7 bits))
 	SendPropFloat( SENDINFO(covenGCD), 20, SPROP_ROUNDDOWN | SPROP_CHANGES_OFTEN, 0.0f, (1 << 13) ),
 	SendPropFloat( SENDINFO(covenActionTimer), 20, SPROP_ROUNDDOWN, 0.0f, (1 << 13) ),
-	SendPropInt( SENDINFO(covenAction), 4, SPROP_UNSIGNED ),
+	SendPropInt( SENDINFO(covenAction), 6, SPROP_UNSIGNED ),
 	SendPropArray3( SENDINFO_ARRAY3(covenAbilities), SendPropInt(SENDINFO_ARRAY(covenAbilities), 5, SPROP_UNSIGNED)),
 	SendPropArray3( SENDINFO_ARRAY3(covenStatusTimers), SendPropFloat(SENDINFO_ARRAY(covenStatusTimers), 20, SPROP_ROUNDDOWN | SPROP_CHANGES_OFTEN, 0.0f, (1 << 13) ) ),
 	SendPropArray3( SENDINFO_ARRAY3(covenCooldownTimers), SendPropFloat( SENDINFO_ARRAY(covenCooldownTimers), 20, SPROP_ROUNDDOWN | SPROP_CHANGES_OFTEN, 0.0f, (1 << 13) ) ),

@@ -519,16 +519,25 @@ void CHL2_Player::ActivateCovenItem(CovenItemID_t iItemType)
 	m_HL2Local.m_iItems.Set(iItemType, m_HL2Local.m_iItems[iItemType] - 1);
 }
 
-void CHL2_Player::CancelDeferredAction(void)
+void CHL2_Player::CancelDeferredAction(bool bPlaySound)
 {
 	m_HL2Local.covenActionTimer = 0.0f;
 	m_bMoveCancelAction = false;
 	m_hRestrictedUseObj = NULL;
 	m_Local.m_iHideHUD &= ~HIDEHUD_SCORES;
-	if (m_HL2Local.covenAction < COVEN_ITEM_COUNT)
+	if (m_HL2Local.covenAction < COVEN_ACTION_ITEMS)
 	{
 		CovenItemInfo_t *info = GetCovenItemData(CovenItemID_t(m_HL2Local.covenAction.Get()));
 		StopSound(info->aSounds[COVEN_SND_START]);
+	}
+	else if (m_HL2Local.covenAction < COVEN_ACTION_ABILITIES)
+	{
+		if (bPlaySound)
+			EmitLocalSound("Coven.Deny");
+		CovenAbility_t iAbility = CovenAbility_t(m_HL2Local.covenAction - COVEN_ACTION_ITEMS);
+		CovenAbilityInfo_t *info = GetCovenAbilityData(iAbility);
+		int iAbilityNum = AbilityKey(iAbility);
+		SetCooldown(iAbilityNum, info->flCooldown);
 	}
 	CBaseCombatWeapon *pWeap = GetActiveWeapon();
 	if (pWeap && pWeap->IsHolstered())
@@ -537,9 +546,16 @@ void CHL2_Player::CancelDeferredAction(void)
 	ComputeSpeed();
 }
 
-bool CHL2_Player::IsPerformingDeferredAction(void)
+bool CHL2_Player::IsPerformingDeferredAction(CovenDeferredAction_t iAction)
 {
-	return m_HL2Local.covenActionTimer > 0.0f;
+	if (iAction == COVEN_ACTION_ANY)
+		return m_HL2Local.covenActionTimer > 0.0f;
+	return m_HL2Local.covenActionTimer > 0.0f && m_HL2Local.covenAction == iAction;
+}
+
+bool CHL2_Player::IsPerformingDeferredAbility(void)
+{
+	return m_HL2Local.covenActionTimer > 0.0f && m_HL2Local.covenAction >= COVEN_ACTION_ITEMS && m_HL2Local.covenAction < COVEN_ACTION_ABILITIES;
 }
 
 CovenDeferredAction_t CHL2_Player::CurrentDeferredAction(void)
@@ -554,8 +570,15 @@ bool CHL2_Player::PerformDeferredAction(CovenDeferredAction_t iAction)
 
 	int iTranslatedAction = iAction;
 
-	if (iTranslatedAction < COVEN_ITEM_COUNT)
+	if (iTranslatedAction < COVEN_ACTION_ITEMS)
 		ActivateCovenItem((CovenItemID_t)iTranslatedAction);
+	else if (iTranslatedAction < COVEN_ACTION_ABILITIES)
+	{
+		unsigned int iKey = 0;
+		CovenAbility_t iAbility = CovenAbility_t(iTranslatedAction - COVEN_ACTION_ITEMS);
+		int iAbilityNum = AbilityKey(iAbility, &iKey);
+		DoAbility(iAbilityNum, iAbility, iKey);
+	}
 	else
 	{
 		switch (iTranslatedAction)
@@ -573,15 +596,15 @@ bool CHL2_Player::PerformDeferredAction(CovenDeferredAction_t iAction)
 			}
 		}
 	}
+	m_HL2Local.covenActionTimer = 0.0f;
+	m_hRestrictedUseObj = NULL;
+	ComputeSpeed();
+	m_Local.m_iHideHUD &= ~HIDEHUD_SCORES;
 
 	CBaseCombatWeapon *pWeap = GetActiveWeapon();
 	if (pWeap && pWeap->IsHolstered())
 		pWeap->Deploy();
 
-	m_HL2Local.covenActionTimer = 0.0f;
-	m_hRestrictedUseObj = NULL;
-	ComputeSpeed();
-	m_Local.m_iHideHUD &= ~HIDEHUD_SCORES;
 	return true;
 }
 

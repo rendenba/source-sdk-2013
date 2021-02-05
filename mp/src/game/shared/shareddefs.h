@@ -566,14 +566,6 @@ typedef enum
 	COVEN_ITEM_MAXCOUNT
 } CovenItemID_t;
 
-typedef enum
-{
-	COVEN_ACTION_QUEUED = -1,
-	//CovenItemID_t's correspond 1:1 for deferred actions!
-	COVEN_ACTION_REFUEL = COVEN_ITEM_COUNT,
-	COVEN_ACTION_COUNT
-} CovenDeferredAction_t;
-
 //BB: CovenItemID_t's must correspond in order to PURCHASE_XXX BuildingType_t's
 typedef enum
 {
@@ -659,6 +651,18 @@ typedef enum
 	COVEN_ABILITY_LIGHTWAVE,
 	COVEN_ABILITY_COUNT
 } CovenAbility_t;
+
+typedef enum
+{
+	COVEN_ACTION_ANY = -2,
+	COVEN_ACTION_QUEUED = -1,
+	//CovenItemID_t's correspond 1:1 for deferred actions!
+	COVEN_ACTION_ITEMS = COVEN_ITEM_COUNT,
+	COVEN_ACTION_ABILITIES = COVEN_ITEM_COUNT + COVEN_ABILITY_COUNT,
+	COVEN_ACTION_REFUEL = COVEN_ACTION_ABILITIES,
+	//Actions above COVEN_ITEM_COUNT will be abilities
+	COVEN_ACTION_COUNT
+} CovenDeferredAction_t;
 
 /*********************************************************************************************************************/
 

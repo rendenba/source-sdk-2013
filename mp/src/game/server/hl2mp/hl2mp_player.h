@@ -161,6 +161,7 @@ public:
 	//BB: thinking functions consolidated for convienience
 	void DoStatusThink();
 	bool DoAbilityThink();
+	bool DoAbility(int iAbilityNum, CovenAbility_t iAbility, unsigned int iKeyNum);
 	void DoVampirePreThink();
 	void DoVampirePostThink();
 	void DoSlayerPreThink();

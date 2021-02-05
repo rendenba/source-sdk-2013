@@ -850,6 +850,92 @@ void CHL2MP_Player::UnDodge()
 	}
 }
 
+bool CHL2MP_Player::DoAbility(int iAbilityNum, CovenAbility_t iAbility, unsigned int iKeyNum)
+{
+	switch (iAbility)
+	{
+	case COVEN_ABILITY_LEAP:
+		DoLeap(iAbilityNum);
+		return true;
+	case COVEN_ABILITY_CHARGE:
+		if (DoGoreCharge())
+			return true;
+		if (m_afButtonPressed & iKeyNum)
+			EmitLocalSound("Coven.Deny");
+		break;
+	case COVEN_ABILITY_DETONATEBLOOD:
+		BloodExplode(iAbilityNum);
+		return true;
+	case COVEN_ABILITY_PHASE:
+		DoGorePhase(iAbilityNum);
+		return true;
+	case COVEN_ABILITY_SHEERWILL:
+		BoostStats(COVEN_ABILITY_SHEERWILL, iAbilityNum);
+		return true;
+	case COVEN_ABILITY_DARKWILL:
+		BoostStats(COVEN_ABILITY_DARKWILL, iAbilityNum);
+		return true;
+	case COVEN_ABILITY_BERSERK:
+		DoBerserk(iAbilityNum);
+		return true;
+	case COVEN_ABILITY_BUILDTURRET:
+		if (BuildTurret(iAbilityNum))
+			return true;
+		if (m_afButtonPressed & iKeyNum)
+			EmitLocalSound("Coven.Deny");
+		break;
+	case COVEN_ABILITY_DASH:
+		Dash(iAbilityNum);
+		return true;
+	case COVEN_ABILITY_INNERLIGHT:
+		DoInnerLight(iAbilityNum);
+		return true;
+	case COVEN_ABILITY_LIGHTWAVE:
+		DoLightwave(iAbilityNum);
+		return true;
+	case COVEN_ABILITY_BUILDDISPENSER:
+		if (BuildDispenser(iAbilityNum))
+			return true;
+		if (m_afButtonPressed & iKeyNum)
+			EmitLocalSound("Coven.Deny");
+		break;
+	case COVEN_ABILITY_TRIPMINE:
+		if (AttachTripmine(iAbilityNum))
+			return true;
+		if (m_afButtonPressed & iKeyNum)
+			EmitLocalSound("Coven.Deny");
+		break;
+	case COVEN_ABILITY_DODGE:
+		if (ToggleDodge(iAbilityNum))
+			return true;
+		if (m_afButtonPressed & iKeyNum)
+			EmitLocalSound("Coven.Deny");
+		break;
+	case COVEN_ABILITY_HASTE:
+		if (ToggleHaste(iAbilityNum))
+			return true;
+		if (m_afButtonPressed & iKeyNum)
+			EmitLocalSound("Coven.Deny");
+		break;
+	case COVEN_ABILITY_INTIMIDATINGSHOUT:
+		DoRadiusAbility(COVEN_ABILITY_INTIMIDATINGSHOUT, iAbilityNum, 1, COVEN_STATUS_WEAKNESS, false);
+		return true;
+	case COVEN_ABILITY_DREADSCREAM:
+		DoRadiusAbility(COVEN_ABILITY_DREADSCREAM, iAbilityNum, 1, COVEN_STATUS_SLOW, false);
+		return true;
+	case COVEN_ABILITY_BLOODLUST:
+		DoRadiusAbility(COVEN_ABILITY_BLOODLUST, iAbilityNum, 1, COVEN_STATUS_BLOODLUST, true);
+		return true;
+	case COVEN_ABILITY_BATTLEYELL:
+		DoRadiusAbility(COVEN_ABILITY_BATTLEYELL, iAbilityNum, 1, COVEN_STATUS_BATTLEYELL, true);
+		return true;
+	default:
+		Warning("Invalid ability assigned to button %d!\n", iKeyNum);
+	}
+
+	return false;
+}
+
 int CHL2MP_Player::GetAbilityNumber(int keyNum)
 {
 	//Restrict limits to 0-3
@@ -892,86 +978,12 @@ bool CHL2MP_Player::DoAbilityThink()
 					}
 					else if (!info->bPassive)
 					{
-						switch (iAbility)
 						{
-						case COVEN_ABILITY_LEAP:
-							DoLeap(i);
-							return true;
-						case COVEN_ABILITY_CHARGE:
-							if (DoGoreCharge())
-								return true;
-							if (m_afButtonPressed & keyNum)
-								EmitLocalSound("Coven.Deny");
-							break;
-						case COVEN_ABILITY_DETONATEBLOOD:
-							BloodExplode(i);
-							return true;
-						case COVEN_ABILITY_PHASE:
-							DoGorePhase(i);
-							return true;
-						case COVEN_ABILITY_SHEERWILL:
-							BoostStats(COVEN_ABILITY_SHEERWILL, i);
-							return true;
-						case COVEN_ABILITY_DARKWILL:
-							BoostStats(COVEN_ABILITY_DARKWILL, i);
-							return true;
-						case COVEN_ABILITY_BERSERK:
-							DoBerserk(i);
-							return true;
-						case COVEN_ABILITY_BUILDTURRET:
-							if (BuildTurret(i))
-								return true;
-							if (m_afButtonPressed & keyNum)
-								EmitLocalSound("Coven.Deny");
-							break;
-						case COVEN_ABILITY_DASH:
-							Dash(i);
-							return true;
-						case COVEN_ABILITY_INNERLIGHT:
-							DoInnerLight(i);
-							return true;
-						case COVEN_ABILITY_LIGHTWAVE:
-							DoLightwave(i);
-							return true;
-						case COVEN_ABILITY_BUILDDISPENSER:
-							if (BuildDispenser(i))
-								return true;
-							if (m_afButtonPressed & keyNum)
-								EmitLocalSound("Coven.Deny");
-							break;
-						case COVEN_ABILITY_TRIPMINE:
-							if (AttachTripmine(i))
-								return true;
-							if (m_afButtonPressed & keyNum)
-								EmitLocalSound("Coven.Deny");
-							break;
-						case COVEN_ABILITY_DODGE:
-							if (ToggleDodge(i))
-								return true;
-							if (m_afButtonPressed & keyNum)
-								EmitLocalSound("Coven.Deny");
-							break;
-						case COVEN_ABILITY_HASTE:
-							if (ToggleHaste(i))
-								return true;
-							if (m_afButtonPressed & keyNum)
-								EmitLocalSound("Coven.Deny");
-							break;
-						case COVEN_ABILITY_INTIMIDATINGSHOUT:
-							DoRadiusAbility(COVEN_ABILITY_INTIMIDATINGSHOUT, i, 1, COVEN_STATUS_WEAKNESS, false);
-							return true;
-						case COVEN_ABILITY_DREADSCREAM:
-							DoRadiusAbility(COVEN_ABILITY_DREADSCREAM, i, 1, COVEN_STATUS_SLOW, false);
-							return true;
-						case COVEN_ABILITY_BLOODLUST:
-							DoRadiusAbility(COVEN_ABILITY_BLOODLUST, i, 1, COVEN_STATUS_BLOODLUST, true);
-							return true;
-						case COVEN_ABILITY_BATTLEYELL:
-							DoRadiusAbility(COVEN_ABILITY_BATTLEYELL, i, 1, COVEN_STATUS_BATTLEYELL, true);
-							return true;
-						default:
-							Warning("Invalid ability assigned to button %d!\n", keyNum);
+							if (QueueDeferredAction(CovenDeferredAction_t(COVEN_ACTION_ITEMS + iAbility), false, info->flCastTime))
+								TriggerGCD();
 						}
+						else
+							return DoAbility(i, iAbility, keyNum);
 					}
 				}
 			}
@@ -2508,7 +2520,7 @@ void CHL2MP_Player::PreThink( void )
 	if (DoAbilityThink())
 	{
 		if (IsPerformingDeferredAction())
-			CancelDeferredAction();
+			CancelDeferredAction(false);
 		TriggerGCD();
 	}
 
@@ -4234,6 +4246,8 @@ void CHL2MP_Player::Event_Killed( const CTakeDamageInfo &info )
 		coven_timer_soul = -1.0f;
 		coven_soul_power = 0;
 	}
+	CancelDeferredAction();
+
 	RevengeCheck();
 
 	DropItem();

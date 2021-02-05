@@ -22,6 +22,9 @@
 #include "coven_turret.h"
 #include "weapon_frag.h"
 
+//Abilities 1-4
+#define CLEAR_ABILITY_KEYS ~(IN_ABIL1 | IN_ABIL2 | IN_ABIL3 | IN_ABIL4) 
+
 void ClientPutInServer( edict_t *pEdict, const char *playername );
 void Bot_Think( CHL2MP_Player *pBot );
 
@@ -1374,6 +1377,12 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot, unsigned int &buttons)
 	if (!pBot->IsAlive() || pBot->KO)
 		return 0;
 
+	if (pBot->IsPerformingDeferredAbility())
+	{
+		buttons &= ~(IN_ATTACK | IN_ATTACK2 | IN_RELOAD);
+		return 0;
+	}
+
 	if (pBot->HasAbility(COVEN_ABILITY_BATTLEYELL))
 	{
 		if (botdata->bCombat)
@@ -1972,10 +1981,10 @@ void Bot_Think( CHL2MP_Player *pBot )
 	//Combat Check
 	PlayerCheck(pBot);
 
-	//Refuel Check
+	//Action Check
 	if (pBot->IsPerformingDeferredAction())
 	{
-		if (botdata->bCombat)
+		if (botdata->bCombat && !pBot->IsPerformingDeferredAbility())
 			pBot->CancelDeferredAction();
 		else
 		{

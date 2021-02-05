@@ -120,6 +120,7 @@ public:
 	int						iMagnitude;
 	float					flDuration;
 	float					flRange;
+	float					flCastTime;
 	float					flCost;
 	float					flDrain;
 	bool					bPassive;
