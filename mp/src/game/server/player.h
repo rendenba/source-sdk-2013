@@ -969,6 +969,8 @@ protected:
 	
 	int						m_iObserverLastMode; // last used observer mode
 	CNetworkHandle( CBaseEntity, m_hObserverTarget );	// entity handle to m_iObserverTarget
+	int						m_iObserverTarget; // pseudo id of observer target
+	ObserverCategory_t		m_iObserverCategory;
 	bool					m_bForcedObserverMode; // true, player was forced by invalid targets to switch mode
 	
 	CNetworkHandle( CBaseEntity, m_hZoomOwner );	//This is a pointer to the entity currently controlling the player's zoom

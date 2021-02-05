@@ -225,6 +225,13 @@ public:
 	CBaseEntity	*doll_collector[COVEN_MAX_RAGDOLLS];
 	int			iCurrentDoll;
 
+	CBaseEntity *FindNextObserverTarget(ObserverCategory_t &iCategory, int &iIndex, bool bReverse);
+	int GetNextObserverSearchStartPoint(ObserverCategory_t &iCategory, int iIndex, bool bReverse);
+	CBaseEntity *TranslateIndex(ObserverCategory_t iCategory, int iIndex);
+	int CategorySize(ObserverCategory_t iCategory);
+	int TranslateCategory(int iIndex);
+	bool IsValidObserverTarget(CBaseEntity *target);
+
 #endif
 	virtual void ClientDisconnected( edict_t *pClient );
 

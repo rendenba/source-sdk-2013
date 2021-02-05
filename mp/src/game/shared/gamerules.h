@@ -206,6 +206,11 @@ public:
 	
 #else
 
+	virtual CBaseEntity *FindNextObserverTarget(ObserverCategory_t &iCategory, int &iIndex, bool bReverse) { return NULL; }
+	virtual CBaseEntity *TranslateIndex(ObserverCategory_t iCategory, int iIndex) { return NULL; }
+	virtual int GetNextObserverSearchStartPoint(ObserverCategory_t &iCategory, int iIndex, bool bReverse) { return 0; }
+	virtual bool IsValidObserverTarget(CBaseEntity *target) { return false; }
+
 	virtual void Status( void (*print) (const char *fmt, ...) ) {}
 
 	virtual void GetTaggedConVarList( KeyValues *pCvarTagList ) {}

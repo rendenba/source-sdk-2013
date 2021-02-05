@@ -149,6 +149,7 @@ private:
 
 	IViewPort *m_pViewPort;
 	ButtonCode_t m_iDuckKey;
+	ButtonCode_t m_iScoreBoardKey;
 };
 
 extern CSpectatorGUI * g_pSpectatorGUI;

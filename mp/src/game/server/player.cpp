@@ -642,6 +642,8 @@ CBasePlayer::CBasePlayer( )
 
 	covenRespawnTimer = -1.0f;
 	m_flLastObjectiveTime = -1.f;
+	m_iObserverTarget = 0;
+	m_iObserverCategory = ObserverCategory_t(OBS_CAT_NUM - 1);
 }
 
 CBasePlayer::~CBasePlayer( )
@@ -2335,7 +2337,9 @@ bool CBasePlayer::SetObserverMode(int mode )
 		switch ( mp_forcecamera.GetInt() )
 		{
 			case OBS_ALLOW_ALL	:	break;	// no restrictions
-			case OBS_ALLOW_TEAM :	mode = OBS_MODE_IN_EYE;	break;
+			case OBS_ALLOW_TEAM	:	mode = OBS_MODE_IN_EYE; break;
+			case OBS_ALLOW_TEAM_CHASE	:	if (mode > OBS_MODE_CHASE) { mode = OBS_MODE_IN_EYE; } break;
+			case OBS_ALLOW_POI	:	if (mode > OBS_MODE_POI) { mode = OBS_MODE_POI; } break;
 			case OBS_ALLOW_NONE :	mode = OBS_MODE_FIXED; break;	// don't allow anything
 		}
 	}
@@ -2366,6 +2370,10 @@ bool CBasePlayer::SetObserverMode(int mode )
 			SetMoveType( MOVETYPE_OBSERVER );
 			break;
 
+		case OBS_MODE_POI: // PASSTIME
+			SetObserverTarget(g_pGameRules->TranslateIndex(m_iObserverCategory, m_iObserverTarget));
+			SetMoveType(MOVETYPE_OBSERVER);
+			break;
 		//=============================================================================
 		// HPE_BEGIN:
 		// [menglish] Added freeze cam to the setter.  Uses same setup as the roaming mode
@@ -2435,8 +2443,8 @@ void CBasePlayer::CheckObserverSettings()
 		{
 				// we found a valid target
 				m_bForcedObserverMode = false;	// disable force mode
-				SetObserverMode( m_iObserverLastMode ); // switch to last mode
-				SetObserverTarget( target ); // goto target
+				SetObserverTarget(target); // goto target
+				SetObserverMode(m_iObserverMode); // switch to last mode
 				
 				// TODO check for HUD icons
 				return;
@@ -2693,6 +2701,11 @@ bool CBasePlayer::IsValidObserverTarget(CBaseEntity * target)
 
 	// MOD AUTHORS: Add checks on target here or in derived method
 
+	if (GetObserverMode() == OBS_MODE_POI)
+	{
+		return g_pGameRules->IsValidObserverTarget(target);
+	}
+
 	if ( !target->IsPlayer() )	// only track players
 		return false;
 
@@ -2724,11 +2737,13 @@ bool CBasePlayer::IsValidObserverTarget(CBaseEntity * target)
 	{
 		switch ( mp_forcecamera.GetInt() )	
 		{
-			case OBS_ALLOW_ALL	:	break;
-			case OBS_ALLOW_TEAM :	if ( GetTeamNumber() != target->GetTeamNumber() )
-										 return false;
-									break;
-			case OBS_ALLOW_NONE :	return false;
+		case OBS_ALLOW_POI:
+		case OBS_ALLOW_ALL:	break;
+		case OBS_ALLOW_TEAM_CHASE:
+		case OBS_ALLOW_TEAM:	if (GetTeamNumber() != target->GetTeamNumber())
+			return false;
+			break;
+		case OBS_ALLOW_NONE:	return false;
 		}
 	}
 	
@@ -2773,31 +2788,38 @@ CBaseEntity * CBasePlayer::FindNextObserverTarget(bool bReverse)
 
 	m_flNextFollowTime = gpGlobals->time + 0.25;
 	*/	// TODO move outside this function
-
-	int startIndex = GetNextObserverSearchStartPoint( bReverse );
 	
-	int	currentIndex = startIndex;
-	int iDir = bReverse ? -1 : 1; 
-	
-	do
+	if (GetObserverMode() != OBS_MODE_POI)
 	{
-		CBaseEntity * nextTarget = UTIL_PlayerByIndex( currentIndex );
+		int startIndex = GetNextObserverSearchStartPoint(bReverse);
 
-		if ( IsValidObserverTarget( nextTarget ) )
+		int	currentIndex = startIndex;
+		int iDir = bReverse ? -1 : 1;
+
+		do
 		{
-			return nextTarget;	// found next valid player
-		}
+			CBaseEntity * nextTarget = UTIL_PlayerByIndex(currentIndex);
 
-		currentIndex += iDir;
+			if (IsValidObserverTarget(nextTarget))
+			{
+				return nextTarget;	// found next valid player
+			}
 
-		// Loop through the clients
-  		if (currentIndex > gpGlobals->maxClients)
-  			currentIndex = 1;
-		else if (currentIndex < 1)
-  			currentIndex = gpGlobals->maxClients;
+			currentIndex += iDir;
 
-	} while ( currentIndex != startIndex );
-		
+			// Loop through the clients
+			if (currentIndex > gpGlobals->maxClients)
+				currentIndex = 1;
+			else if (currentIndex < 1)
+				currentIndex = gpGlobals->maxClients;
+
+		} while (currentIndex != startIndex);
+	}
+	else
+	{
+		return g_pGameRules->FindNextObserverTarget(m_iObserverCategory, m_iObserverTarget, bReverse);
+	}
+
 	return NULL;
 }
 

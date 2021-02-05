@@ -106,7 +106,8 @@ private:
 CSpectatorMenu::CSpectatorMenu( IViewPort *pViewPort ) : Frame( NULL, PANEL_SPECMENU )
 {
 	m_iDuckKey = BUTTON_CODE_INVALID;
-		
+	m_iScoreBoardKey = BUTTON_CODE_INVALID;
+
 	m_pViewPort = pViewPort;
 
 	SetMouseInputEnabled( true );
@@ -276,6 +277,11 @@ void CSpectatorMenu::OnKeyCodePressed(KeyCode code)
 		// hide if DUCK is pressed again
 		m_pViewPort->ShowPanel( this, false );
 	}
+	else if (code == m_iScoreBoardKey)
+	{
+		gViewPortInterface->ShowPanel(PANEL_SCOREBOARD, true);
+		gViewPortInterface->PostMessageToPanel(PANEL_SCOREBOARD, new KeyValues("PollHideCode", "code", code));
+	}
 }
 
 void CSpectatorMenu::ShowPanel(bool bShow)
@@ -296,7 +302,7 @@ void CSpectatorMenu::ShowPanel(bool bShow)
 		SetKeyBoardInputEnabled( false );
 	}
 
-	bool bIsEnabled = true;
+	bool bIsEnabled = bShow;
 	
 	 if ( engine->IsHLTV() && HLTVCamera()->IsPVSLocked() )
 	{
@@ -319,6 +325,11 @@ void CSpectatorMenu::Update( void )
 	if ( m_iDuckKey == BUTTON_CODE_INVALID )
 	{
 		m_iDuckKey = gameuifuncs->GetButtonCodeForBind( "duck" );
+	}
+
+	if (m_iScoreBoardKey == BUTTON_CODE_INVALID)
+	{
+		m_iScoreBoardKey = gameuifuncs->GetButtonCodeForBind("showscores");
 	}
 
 	if ( !gr )
@@ -389,6 +400,10 @@ void CSpectatorMenu::Update( void )
 	
 	int specmode = GetSpectatorMode();
 	m_pViewOptions->SetText(s_SpectatorModes[specmode]);
+
+	m_pViewOptions->SetKeyBoardInputEnabled(false);
+	m_pPlayerList->SetKeyBoardInputEnabled(false);
+	m_pConfigSettings->SetKeyBoardInputEnabled(false);
 	
 	//=============================================================================
 	// HPE_END
@@ -894,6 +909,19 @@ CON_COMMAND_F( spec_player, "Spectate player by name", FCVAR_CLIENTCMD_CAN_EXECU
 	{
 		ForwardSpecCmdToServer( args );
 	}
+}
+
+CON_COMMAND_F(spec_menu, "Spectate menu", FCVAR_CLIENTCMD_CAN_EXECUTE)
+{
+	C_BasePlayer *pPlayer = C_BasePlayer::GetLocalPlayer();
+
+	if (!pPlayer || !pPlayer->IsObserver())
+		return;
+
+	if (args.ArgC() != 2)
+		return;
+
+	gViewPortInterface->ShowPanel(PANEL_SPECMENU, atoi(args[1]) > 0 ? true : false);
 }
 
 

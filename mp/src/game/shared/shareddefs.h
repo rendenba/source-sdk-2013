@@ -745,10 +745,40 @@ enum {
 enum {
 	OBS_ALLOW_ALL = 0,	// allow all modes, all targets
 	OBS_ALLOW_TEAM,		// allow only own team & first person, no PIP
+	OBS_ALLOW_TEAM_CHASE, // allow only own team first person and chase
+	OBS_ALLOW_POI,		// allow own team, chase, and POI
 	OBS_ALLOW_NONE,		// don't allow any spectating after death (fixed & fade to black)
 
 	OBS_ALLOW_NUM_MODES,
 };
+
+typedef enum
+{
+	OBS_CAT_APC = 0,
+	OBS_CAT_CTS,
+	OBS_CAT_GASCAN,
+	OBS_CAT_CAPPOINT,
+	OBS_CAT_RAGDOLL,
+	OBS_CAT_NUM
+} ObserverCategory_t;
+
+inline ObserverCategory_t operator++ (ObserverCategory_t &other, int)
+{
+	int temp = other;
+	temp++;
+	if (temp >= OBS_CAT_NUM)
+		temp = OBS_CAT_APC;
+	return other = ObserverCategory_t(temp);
+}
+
+inline ObserverCategory_t operator-- (ObserverCategory_t &other, int)
+{
+	int temp = other;
+	temp--;
+	if (temp < 0)
+		temp = OBS_CAT_NUM - 1;
+	return other = ObserverCategory_t(temp);
+}
 
 enum
 {

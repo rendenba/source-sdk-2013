@@ -1815,6 +1815,108 @@ Vector CHL2MPRules::VecWeaponRespawnSpot( CBaseCombatWeapon *pWeapon )
 
 #ifndef CLIENT_DLL
 
+int CHL2MPRules::GetNextObserverSearchStartPoint(ObserverCategory_t &iCategory, int iIndex, bool bReverse)
+{
+	/*
+	Ragdolls	-	COVEN_MAX_RAGDOLLS
+	Cap Points	-	COVEN_MAX_CAP_POINTS
+	Gas Cans	-	hGasCans.Count()
+	APC,flare	-	1 + 1
+	CTS			-	1?
+	*/
+	int iDir = bReverse ? -1 : 1;
+	int iMax = CategorySize(iCategory);
+
+	iIndex += iDir;
+
+	if (iIndex >= iMax)
+	{
+		iCategory++;
+		iIndex = 0;
+	}
+	else if (iIndex < 0)
+	{
+		iCategory--;
+		iIndex = max(0, CategorySize(iCategory) - 1);
+	}
+
+	return iIndex;
+}
+
+CBaseEntity *CHL2MPRules::TranslateIndex(ObserverCategory_t iCategory, int iIndex)
+{
+	switch (iCategory)
+	{
+	case OBS_CAT_RAGDOLL:
+		return doll_collector[iIndex];
+	case OBS_CAT_GASCAN:
+		if (iIndex >= 0 && iIndex < hGasCans.Count() && hGasCans[iIndex] != NULL && hGasCans[iIndex]->IsViewable())
+			return hGasCans[iIndex];
+		break;
+	case OBS_CAT_APC:
+		if (pAPC)
+			return pAPC->GetBody();
+		break;
+	case OBS_CAT_CTS:
+		if (pCTS)
+			return pCTS;
+		break;
+	}
+	
+
+	return NULL;
+}
+
+int CHL2MPRules::CategorySize(ObserverCategory_t iCategory)
+{
+	switch (iCategory)
+	{
+	case OBS_CAT_RAGDOLL:
+		return COVEN_MAX_RAGDOLLS;
+	case OBS_CAT_GASCAN:
+		return hGasCans.Count();
+	case OBS_CAT_APC:
+		return (pAPC) ? 1 : 0;
+	case OBS_CAT_CTS:
+		return (pCTS) ? 1 : 0;
+	}
+	return 0;
+}
+
+CBaseEntity *CHL2MPRules::FindNextObserverTarget(ObserverCategory_t &iCategory, int &iIndex, bool bReverse)
+{
+	int startIndex = GetNextObserverSearchStartPoint(iCategory, iIndex, bReverse);
+	ObserverCategory_t iStartCategory = iCategory;
+	ObserverCategory_t iEndCategory = iCategory;
+	if (bReverse)
+		iEndCategory++;
+	else
+		iEndCategory--;
+	iIndex = startIndex;
+	bool bWrapped = false;
+
+	do
+	{
+		CBaseEntity *nextTarget = TranslateIndex(iCategory, iIndex);
+
+		if (IsValidObserverTarget(nextTarget))
+		{
+			return nextTarget;	// found next valid possibility
+		}
+
+		// Loop through the possibilities
+		iIndex = GetNextObserverSearchStartPoint(iCategory, iIndex, bReverse);
+		bWrapped = bWrapped || (iCategory == iEndCategory);
+
+	} while (!(iIndex == startIndex && bWrapped && iCategory == iStartCategory));
+	return NULL;
+}
+
+bool CHL2MPRules::IsValidObserverTarget(CBaseEntity *target)
+{
+	return target != NULL && !target->IsPlayer();
+}
+
 void CHL2MPRules::CreateAPCFlare(int iIndex)
 {
 	CPhysicsProp *m_hFlare;

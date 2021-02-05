@@ -95,6 +95,8 @@ public:
 	void			StartSiren(void);
 	void			StopSiren(void);
 
+	CBaseEntity		*GetBody(void) { if (m_pBody) return m_pBody->GetProp(); return NULL; }
+
 	static Vector	wheelOffset[4];
 	static QAngle	wheelOrientation[4];
 	static int		wheelDirection[4];
