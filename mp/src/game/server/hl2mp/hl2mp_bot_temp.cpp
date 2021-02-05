@@ -51,13 +51,13 @@ ConVar bot_sendcmd( "bot_sendcmd", "", 0, "Forces bots to send the specified com
 
 ConVar bot_crouch( "bot_crouch", "0", 0, "Bot crouches" );
 
-ConVar bot_difficulty("bot_difficulty", "1", FCVAR_ARCHIVE, "Bot difficulty: 0 easy, 1 medium, 2 hard, 3 insane."); 
-ConVar bot_charge_combat("bot_charge_combat", "5625.0", FCVAR_ARCHIVE, "Combat charge distance. (squared)");
-ConVar bot_charge_noncombat("bot_charge_noncombat", "302500.0", FCVAR_ARCHIVE, "Non-combat charge distance. (squared)");
-ConVar bot_leap_combat("bot_leap_combat", "40000.0", FCVAR_ARCHIVE, "Combat leap distance. (squared)");
-ConVar bot_leap_noncombat("bot_leap_noncombat", "302500.0", FCVAR_ARCHIVE, "Non-combat leap distance. (squared)");
-ConVar bot_phase_combat("bot_phase_combat", "8100.0", FCVAR_ARCHIVE, "Combat phase distance. (squared)");
-ConVar bot_dodge_combat("bot_dodge_combat", "8100.0", FCVAR_ARCHIVE, "Combat dodge distance. (squared)");
+ConVar bot_difficulty("bot_difficulty", "1", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Bot difficulty: 0 easy, 1 medium, 2 hard, 3 insane.");
+ConVar bot_charge_combat("bot_charge_combat", "1600.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Combat charge distance. (squared)");
+ConVar bot_charge_noncombat("bot_charge_noncombat", "160000.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Non-combat charge distance. (squared)");
+ConVar bot_leap_combat("bot_leap_combat", "40000.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Combat leap distance. (squared)");
+ConVar bot_leap_noncombat("bot_leap_noncombat", "160000.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Non-combat leap distance. (squared)");
+ConVar bot_phase_combat("bot_phase_combat", "8100.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Combat phase distance. (squared)");
+ConVar bot_dodge_combat("bot_dodge_combat", "8100.0", FCVAR_GAMEDLL | FCVAR_NOTIFY, "Combat dodge distance. (squared)");
 
 #ifdef NEXT_BOT
 extern ConVar bot_mimic;
@@ -1446,21 +1446,7 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot, unsigned int &buttons)
 		{
 			int abilityNum = pBot->AbilityKey(COVEN_ABILITY_DASH, &key);
 			CovenAbilityInfo_t *info = GetCovenAbilityData(COVEN_ABILITY_DASH);
-			if (!pBot->IsInCooldown(abilityNum) && botdata->m_flLastCombatDist < info->flRange && botdata->m_lastPlayerDot > BOT_ATTACK_DOT_STRICT)
-			{
-				CBaseCombatCharacter *pEnemy = BotGetEnemy(pBot);
-				if (pEnemy && pEnemy->IsPlayer() && pEnemy->IsAlive() && !pEnemy->KO)
-					buttons |= key;
-			}
-		}
-	}
-	if (pBot->HasAbility(COVEN_ABILITY_INNERLIGHT))
-	{
-		if (botdata->bCombat)
-		{
-			int abilityNum = pBot->AbilityKey(COVEN_ABILITY_INNERLIGHT, &key);
-			CovenAbilityInfo_t *info = GetCovenAbilityData(COVEN_ABILITY_INNERLIGHT);
-			if (!pBot->IsInCooldown(abilityNum) && botdata->m_flLastCombatDist < info->flRange * 0.9f)
+			if (!pBot->IsInCooldown(abilityNum) && botdata->m_flLastCombatDist < info->flRange && botdata->m_lastPlayerDot > DOT_25DEGREE)
 			{
 				CBaseCombatCharacter *pEnemy = BotGetEnemy(pBot);
 				if (pEnemy && pEnemy->IsPlayer() && pEnemy->IsAlive() && !pEnemy->KO)
@@ -1484,8 +1470,12 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot, unsigned int &buttons)
 		else
 		{
 			int abilityNum = pBot->AbilityKey(COVEN_ABILITY_LIGHTWAVE, &key);
-			if (!pBot->IsInCooldown(abilityNum) && pBot->GetStatusMagnitude(COVEN_STATUS_INNERLIGHT) < 2)
-				buttons |= key;
+			if (!pBot->IsInCooldown(abilityNum) && pBot->GetStatusMagnitude(COVEN_STATUS_INNERLIGHT) < 2 && gpGlobals->curtime > botdata->m_flAbilityTimer[abilityNum])
+			{
+				if (random->RandomInt(0, 2) <= 1)
+					buttons |= key;
+				botdata->m_flAbilityTimer[abilityNum] = gpGlobals->curtime + 3.0f;
+			}
 		}
 	}
 	if (pBot->HasAbility(COVEN_ABILITY_DARKWILL))
@@ -1683,14 +1673,22 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot, unsigned int &buttons)
 		if (botdata->bCombat)
 		{
 			int abilityNum = pBot->AbilityKey(COVEN_ABILITY_CHARGE, &key);
-			if (pBot->SuitPower_GetCurrentPercentage() > 10.0f && !pBot->IsInCooldown(abilityNum))
+			CBaseCombatCharacter *pPlayer = BotGetEnemy(pBot);
+			if (pPlayer)
 			{
-				CBaseCombatCharacter *pPlayer = BotGetEnemy(pBot);
-				if (pPlayer)
+				float distance = (pPlayer->GetAbsOrigin() - pBot->GetAbsOrigin()).Length2DSqr(); //ignore z for distance check (flung players should not trigger a charge)
+				if (pBot->gorelock > GORELOCK_NONE)
 				{
-					Vector vStart = pPlayer->GetLocalOrigin();
-					Vector vEnd = pBot->GetLocalOrigin();
-					float distance = (vStart - vEnd).Length2D(); //ignore z for distance check (flung players should not trigger a charge)
+					if (distance > 576.0f && distance < botdata->m_flAbilityTimer[abilityNum])
+					{
+						botdata->m_flAbilityTimer[abilityNum] = distance;
+						buttons |= key;
+					}
+					else
+						botdata->m_flAbilityTimer[abilityNum] = 0.0f;
+				}
+				else if (pBot->SuitPower_GetCurrentPercentage() >= 6.0f && !pBot->IsInCooldown(abilityNum))
+				{
 					if (distance >= bot_charge_combat.GetFloat() && botdata->m_lastPlayerDot > BOT_ATTACK_DOT_STRICT)
 					{
 						botdata->m_flAbilityTimer[abilityNum] = distance;
@@ -1699,50 +1697,47 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot, unsigned int &buttons)
 						//VectorAngles(forward, botdata->forwardAngle);
 						buttons |= key;
 					}
-					else if (pBot->gorelock > GORELOCK_NONE && distance > 24.0f && distance < botdata->m_flAbilityTimer[abilityNum])
+					else
+						Msg("%f %f\n", distance, botdata->m_lastPlayerDot);
+				}
+				else
+					botdata->m_flAbilityTimer[abilityNum] = 0.0f;
+			}
+			else
+				botdata->m_flAbilityTimer[abilityNum] = 0.0f;
+		}
+		else
+		{
+			CHL2MPRules *pRules = HL2MPRules();
+			int abilityNum = pBot->AbilityKey(COVEN_ABILITY_CHARGE, &key);
+			if ((!botdata->bLost && botdata->m_pOverridePos == NULL) && (botdata->m_targetNode > -1 && pRules->pBotNet[botdata->m_targetNode] != NULL))
+			{
+				float distance = (pRules->pBotNet[botdata->m_targetNode]->location - pBot->GetLocalOrigin()).LengthSqr();
+				if (pBot->gorelock > GORELOCK_NONE)
+				{
+					if (distance > 900.0f && distance < botdata->m_flAbilityTimer[abilityNum])
 					{
 						botdata->m_flAbilityTimer[abilityNum] = distance;
 						buttons |= key;
 					}
-					else if (pBot->gorelock > GORELOCK_NONE)
+					else
 						botdata->m_flAbilityTimer[abilityNum] = 0.0f;
 				}
-			}
-		}
-		else
-		{
-			if (!botdata->bLost && botdata->m_pOverridePos == NULL)
-			{
-				CHL2MPRules *pRules;
-				pRules = HL2MPRules();
-				if (botdata->m_targetNode > -1 && pRules->pBotNet[botdata->m_targetNode] != NULL)
+				else if (!pBot->IsInCooldown(abilityNum) && botdata->goWild == 0.0f && botdata->stuckTimer == 0.0f && botdata->guardTimer == 0.0f && pBot->SuitPower_GetCurrentPercentage() > 6.0f)
 				{
-					int abilityNum = pBot->AbilityKey(COVEN_ABILITY_CHARGE, &key);
-					if (!pBot->IsInCooldown(abilityNum))
+					float deltaZ = abs(pRules->pBotNet[botdata->m_targetNode]->location.z - pBot->GetLocalOrigin().z);
+					if (distance >= bot_charge_noncombat.GetFloat() && deltaZ < 32.0f)
 					{
-						if (botdata->goWild == 0.0f && botdata->stuckTimer == 0.0f && botdata->guardTimer == 0.0f && pBot->SuitPower_GetCurrentPercentage() > 6.0f)
-						{
-							float distance = (pRules->pBotNet[botdata->m_targetNode]->location - pBot->GetLocalOrigin()).LengthSqr();
-							float deltaZ = abs(pRules->pBotNet[botdata->m_targetNode]->location.z - pBot->GetLocalOrigin().z);
-							if (distance >= bot_charge_noncombat.GetFloat() && deltaZ < 32.0f)
-							{
-								botdata->m_flAbilityTimer[abilityNum] = distance;
-								//BB: I don't think I need to do this... angles should be "correct" from other functions
-								//Vector forward = pRules->pBotNet[botdata->m_targetNode]->location - pBot->GetLocalOrigin();
-								//VectorAngles(forward, botdata->forwardAngle);
-								buttons |= key;
-							}
-							else if (pBot->gorelock > GORELOCK_NONE && distance > 30.0f && distance < botdata->m_flAbilityTimer[abilityNum])
-							{
-								botdata->m_flAbilityTimer[abilityNum] = distance;
-								buttons |= key;
-							}
-							else if (pBot->gorelock > GORELOCK_NONE)
-								botdata->m_flAbilityTimer[abilityNum] = 0.0f;
-						}
+						botdata->m_flAbilityTimer[abilityNum] = distance;
+						//BB: I don't think I need to do this... angles should be "correct" from other functions
+						//Vector forward = pRules->pBotNet[botdata->m_targetNode]->location - pBot->GetLocalOrigin();
+						//VectorAngles(forward, botdata->forwardAngle);
+						buttons |= key;
 					}
 				}
 			}
+			else
+				botdata->m_flAbilityTimer[abilityNum] = 0.0f;
 		}
 	}
 	if (pBot->HasAbility(COVEN_ABILITY_DREADSCREAM))
@@ -1790,6 +1785,24 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot, unsigned int &buttons)
 	}
 	if (pBot->HasAbility(COVEN_ABILITY_BUILDDISPENSER))
 	{
+	}
+	if (pBot->HasAbility(COVEN_ABILITY_INNERLIGHT))
+	{
+		if (botdata->bCombat)
+		{
+			int abilityNum = pBot->AbilityKey(COVEN_ABILITY_INNERLIGHT, &key);
+			CovenAbilityInfo_t *info = GetCovenAbilityData(COVEN_ABILITY_INNERLIGHT);
+			if (!pBot->IsInCooldown(abilityNum) && botdata->m_flLastCombatDist < info->flRange * 0.9f)
+			{
+				CBaseCombatCharacter *pEnemy = BotGetEnemy(pBot);
+				if (pEnemy && pEnemy->IsPlayer() && pEnemy->IsAlive() && !pEnemy->KO)
+				{
+					buttons &= CLEAR_ABILITY_KEYS;
+					buttons &= ~IN_ATTACK;
+					buttons |= key;
+				}
+			}
+		}
 	}
 
 	/*else if (pBot->covenClassID == COVEN_CLASSID_AVENGER)
