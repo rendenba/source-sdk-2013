@@ -1277,13 +1277,11 @@ void CHL2MP_Player::BloodExplode(int iAbilityNum)
 	// Use the thrower's position as the reported position
 	Vector vecReported = GetAbsOrigin();
 
-	int bits = DMG_CLUB | DMG_WEAKNESS;
+	int bits = DMG_CLUB;
 	float damn = abilityInfo->GetDataVariable(2) * magnitude;
 
-	CTakeDamageInfo info( this, this, vec3_origin, GetAbsOrigin(), abilityInfo->flDuration, bits, 0, &vecReported );
-	info.SetAmmoType(abilityInfo->iMagnitude);
-	info.CopyDamageToBaseDamage();
-	info.SetDamage(damn);
+	CTakeDamageInfo info( this, this, vec3_origin, GetAbsOrigin(), damn, bits, 0, &vecReported );
+	info.SetSpecialDamage(COVEN_DMG_WEAKNESS | COVEN_DMG_SIPHON, abilityInfo->iMagnitude, abilityInfo->flDuration);
 
 	RadiusDamage(info, GetAbsOrigin(), abilityInfo->GetDataVariable(0), CLASS_NONE, this, COVEN_EFFECT_SIPHON, { 255, 64, 64, 255 });
 
@@ -1293,6 +1291,7 @@ void CHL2MP_Player::BloodExplode(int iAbilityNum)
 	damn = magnitude;
 	info.SetDamage(abilityInfo->GetDataVariable(1) * damn);
 	info.SetDamageType(bits);
+	info.SetSpecialDamage(0);
 	TakeDamage(info);
 
 	EmitSound(abilityInfo->aSounds[COVEN_SND_START]);
@@ -4782,6 +4781,7 @@ void CHL2MP_Player::Extinguish()
 	BaseClass::Extinguish(); //FL_ONFIRE ALREADY REMOVED...
 }
 
+//DEPRICATED... not packaging damage anymore
 bool CHL2MP_Player::CovenStatusDamageHandle(CTakeDamageInfo &info, int iDmgType, CovenStatus_t iStatus)
 {
 	if (info.GetDamageType() & iDmgType)
@@ -4810,7 +4810,7 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 	CTakeDamageInfo inputInfoAdjust = inputInfo;
 
 	//BB: DO HOLY WATER DAMAGE DETECT
-	if ((inputInfo.GetDamageType() & DMG_HOLY) && IsAlive() && !KO)
+	if ((inputInfo.GetSpecialDamage() & COVEN_DMG_HOLY) && IsAlive() && !KO)
 	{
 		//do holy stuff...
 		inputInfoAdjust.SetDamage(0.0f);
@@ -4883,25 +4883,36 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 
 	//Stun Damage
 	//Direct damage indicates a flat duration, otherwise it is treated as a max possible damage
-	if (inputInfoAdjust.GetDamageType() & DMG_STUN && !KO)
+	if (inputInfoAdjust.GetSpecialDamage() & COVEN_DMG_STUN && !KO)
 	{
-		int bits = inputInfoAdjust.GetDamageType() & ~DMG_STUN & ~DMG_DIRECT;
 		float duration = 0.0f;
 		if (inputInfoAdjust.GetDamageType() & DMG_DIRECT)
-			duration = inputInfoAdjust.GetAmmoType() * 0.01f;
+			duration = inputInfoAdjust.GetSpecialDamageDuration();
 		else
-			duration = inputInfoAdjust.GetDamage() / inputInfoAdjust.GetAmmoType();
+			duration = inputInfoAdjust.GetDamage() / inputInfoAdjust.GetSpecialDamageDuration();
 		AddStatus(COVEN_STATUS_STUN, 1, gpGlobals->curtime + duration, true);
-		inputInfoAdjust.SetDamageType(bits);
 	}
 
 	//BB: only one packaged damage type is possible...
-	if (!KO)
+	if (!KO && inputInfoAdjust.GetDamage() > 0.0f)
 	{
 		//Weakness Damage
-		if (!CovenStatusDamageHandle(inputInfoAdjust, DMG_WEAKNESS, COVEN_STATUS_WEAKNESS))
-			//Slow Damage
-			CovenStatusDamageHandle(inputInfoAdjust, DMG_SLOW, COVEN_STATUS_SLOW);
+		if (inputInfoAdjust.GetSpecialDamage() & COVEN_DMG_WEAKNESS)
+		{
+			AddStatus(COVEN_STATUS_WEAKNESS, inputInfoAdjust.GetSpecialDamageMagnitude(), gpGlobals->curtime + inputInfoAdjust.GetSpecialDamageDuration(), true);
+		}
+		//Slow Damage
+		else if (inputInfoAdjust.GetSpecialDamage() & COVEN_DMG_SLOW)
+		{
+			AddStatus(COVEN_STATUS_SLOW, inputInfoAdjust.GetSpecialDamageMagnitude(), gpGlobals->curtime + inputInfoAdjust.GetSpecialDamageDuration(), true);
+		}
+
+		//SIPHON DAMAGE
+		if (inputInfoAdjust.GetSpecialDamage() & COVEN_DMG_SIPHON)
+		{
+			CovenAbilityInfo_t *abilityInfo = GetCovenAbilityData(COVEN_ABILITY_DETONATEBLOOD);
+			inputInfoAdjust.GetAttacker()->TakeHealth(inputInfoAdjust.GetDamage() * abilityInfo->GetDataVariable(3), DMG_GENERIC);
+		}
 	}
 
 	if (GetTeamNumber() == COVEN_TEAMID_SLAYERS && HasStatus(COVEN_STATUS_HOLYWATER))

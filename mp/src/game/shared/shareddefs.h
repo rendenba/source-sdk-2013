@@ -693,15 +693,12 @@ typedef enum
 
 
 #define DMG_PARALYZE					(1 << 15)	// slows affected creature down
-#define DMG_STUN						(1 << 15)	// COVEN STUN
 #define DMG_NERVEGAS					(1 << 16)	// nerve toxins, very bad
 #define DMG_POISON						(1 << 17)	// blood poisoning - heals over time like drowning damage
 #define DMG_RADIATION					(1 << 18)	// radiation exposure
-#define DMG_WEAKNESS					(1 << 18)	// COVEN WEAKNESS
 #define DMG_DROWNRECOVER				(1 << 19)	// drowning recovery
 #define DMG_ACID						(1 << 20)	// toxic chemicals or acid burns
 #define DMG_SLOWBURN					(1 << 21)	// in an oven
-#define DMG_SLOW						(1 << 21)	// COVEN SLOW
 #define DMG_REMOVENORAGDOLL				(1 << 22)	// with this bit OR'd in, no ragdoll will be created, and the target will be quietly removed.
 													// use this to kill an entity that you've already got a server-side ragdoll for
 
@@ -715,7 +712,12 @@ typedef enum
 #define DMG_BUCKSHOT					(1 << 29)	// not quite a bullet. Little, rounder, different.
 
 #define DMG_NO							(1 << 30)	// COVEN DO NOT DAMAGE!
-#define DMG_HOLY						(1 << 16)	// COVEN HOLY
+
+#define COVEN_DMG_WEAKNESS				(1 << 0)	// COVEN WEAKNESS
+#define COVEN_DMG_SLOW					(1 << 1)	// COVEN SLOW
+#define COVEN_DMG_SIPHON				(1 << 2)	// COVEN SIPHON
+#define COVEN_DMG_STUN					(1 << 3)	// COVEN STUN
+#define COVEN_DMG_HOLY					(1 << 4)	// COVEN HOLY
 
 // NOTE: DO NOT ADD ANY MORE CUSTOM DMG_ TYPES. MODS USE THE DMG_LASTGENERICFLAG BELOW, AND
 //		 IF YOU ADD NEW DMG_ TYPES, THEIR TYPES WILL BE HOSED. WE NEED A BETTER SOLUTION.

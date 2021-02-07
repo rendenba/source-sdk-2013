@@ -1577,7 +1577,7 @@ bool CCoven_Turret::CheckLevel(void)
 //-----------------------------------------------------------------------------
 int CCoven_Turret::OnTakeDamage(const CTakeDamageInfo &info)
 {
-	if (mOwner.Get() == NULL || info.GetDamageType() & DMG_HOLY || (info.GetAttacker() != NULL && info.GetAttacker()->GetTeamNumber() == GetTeamNumber() && !(info.GetDamageType() & DMG_SHOCK)))
+	if (mOwner.Get() == NULL || info.GetSpecialDamage() & COVEN_DMG_HOLY || (info.GetAttacker() != NULL && info.GetAttacker()->GetTeamNumber() == GetTeamNumber() && !(info.GetDamageType() & DMG_SHOCK)))
 		return 0;
 
 	CTakeDamageInfo	newInfo = info;

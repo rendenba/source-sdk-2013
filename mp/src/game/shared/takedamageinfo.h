@@ -98,6 +98,11 @@ public:
 	void			Set( CBaseEntity *pInflictor, CBaseEntity *pAttacker, const Vector &damageForce, const Vector &damagePosition, float flDamage, int bitsDamageType, int iKillType = 0, Vector *reportedPosition = NULL );
 	void			Set( CBaseEntity *pInflictor, CBaseEntity *pAttacker, CBaseEntity *pWeapon, const Vector &damageForce, const Vector &damagePosition, float flDamage, int bitsDamageType, int iKillType = 0, Vector *reportedPosition = NULL );
 
+	void			SetSpecialDamage(int iCovenDMG, int iMagnitude = 0, float flDuration = 0.0f);
+	int				GetSpecialDamage() const { return m_iCovenDMG; }
+	int				GetSpecialDamageMagnitude() const { return m_iMagnitude; }
+	float			GetSpecialDamageDuration() const { return m_flDuration; }
+
 	void			AdjustPlayerDamageInflictedForSkillLevel();
 	void			AdjustPlayerDamageTakenForSkillLevel();
 
@@ -110,7 +115,8 @@ public:
 	void			CopyDamageToBaseDamage();
 
 protected:
-	void			Init( CBaseEntity *pInflictor, CBaseEntity *pAttacker, CBaseEntity *pWeapon, const Vector &damageForce, const Vector &damagePosition, const Vector &reportedPosition, float flDamage, int bitsDamageType, int iKillType );
+	void			Init( CBaseEntity *pInflictor, CBaseEntity *pAttacker, CBaseEntity *pWeapon, const Vector &damageForce, const Vector &damagePosition, const Vector &reportedPosition, float flDamage, int bitsDamageType, int iKillType,
+					int iCovenDMG, int iMagnitude, float flDuration );
 
 	Vector			m_vecDamageForce;
 	Vector			m_vecDamagePosition;
@@ -133,6 +139,10 @@ protected:
 
 	float			m_flDamageForForce;
 
+	int				m_iCovenDMG;
+	float			m_flDuration;
+	int				m_iMagnitude;
+
 	DECLARE_SIMPLE_DATADESC();
 };
 
@@ -149,7 +159,8 @@ public:
 	CBaseEntity		*GetTarget() const;
 	void			SetTarget( CBaseEntity *pTarget );
 
-	void			Init( CBaseEntity *pTarget, CBaseEntity *pInflictor, CBaseEntity *pAttacker, CBaseEntity *pWeapon, const Vector &damageForce, const Vector &damagePosition, const Vector &reportedPosition, float flDamage, int bitsDamageType, int iKillType );
+	void			Init( CBaseEntity *pTarget, CBaseEntity *pInflictor, CBaseEntity *pAttacker, CBaseEntity *pWeapon, const Vector &damageForce, const Vector &damagePosition, const Vector &reportedPosition, float flDamage, int bitsDamageType, int iKillType,
+							int iCovenDMG, int iMagnitude, float flDuration );
 
 protected:
 	EHANDLE			m_hTarget;

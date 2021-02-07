@@ -542,6 +542,13 @@ void CGameRules::RadiusDamage( const CTakeDamageInfo &info, const Vector &vecSrc
 		{
 			switch (effect)
 			{
+			case COVEN_EFFECT_CHARGE:
+			{
+				CDisablePredictionFiltering disabler;
+				CBroadcastRecipientFilter filter2;
+				te->Burst(filter2, 0, &pEntity->GetAbsOrigin(), color, COVEN_BURST_TYPE_CHARGE, pEntity);
+				break;
+			}
 			case COVEN_EFFECT_EXPLODE:
 			{
 				CDisablePredictionFiltering disabler;
@@ -554,9 +561,6 @@ void CGameRules::RadiusDamage( const CTakeDamageInfo &info, const Vector &vecSrc
 				CDisablePredictionFiltering disabler;
 				CBroadcastRecipientFilter filter2;
 				te->Burst(filter2, 0, &pEntity->GetAbsOrigin(), color, COVEN_BURST_TYPE_SIPHON, info.GetAttacker());
-				//BB: HACK! Blood Explode healing...
-				CovenAbilityInfo_t *abilityInfo = GetCovenAbilityData(COVEN_ABILITY_DETONATEBLOOD);
-				info.GetAttacker()->TakeHealth(info.GetDamage() * abilityInfo->GetDataVariable(3), DMG_GENERIC);
 				break;
 			}
 			default:

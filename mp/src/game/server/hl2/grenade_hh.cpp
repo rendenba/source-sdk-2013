@@ -117,7 +117,9 @@ void CGrenadeHH::Detonate()
 
 	EmitSound("HHGlassBreak");
 	//BB: we do this wonky with the inflictor to get around team damage
-	RadiusDamage ( CTakeDamageInfo( GetThrower(), this, m_flDamage, DMG_HOLY ), GetAbsOrigin(), m_DmgRadius, CLASS_NONE, NULL );
+	CTakeDamageInfo info(GetThrower(), this, m_flDamage, DMG_GENERIC);
+	info.SetSpecialDamage(COVEN_DMG_HOLY);
+	RadiusDamage( info, GetAbsOrigin(), m_DmgRadius, CLASS_NONE, NULL );
 
 	UTIL_Remove( this );
 }

@@ -295,7 +295,7 @@ void CTripmineGrenade::Event_Killed( const CTakeDamageInfo &info )
 
 int CTripmineGrenade::OnTakeDamage( const CTakeDamageInfo &info )
 {
-	if (info.GetDamageType() & DMG_HOLY || (info.GetAttacker() != NULL && info.GetAttacker()->GetTeamNumber() == GetTeamNumber() && m_hOwner != NULL && info.GetAttacker() != m_hOwner))
+	if (info.GetSpecialDamage() & COVEN_DMG_HOLY || (info.GetAttacker() != NULL && info.GetAttacker()->GetTeamNumber() == GetTeamNumber() && m_hOwner != NULL && info.GetAttacker() != m_hOwner))
 		return 0;
 
 	return BaseClass::OnTakeDamage(info);

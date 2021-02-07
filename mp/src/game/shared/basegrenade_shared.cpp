@@ -176,8 +176,7 @@ void CBaseGrenade::Explode( trace_t *pTrace, int bitsDamageType )
 
 	if (m_type == GRENADE_TYPE_STUN)
 	{
-		info.SetDamageType(bitsDamageType | DMG_STUN);
-		info.SetAmmoType(m_flDamage / 5.0f);
+		info.SetSpecialDamage(COVEN_DMG_STUN, 0, m_flDamage / 5.0f);
 	}
 
 	RadiusDamage( info, GetAbsOrigin(), m_DmgRadius, CLASS_NONE, NULL );

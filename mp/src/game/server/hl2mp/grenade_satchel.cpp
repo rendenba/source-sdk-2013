@@ -63,7 +63,7 @@ void CSatchelCharge::Deactivate( void )
 
 int CSatchelCharge::OnTakeDamage(const CTakeDamageInfo &inputInfo)
 {
-	if (inputInfo.GetDamageType() & DMG_HOLY || (inputInfo.GetAttacker() != NULL && inputInfo.GetAttacker()->GetTeamNumber() == GetTeamNumber() && GetOriginalThrower() != NULL && inputInfo.GetAttacker() != GetOriginalThrower()))
+	if (inputInfo.GetSpecialDamage() & COVEN_DMG_HOLY || (inputInfo.GetAttacker() != NULL && inputInfo.GetAttacker()->GetTeamNumber() == GetTeamNumber() && GetOriginalThrower() != NULL && inputInfo.GetAttacker() != GetOriginalThrower()))
 		return 0;
 
 	return BaseClass::OnTakeDamage(inputInfo);
