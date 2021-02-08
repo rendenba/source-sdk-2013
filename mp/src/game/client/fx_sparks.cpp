@@ -416,7 +416,13 @@ void FX_Burst(const Vector &pos, color32 color, CovenBurstType_t type, CBaseEnti
 				pParticle->m_vecVelocity = (offset - (position + Vector(0.0f, 0.0f, 32.0f))) * 24.0f; //16 need to make a speed option?
 				break;
 			case COVEN_BURST_TYPE_SIPHON:
-				pParticle->m_vecVelocity = (pFollowEnt->GetAbsOrigin() + Vector(0.0f, 0.0f, 48.0f) - offset) * random->RandomFloat(0.9f, 3.0f);
+				if (pFollowEnt != NULL)
+					pParticle->m_vecVelocity = (pFollowEnt->GetAbsOrigin() + Vector(0.0f, 0.0f, 48.0f) - offset) * random->RandomFloat(0.9f, 3.0f);
+				else
+				{
+					pParticle->m_vecVelocity = (offset - position) * 16.0f;
+					pParticle->m_vecVelocity.z = Helper_RandomFloat(-384.0f, 384.0f);
+				}
 				break;
 			default:
 				pParticle->m_vecVelocity = (offset - position) * 16.0f;

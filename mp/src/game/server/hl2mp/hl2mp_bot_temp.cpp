@@ -1697,8 +1697,6 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot, unsigned int &buttons)
 						//VectorAngles(forward, botdata->forwardAngle);
 						buttons |= key;
 					}
-					else
-						Msg("%f %f\n", distance, botdata->m_lastPlayerDot);
 				}
 				else
 					botdata->m_flAbilityTimer[abilityNum] = 0.0f;
