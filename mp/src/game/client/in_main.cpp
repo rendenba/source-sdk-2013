@@ -80,6 +80,7 @@ ConVar lookstrafe( "lookstrafe", "0", FCVAR_ARCHIVE );
 ConVar in_joystick( "joystick","0", FCVAR_ARCHIVE );
 ConVar cl_duckmode("cl_duckmode", "0", FCVAR_ARCHIVE);
 ConVar cl_walkmode("cl_walkmode", "0", FCVAR_ARCHIVE);
+ConVar cl_doubletap_delay("cl_doubletap_delay", "0.25", FCVAR_ARCHIVE);
 
 ConVar thirdperson_platformer( "thirdperson_platformer", "0", 0, "Player will aim in the direction they are moving." );
 ConVar thirdperson_screenspace( "thirdperson_screenspace", "0", 0, "Movement will be relative to the camera, eg: left means screen-left" );
@@ -378,6 +379,17 @@ void KeyDown( kbutton_t *b, const char *c )
 		k = atoi(c);
 	}
 
+	if (gpGlobals->curtime > b->impulsetime)
+	{
+		b->impulsetime = gpGlobals->curtime + cl_doubletap_delay.GetFloat();
+		b->state &= ~16;
+	}
+	else
+	{
+		b->impulsetime = 0.0f;
+		b->state |= 8 + 16; // impulse double tap + double tap latch
+	}
+
 	if (k == b->down[0] || k == b->down[1])
 		return;		// repeating key
 	
@@ -393,7 +405,7 @@ void KeyDown( kbutton_t *b, const char *c )
 		}
 		return;
 	}
-	
+
 	if (b->state & 1)
 		return;		// still down
 	b->state |= 1 + 2;	// down + impulse down
@@ -497,47 +509,99 @@ void IN_Attack3Up( const CCommand &args ) { KeyUp(&in_attack3, args[1] );}
 
 void IN_DuckDown(const CCommand &args)
 {
-	if (cl_duckmode.GetInt() == 0)
+	switch (cl_duckmode.GetInt())
+	{
+	case 0:
 	{
 		KeyDown(&in_duck, args[1]);
+		break;
 	}
-	else
+	case 1:
 	{
 		if (::input->KeyState(&in_duck))
 			KeyUp(&in_duck, args[1]);
 		else
 			KeyDown(&in_duck, args[1]);
+		break;
+	}
+	default:
+	{
+		KeyDown(&in_duck, args[1]);
+		break;
+	}
 	}
 }
 
 void IN_DuckUp(const CCommand &args)
 {
-	if (cl_duckmode.GetInt() == 0)
+	switch (cl_duckmode.GetInt())
+	{
+	case 0:
 	{
 		KeyUp(&in_duck, args[1]);
+		break;
+	}
+	case 1:
+	{
+		break;
+	}
+	default:
+	{
+		if (!(in_duck.state & 16))
+		{
+			KeyUp(&in_duck, args[1]);
+		}
+		break;
+	}
 	}
 }
 
 void IN_WalkDown(const CCommand &args)
 {
-	if (cl_walkmode.GetInt() == 0)
+	switch (cl_walkmode.GetInt())
+	{
+	case 0:
 	{
 		KeyDown(&in_walk, args[1]);
+		break;
 	}
-	else
+	case 1:
 	{
 		if (::input->KeyState(&in_walk))
 			KeyUp(&in_walk, args[1]);
 		else
 			KeyDown(&in_walk, args[1]);
+		break;
+	}
+	default:
+	{
+		KeyDown(&in_walk, args[1]);
+		break;
+	}
 	}
 }
 
 void IN_WalkUp(const CCommand &args)
 {
-	if (cl_walkmode.GetInt() == 0)
+	switch (cl_walkmode.GetInt())
+	{
+	case 0:
 	{
 		KeyUp(&in_walk, args[1]);
+		break;
+	}
+	case 1:
+	{
+		break;
+	}
+	default:
+	{
+		if (!(in_walk.state & 16))
+		{
+			KeyUp(&in_walk, args[1]);
+		}
+		break;
+	}
 	}
 }
 
@@ -734,6 +798,7 @@ Returns 0.25 if a key was pressed and released during the frame,
 0.5 if it was pressed and held
 0 if held then released, and
 1.0 if held for the entire time
+2.0 if double tapped
 ===============
 */
 float CInput::KeyState ( kbutton_t *key )
@@ -778,7 +843,7 @@ float CInput::KeyState ( kbutton_t *key )
 	}
 
 	// clear impulses
-	key->state &= 1;		
+	key->state &= ~(6);		
 	return val;
 }
 
@@ -1210,6 +1275,7 @@ void CInput::ExtraMouseSample( float frametime, bool active )
 	}
 #else
 	cmd->buttons = GetButtonBits( 0 );
+	cmd->dblbuttons = GetExtendedButtonBits(0);
 #endif
 
 	// Use new view angles if alive, otherwise user last angles we stored off.
@@ -1345,6 +1411,7 @@ void CInput::CreateMove ( int sequence_number, float input_sample_frametime, boo
 #else
 	// Set button and flag bits
 	cmd->buttons = GetButtonBits( 1 );
+	cmd->dblbuttons = GetExtendedButtonBits(1);
 #endif
 
 	// Using joystick?
@@ -1593,6 +1660,19 @@ static void CalcButtonBits( int& bits, int in_button, int in_ignore, kbutton_t *
 	}
 }
 
+static void CalcExtendedButtonBits(int& bits, int in_button, kbutton_t *button, bool reset)
+{
+	if (button->state & 8)
+	{
+		bits |= in_button;
+	}
+
+	if (reset)
+	{
+		button->state &= ~8;
+	}
+}
+
 /*
 ============
 GetButtonBits
@@ -1632,9 +1712,6 @@ int CInput::GetButtonBits( int bResetState )
 	CalcButtonBits( bits, IN_ABIL3, s_ClearInputState, &in_abil3, bResetState );
 	CalcButtonBits( bits, IN_ABIL4, s_ClearInputState, &in_abil4, bResetState );
 	CalcButtonBits( bits, IN_MINIMAP, s_ClearInputState, &in_minimap, bResetState );
-	//CalcButtonBits( bits, IN_ATTACK3, s_ClearInputState, &in_attack3, bResetState );
-	//CalcButtonBits( bits, IN_ATTACK3, s_ClearInputState, &in_attack3, bResetState );
-	//CalcButtonBits( bits, IN_ATTACK3, s_ClearInputState, &in_attack3, bResetState );
 
 	// Cancel is a special flag
 	if (in_cancel)
@@ -1663,6 +1740,40 @@ int CInput::GetButtonBits( int bResetState )
 	return bits;
 }
 
+int CInput::GetExtendedButtonBits(int bResetState)
+{
+	int bits = 0;
+
+	CalcExtendedButtonBits(bits, IN_SPEED, &in_speed, bResetState);
+	CalcExtendedButtonBits(bits, IN_WALK, &in_walk, bResetState);
+	CalcExtendedButtonBits(bits, IN_ATTACK, &in_attack, bResetState);
+	CalcExtendedButtonBits(bits, IN_DUCK, &in_duck, bResetState);
+	CalcExtendedButtonBits(bits, IN_JUMP, &in_jump, bResetState);
+	CalcExtendedButtonBits(bits, IN_FORWARD, &in_forward, bResetState);
+	CalcExtendedButtonBits(bits, IN_BACK, &in_back, bResetState);
+	CalcExtendedButtonBits(bits, IN_USE, &in_use, bResetState);
+	CalcExtendedButtonBits(bits, IN_LEFT, &in_left, bResetState);
+	CalcExtendedButtonBits(bits, IN_RIGHT, &in_right, bResetState);
+	CalcExtendedButtonBits(bits, IN_MOVELEFT, &in_moveleft, bResetState);
+	CalcExtendedButtonBits(bits, IN_MOVERIGHT, &in_moveright, bResetState);
+	CalcExtendedButtonBits(bits, IN_ATTACK2, &in_attack2, bResetState);
+	CalcExtendedButtonBits(bits, IN_RELOAD, &in_reload, bResetState);
+	CalcExtendedButtonBits(bits, IN_ALT1, &in_alt1, bResetState);
+	CalcExtendedButtonBits(bits, IN_ALT2, &in_alt2, bResetState);
+	CalcExtendedButtonBits(bits, IN_SCORE, &in_score, bResetState);
+	CalcExtendedButtonBits(bits, IN_ZOOM, &in_zoom, bResetState);
+	CalcExtendedButtonBits(bits, IN_BUY, &in_buy, bResetState);
+	CalcExtendedButtonBits(bits, IN_GRENADE, &in_grenade, bResetState);
+	CalcExtendedButtonBits(bits, IN_GRENADE2, &in_grenade2, bResetState);
+	CalcExtendedButtonBits(bits, IN_ATTACK3, &in_attack3, bResetState);
+	CalcExtendedButtonBits(bits, IN_ABIL1, &in_abil1, bResetState);
+	CalcExtendedButtonBits(bits, IN_ABIL2, &in_abil2, bResetState);
+	CalcExtendedButtonBits(bits, IN_ABIL3, &in_abil3, bResetState);
+	CalcExtendedButtonBits(bits, IN_ABIL4, &in_abil4, bResetState);
+	CalcExtendedButtonBits(bits, IN_MINIMAP, &in_minimap, bResetState);
+
+	return bits;
+}
 
 //-----------------------------------------------------------------------------
 // Causes an input to have to be re-pressed to become active

@@ -1258,7 +1258,7 @@ void CHL2_Player::HandleSpeedChanges( void )
 			{
 				StartAutoSprint();
 			}
-			else
+			else if (GetTeamNumber() != COVEN_TEAMID_VAMPIRES)
 			{
 				StartSprinting();
 			}
@@ -1574,6 +1574,10 @@ void CHL2_Player::PreThink(void)
 
 	//BB: technically this is derived up at BasePlayer
 	BuildingMoveHandler();
+	if (!Stamina_Update())
+	{
+		StopSprinting();
+	}
 
 #ifdef HL2_EPISODIC
 	CheckFlashlight();
@@ -2045,10 +2049,7 @@ void CHL2_Player::StartAutoSprint()
 //-----------------------------------------------------------------------------
 void CHL2_Player::StartSprinting( void )
 {
-	m_fIsSprinting = true;
-	//BB: ignore this for now... we don't do sprinting
-	return;
-	if( m_HL2Local.m_flSuitPower < 10 )
+	if (m_Local.m_flStamina < MIN_STAMINA)
 	{
 		// Don't sprint unless there's a reasonable
 		// amount of suit power.
@@ -2063,35 +2064,19 @@ void CHL2_Player::StartSprinting( void )
 		return;
 	}
 
-	if( !SuitPower_AddDevice( SuitDeviceSprint ) )
-		return;
-
 	CPASAttenuationFilter filter( this );
 	filter.UsePredictionRules();
 	EmitSound( filter, entindex(), "HL2Player.SprintStart" );
 
-	SetMaxSpeed( HL2_SPRINT_SPEED );
 	m_fIsSprinting = true;
+	m_Local.m_flStamina -= SPRINT_COST;
+	ComputeSpeed();
 }
 
 //-----------------------------------------------------------------------------
 //-----------------------------------------------------------------------------
 void CHL2_Player::StopSprinting( void )
 {
-	if ( m_HL2Local.m_bitsActiveDevices & SuitDeviceSprint.GetDeviceID() )
-	{
-		SuitPower_RemoveDevice( SuitDeviceSprint );
-	}
-
-	if( IsSuitEquipped() )
-	{
-		SetMaxSpeed( HL2_NORM_SPEED );
-	}
-	else
-	{
-		SetMaxSpeed( HL2_WALK_SPEED );
-	}
-
 	m_fIsSprinting = false;
 
 	if ( sv_stickysprint.GetBool() )
@@ -2120,14 +2105,18 @@ void CHL2_Player::EnableSprint( bool bEnable )
 
 void CHL2_Player::ComputeSpeed( void )
 {
-	int speed = HL2_WALK_SPEED;
+	float speed;
 	CovenClassInfo_t *info = GetCovenClassData(covenClassID);
 	speed = info->flBaseSpeed;
 
 	float factor = 1.0f;
 
+	
 	if (IsPerformingDeferredAction())
 		factor = 0.5f;
+
+	if (m_fIsSprinting)
+		factor += 0.1f;
 
 	if (gorephased)
 		factor += 0.5f;
@@ -2713,12 +2702,6 @@ void CHL2_Player::SuitPower_Update( void )
 
 		if( !SuitPower_Drain( flPowerLoad * gpGlobals->frametime ) )
 		{
-			// TURN OFF ALL DEVICES!!
-			if( IsSprinting() )
-			{
-				StopSprinting();
-			}
-
 			if ( Flashlight_UseLegacyVersion() )
 			{
 				if( FlashlightIsOn() )

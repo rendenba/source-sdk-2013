@@ -128,7 +128,7 @@ public:
 
 	virtual Vector			GetAutoaimVector( float flScale );
 	void					SetSuitUpdate(const char *name, int fgroup, int iNoRepeat);
-
+	virtual bool			IsSprinting() const { return false; }
 	// Input handling
 	virtual bool	CreateMove( float flInputSampleTime, CUserCmd *pCmd );
 	virtual void	AvoidPhysicsProps( CUserCmd *pCmd );
@@ -276,7 +276,7 @@ public:
 	virtual void				ViewPunch( const QAngle &angleOffset );
 	void						ViewPunchReset( float tolerance = 0 );
 
-	void						UpdateButtonState( int nUserCmdButtonMask );
+	void						UpdateButtonState( int nUserCmdButtonMask, int nUserDblCmdButtonMask );
 	int							GetImpulse( void ) const;
 
 	virtual void				Simulate();
@@ -433,6 +433,7 @@ public:
 	int				m_afButtonLast;
 	int				m_afButtonPressed;
 	int				m_afButtonReleased;
+	int				m_afButtonDoubleTapped;
 
 	int				m_nButtons;
 

@@ -665,9 +665,7 @@ bool C_HL2MP_Player::CanSprint( void )
 //-----------------------------------------------------------------------------
 void C_HL2MP_Player::StartSprinting( void )
 {
-	//BB: this just makes noise at this point! Stop it!
-	return;
-	if( m_HL2Local.m_flSuitPower < 10 )
+	if (m_Local.m_flStamina < MIN_STAMINA)
 	{
 		// Don't sprint unless there's a reasonable
 		// amount of suit power.
@@ -681,7 +679,6 @@ void C_HL2MP_Player::StartSprinting( void )
 	filter.UsePredictionRules();
 	EmitSound( filter, entindex(), "HL2Player.SprintStart" );
 
-	SetMaxSpeed( HL2_SPRINT_SPEED );
 	m_fIsSprinting = true;
 }
 
@@ -709,7 +706,7 @@ void C_HL2MP_Player::HandleSpeedChanges( void )
 			}
 			else if ( (m_afButtonPressed & IN_SPEED) && !IsSprinting() )
 			{
-				if ( CanSprint() )
+				if ( CanSprint() && GetTeamNumber() != COVEN_TEAMID_VAMPIRES)
 				{
 					StartSprinting();
 				}

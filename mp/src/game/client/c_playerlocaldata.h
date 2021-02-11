@@ -46,6 +46,9 @@ public:
 	bool					m_bDucked;
 	bool					m_bDucking;
 	bool					m_bInDuckJump;
+	bool					m_bInDodge;
+	float					m_flDodgetime;
+	float					m_flStamina;
 	float					m_flDucktime;
 	float					m_flDuckJumpTime;
 	float					m_flJumpTime;

@@ -1976,6 +1976,9 @@
     <ClInclude Include="hl2mp\ui\hl2mpbuywheel.h">
       <Filter>Source Files\HL2MP\UI</Filter>
     </ClInclude>
+    <ClInclude Include="hl2\hud_stamina.h">
+      <Filter>Source Files\HL2 DLL</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="mp3player.cpp">
@@ -3624,6 +3627,9 @@
     </ClCompile>
     <ClCompile Include="c_te_burst.cpp">
       <Filter>Source Files\Temporary Entities</Filter>
+    </ClCompile>
+    <ClCompile Include="hl2\hud_stamina.cpp">
+      <Filter>Source Files\HL2 DLL</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

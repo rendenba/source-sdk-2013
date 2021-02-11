@@ -623,6 +623,7 @@ void CPrediction::SetupMove( C_BasePlayer *player, CUserCmd *ucmd, IMoveHelper *
 	move->m_vecViewAngles	= ucmd->viewangles;
 	move->m_nImpulseCommand = ucmd->impulse;	
 	move->m_nButtons		= ucmd->buttons;
+	move->m_nDblButtons		= ucmd->dblbuttons;
 
 	CBaseEntity *pMoveParent = player->GetMoveParent();
 	if (!pMoveParent)
@@ -872,7 +873,7 @@ void CPrediction::RunCommand( C_BasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 	}
 
 	// Get button states
-	player->UpdateButtonState( ucmd->buttons );
+	player->UpdateButtonState( ucmd->buttons, ucmd->dblbuttons );
 
 // TODO
 //	CheckMovingGround( player, ucmd->frametime );

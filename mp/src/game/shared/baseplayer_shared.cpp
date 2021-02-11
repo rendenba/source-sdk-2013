@@ -749,7 +749,7 @@ void CBasePlayer::PlayStepSound( Vector &vecOrigin, surfacedata_t *psurface, flo
 	OnEmitFootstepSound( params, vecOrigin, fvol );
 }
 
-void CBasePlayer::UpdateButtonState( int nUserCmdButtonMask )
+void CBasePlayer::UpdateButtonState( int nUserCmdButtonMask, int nUserDblCmdButtonMask )
 {
 	// Track button info so we can detect 'pressed' and 'released' buttons next frame
 	m_afButtonLast = m_nButtons;
@@ -762,6 +762,7 @@ void CBasePlayer::UpdateButtonState( int nUserCmdButtonMask )
 	// UNDONE: Do we need auto-repeat?
 	m_afButtonPressed =  buttonsChanged & m_nButtons;		// The changed ones still down are "pressed"
 	m_afButtonReleased = buttonsChanged & (~m_nButtons);	// The ones not down are "released"
+	m_afButtonDoubleTapped = nUserDblCmdButtonMask;
 }
 
 //-----------------------------------------------------------------------------

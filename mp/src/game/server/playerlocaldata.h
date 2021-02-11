@@ -49,6 +49,9 @@ public:
 	CNetworkVar( bool, m_bDucking );
 	// In process of duck-jumping
 	CNetworkVar( bool, m_bInDuckJump );
+	CNetworkVar( bool, m_bInDodge );
+	CNetworkVar( float, m_flDodgetime );
+	CNetworkVar( float, m_flStamina );
 	// During ducking process, amount of time before full duc
 	CNetworkVar( float, m_flDucktime );
 	CNetworkVar( float, m_flDuckJumpTime );

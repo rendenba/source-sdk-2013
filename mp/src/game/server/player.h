@@ -321,6 +321,8 @@ public:
 
 	virtual void			PreThink( void );
 	virtual void			PostThink( void );
+	virtual bool			Stamina_Update();
+	virtual bool			IsSprinting(void) { return false; }
 	virtual int				TakeHealth( float flHealth, int bitsDamageType );
 	virtual void			TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator );
 	bool					ShouldTakeDamageInCommentaryMode( const CTakeDamageInfo &inputInfo );
@@ -883,6 +885,7 @@ public:
 	int						m_afButtonLast;
 	int						m_afButtonDisabled;	// A mask of input flags that are cleared automatically
 	int						m_afButtonForced;	// These are forced onto the player's inputs
+	int						m_afButtonDoubleTapped;
 
 	CNetworkVar( bool, m_fOnTarget );		//Is the crosshair on a target?
 
@@ -944,7 +947,7 @@ protected:
 
 	int						m_iVehicleAnalogBias;
 
-	void					UpdateButtonState( int nUserCmdButtonMask );
+	void					UpdateButtonState( int nUserCmdButtonMask, int nUserDblCmdButtonMask );
 
 	bool	m_bPauseBonusProgress;
 	CNetworkVar( int, m_iBonusProgress );

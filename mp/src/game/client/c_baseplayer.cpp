@@ -153,6 +153,9 @@ BEGIN_RECV_TABLE_NOBASE( CPlayerLocalData, DT_Local )
 	RecvPropInt		(RECVINFO(m_bDucked)),
 	RecvPropInt		(RECVINFO(m_bDucking)),
 	RecvPropInt		(RECVINFO(m_bInDuckJump)),
+	RecvPropInt		(RECVINFO(m_bInDodge)),
+	RecvPropFloat	(RECVINFO(m_flDodgetime)),
+	RecvPropFloat	(RECVINFO(m_flStamina)),
 	RecvPropFloat	(RECVINFO(m_flDucktime)),
 	RecvPropFloat	(RECVINFO(m_flDuckJumpTime)),
 	RecvPropFloat	(RECVINFO(m_flJumpTime)),
@@ -337,6 +340,8 @@ BEGIN_PREDICTION_DATA_NO_BASE( CPlayerLocalData )
 	DEFINE_PRED_FIELD( m_bDucked, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE ),
 	DEFINE_PRED_FIELD( m_bDucking, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE ),
 	DEFINE_PRED_FIELD( m_bInDuckJump, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE ),
+	DEFINE_PRED_FIELD( m_bInDodge, FIELD_BOOLEAN, FTYPEDESC_INSENDTABLE ),
+	DEFINE_PRED_FIELD( m_flDodgetime, FIELD_FLOAT, FTYPEDESC_INSENDTABLE ),
 	DEFINE_PRED_FIELD( m_flDucktime, FIELD_FLOAT, FTYPEDESC_INSENDTABLE ),
 	DEFINE_PRED_FIELD( m_flDuckJumpTime, FIELD_FLOAT, FTYPEDESC_INSENDTABLE ),
 	DEFINE_PRED_FIELD( m_flJumpTime, FIELD_FLOAT, FTYPEDESC_INSENDTABLE ),
@@ -448,6 +453,8 @@ C_BasePlayer::C_BasePlayer() : m_iv_vecViewOffset( "C_BasePlayer::m_iv_vecViewOf
 	covenRespawnTimer = -1.0f;
 
 	ListenForGameEvent( "base_player_teleported" );
+
+	m_afButtonDoubleTapped = 0;
 }
 
 //-----------------------------------------------------------------------------
@@ -2335,6 +2342,7 @@ void C_BasePlayer::PhysicsSimulate( void )
 		ctx->cmd.sidemove = 0;
 		ctx->cmd.upmove = 0;
 		ctx->cmd.buttons = 0;
+		ctx->cmd.dblbuttons = 0;
 		ctx->cmd.impulse = 0;
 		//VectorCopy ( pl.v_angle, ctx->cmd.viewangles );
 	}

@@ -160,6 +160,7 @@ void CPlayerMove::SetupMove( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper *p
 	}
 
 	move->m_nButtons			= ucmd->buttons;
+	move->m_nDblButtons			= ucmd->dblbuttons;
 
 	// Ingore buttons for movement if at controls
 	if ( player->GetFlags() & FL_ATCONTROLS )
@@ -401,7 +402,7 @@ void CPlayerMove::RunCommand ( CBasePlayer *player, CUserCmd *ucmd, IMoveHelper 
 
 	// Update player input button states
 	VPROF_SCOPE_BEGIN( "player->UpdateButtonState" );
-	player->UpdateButtonState( ucmd->buttons );
+	player->UpdateButtonState( ucmd->buttons, ucmd->dblbuttons );
 	VPROF_SCOPE_END();
 
 	CheckMovingGround( player, TICK_INTERVAL );

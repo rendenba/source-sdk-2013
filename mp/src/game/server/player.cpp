@@ -627,6 +627,7 @@ CBasePlayer::CBasePlayer( )
 	// Used to mask off buttons
 	m_afButtonDisabled = 0;
 	m_afButtonForced = 0;
+	m_afButtonDoubleTapped = 0;
 
 	m_nBodyPitchPoseParam = -1;
 	m_flForwardMove = 0;
@@ -3728,6 +3729,7 @@ void CBasePlayer::PlayerRunCommand(CUserCmd *ucmd, IMoveHelper *moveHelper)
 		ucmd->sidemove = 0;
 		ucmd->upmove = 0;
 		ucmd->buttons = 0;
+		ucmd->dblbuttons = 0;
 		ucmd->impulse = 0;
 		VectorCopy ( pl.v_angle, ucmd->viewangles );
 	}
@@ -3879,6 +3881,19 @@ void CBasePlayer::HandleFuncTrain(void)
 	}
 }
 
+bool CBasePlayer::Stamina_Update()
+{
+	if (IsSprinting())
+	{
+		m_Local.m_flStamina = max(0.0f, m_Local.m_flStamina - SPRINT_DRAIN * gpGlobals->frametime);
+	}
+	else if (m_Local.m_flStamina < MAX_STAMINA)
+	{
+		m_Local.m_flStamina = min(m_Local.m_flStamina + STAMINA_PER_SEC * gpGlobals->frametime, MAX_STAMINA);
+	}
+
+	return m_Local.m_flStamina > 0.0f;
+}
 
 void CBasePlayer::PreThink(void)
 {						
@@ -5130,6 +5145,8 @@ void CBasePlayer::Spawn( void )
 	UpdateLastKnownArea();
 
 	m_weaponFiredTimer.Invalidate();
+
+	m_Local.m_flStamina = MAX_STAMINA;
 }
 
 void CBasePlayer::Activate( void )

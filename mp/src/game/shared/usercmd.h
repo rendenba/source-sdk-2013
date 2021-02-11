@@ -47,6 +47,7 @@ public:
 		sidemove = 0.0f;
 		upmove = 0.0f;
 		buttons = 0;
+		dblbuttons = 0;
 		impulse = 0;
 		weaponselect = 0;
 		weaponsubtype = 0;
@@ -75,6 +76,7 @@ public:
 		sidemove			= src.sidemove;
 		upmove				= src.upmove;
 		buttons				= src.buttons;
+		dblbuttons			= src.dblbuttons;
 		impulse				= src.impulse;
 		weaponselect		= src.weaponselect;
 		weaponsubtype		= src.weaponsubtype;
@@ -111,6 +113,7 @@ public:
 		CRC32_ProcessBuffer( &crc, &sidemove, sizeof( sidemove ) );      
 		CRC32_ProcessBuffer( &crc, &upmove, sizeof( upmove ) );         
 		CRC32_ProcessBuffer( &crc, &buttons, sizeof( buttons ) );		
+		CRC32_ProcessBuffer( &crc, &dblbuttons, sizeof( dblbuttons ) );		
 		CRC32_ProcessBuffer( &crc, &impulse, sizeof( impulse ) );        
 		CRC32_ProcessBuffer( &crc, &weaponselect, sizeof( weaponselect ) );	
 		CRC32_ProcessBuffer( &crc, &weaponsubtype, sizeof( weaponsubtype ) );
@@ -150,6 +153,8 @@ public:
 	float	upmove;         
 	// Attack button states
 	int		buttons;		
+	// Double tap button states
+	int		dblbuttons;
 	// Impulse command issued.
 	byte    impulse;        
 	// Current weapon id

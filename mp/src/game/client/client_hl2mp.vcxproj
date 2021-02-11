@@ -500,6 +500,7 @@ exit 1
     <ClInclude Include="hl2mp\ui\hl2mpclientitemmenu.h" />
     <ClInclude Include="hl2mp\ui\hl2mpclientminimap.h" />
     <ClInclude Include="hl2mp\ui\hl2mpwheelmenu.h" />
+    <ClInclude Include="hl2\hud_stamina.h" />
     <ClInclude Include="hltvcamera.h" />
     <ClInclude Include="hud.h" />
     <ClInclude Include="hud_basechat.h" />
@@ -909,6 +910,7 @@ exit 1
     <ClCompile Include="hl2mp\ui\hl2mpwheelmenu.cpp" />
     <ClCompile Include="hl2\c_purchaseitem.cpp" />
     <ClCompile Include="hl2\c_weapon_harpoon.cpp" />
+    <ClCompile Include="hl2\hud_stamina.cpp" />
     <ClCompile Include="hud_buildings.cpp" />
     <ClCompile Include="hud_roundtimer.cpp" />
     <ClCompile Include="hud_usetimer.cpp" />

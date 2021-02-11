@@ -16,7 +16,9 @@ struct kbutton_t
 	// key nums holding it down
 	int		down[ 2 ];		
 	// low bit is down state
-	int		state;			
+	int		state;
+	// down impulse time
+	float	impulsetime;
 };
 
 #endif // KBUTTON_H

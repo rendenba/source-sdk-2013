@@ -1322,7 +1322,7 @@ void FindNearestNode( CHL2MP_Player *pBot )
 //			msec - 
 // Output : 	virtual void
 //-----------------------------------------------------------------------------
-static void RunPlayerMove( CHL2MP_Player *fakeclient, const QAngle& viewangles, float forwardmove, float sidemove, float upmove, unsigned int buttons, byte impulse, float frametime )
+static void RunPlayerMove( CHL2MP_Player *fakeclient, const QAngle& viewangles, float forwardmove, float sidemove, float upmove, unsigned int buttons, unsigned int dblbuttons, byte impulse, float frametime )
 {
 	if ( !fakeclient )
 		return;
@@ -1345,6 +1345,7 @@ static void RunPlayerMove( CHL2MP_Player *fakeclient, const QAngle& viewangles, 
 		cmd.sidemove = sidemove;
 		cmd.upmove = upmove;
 		cmd.buttons = buttons;
+		cmd.dblbuttons = dblbuttons;
 		cmd.impulse = impulse;
 		cmd.random_seed = random->RandomInt( 0, 0x7fffffff );
 	}
@@ -1985,6 +1986,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 	}
 
 	unsigned int buttons = 0;
+	unsigned int dblbuttons = 0;
 
 	//Purchase Check
 	PurchaseCheck(pBot);
@@ -2002,7 +2004,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 			if (pBot->MovementCancelActionCheck())
 			{
 				pBot->SetLocalAngles(botdata->forwardAngle);
-				RunPlayerMove(pBot, botdata->forwardAngle, 0.0f, 0.0f, 0.0f, buttons, 0, frametime);
+				RunPlayerMove(pBot, botdata->forwardAngle, 0.0f, 0.0f, 0.0f, buttons, dblbuttons, 0, frametime);
 				return;
 			}
 			else if (pBot->CurrentDeferredAction() == COVEN_ACTION_REFUEL)
@@ -2021,7 +2023,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 					botdata->backwards = false;
 				}
 				pBot->SetLocalAngles(botdata->forwardAngle);
-				RunPlayerMove(pBot, botdata->forwardAngle, velocity, 0.0f, 0.0f, buttons | /*IN_DUCK |*/ IN_BACK, 0, frametime);
+				RunPlayerMove(pBot, botdata->forwardAngle, velocity, 0.0f, 0.0f, buttons | /*IN_DUCK |*/ IN_BACK, dblbuttons, 0, frametime);
 				return;
 			}
 		}
@@ -2306,6 +2308,21 @@ void Bot_Think( CHL2MP_Player *pBot )
 				if (pBot->GetTeamNumber() == COVEN_TEAMID_SLAYERS && !isVampDoll)
 				{
 					botdata->backwards = true;
+					if (botdata->m_flLastCombatDist < 62500.0f)
+					{
+						switch (random->RandomInt(0, 2))
+						{
+						case 0:
+							dblbuttons |= IN_MOVERIGHT;
+							break;
+						case 1:
+							dblbuttons |= IN_MOVELEFT;
+							break;
+						default:
+							dblbuttons |= IN_BACK;
+							break;
+						}
+					}
 					if (bot_difficulty.GetInt() > 0) //Slayers Attempt to juke
 					{
 						if (gpGlobals->curtime > botdata->nextstrafetime)
@@ -2796,7 +2813,7 @@ void Bot_Think( CHL2MP_Player *pBot )
 	Bot_Ability_Think(pBot, buttons);
 
 	//Msg("%d %.02f %.02f %.02f %.02f\n", pBot->covenClassID, botdata->m_flBaseSpeed, forwardmove, sidemove, botdata->nextstrafetime);
-	RunPlayerMove(pBot, botdata->forwardAngle, forwardmove, sidemove, upmove, buttons, impulse, frametime);
+	RunPlayerMove(pBot, botdata->forwardAngle, forwardmove, sidemove, upmove, buttons, dblbuttons, impulse, frametime);
 }
 
 

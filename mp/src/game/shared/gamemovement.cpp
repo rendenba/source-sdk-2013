@@ -1125,6 +1125,14 @@ void CGameMovement::ReduceTimers( void )
 			player->m_flSwimSoundTime = 0;
 		}
 	}
+	if (player->m_Local.m_flDodgetime > 0)
+	{
+		player->m_Local.m_flDodgetime -= frame_msec;
+		if (player->m_Local.m_flDodgetime < 0)
+		{
+			player->m_Local.m_flDodgetime = 0;
+		}
+	}
 }
 
 //-----------------------------------------------------------------------------
@@ -1201,6 +1209,7 @@ void CGameMovement::FinishTrackPredictionErrors( CBasePlayer *pPlayer )
 void CGameMovement::FinishMove( void )
 {
 	mv->m_nOldButtons = mv->m_nButtons;
+	mv->m_nOldDblButtons = mv->m_nDblButtons;
 }
 
 #define PUNCH_DAMPING		9.0f		// bigger number makes the response more damped, smaller is less damped
@@ -2034,6 +2043,70 @@ void CGameMovement::WalkMove( void )
 	StayOnGround();
 }
 
+bool CGameMovement::CheckDodgeButton()
+{
+	if (player->m_Local.m_flStamina < DODGE_COST)
+		return false;
+
+#ifndef CLIENT_DLL
+	CHL2_Player *pHL2Player = ToHL2Player(player);
+	if (pHL2Player && pHL2Player->IsPerformingDeferredAction())
+#else
+	C_BaseHLPlayer *pHL2Player = dynamic_cast<C_BaseHLPlayer *>(player);
+	if (pHL2Player && pHL2Player->m_HL2Local.covenActionTimer > 0.0f)
+#endif
+	{
+		return false;
+	}
+
+	int dblImpulse = (mv->m_nDblButtons ^ mv->m_nOldDblButtons) & mv->m_nDblButtons;
+	
+	if (dblImpulse & (IN_MOVELEFT | IN_MOVERIGHT | IN_BACK | IN_FORWARD))
+	{
+		Vector forward, right;
+		AngleVectors(mv->m_vecViewAngles, &forward, &right, NULL);  // Determine movement angles
+		forward.z = 0.0f;
+		VectorNormalize(forward);
+		float flGroundFactor = 1.0f;
+		if (player->m_pSurfaceData)
+		{
+			flGroundFactor = player->m_pSurfaceData->game.jumpFactor;
+		}
+		mv->m_vecVelocity[2] += flGroundFactor * 200.0f;
+		SetGroundEntity(NULL);
+		player->PlayStepSound((Vector &)mv->GetAbsOrigin(), player->m_pSurfaceData, 1.0, true);
+		MoveHelper()->PlayerSetAnimation(PLAYER_JUMP);
+		// Allow forward momentum
+		//mv->m_vecVelocity[0] = mv->m_vecVelocity[1] = 0.0f;
+		if (dblImpulse & IN_MOVERIGHT)
+		{
+			player->m_Local.m_vecPunchAngle.Set(ROLL, 5.0f);
+			VectorAdd((right * DODGE_MAGNITUDE), mv->m_vecVelocity, mv->m_vecVelocity);
+		}
+		else if (dblImpulse & IN_MOVELEFT)
+		{
+			player->m_Local.m_vecPunchAngle.Set(ROLL, -5.0f);
+			VectorAdd((right * -DODGE_MAGNITUDE), mv->m_vecVelocity, mv->m_vecVelocity);
+		}
+		else if (dblImpulse & IN_FORWARD)
+		{
+			player->m_Local.m_vecPunchAngle.Set(PITCH, 5.0f);
+			VectorAdd((forward * DODGE_MAGNITUDE), mv->m_vecVelocity, mv->m_vecVelocity);
+		}
+		else //IN_BACK
+		{
+			player->m_Local.m_vecPunchAngle.Set(PITCH, -5.0f);
+			VectorAdd((forward * -DODGE_MAGNITUDE), mv->m_vecVelocity, mv->m_vecVelocity);
+		}
+		
+		FinishGravity();
+		player->m_Local.m_flStamina -= DODGE_COST;
+		return true;
+	}
+
+	return false;
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
@@ -2105,13 +2178,46 @@ void CGameMovement::FullWalkMove( )
 			mv->m_nOldButtons &= ~IN_JUMP;
 		}
 
+		if (player->m_Local.m_bInDodge && (player->m_Local.m_bDucking || player->GetFlags() & FL_DUCKING))
+			player->m_Local.m_bInDodge = false;
+		if (player->m_Local.m_flDodgetime > 0.0f && (player->m_Local.m_bDucking || player->GetFlags() & FL_DUCKING))
+			player->m_Local.m_flDodgetime = 0.0f;
+
 		// Fricion is handled before we add in any base velocity. That way, if we are on a conveyor, 
 		//  we don't slow when standing still, relative to the conveyor.
 		if (player->GetGroundEntity() != NULL)
 		{
 			mv->m_vecVelocity[2] = 0.0;
 			Friction();
+
+			if (player->m_Local.m_bInDodge)
+			{
+				mv->m_vecVelocity[0] *= 0.5f;
+				mv->m_vecVelocity[1] *= 0.5f;
+				PlayerRoughLandingEffects(1.0f);
+				player->m_Local.m_flDodgetime = 350.0f;
+				player->m_Local.m_bInDodge = false;
+			}
+
+			if (player->m_Local.m_flDodgetime > 300.0f)
+			{
+				float flDuckFraction = SimpleSpline(3.5f - (player->m_Local.m_flDodgetime) * 0.001f / 0.1f);
+				SetDuckedEyeOffset(flDuckFraction);
+			}
+			else if (player->m_Local.m_flDodgetime > 0.0f)
+			{
+				float flDuckFraction = SimpleSpline(player->m_Local.m_flDodgetime * 0.001f / 0.6f);
+				SetDuckedEyeOffset(flDuckFraction);
+			}
 		}
+
+		// Only slayers can dodge!
+		if (player->GetTeamNumber() == COVEN_TEAMID_SLAYERS && player->GetGroundEntity() != NULL && CheckDodgeButton())
+			player->m_Local.m_bInDodge = true;
+
+		// Allow forward momentum
+		//if (player->m_Local.m_bInDodge)
+		//	mv->m_flForwardMove = 0.0f;
 
 		// Make sure velocity is valid.
 		CheckVelocity();
@@ -2374,6 +2480,12 @@ bool CGameMovement::CheckJumpButton( void )
 		return false;
 	}
 
+	if (player->m_Local.m_flStamina < MIN_STAMINA)
+	{
+		mv->m_nOldButtons |= IN_JUMP;	// don't jump again until released
+		return false;
+	}
+
 	// See if we are waterjumping.  If so, decrement count and return.
 	if (player->m_flWaterJumpTime)
 	{
@@ -2560,6 +2672,8 @@ bool CGameMovement::CheckJumpButton( void )
 
 	// Flag that we jumped.
 	mv->m_nOldButtons |= IN_JUMP;	// don't jump again until released
+	if (player->GetTeamNumber() == COVEN_TEAMID_VAMPIRES)
+		player->m_Local.m_flStamina -= JUMP_COST;
 	return true;
 }
 

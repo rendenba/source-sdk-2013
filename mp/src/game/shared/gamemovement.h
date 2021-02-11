@@ -155,6 +155,8 @@ protected:
 	// Returns true if he started a jump (ie: should he play the jump animation)?
 	virtual bool	CheckJumpButton( void );	// Overridden by each game.
 
+	virtual bool	CheckDodgeButton();
+
 	// Dead player flying through air., e.g.
 	virtual void    FullTossMove( void );
 	
