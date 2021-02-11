@@ -119,7 +119,7 @@ void WriteUsercmd( bf_write *buf, const CUserCmd *to, const CUserCmd *from )
 	if (to->dblbuttons != from->dblbuttons)
 	{
 		buf->WriteOneBit(1);
-		buf->WriteUBitLong(to->buttons, 32);
+		buf->WriteUBitLong(to->dblbuttons, 32);
 	}
 	else
 	{

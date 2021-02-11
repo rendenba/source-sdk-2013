@@ -133,6 +133,7 @@ public:
 		sidemove = 0.f;
 		upmove = 0.f;
 		buttons = 0;
+		dblbuttons = 0;
 		impulse = 0;
 	}
 
