@@ -41,6 +41,8 @@ public:
 	inline bool			HasStatus(CovenStatus_t iEffectNum) { return covenStatusEffects[iEffectNum]; };
 	inline int			GetStatusMagnitude(CovenStatus_t iStatusNum) { return m_HL2Local.covenStatusMagnitude[iStatusNum]; };
 
+	float				GetBaseSpeed();
+
 	bool				IsSprinting( void ) { return m_HL2Local.m_bitsActiveDevices & bits_SUIT_DEVICE_SPRINT; }
 	bool				IsFlashlightActive( void ) { return m_HL2Local.m_bitsActiveDevices & bits_SUIT_DEVICE_FLASHLIGHT; }
 	bool				IsBreatherActive( void ) { return m_HL2Local.m_bitsActiveDevices & bits_SUIT_DEVICE_BREATHER; }

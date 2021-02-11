@@ -2088,6 +2088,12 @@ void CHL2_Player::StopSprinting( void )
 	ComputeSpeed();
 }
 
+float CHL2_Player::GetBaseSpeed()
+{
+	CovenClassInfo_t *info = GetCovenClassData(covenClassID);
+	return info->flBaseSpeed;
+}
+
 
 //-----------------------------------------------------------------------------
 // Purpose: Called to disable and enable sprint due to temporary circumstances:
@@ -2105,9 +2111,7 @@ void CHL2_Player::EnableSprint( bool bEnable )
 
 void CHL2_Player::ComputeSpeed( void )
 {
-	float speed;
-	CovenClassInfo_t *info = GetCovenClassData(covenClassID);
-	speed = info->flBaseSpeed;
+	float speed = GetBaseSpeed();
 
 	float factor = 1.0f;
 

@@ -314,6 +314,8 @@ public:
 	// Physics simulation (player executes it's usercmd's here)
 	virtual void			PhysicsSimulate( void );
 
+	virtual float			GetBaseSpeed();
+
 	// Forces processing of usercmds (e.g., even if game is paused, etc.)
 	void					ForceSimulation();
 
@@ -450,7 +452,7 @@ public:
 	virtual void			PlayStepSound( Vector &vecOrigin, surfacedata_t *psurface, float fvol, bool force );
 	virtual const char	   *GetOverrideStepSound( const char *pszBaseStepSoundName ) { return pszBaseStepSoundName; }
 	virtual void			GetStepSoundVelocities( float *velwalk, float *velrun );
-	virtual void			SetStepSoundTime( stepsoundtimes_t iStepSoundTime, bool bWalking );
+	virtual void			SetStepSoundTime( stepsoundtimes_t iStepSoundTime );
 	virtual void			DeathSound( const CTakeDamageInfo &info );
 	virtual const char*		GetSceneSoundToken( void ) { return ""; }
 

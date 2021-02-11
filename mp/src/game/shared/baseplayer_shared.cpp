@@ -500,6 +500,10 @@ surfacedata_t *CBasePlayer::GetLadderSurface( const Vector &origin )
 
 void CBasePlayer::UpdateStepSound( surfacedata_t *psurface, const Vector &vecOrigin, const Vector &vecVelocity )
 {
+	//BB: no vampire footsteps
+	if (GetTeamNumber() == 3) //TEAM_REBELS = 3
+		return;
+
 	bool bWalking;
 	float fvol;
 	Vector knee;
@@ -558,7 +562,7 @@ void CBasePlayer::UpdateStepSound( surfacedata_t *psurface, const Vector &vecOri
 
 //	MoveHelper()->PlayerSetAnimation( PLAYER_WALK );
 
-	bWalking = speed < velrun;		
+	bWalking = speed <= velrun;		
 
 	VectorCopy( vecOrigin, knee );
 	VectorCopy( vecOrigin, feet );
@@ -573,7 +577,7 @@ void CBasePlayer::UpdateStepSound( surfacedata_t *psurface, const Vector &vecOri
 		psurface = GetLadderSurface(vecOrigin);
 		fvol = 0.5;
 
-		SetStepSoundTime( STEPSOUNDTIME_ON_LADDER, bWalking );
+		SetStepSoundTime( STEPSOUNDTIME_ON_LADDER );
 	}
 #ifdef CSTRIKE_DLL
 	else if ( enginetrace->GetPointContents( knee ) & MASK_WATER )  // we want to use the knee for Cstrike, not the waist
@@ -595,21 +599,21 @@ void CBasePlayer::UpdateStepSound( surfacedata_t *psurface, const Vector &vecOri
 		}
 		psurface = physprops->GetSurfaceData( physprops->GetSurfaceIndex( "wade" ) );
 		fvol = 0.65;
-		SetStepSoundTime( STEPSOUNDTIME_WATER_KNEE, bWalking );
+		SetStepSoundTime( STEPSOUNDTIME_WATER_KNEE );
 	}
 	else if ( GetWaterLevel() == WL_Feet )
 	{
 		psurface = physprops->GetSurfaceData( physprops->GetSurfaceIndex( "water" ) );
 		fvol = bWalking ? 0.2 : 0.5;
 
-		SetStepSoundTime( STEPSOUNDTIME_WATER_FOOT, bWalking );
+		SetStepSoundTime( STEPSOUNDTIME_WATER_FOOT );
 	}
 	else
 	{
 		if ( !psurface )
 			return;
 
-		SetStepSoundTime( STEPSOUNDTIME_NORMAL, bWalking );
+		SetStepSoundTime( STEPSOUNDTIME_NORMAL );
 
 		switch ( psurface->game.material )
 		{
@@ -648,12 +652,8 @@ void CBasePlayer::UpdateStepSound( surfacedata_t *psurface, const Vector &vecOri
 	// 65% volume if ducking
 	if ( GetFlags() & FL_DUCKING )
 	{
-		fvol *= 0.65;
+		fvol *= 0.5f;
 	}
-
-	//BB: no vampire footsteps
-	if (GetTeamNumber() == 3) //TEAM_REBELS = 3
-		return;
 
 	PlayStepSound( feet, psurface, fvol, false );
 }
@@ -765,6 +765,11 @@ void CBasePlayer::UpdateButtonState( int nUserCmdButtonMask, int nUserDblCmdButt
 	m_afButtonDoubleTapped = nUserDblCmdButtonMask;
 }
 
+float CBasePlayer::GetBaseSpeed()
+{
+	return 210.0f;
+}
+
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
@@ -773,28 +778,28 @@ void CBasePlayer::GetStepSoundVelocities( float *velwalk, float *velrun )
 	// UNDONE: need defined numbers for run, walk, crouch, crouch run velocities!!!!	
 	if ( ( GetFlags() & FL_DUCKING) || ( GetMoveType() == MOVETYPE_LADDER ) )
 	{
-		*velwalk = 60;		// These constants should be based on cl_movespeedkey * cl_forwardspeed somehow
-		*velrun = 80;		
+		float basespeed = GetBaseSpeed();
+		*velwalk = basespeed * DUCK_CROP;
+		*velrun = basespeed * DUCK_CROP * 1.05f;
 	}
 	else
 	{
-		*velwalk = 90;
-		*velrun = 220;
+		float basespeed = GetBaseSpeed();
+		*velwalk = basespeed * WALK_CROP;
+		*velrun = basespeed * 1.05f;
 	}
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: 
 //-----------------------------------------------------------------------------
-void CBasePlayer::SetStepSoundTime( stepsoundtimes_t iStepSoundTime, bool bWalking )
+void CBasePlayer::SetStepSoundTime( stepsoundtimes_t iStepSoundTime )
 {
 	switch ( iStepSoundTime )
 	{
 	case STEPSOUNDTIME_NORMAL:
 	case STEPSOUNDTIME_WATER_FOOT:
-		m_flStepSoundTime = bWalking ? 400 : 300;
-		//BB: TODO: Fix footsteps timing???
-		//m_flStepSoundTime = 100.0f*50000.0f/GetAbsVelocity().Length();
+		m_flStepSoundTime = SequenceDuration() * 500.0f / GetPlaybackRate(); // every half sequence
 		break;
 
 	case STEPSOUNDTIME_ON_LADDER:

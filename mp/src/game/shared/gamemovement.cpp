@@ -2557,7 +2557,7 @@ bool CGameMovement::CheckJumpButton( void )
 	// In the air now.
     SetGroundEntity( NULL );
 	
-	player->PlayStepSound( (Vector &)mv->GetAbsOrigin(), player->m_pSurfaceData, 1.0, true );
+	player->PlayStepSound( (Vector &)mv->GetAbsOrigin(), player->m_pSurfaceData, (player->GetFlags() & FL_DUCKING) ? 0.5f : 1.0f, true );
 	
 	MoveHelper()->PlayerSetAnimation( PLAYER_JUMP );
 
@@ -4477,10 +4477,9 @@ void CGameMovement::HandleDuckingSpeedCrop( void )
 {
 	if ( !( m_iSpeedCropped & SPEED_CROPPED_DUCK ) && ( player->GetFlags() & FL_DUCKING ) && ( player->GetGroundEntity() != NULL ) )
 	{
-		float frac = 0.33333333f;
-		mv->m_flForwardMove	*= frac;
-		mv->m_flSideMove	*= frac;
-		mv->m_flUpMove		*= frac;
+		mv->m_flForwardMove *= DUCK_CROP;
+		mv->m_flSideMove	*= DUCK_CROP;
+		mv->m_flUpMove		*= DUCK_CROP;
 		m_iSpeedCropped		|= SPEED_CROPPED_DUCK;
 	}
 }
@@ -4524,10 +4523,9 @@ void CGameMovement::Walk(void)
 		mv->m_nOldButtons |= IN_WALK;
 		if (!(m_iSpeedCropped & SPEED_CROPPED_WALK) && (player->GetGroundEntity() != NULL))
 		{
-			float frac = 0.6f;
-			mv->m_flForwardMove *= frac;
-			mv->m_flSideMove *= frac;
-			mv->m_flUpMove *= frac;
+			mv->m_flForwardMove *= WALK_CROP;
+			mv->m_flSideMove *= WALK_CROP;
+			mv->m_flUpMove *= WALK_CROP;
 			m_iSpeedCropped |= SPEED_CROPPED_WALK;
 		}
 	}

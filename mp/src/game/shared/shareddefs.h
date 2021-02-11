@@ -410,6 +410,8 @@ enum PLAYER_ANIM
 #define SPRINT_DRAIN	15.0f
 #define MIN_STAMINA		15.0f
 #define STAMINA_PER_SEC	10.0f
+#define WALK_CROP		0.6f
+#define DUCK_CROP		0.33333333f
 
 typedef enum
 {

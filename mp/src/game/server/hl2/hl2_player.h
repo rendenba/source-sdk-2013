@@ -206,6 +206,7 @@ public:
 	void StartSprinting( void );
 	void StopSprinting( void );
 	void ComputeSpeed( void );
+	float GetBaseSpeed();
 	void InitSprinting( void );
 	bool IsSprinting( void ) { return m_fIsSprinting; }
 	bool CanSprint( void );

@@ -11,6 +11,7 @@
 #include "c_ai_basenpc.h"
 #include "in_buttons.h"
 #include "collisionutils.h"
+#include "coven_parse.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -170,6 +171,12 @@ float C_BaseHLPlayer::GetZoom( void )
 	}
 
 	return fFOV;
+}
+
+float C_BaseHLPlayer::GetBaseSpeed()
+{
+	CovenClassInfo_t *info = GetCovenClassData(CovenClassID_t(covenClassID + COVEN_MAX_CLASSES_PER_TEAM * (GetTeamNumber() - 1)));
+	return info->flBaseSpeed;
 }
 
 //-----------------------------------------------------------------------------

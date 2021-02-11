@@ -244,6 +244,8 @@ public:
 	virtual void				PhysicsSimulate( void );
 	virtual unsigned int	PhysicsSolidMaskForEntity( void ) const { return MASK_PLAYERSOLID; }
 
+	virtual float				GetBaseSpeed();
+
 	// Prediction stuff
 	virtual bool				ShouldPredict( void );
 
@@ -346,7 +348,7 @@ public:
 	virtual void PlayStepSound( Vector &vecOrigin, surfacedata_t *psurface, float fvol, bool force );
 	virtual surfacedata_t * GetFootstepSurface( const Vector &origin, const char *surfaceName );
 	virtual void GetStepSoundVelocities( float *velwalk, float *velrun );
-	virtual void SetStepSoundTime( stepsoundtimes_t iStepSoundTime, bool bWalking );
+	virtual void SetStepSoundTime( stepsoundtimes_t iStepSoundTime );
 	virtual const char *GetOverrideStepSound( const char *pszBaseStepSoundName ) { return pszBaseStepSoundName; }
 
 	virtual void OnEmitFootstepSound( const CSoundParameters& params, const Vector& vecOrigin, float fVolume ) {}
