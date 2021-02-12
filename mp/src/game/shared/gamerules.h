@@ -285,7 +285,7 @@ public:
 	virtual int	GetAutoAimMode()	{ return AUTOAIM_ON; }
 
 	virtual bool ShouldUseRobustRadiusDamage(CBaseEntity *pEntity) { return false; }
-	virtual void  RadiusDamage(const CTakeDamageInfo &info, const Vector &vecSrc, float flRadius, int iClassIgnore, CBaseEntity *pEntityIgnore, CovenEffectType_t effect = COVEN_EFFECT_NONE, color32 color = { 255, 255, 255, 255 });
+	virtual void  RadiusDamage(const CTakeDamageInfo &info, const Vector &vecSrc, float flRadius, int iClassIgnore, CBaseEntity *pEntityIgnore, float flFalloffShift = 0.0f, CovenEffectType_t effect = COVEN_EFFECT_NONE, color32 color = { 255, 255, 255, 255 });
 	// Let the game rules specify if fall death should fade screen to black
 	virtual bool  FlPlayerFallDeathDoesScreenFade( CBasePlayer *pl ) { return TRUE; }
 

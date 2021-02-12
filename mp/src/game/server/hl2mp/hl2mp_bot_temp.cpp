@@ -134,6 +134,7 @@ typedef struct
 	float			m_flRespawnTime;
 	bool			m_bIsPurchasingItems;
 	bool			m_bHasNotPurchasedItems;
+	bool			m_bPillUse;
 
 	int				m_lastPlayerCheck; //index
 	BuildingType_t	m_lastBuildingChecked;
@@ -1049,8 +1050,16 @@ void HealthCheck(CHL2MP_Player *pBot)
 			if (pBot->HasPills() && !pBot->IsPerformingDeferredAction() && !pBot->IsReloading())
 			{
 				CovenItemInfo_t *info = GetCovenItemData(COVEN_ITEM_PILLS);
-				if (!pBot->HasStatus(COVEN_STATUS_HASTE) || pBot->GetStatusMagnitude(COVEN_STATUS_HASTE) < info->flMaximum || pBot->GetStatusTime(COVEN_STATUS_HASTE) < info->flUseTime)
+				if (!pBot->HasStatus(COVEN_STATUS_HASTE))
+				{
+					botdata->m_bPillUse = random->RandomInt(0, 1) == 0 ? true : false;
 					pBot->UseCovenItem(COVEN_ITEM_PILLS);
+				}
+				else if (pBot->GetStatusMagnitude(COVEN_STATUS_HASTE) < info->flMaximum && botdata->m_bPillUse)
+				{
+					pBot->UseCovenItem(COVEN_ITEM_PILLS);
+					botdata->m_bPillUse = random->RandomInt(0, 1) == 0 ? true : false;
+				}
 			}
 		}
 		else if (!pBot->IsPerformingDeferredAction())

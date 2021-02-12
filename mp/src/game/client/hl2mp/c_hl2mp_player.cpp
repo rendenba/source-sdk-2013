@@ -15,6 +15,7 @@
 #include "r_efx.h"
 #include "dlight.h"
 #include "history_resource.h"
+#include "fx.h"
 
 // Don't alias here
 #if defined( CHL2MP_Player )
@@ -286,6 +287,32 @@ void C_HL2MP_Player::ClientThink( void )
 			SetClientSideGlowEnabled(false);
 		}
 	}
+
+	//Coven FX
+	if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+	{
+		if (HasStatus(COVEN_STATUS_HOLYWATER) && gpGlobals->curtime > covenFXTimers[COVEN_STATUS_HOLYWATER])
+		{
+			FX_Burst(GetAbsOrigin(), { 153, 204, 255, 255 }, COVEN_BURST_TYPE_TWINKLE, this);
+			covenFXTimers[COVEN_STATUS_HOLYWATER] = gpGlobals->curtime + 0.5f;
+		}
+	}
+	if (HasStatus(COVEN_STATUS_DASH) && covenFXTimers[COVEN_STATUS_DASH] == 0.0f)
+	{
+		AngleVectors(EyeAngles(), &covenFXForward, &covenFXRight, NULL);
+		covenFXForward.z = covenFXRight.z = 0;
+		VectorNormalize(covenFXForward);
+		VectorNormalize(covenFXRight);
+		FX_Burst(GetAbsOrigin(), { 150, 150, 150, 255 }, COVEN_BURST_TYPE_TRAIL, NULL, &covenFXForward, &covenFXRight);
+		covenFXTimers[COVEN_STATUS_DASH] = gpGlobals->curtime + 0.05f;
+	}
+	else if (HasStatus(COVEN_STATUS_DASH) && gpGlobals->curtime > covenFXTimers[COVEN_STATUS_DASH])
+	{
+		FX_Burst(GetAbsOrigin(), { 150, 150, 150, 255 }, COVEN_BURST_TYPE_TRAIL, NULL, &covenFXForward, &covenFXRight);
+		covenFXTimers[COVEN_STATUS_DASH] = gpGlobals->curtime + 0.05f;
+	}
+	else if (!HasStatus(COVEN_STATUS_DASH))
+		covenFXTimers[COVEN_STATUS_DASH] = 0.0f;
 
 	bool bFoundViewTarget = false;
 	

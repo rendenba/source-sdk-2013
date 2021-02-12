@@ -507,7 +507,10 @@ void CHL2_Player::ActivateCovenItem(CovenItemID_t iItemType)
 		case COVEN_ITEM_PILLS:
 		{
 			int iMagnitude = min(GetStatusMagnitude(COVEN_STATUS_HASTE) + info->iMagnitude, info->flMaximum);
-			AddStatus(COVEN_STATUS_HASTE, iMagnitude, gpGlobals->curtime + info->flDuration, false, false);
+			if (HasStatus(COVEN_STATUS_HASTE))
+				AddStatus(COVEN_STATUS_HASTE, iMagnitude, GetStatusTime(COVEN_STATUS_HASTE), false, false);
+			else
+				AddStatus(COVEN_STATUS_HASTE, iMagnitude, gpGlobals->curtime + info->flDuration, false, false);
 			break;
 		}
 		default:
@@ -896,11 +899,6 @@ void CHL2_Player::HandleStatus(CovenStatus_t iStatusNum)
 				GiveStrength(classInfo->flStrength * (GetStatusMagnitude(iStatusNum) - m_iHandledEffect[iStatusNum]) * 0.01f);
 				break;
 			}
-			case COVEN_STATUS_SLOW:
-			{
-				ComputeSpeed();
-				break;
-			}
 			case COVEN_STATUS_WEAKNESS:
 			{
 				CovenClassInfo_t *classInfo = GetCovenClassData(covenClassID);
@@ -913,6 +911,7 @@ void CHL2_Player::HandleStatus(CovenStatus_t iStatusNum)
 				ResetVitals();
 				break;
 			}
+			case COVEN_STATUS_SLOW:
 			case COVEN_STATUS_HASTE:
 			{
 				ComputeSpeed();

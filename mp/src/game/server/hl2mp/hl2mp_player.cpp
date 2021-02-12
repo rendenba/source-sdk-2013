@@ -477,7 +477,7 @@ void CHL2MP_Player::ThrowHolywaterGrenade(int lev)
 
 void CHL2MP_Player::DashHandler()
 {
-	if (HasAbility(COVEN_ABILITY_DASH) && coven_timer_dash > 0.0f)
+	if (HasStatus(COVEN_STATUS_DASH) && coven_timer_dash > 0.0f)
 	{
 		Vector zContrib(0, 0, 0);
 		if (gpGlobals->curtime < coven_timer_dash)
@@ -496,10 +496,16 @@ void CHL2MP_Player::DashHandler()
 		{
 			zContrib.z = MIN(GetAbsVelocity().z, 0);
 			coven_timer_dash = -1.0f;
+			coven_timer_dashing = gpGlobals->curtime + 0.2f;
 			ComputeSpeed();
 			if (GetGroundEntity() == NULL)
 				SetAbsVelocity(MaxSpeed() * lock_dash + zContrib);
 		}
+	}
+	else if (coven_timer_dashing > 0.0f && gpGlobals->curtime > coven_timer_dashing)
+	{
+		RemoveStatus(COVEN_STATUS_DASH);
+		coven_timer_dashing = -1.0f;
 	}
 }
 
@@ -982,7 +988,10 @@ bool CHL2MP_Player::DoAbilityThink()
 						if (info->flCastTime > 0.0f)
 						{
 							if (QueueDeferredAction(CovenDeferredAction_t(COVEN_ACTION_ITEMS + iAbility), false, info->flCastTime))
+							{
+								EmitSound(info->aSounds[COVEN_SND_CAST]);
 								TriggerGCD();
+							}
 						}
 						else
 							return DoAbility(i, iAbility, keyNum);
@@ -1070,6 +1079,7 @@ void CHL2MP_Player::Dash(int iAbilityNum)
 	VectorNormalize(lock_dash);
 	lock_dash.z = 0.0f;
 	coven_timer_dash = gpGlobals->curtime + 0.4f;
+	AddStatus(COVEN_STATUS_DASH, 0, 0.0f);
 	lock_vel = GetAbsVelocity().Length2D();
 	lock_vel_rate = abilityInfo->iMagnitude * 4.0f;// -lock_vel;
 	SuitPower_Drain(abilityInfo->flCost);
@@ -1274,8 +1284,7 @@ void CHL2MP_Player::BloodExplode(int iAbilityNum)
 			0.0 );
 	}
 
-	// Use the thrower's position as the reported position
-	Vector vecReported = GetAbsOrigin();
+	Vector vecReported = GetPlayerMidPoint();
 
 	int bits = DMG_CLUB;
 	float damn = abilityInfo->GetDataVariable(2) * magnitude;
@@ -1283,7 +1292,7 @@ void CHL2MP_Player::BloodExplode(int iAbilityNum)
 	CTakeDamageInfo info( this, this, vec3_origin, GetAbsOrigin(), damn, bits, 0, &vecReported );
 	info.SetSpecialDamage(COVEN_DMG_WEAKNESS | COVEN_DMG_SIPHON, abilityInfo->iMagnitude, abilityInfo->flDuration);
 
-	RadiusDamage(info, GetAbsOrigin(), abilityInfo->GetDataVariable(0), CLASS_NONE, this, COVEN_EFFECT_SIPHON, { 255, 64, 64, 255 });
+	RadiusDamage(info, vecReported, abilityInfo->GetDataVariable(0), CLASS_NONE, this, abilityInfo->GetDataVariable(0) / 2.0f, COVEN_EFFECT_SIPHON, { 255, 64, 64, 255 });
 
 	UTIL_DecalTrace( &pTrace, "Blood" );
 
@@ -1999,6 +2008,7 @@ void CHL2MP_Player::Spawn(void)
 	coven_timer_holywater = -1.0f;
 	coven_timer_innerlight = -1.0f;
 	coven_timer_dash = -1.0f;
+	coven_timer_dashing = -1.0f;
 	coven_timer_pushback = -1.0f;
 #ifdef COVEN_DEVELOPER_MODE
 	Msg("Spawn location player %d: %f %f %f\n", entindex(), GetAbsOrigin().x, GetAbsOrigin().y, GetAbsOrigin().z);
@@ -2636,6 +2646,7 @@ void CHL2MP_Player::PushbackThink()
 {
 	if (GetFlags() & FL_PARTFROZEN && gpGlobals->curtime > coven_timer_pushback)
 	{
+		coven_timer_pushback = 0.0f;
 		RemoveFlag(FL_PARTFROZEN);
 	}
 }
@@ -2669,7 +2680,7 @@ void CHL2MP_Player::Touch(CBaseEntity *pOther)
 	if (HasAbility(COVEN_ABILITY_DASH) && pOther && pOther->IsPlayer())
 	{
 		CHL2MP_Player *pPlayer = ToHL2MPPlayer(pOther);
-		if (coven_timer_dash > 0.0f && pPlayer->GetTeamNumber() != GetTeamNumber())
+		if (HasStatus(COVEN_STATUS_DASH) && pPlayer->GetTeamNumber() != GetTeamNumber())
 		{
 			Vector dir = pOther->GetLocalOrigin() - GetLocalOrigin();
 			VectorNormalize(dir);
@@ -2677,10 +2688,13 @@ void CHL2MP_Player::Touch(CBaseEntity *pOther)
 			float flDot = DotProduct(dir, lock_dash);
 			if (flDot > 0.0f)
 			{
-				pPlayer->Pushback(&dir, sv_coven_dash_bump.GetFloat() * flDot, 320.0f * flDot);
-				CovenAbilityInfo_t *abilityInfo = GetCovenAbilityData(COVEN_ABILITY_DASH);
-				pPlayer->AddStatus(COVEN_STATUS_SLOW, abilityInfo->flDrain, gpGlobals->curtime + abilityInfo->flDuration, true, false); //BB: we have to be careful here... multiple touch can get out of hand.
-				pPlayer->EmitSound(abilityInfo->aSounds[COVEN_SND_STOP]);
+				if (!IsInPushback())
+				{
+					CovenAbilityInfo_t *abilityInfo = GetCovenAbilityData(COVEN_ABILITY_DASH);
+					pPlayer->Pushback(&dir, sv_coven_dash_bump.GetFloat() * flDot, 320.0f * flDot);
+					pPlayer->AddStatus(COVEN_STATUS_SLOW, abilityInfo->flDrain, gpGlobals->curtime + abilityInfo->flDuration, true, false); //BB: we have to be careful here... multiple touch can get out of hand.
+					pPlayer->EmitSound(abilityInfo->aSounds[COVEN_SND_STOP]);
+				}
 			}
 		}
 	}
@@ -3556,6 +3570,7 @@ void CHL2MP_Player::DoStatusThink()
 		}
 		else
 		{
+			// special decaying status
 			if (gpGlobals->curtime > GetStatusTime(COVEN_STATUS_MASOCHIST))
 			{
 				RemoveStatus(COVEN_STATUS_MASOCHIST);
@@ -4917,35 +4932,32 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 
 	if (GetTeamNumber() == COVEN_TEAMID_SLAYERS && HasStatus(COVEN_STATUS_HOLYWATER))
 	{
-		//moved this only fall damage
-		/*
-		flIntegerDamage -= temp;
-		holyhealtotal -= temp;
-		*/
+		CovenStatusEffectInfo_t *effectInfo = GetCovenStatusEffectData(COVEN_STATUS_HOLYWATER);
+		int mag = GetStatusMagnitude(COVEN_STATUS_HOLYWATER);
+		float temp;
 		if (inputInfoAdjust.GetDamageType() == DMG_FALL)
 		{
-			CovenStatusEffectInfo_t *effectInfo = GetCovenStatusEffectData(COVEN_STATUS_HOLYWATER);
 			float divisor = max(effectInfo->GetDataVariable(0), 1.0f);
-			int mag = GetStatusMagnitude(COVEN_STATUS_HOLYWATER);
-			float temp = floor((0.2f + 0.1f * mag / divisor) * inputInfoAdjust.GetDamage());
-			if (temp > mag)
-			{
-				temp = mag;
-			}
-			//holyhealtotal -= 30;
-			inputInfoAdjust.SetDamage(inputInfoAdjust.GetDamage() - temp);
-			int newtot = mag-temp;
-			if (newtot <= 0)
-			{
-				newtot = 0;
-				RemoveStatus(COVEN_STATUS_HOLYWATER);
-				coven_timer_holywater = -1.0f;
-			}
-			else
-			{
-				SetStatusMagnitude(COVEN_STATUS_HOLYWATER, newtot);
-				SetStatusTime(COVEN_STATUS_HOLYWATER, GetStatusTime(COVEN_STATUS_HOLYWATER) - temp);
-			}
+			temp = floor((0.2f + 0.1f * mag / divisor) * inputInfoAdjust.GetDamage());
+		}
+		else
+			temp = floor(effectInfo->GetDataVariable(1) * inputInfoAdjust.GetDamage());
+		if (temp > mag)
+		{
+			temp = mag;
+		}
+		inputInfoAdjust.SetDamage(inputInfoAdjust.GetDamage() - temp);
+		int newtot = mag - temp;
+		if (newtot <= 0)
+		{
+			newtot = 0;
+			RemoveStatus(COVEN_STATUS_HOLYWATER);
+			coven_timer_holywater = -1.0f;
+		}
+		else
+		{
+			SetStatusMagnitude(COVEN_STATUS_HOLYWATER, newtot);
+			SetStatusTime(COVEN_STATUS_HOLYWATER, GetStatusTime(COVEN_STATUS_HOLYWATER) - temp);
 		}
 	}
 
@@ -4974,7 +4986,7 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 			inputInfoAdjust.SetDamage(0.01f * abilityInfo->iMagnitude * inputInfoAdjust.GetDamage());
 		}
 		//Dash damage mitigation
-		if (HasAbility(COVEN_ABILITY_DASH) && coven_timer_dash > 0.0f)
+		if (HasStatus(COVEN_STATUS_DASH))
 		{
 			CovenAbilityInfo_t *abilityInfo = GetCovenAbilityData(COVEN_ABILITY_DASH);
 			EmitSound(abilityInfo->aSounds[COVEN_SND_HIT]);

@@ -458,14 +458,16 @@ typedef enum
 
 typedef enum
 {
-	COVEN_BURST_TYPE_DEFAULT, //middle, blast
-	COVEN_BURST_TYPE_SWOOSH, //middle, swoosh
-	COVEN_BURST_TYPE_CHARGE, //bottom, swoosh
-	COVEN_BURST_TYPE_SPIN, //bottom, spinning
-	COVEN_BURST_TYPE_SPHERE, //sphere
-	COVEN_BURST_TYPE_CSPHERE, //sphere, centered
-	COVEN_BURST_TYPE_DISC, //bottom/disc
-	COVEN_BURST_TYPE_SIPHON, //siphon trail
+	COVEN_BURST_TYPE_DEFAULT,	// middle, blast
+	COVEN_BURST_TYPE_SWOOSH,	// middle, swoosh
+	COVEN_BURST_TYPE_CHARGE,	// bottom, swoosh
+	COVEN_BURST_TYPE_SPIN,		// bottom, spinning
+	COVEN_BURST_TYPE_SPHERE,	// sphere
+	COVEN_BURST_TYPE_CSPHERE,	// sphere, centered
+	COVEN_BURST_TYPE_DISC,		// bottom/disc
+	COVEN_BURST_TYPE_SIPHON,	// siphon trail
+	COVEN_BURST_TYPE_TWINKLE,	// twinkle, twinkle
+	COVEN_BURST_TYPE_TRAIL,		// streak
 	COVEN_BURST_TYPE_MAX
 } CovenBurstType_t;
 
@@ -631,6 +633,7 @@ typedef enum
 	COVEN_STATUS_HAS_GAS,
 	COVEN_STATUS_INNERLIGHT,
 	COVEN_STATUS_BUYZONE,
+	COVEN_STATUS_DASH,
 	COVEN_STATUS_COUNT
 } CovenStatus_t;
 

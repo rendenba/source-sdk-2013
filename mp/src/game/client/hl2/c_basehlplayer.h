@@ -75,6 +75,9 @@ public:
 	int					covenClassID;
 	int					covenLevelCounter;
 	bool				covenStatusEffects[COVEN_STATUS_COUNT];
+	float				covenFXTimers[COVEN_STATUS_COUNT];
+	Vector				covenFXForward;
+	Vector				covenFXRight;
 
 private:
 	C_BaseHLPlayer( const C_BaseHLPlayer & ); // not defined, not accessible

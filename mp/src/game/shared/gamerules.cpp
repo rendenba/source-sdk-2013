@@ -324,7 +324,7 @@ bool IsExplosionTraceBlocked( trace_t *ptr )
 // Default implementation of radius damage
 //-----------------------------------------------------------------------------
 #define ROBUST_RADIUS_PROBE_DIST 16.0f // If a solid surface blocks the explosion, this is how far to creep along the surface looking for another way to the target
-void CGameRules::RadiusDamage( const CTakeDamageInfo &info, const Vector &vecSrcIn, float flRadius, int iClassIgnore, CBaseEntity *pEntityIgnore, CovenEffectType_t effect, color32 color )
+void CGameRules::RadiusDamage(const CTakeDamageInfo &info, const Vector &vecSrcIn, float flRadius, int iClassIgnore, CBaseEntity *pEntityIgnore, float flFalloffShift, CovenEffectType_t effect, color32 color)
 {
 	const int MASK_RADIUS_DAMAGE = MASK_SHOT&(~CONTENTS_HITBOX);
 	CBaseEntity *pEntity = NULL;
@@ -478,7 +478,7 @@ void CGameRules::RadiusDamage( const CTakeDamageInfo &info, const Vector &vecSrc
 			}
 		}
 		// decrease damage for an ent that's farther from the bomb.
-		flAdjustedDamage = ( vecSrc - tr.endpos ).Length() * falloff;
+		flAdjustedDamage = max(0.0f, ( vecSrc - tr.endpos ).Length() - flFalloffShift) * falloff;
 		flAdjustedDamage = info.GetDamage() - flAdjustedDamage;
 
 		if ( flAdjustedDamage <= 0 )

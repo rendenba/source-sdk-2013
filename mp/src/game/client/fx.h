@@ -56,7 +56,7 @@ void FX_BugBlood( Vector &pos, Vector &dir, Vector &vWorldMins, Vector &vWorldMa
 void FX_Blood( Vector &pos, Vector &dir, float r, float g, float b, float a );
 void FX_CreateImpactDust( Vector &origin, Vector &normal );
 void FX_EnergySplash( const Vector &pos, const Vector &normal, int nFlags = FX_ENERGYSPLASH_DEFAULT, float scale = 1.0f );
-void FX_Burst(const Vector &pos, color32 color, CovenBurstType_t type = COVEN_BURST_TYPE_DEFAULT, CBaseEntity *pFollowEnt = NULL);
+void FX_Burst(const Vector &pos, color32 color, CovenBurstType_t type = COVEN_BURST_TYPE_DEFAULT, CBaseEntity *pFollowEnt = NULL, Vector *forward = NULL, Vector *right = NULL);
 void FX_MicroExplosion( Vector &position, Vector &normal );
 void FX_Explosion( Vector& origin, Vector& normal, char materialType );
 void FX_ConcussiveExplosion( Vector& origin, Vector& normal ); 

@@ -29,11 +29,14 @@ CLIENTEFFECT_MATERIAL( "effects/energysplash" )
 CLIENTEFFECT_MATERIAL( "effects/energyball" )
 CLIENTEFFECT_MATERIAL( "sprites/rico1" )
 CLIENTEFFECT_MATERIAL( "sprites/rico1_noz" )
-CLIENTEFFECT_MATERIAL( "sprites/blueflare1" )
+CLIENTEFFECT_MATERIAL( "effects/blueflare1" )
+CLIENTEFFECT_MATERIAL( "effects/blood_core" )
+CLIENTEFFECT_MATERIAL( "effects/bluebuzzle" )
 CLIENTEFFECT_MATERIAL( "effects/yellowflare" )
 CLIENTEFFECT_MATERIAL( "effects/combinemuzzle1_nocull" )
 CLIENTEFFECT_MATERIAL( "effects/combinemuzzle2_nocull" )
 CLIENTEFFECT_MATERIAL( "effects/yellowflare_noz" )
+CLIENTEFFECT_MATERIAL( "effects/glow1" )
 CLIENTEFFECT_REGISTER_END()
 
 PMaterialHandle g_Material_Spark = NULL;
@@ -287,7 +290,7 @@ void CTrailParticles::SimulateParticles( CParticleSimulateIterator *pIterator )
 }
 
 
-void FX_Burst(const Vector &pos, color32 color, CovenBurstType_t type, CBaseEntity *pFollowEnt)
+void FX_Burst(const Vector &pos, color32 color, CovenBurstType_t type, CBaseEntity *pFollowEnt, Vector *forward, Vector *right)
 {
 	Vector position;
 
@@ -328,17 +331,36 @@ void FX_Burst(const Vector &pos, color32 color, CovenBurstType_t type, CBaseEnti
 	//float invratio = 1 / ratio;
 
 	PMaterialHandle hMaterial;
-	if (type == COVEN_BURST_TYPE_DEFAULT || type == COVEN_BURST_TYPE_SIPHON)
-		hMaterial = pSimple->GetPMaterial("effects/spark");
-	else
-		hMaterial = pSimple->GetPMaterial("effects/blueflare1");
 
 	int particles = 22;
 	switch (type)
 	{
-	case COVEN_BURST_TYPE_SIPHON:
-		particles = 11;
+	case COVEN_BURST_TYPE_DEFAULT:
+		hMaterial = pSimple->GetPMaterial("effects/spark");
 		break;
+	case COVEN_BURST_TYPE_CHARGE:
+		hMaterial = pSimple->GetPMaterial("effects/glow1");
+		particles = 18;
+		break;
+	case COVEN_BURST_TYPE_CSPHERE:
+		hMaterial = pSimple->GetPMaterial("effects/bluebuzzle");
+		break;
+	case COVEN_BURST_TYPE_SIPHON:
+		hMaterial = pSimple->GetPMaterial("effects/blood_core");
+		particles = 18;
+		break;
+	case COVEN_BURST_TYPE_TWINKLE:
+		hMaterial = pSimple->GetPMaterial("effects/blueflare1");
+		particles = 2;
+		break;
+	case COVEN_BURST_TYPE_TRAIL:
+		hMaterial = pSimple->GetPMaterial("effects/spark");
+		particles = 3;
+		break;
+	default:
+		hMaterial = pSimple->GetPMaterial("effects/glow1");
+		//hMaterial = pSimple->GetPMaterial("effects/blueflare1");
+			break;
 	}
 
 	for (int i = 0; i < particles; i++)
@@ -354,19 +376,29 @@ void FX_Burst(const Vector &pos, color32 color, CovenBurstType_t type, CBaseEnti
 			{
 			case COVEN_BURST_TYPE_DISC:
 				offset.x = random->RandomFloat(-32.0f, 32.0f);
-				offset.y = (random->RandomInt(0, 1) > 0 ? -32 : 32) * random->RandomFloat(0.0f, FastSqrt(1.0f - (offset.x * offset.x) / 1024.0f));
+				offset.y = (random->RandomInt(0, 1) > 0 ? -32.0f : 32.0f) * random->RandomFloat(0.0f, FastSqrt(1.0f - (offset.x * offset.x) / 1024.0f));
 				offset.z = 0.0f;
 				break;
 			case COVEN_BURST_TYPE_SPHERE:
 			case COVEN_BURST_TYPE_CSPHERE:
 				offset.x = random->RandomFloat(-32.0f, 32.0f);
-				offset.y = (random->RandomInt(0, 1) > 0 ? -32 : 32) * random->RandomFloat(0.0f, FastSqrt(1.0f - (offset.x * offset.x) / 1024.0f));
-				offset.z = 32.0f + (random->RandomInt(0, 1) > 0 ? -32 : 32) * FastSqrt(1.0f - offset.Length2DSqr() / 1024.0f);
+				offset.y = (random->RandomInt(0, 1) > 0 ? -32.0f : 32.0f) * random->RandomFloat(0.0f, FastSqrt(1.0f - (offset.x * offset.x) / 1024.0f));
+				offset.z = 32.0f + (random->RandomInt(0, 1) > 0 ? -32.0f : 32.0f) * FastSqrt(1.0f - offset.Length2DSqr() / 1024.0f);
 				break;
 			case COVEN_BURST_TYPE_SIPHON:
 				offset.x = random->RandomFloat(-32.0f, 32.0f);
-				offset.y = random->RandomFloat(-32.0f, 32.0f);
+				offset.y = (random->RandomInt(0, 1) > 0 ? -32.0f : 32.0f) * random->RandomFloat(0.0f, FastSqrt(1.0f - (offset.x * offset.x) / 1024.0f));
 				offset.z = random->RandomFloat(0.0f, 80.0f);
+				break;
+			case COVEN_BURST_TYPE_TWINKLE:
+				offset.x = random->RandomFloat(-16.0f, 16.0f);
+				offset.y = (random->RandomInt(0, 1) > 0 ? -16.0f : 16.0f) * random->RandomFloat(0.0f, FastSqrt(1.0f - (offset.x * offset.x) / 256.0f));
+				offset.z = random->RandomFloat(0.0f, 50.0f);
+				break;
+			case COVEN_BURST_TYPE_TRAIL:
+				offset.x = random->RandomFloat(-2.0f, 2.0f);
+				offset.y = random->RandomFloat(-2.0f, 2.0f);
+				offset.z = random->RandomFloat(0.0f, 70.0f);
 				break;
 			default:
 				
@@ -424,15 +456,41 @@ void FX_Burst(const Vector &pos, color32 color, CovenBurstType_t type, CBaseEnti
 					pParticle->m_vecVelocity.z = Helper_RandomFloat(-384.0f, 384.0f);
 				}
 				break;
+			case COVEN_BURST_TYPE_TWINKLE:
+				pParticle->m_vecVelocity = Vector(Helper_RandomFloat(-4.0f, 4.0f), Helper_RandomFloat(-4.0f, 4.0f), Helper_RandomFloat(8.0f, 32.0f));
+				break;
+			case COVEN_BURST_TYPE_TRAIL:
+				if (forward != NULL && right != NULL)
+				{
+					pParticle->m_vecVelocity = -300.0f * (*forward) + ((random->RandomInt(0, 1) == 0) ? random->RandomFloat(75.0f, 125.0f) : -random->RandomFloat(75.0f, 125.0f)) * (*right);
+				}
+				else
+					pParticle->m_vecVelocity = (offset - position) * 16.0f;
+				break;
 			default:
 				pParticle->m_vecVelocity = (offset - position) * 16.0f;
 				pParticle->m_vecVelocity.z = Helper_RandomFloat(-384.0f, 384.0f);
 				break;
 			}
 
-			pParticle->m_uchStartSize = random->RandomFloat(2, 4);
-
-			pParticle->m_flDieTime = random->RandomFloat(0.4f, 0.6f);
+			switch (type)
+			{
+			case COVEN_BURST_TYPE_SIPHON:
+				pParticle->m_flDieTime = random->RandomFloat(0.48f, 0.72f);
+				pParticle->m_uchStartSize = random->RandomFloat(2, 4);
+				pParticle->m_uchEndAlpha = 20;
+				break;
+			case COVEN_BURST_TYPE_TWINKLE:
+				pParticle->m_flDieTime = random->RandomFloat(2.0f, 3.0f);
+				pParticle->m_uchStartSize = random->RandomFloat(1, 3);
+				pParticle->m_uchEndAlpha = 0;
+				break;
+			default:
+				pParticle->m_flDieTime = random->RandomFloat(0.4f, 0.6f);
+				pParticle->m_uchStartSize = random->RandomFloat(2, 4);
+				pParticle->m_uchEndAlpha = 0;
+				break;
+			}
 
 			pParticle->m_flLifetime = 0.0f;
 
@@ -443,7 +501,7 @@ void FX_Burst(const Vector &pos, color32 color, CovenBurstType_t type, CBaseEnti
 			pParticle->m_uchColor[1] = color.g;
 			pParticle->m_uchColor[2] = color.b;
 			pParticle->m_uchStartAlpha = color.a;
-			pParticle->m_uchEndAlpha = 0;
+
 			pParticle->m_uchEndSize = 0;
 		}
 	}

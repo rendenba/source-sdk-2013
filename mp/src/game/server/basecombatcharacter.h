@@ -579,7 +579,7 @@ inline void	CBaseCombatCharacter::PowerupThink( int iPowerup )						{ return; }
 
 EXTERN_SEND_TABLE(DT_BaseCombatCharacter);
 
-void RadiusDamage(const CTakeDamageInfo &info, const Vector &vecSrc, float flRadius, int iClassIgnore, CBaseEntity *pEntityIgnore, CovenEffectType_t effect = COVEN_EFFECT_NONE, color32 color = { 255, 255, 255, 255 });
+void RadiusDamage(const CTakeDamageInfo &info, const Vector &vecSrc, float flRadius, int iClassIgnore, CBaseEntity *pEntityIgnore, float flFalloffShift = 0.0f, CovenEffectType_t effect = COVEN_EFFECT_NONE, color32 color = { 255, 255, 255, 255 });
 
 //-----------------------------------------------------------------------------
 // Purpose: 

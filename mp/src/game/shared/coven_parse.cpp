@@ -105,7 +105,8 @@ static const char *pCovenStatusEffects[COVEN_STATUS_COUNT] =
 	"weakness",
 	"has_gas",
 	"innerlight",
-	"buyzone"
+	"buyzone",
+	"dash"
 };
 
 //BB: this must be in the same order as shareddefs

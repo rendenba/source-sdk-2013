@@ -192,6 +192,7 @@ public:
 
 	//BB: slayer helper functions
 	void Pushback(const Vector *direction, float flMagnitude, float flPopVelocity = 320.0f, bool bFullStop = true, bool bDoFreeze = true);
+	bool IsInPushback() { return coven_timer_pushback > 0.0f; }
 	void PushbackThink();
 	void UnleashSoul();
 	void DashHandler();
@@ -270,6 +271,7 @@ public:
 	float coven_timer_holywater;
 	float coven_timer_innerlight;
 	float coven_timer_dash;
+	float coven_timer_dashing; // done dashing, but still... dashing
 	float coven_timer_pushback;
 
 	//BB: coven loadout/abil stuff

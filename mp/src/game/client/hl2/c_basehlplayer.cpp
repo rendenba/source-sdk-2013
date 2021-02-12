@@ -74,6 +74,7 @@ C_BaseHLPlayer::C_BaseHLPlayer()
 	Q_memset(covenStatusEffects, 0, sizeof(covenStatusEffects));
 	covenLevelCounter = 0;
 	covenClassID = 0;
+	Q_memset(covenFXTimers, 0, sizeof(covenFXTimers));
 }
 
 //-----------------------------------------------------------------------------
