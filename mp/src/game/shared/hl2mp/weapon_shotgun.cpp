@@ -164,20 +164,30 @@ float CWeaponShotgun::SequenceDuration(int iSequence)
 {
 	CHL2MP_Player *pOwner = ToHL2MPPlayer(GetOwner());
 
-	if (pOwner && pOwner->HasStatus(COVEN_STATUS_HASTE))
-		return 1.0f / (1.0f + 0.01f * pOwner->GetStatusMagnitude(COVEN_STATUS_HASTE)) * BaseClass::SequenceDuration(iSequence);
+	float factor = 1.0f;
 
-	return BaseClass::SequenceDuration(iSequence);
+	if (pOwner && pOwner->HasStatus(COVEN_STATUS_HASTE))
+		factor /= 1.0f + 0.01f * pOwner->GetStatusMagnitude(COVEN_STATUS_HASTE);
+
+	if (pOwner && pOwner->HasStatus(COVEN_STATUS_SLOW))
+		factor *= 1.0f + 0.01f * pOwner->GetStatusMagnitude(COVEN_STATUS_SLOW);
+
+	return factor * BaseClass::SequenceDuration(iSequence);
 }
 
 float CWeaponShotgun::SequenceDuration(void)
 {
 	CHL2MP_Player *pOwner = ToHL2MPPlayer(GetOwner());
 
-	if (pOwner && pOwner->HasStatus(COVEN_STATUS_HASTE))
-		return 1.0f / (1.0f + 0.01f * pOwner->GetStatusMagnitude(COVEN_STATUS_HASTE)) * BaseClass::SequenceDuration();
+	float factor = 1.0f;
 
-	return BaseClass::SequenceDuration();
+	if (pOwner && pOwner->HasStatus(COVEN_STATUS_HASTE))
+		factor /= 1.0f + 0.01f * pOwner->GetStatusMagnitude(COVEN_STATUS_HASTE);
+
+	if (pOwner && pOwner->HasStatus(COVEN_STATUS_SLOW))
+		factor *= 1.0f + 0.01f * pOwner->GetStatusMagnitude(COVEN_STATUS_SLOW);
+
+	return factor * BaseClass::SequenceDuration();
 }
 
 //-----------------------------------------------------------------------------

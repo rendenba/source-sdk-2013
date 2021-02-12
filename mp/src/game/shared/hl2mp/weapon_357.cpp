@@ -136,8 +136,12 @@ bool CWeapon357::Reload(void)
 
 	//BB: I simply do not understand the spaghetti calls to setting activities and sequences. This corrects the issue for some reason.
 	float factor = 1.0f;
-	if (ToHL2MPPlayer(pOwner)->HasStatus(COVEN_STATUS_HASTE))
-		factor = 1.0f / (1.0f + (ToHL2MPPlayer(pOwner)->GetStatusMagnitude(COVEN_STATUS_HASTE) * 0.01f));
+	CHL2MP_Player *pHL2MPPlayer = ToHL2MPPlayer(pOwner);
+	if (pHL2MPPlayer->HasStatus(COVEN_STATUS_HASTE))
+		factor /= 1.0f + pHL2MPPlayer->GetStatusMagnitude(COVEN_STATUS_HASTE) * 0.01f;
+
+	if (pHL2MPPlayer->HasStatus(COVEN_STATUS_SLOW))
+		factor *= 1.0f + pHL2MPPlayer->GetStatusMagnitude(COVEN_STATUS_SLOW) * 0.01f;
 
 	m_flNextPrimaryAttack = gpGlobals->curtime + SequenceDuration() * factor;
 
@@ -191,10 +195,11 @@ void CWeapon357::PrimaryAttack( void )
 	pPlayer->SetAnimation(PLAYER_ATTACK1);
 
 
+	m_flNextPrimaryAttack = gpGlobals->curtime + 0.75f;
 	if (pHL2Player->HasStatus(COVEN_STATUS_HASTE))
-		m_flNextPrimaryAttack = gpGlobals->curtime + 0.75f - pHL2Player->GetStatusMagnitude(COVEN_STATUS_HASTE) * 0.0075f;
-	else
-		m_flNextPrimaryAttack = gpGlobals->curtime + 0.75f;
+		m_flNextPrimaryAttack -= pHL2Player->GetStatusMagnitude(COVEN_STATUS_HASTE) * 0.0075f;
+	if (pHL2Player->HasStatus(COVEN_STATUS_SLOW))
+		m_flNextPrimaryAttack += pHL2Player->GetStatusMagnitude(COVEN_STATUS_SLOW) * 0.0075f;
 
 	m_flNextSecondaryAttack = gpGlobals->curtime + 0.75;
 

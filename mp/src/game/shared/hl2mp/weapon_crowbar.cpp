@@ -292,10 +292,15 @@ float CWeaponCrowbar::GetFireRate( void )
 {
 	CHL2MP_Player *pOwner = ToHL2MPPlayer(GetOwner());
 
-	if (pOwner && pOwner->HasStatus(COVEN_STATUS_HASTE))
-		return (1.0f - 0.01f * pOwner->GetStatusMagnitude(COVEN_STATUS_HASTE)) * CROWBAR_REFIRE;
+	float rate = CROWBAR_REFIRE;
 
-	return	CROWBAR_REFIRE;
+	if (pOwner && pOwner->HasStatus(COVEN_STATUS_HASTE))
+		rate -= 0.01f * CROWBAR_REFIRE * pOwner->GetStatusMagnitude(COVEN_STATUS_HASTE);
+
+	if (pOwner && pOwner->HasStatus(COVEN_STATUS_SLOW))
+		rate += 0.01f * CROWBAR_REFIRE * pOwner->GetStatusMagnitude(COVEN_STATUS_SLOW);
+
+	return rate;
 }
 
 

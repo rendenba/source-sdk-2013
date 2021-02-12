@@ -384,17 +384,17 @@ void CBaseViewModel::SendViewModelMatchingSequence( int sequence )
 	if (pHL2MPOwner == NULL)
 		return;
 	if (pHL2MPOwner->HasStatus(COVEN_STATUS_HASTE))
-	{
-		m_flPlaybackRate = 1.0 + (pHL2MPOwner->GetStatusMagnitude(COVEN_STATUS_HASTE) * 0.01f);
-	}
+		m_flPlaybackRate += (pHL2MPOwner->GetStatusMagnitude(COVEN_STATUS_HASTE) * 0.01f);
+	if (pHL2MPOwner->HasStatus(COVEN_STATUS_SLOW))
+		m_flPlaybackRate -= (pHL2MPOwner->GetStatusMagnitude(COVEN_STATUS_SLOW) * 0.01f);
 #else
 	C_HL2MP_Player *pHL2Player = dynamic_cast<C_HL2MP_Player*>(C_BasePlayer::GetLocalPlayer());
 	if (pHL2Player == NULL)
 		return;
 	if (pHL2Player->HasStatus(COVEN_STATUS_HASTE))
-	{
-		m_flPlaybackRate = 1.0 + (pHL2Player->GetStatusMagnitude(COVEN_STATUS_HASTE) * 0.01f);
-	}
+		m_flPlaybackRate += (pHL2Player->GetStatusMagnitude(COVEN_STATUS_HASTE) * 0.01f);
+	if (pHL2Player->HasStatus(COVEN_STATUS_SLOW))
+		m_flPlaybackRate -= (pHL2Player->GetStatusMagnitude(COVEN_STATUS_SLOW) * 0.01f);
 #endif
 }
 

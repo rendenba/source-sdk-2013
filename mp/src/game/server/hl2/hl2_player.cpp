@@ -650,9 +650,12 @@ bool CHL2_Player::QueueDeferredAction(CovenDeferredAction_t iAction, bool bMoveC
 	if (pWeap && pWeap->Holster())
 	{
 		m_HL2Local.covenAction = iAction;
+		float factor = 1.0f;
 		if (HasStatus(COVEN_STATUS_HASTE))
-			flDuration *= 1.0f - 0.01f * GetStatusMagnitude(COVEN_STATUS_HASTE);
-		m_HL2Local.covenActionTimer = gpGlobals->curtime + flDuration;
+			factor -= 0.01f * GetStatusMagnitude(COVEN_STATUS_HASTE);
+		if (HasStatus(COVEN_STATUS_SLOW))
+			factor += 0.01f * GetStatusMagnitude(COVEN_STATUS_SLOW);
+		m_HL2Local.covenActionTimer = gpGlobals->curtime + factor * flDuration;
 		m_bMoveCancelAction = bMoveCancel;
 		m_bBlockUse = bSwallowUseKey;
 		m_flRestrictedUseDistance = flRestrictDistance;
@@ -1032,9 +1035,12 @@ void CHL2_Player::ResetVitals(void)
 void CHL2_Player::TriggerGCD(void)
 {
 	float GCD = sv_coven_gcd.GetFloat();
+	float factor = 1.0f;
 	if (HasStatus(COVEN_STATUS_HASTE))
-		GCD *= 1.0f - 0.01f * GetStatusMagnitude(COVEN_STATUS_HASTE);
-	m_HL2Local.covenGCD = gpGlobals->curtime + GCD;
+		factor -= 0.01f * GetStatusMagnitude(COVEN_STATUS_HASTE);
+	if (HasStatus(COVEN_STATUS_SLOW))
+		factor += 0.01f * GetStatusMagnitude(COVEN_STATUS_SLOW);
+	m_HL2Local.covenGCD = gpGlobals->curtime + factor * GCD;
 }
 
 void CHL2_Player::ResetFedHP(int iIndex)

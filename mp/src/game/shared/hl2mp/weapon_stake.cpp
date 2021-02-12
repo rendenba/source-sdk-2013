@@ -234,10 +234,15 @@ float CWeaponStake::GetFireRate( void )
 {
 	CHL2MP_Player *pOwner = ToHL2MPPlayer(GetOwner());
 
-	if (pOwner && pOwner->HasStatus(COVEN_STATUS_HASTE))
-		return (1.0f - 0.01f * pOwner->GetStatusMagnitude(COVEN_STATUS_HASTE)) * STAKE_REFIRE;
+	float rate = STAKE_REFIRE;
 
-	return	STAKE_REFIRE;
+	if (pOwner && pOwner->HasStatus(COVEN_STATUS_HASTE))
+		rate -= 0.01f * STAKE_REFIRE * pOwner->GetStatusMagnitude(COVEN_STATUS_HASTE);
+
+	if (pOwner && pOwner->HasStatus(COVEN_STATUS_SLOW))
+		rate += 0.01f * STAKE_REFIRE * pOwner->GetStatusMagnitude(COVEN_STATUS_SLOW);
+
+	return rate;
 }
 
 

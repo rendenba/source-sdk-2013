@@ -664,9 +664,16 @@ bool CWeaponHarpoon::Reload( void )
 		CBaseCombatCharacter *pOwner = GetOwner();
 		if (!pOwner)
 			return false;
+
+		CHL2MP_Player *pHL2MPPlayer = ToHL2MPPlayer(pOwner);
+
 		float factor = 1.0f;
-		if (ToHL2MPPlayer(pOwner)->HasStatus(COVEN_STATUS_HASTE))
-			factor = 1.0f / (1.0f + (ToHL2MPPlayer(pOwner)->GetStatusMagnitude(COVEN_STATUS_HASTE) * 0.01f));
+
+		if (pHL2MPPlayer->HasStatus(COVEN_STATUS_HASTE))
+			factor /= 1.0f + pHL2MPPlayer->GetStatusMagnitude(COVEN_STATUS_HASTE) * 0.01f;
+
+		if (pHL2MPPlayer->HasStatus(COVEN_STATUS_SLOW))
+			factor *= 1.0f + pHL2MPPlayer->GetStatusMagnitude(COVEN_STATUS_SLOW) * 0.01f;
 
 		m_flNextPrimaryAttack = gpGlobals->curtime + SequenceDuration() * factor;
 		pOwner->m_flNextAttack = m_flNextSecondaryAttack = gpGlobals->curtime + 0.1f;
