@@ -740,7 +740,6 @@ bool CHL2MP_Player::DoGorePhase(int iAbilityNum)
 	float cloak = 1.0f;
 	if (gorephased)
 	{
-		SetCooldown(iAbilityNum, abilityInfo->flCooldown);
 		EmitSound(abilityInfo->aSounds[COVEN_SND_START]);
 		SuitPower_AddDrain(abilityInfo->flDrain);
 		RemoveAllDecals();
@@ -748,6 +747,7 @@ bool CHL2MP_Player::DoGorePhase(int iAbilityNum)
 	}
 	else
 	{
+		SetCooldown(iAbilityNum, abilityInfo->flCooldown);
 		cloak = 0.0f;
 		EmitSound(abilityInfo->aSounds[COVEN_SND_STOP]);
 		SuitPower_RemoveDrain(abilityInfo->flDrain);
@@ -4502,6 +4502,17 @@ CON_COMMAND_F(give_xp, "give me some XP <float>", FCVAR_CHEAT)
 	if (args.ArgC() > 1)
 		xp = atof(args[1]);
 	pPlayer->GiveXP(xp);
+}
+
+CON_COMMAND_F(give_energy, "give me some energy <float>", FCVAR_CHEAT)
+{
+	CHL2MP_Player *pPlayer = ToHL2MPPlayer(UTIL_GetCommandClient());
+	if (!pPlayer)
+		return;
+	float energy = 1.0f;
+	if (args.ArgC() > 1)
+		energy = atof(args[1]);
+	pPlayer->SuitPower_Charge(energy, true);
 }
 
 CON_COMMAND_F(location, "print current location", FCVAR_CHEAT)
