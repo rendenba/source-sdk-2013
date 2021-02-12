@@ -532,10 +532,13 @@ void CHL2_Player::CancelDeferredAction(bool bPlaySound)
 	}
 	else if (m_HL2Local.covenAction < COVEN_ACTION_ABILITIES)
 	{
-		if (bPlaySound)
-			EmitLocalSound("Coven.Deny");
 		CovenAbility_t iAbility = CovenAbility_t(m_HL2Local.covenAction - COVEN_ACTION_ITEMS);
 		CovenAbilityInfo_t *info = GetCovenAbilityData(iAbility);
+		if (bPlaySound)
+		{
+			StopSound(info->aSounds[COVEN_SND_CAST]);
+			EmitLocalSound("Coven.Deny");
+		}
 		int iAbilityNum = AbilityKey(iAbility);
 		SetCooldown(iAbilityNum, info->flCooldown);
 	}
@@ -576,6 +579,8 @@ bool CHL2_Player::PerformDeferredAction(CovenDeferredAction_t iAction)
 	{
 		unsigned int iKey = 0;
 		CovenAbility_t iAbility = CovenAbility_t(iTranslatedAction - COVEN_ACTION_ITEMS);
+		CovenAbilityInfo_t *info = GetCovenAbilityData(iAbility);
+		StopSound(info->aSounds[COVEN_SND_CAST]);
 		int iAbilityNum = AbilityKey(iAbility, &iKey);
 		DoAbility(iAbilityNum, iAbility, iKey);
 	}

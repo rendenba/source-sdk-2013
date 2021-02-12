@@ -508,7 +508,7 @@ static const char *sTeamNames[] =
 	"Vampires",
 };
 
-#define COVEN_MAX_HOLYWATER 10.0f
+#define COVEN_MAX_HOLYWATER 8.0f
 #define COVEN_MAX_LEVEL 12
 #define COVEN_MIN_CLOAK_WALK 0.07f
 #define COVEN_MIN_CLOAK_CROUCH 0.01f

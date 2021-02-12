@@ -27,7 +27,8 @@ const char *pCovenSoundCategories[NUM_COVEN_SOUND_TYPES] =
 {
 	"start",
 	"stop",
-	"hit"
+	"hit",
+	"cast"
 };
 
 //BB: this must be in the same order as shareddefs

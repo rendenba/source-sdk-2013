@@ -9,15 +9,17 @@
 #define MAX_COVEN_STRING	80
 #define COVEN_PRINTNAME_MISSING "!!! Missing Coven printname!"
 
-#define EFFECT_FLAG_MAG_AS_TIMER	(1 << 0)	//shows the timer wipe regardless of timer enabled
-#define EFFECT_FLAG_SPLIT_DEF		(1 << 1)	//split buff (diff name and icon for diff teams)
+#define EFFECT_FLAG_MAG_AS_TIMER	(1 << 0)	// shows the timer wipe regardless of timer enabled
+#define EFFECT_FLAG_SPLIT_DEF		(1 << 1)	// split buff (diff name and icon for diff teams)
+#define EFFECT_FLAG_NULL			(1 << 2)	// null effect. display nothing.
 
-#define ITEM_FLAG_MOVEMENT_CANCEL	(1 << 0)	//movement cancels the use of item
+#define ITEM_FLAG_MOVEMENT_CANCEL	(1 << 0)	// movement cancels the use of item
 
 typedef enum {
 	COVEN_SND_START,
 	COVEN_SND_STOP,
 	COVEN_SND_HIT,
+	COVEN_SND_CAST,
 
 	// Add new shoot sound types here
 

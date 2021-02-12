@@ -231,10 +231,13 @@ void CHudAuras::Paint()
 	for (int i = 0; i < COVEN_STATUS_COUNT; i++)
 	{
 		CovenStatus_t iStatus = (CovenStatus_t)i;
+		CovenStatusEffectInfo_t *info = GetCovenStatusEffectData(iStatus);
+		if ((info->iFlags & EFFECT_FLAG_NULL) > 0)
+			continue;
+
 		if (pPlayer->HasStatus(iStatus))
 		{
 			thiswidth = maxpicwidth;
-			CovenStatusEffectInfo_t *info = GetCovenStatusEffectData(iStatus);
 			Color blk(0, 0, 0, 250);
 			Color red(180, 0, 0, 250);
 			Color gray(120, 120, 120, 250);
