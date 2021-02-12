@@ -344,7 +344,7 @@ public:
 	bool IsInCooldown(int iAbilityNum);
 	void SetStatusTime(CovenStatus_t iStatusNum, float flTime);
 	float GetStatusTime(CovenStatus_t iStatusNum);
-	void SetStatusMagnitude(CovenStatus_t iStatusNum, int iMagnitude);
+	void SetStatusMagnitude(CovenStatus_t iStatusNum, int iMagnitude, bool bReset = true);
 	int GetStatusMagnitude(CovenStatus_t iStatusNum);
 	void AddStatus(CovenStatus_t iStatusNum, int iMagnitude = -1, float flTime = -1.0f, bool bSafeAdd = false, bool bCumulative = true);
 	void AddStatusMagDur(CovenStatus_t iStatusNum, int iAmount);
@@ -352,6 +352,9 @@ public:
 	inline bool HasStatus(CovenStatus_t iStatusNum) { return covenStatusEffects[iStatusNum]; };
 	bool HasHandledStatus(CovenStatus_t iStatusNum, int iMagnitude);
 	void HandleStatus(CovenStatus_t iStatusNum);
+	bool DecayStatus(CovenStatus_t iStatusNum);
+	float GetStatusDuration(CovenStatus_t iStatusNum);
+	int GetMaxStatusMagnitude(CovenStatus_t iStatusNum);
 	int AbilityKey(CovenAbility_t iAbility, unsigned int *key = NULL);
 	bool HasAbility(CovenAbility_t iAbility);
 	void ResetStats(void);
@@ -416,6 +419,8 @@ private:
 	CNetworkVarEmbedded( CHL2PlayerLocalData, m_HL2Local );
 	CNetworkVarEmbedded( CCovenBuilderLocalData, m_CovenBuilderLocal );
 	int					m_iHandledEffect[COVEN_STATUS_COUNT];
+	float				m_flStatusDuration[COVEN_STATUS_COUNT]; // max
+	float				m_iStatusMagnitude[COVEN_STATUS_COUNT]; // max
 
 	float				m_flTimeAllSuitDevicesOff;
 

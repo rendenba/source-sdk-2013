@@ -770,6 +770,17 @@ float CHL2_Player::GetStatusTime(CovenStatus_t iStatusNum)
 void CHL2_Player::SetStatusTime(CovenStatus_t iStatusNum, float flTime)
 {
 	m_HL2Local.covenStatusTimers.Set(iStatusNum, flTime);
+	m_flStatusDuration[iStatusNum] = flTime - gpGlobals->curtime;
+}
+
+float CHL2_Player::GetStatusDuration(CovenStatus_t iStatusNum)
+{
+	return m_flStatusDuration[iStatusNum];
+}
+
+int CHL2_Player::GetMaxStatusMagnitude(CovenStatus_t iStatusNum)
+{
+	return m_iStatusMagnitude[iStatusNum];
 }
 
 int CHL2_Player::GetStatusMagnitude(CovenStatus_t iStatusNum)
@@ -777,9 +788,22 @@ int CHL2_Player::GetStatusMagnitude(CovenStatus_t iStatusNum)
 	return m_HL2Local.covenStatusMagnitude.Get(iStatusNum);
 }
 
-void CHL2_Player::SetStatusMagnitude(CovenStatus_t iStatusNum, int iMagnitude)
+void CHL2_Player::SetStatusMagnitude(CovenStatus_t iStatusNum, int iMagnitude, bool bReset)
 {
 	m_HL2Local.covenStatusMagnitude.Set(iStatusNum, iMagnitude);
+	if (bReset)
+		m_iStatusMagnitude[iStatusNum] = iMagnitude;
+}
+
+bool CHL2_Player::DecayStatus(CovenStatus_t iStatusNum)
+{
+	int expectedmagnitude = GetMaxStatusMagnitude(iStatusNum) * (GetStatusTime(iStatusNum) - gpGlobals->curtime) / GetStatusDuration(iStatusNum);
+	if (expectedmagnitude < GetStatusMagnitude(iStatusNum))
+	{
+		SetStatusMagnitude(iStatusNum, expectedmagnitude, false);
+		return true;
+	}
+	return false;
 }
 
 void CHL2_Player::ResetCovenStatus()
@@ -794,6 +818,7 @@ void CHL2_Player::ResetCovenStatus()
 		covenStatusEffects.Set(i, false);
 	m_HL2Local.covenGCD = 0.0f;
 	Q_memset(m_iHandledEffect, 0, sizeof(m_iHandledEffect));
+	Q_memset(m_flStatusDuration, 0, sizeof(m_flStatusDuration));
 }
 
 
@@ -801,6 +826,8 @@ void CHL2_Player::SetCooldown(int iAbilityNum, float flDuration)
 {
 	if (HasStatus(COVEN_STATUS_HASTE))
 		flDuration *= 1.0f - 0.01f * GetStatusMagnitude(COVEN_STATUS_HASTE);
+	if (HasStatus(COVEN_STATUS_SLOW))
+		flDuration *= 1.0f + 0.01f * GetStatusMagnitude(COVEN_STATUS_SLOW);
 	m_HL2Local.covenCooldownTimers.Set(iAbilityNum, gpGlobals->curtime + flDuration);
 }
 
@@ -935,6 +962,7 @@ void CHL2_Player::RemoveStatus(CovenStatus_t iStatusNum)
 	SetStatusMagnitude(iStatusNum, 0);
 	SetStatusTime(iStatusNum, 0.0f);
 	m_iHandledEffect[iStatusNum] = 0;
+	m_flStatusDuration[iStatusNum] = 0.0f;
 }
 
 bool CHL2_Player::HasAbility(CovenAbility_t iAbility)
