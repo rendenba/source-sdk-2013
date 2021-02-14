@@ -925,10 +925,10 @@ bool CHL2MP_Player::DoAbility(int iAbilityNum, CovenAbility_t iAbility, unsigned
 			EmitLocalSound("Coven.Deny");
 		break;
 	case COVEN_ABILITY_INTIMIDATINGSHOUT:
-		DoRadiusAbility(COVEN_ABILITY_INTIMIDATINGSHOUT, iAbilityNum, 1, COVEN_STATUS_WEAKNESS, false);
+		DoRadiusAbility(COVEN_ABILITY_INTIMIDATINGSHOUT, iAbilityNum, 1, COVEN_STATUS_TERRIFIED, false);
 		return true;
 	case COVEN_ABILITY_DREADSCREAM:
-		DoRadiusAbility(COVEN_ABILITY_DREADSCREAM, iAbilityNum, 1, COVEN_STATUS_SLOW, false);
+		DoRadiusAbility(COVEN_ABILITY_DREADSCREAM, iAbilityNum, 1, COVEN_STATUS_TERRIFIED, false);
 		return true;
 	case COVEN_ABILITY_BLOODLUST:
 		DoRadiusAbility(COVEN_ABILITY_BLOODLUST, iAbilityNum, 1, COVEN_STATUS_BLOODLUST, true);
@@ -1117,7 +1117,7 @@ void CHL2MP_Player::DoLightwave(int iAbilityNum)
 					float factor = Hysteresis(dist / info->GetDataVariable(0), 0.2f);
 					dir.z = 0.0f;
 					pPlayer->Pushback(&dir, sv_coven_wave_bump.GetFloat() * factor, 250.0f * factor, false, false);
-					pPlayer->AddStatus(COVEN_STATUS_WEAKNESS, info->iMagnitude, gpGlobals->curtime + info->flDuration, true, false);
+					pPlayer->AddStatus(COVEN_STATUS_HOLYSICK, info->iMagnitude, gpGlobals->curtime + info->flDuration, true, false);
 					CTakeDamageInfo dmg(this, this, vec3_origin, GetAbsOrigin(), info->flCost * random->RandomFloat(info->GetDataVariable(1), info->GetDataVariable(2)) * factor, DMG_GENERIC, 0, &vecReported);
 					pPlayer->TakeDamage(dmg);
 				}
@@ -2575,7 +2575,7 @@ void CHL2MP_Player::PreThink( void )
 			}
 		}
 		PushbackThink();
-		EnergyHandler();
+		//EnergyHandler();
 		DodgeHandler();
 		StealthCalc();
 		GutcheckThink();
@@ -2588,12 +2588,9 @@ void CHL2MP_Player::PreThink( void )
 void CHL2MP_Player::DoVampirePreThink()
 {
 	VampireReSolidify();
-	if (covenClassID == COVEN_CLASSID_DEGEN)
-		VampireCheckRegen(0.8f);
-	else
-		VampireCheckRegen(0.5f);
+	VampireCheckRegen(0.5f);
 	VampireManageRagdoll();
-	VampireEnergyHandler();
+	//VampireEnergyHandler();
 }
 
 void CHL2MP_Player::CheckGore()
@@ -3509,144 +3506,151 @@ void CHL2MP_Player::DoStatusThink()
 	if (HasStatus(COVEN_STATUS_STUN))
 	{
 		if (gpGlobals->curtime > GetStatusTime(COVEN_STATUS_STUN))
-		{
 			RemoveStatus(COVEN_STATUS_STUN);
-			RemoveFlag(FL_FROZEN);
-		}
-		HandleStatus(COVEN_STATUS_STUN);
+		else
+			HandleStatus(COVEN_STATUS_STUN);
 	}
 
 	//SLOW (actual slow handled in ComputeSpeed in HL2Player)
 	if (HasStatus(COVEN_STATUS_SLOW))
 	{
 		if (gpGlobals->curtime > GetStatusTime(COVEN_STATUS_SLOW))
-		{
 			RemoveStatus(COVEN_STATUS_SLOW);
-			ComputeSpeed();
-		}
-		HandleStatus(COVEN_STATUS_SLOW);
+		else
+			HandleStatus(COVEN_STATUS_SLOW);
 	}
 
 	//WEAKNESS
 	if (HasStatus(COVEN_STATUS_WEAKNESS))
 	{
 		if (gpGlobals->curtime > GetStatusTime(COVEN_STATUS_WEAKNESS))
-		{
-			CovenClassInfo_t *classInfo = GetCovenClassData(covenClassID);
-			GiveStrength(classInfo->flStrength * GetStatusMagnitude(COVEN_STATUS_WEAKNESS) * 0.01f);
 			RemoveStatus(COVEN_STATUS_WEAKNESS);
-		}
-		HandleStatus(COVEN_STATUS_WEAKNESS);
+		else
+			HandleStatus(COVEN_STATUS_WEAKNESS);
 	}
 
 	//HASTE
 	if (HasStatus(COVEN_STATUS_HASTE))
 	{
 		if (gpGlobals->curtime > GetStatusTime(COVEN_STATUS_HASTE))
-		{
 			RemoveStatus(COVEN_STATUS_HASTE);
-			ComputeSpeed();
+		else
+			HandleStatus(COVEN_STATUS_HASTE);
+	}
+
+	//EXHAUSTION
+	if (HasStatus(COVEN_STATUS_EXHAUSTION))
+	{
+		if (gpGlobals->curtime > GetStatusTime(COVEN_STATUS_EXHAUSTION))
+			RemoveStatus(COVEN_STATUS_EXHAUSTION);
+		else
+		{
+			DecayStatus(COVEN_STATUS_EXHAUSTION);
+			HandleStatus(COVEN_STATUS_EXHAUSTION);
 		}
-		HandleStatus(COVEN_STATUS_HASTE);
+	}
+
+	//HOLYSICK
+	if (HasStatus(COVEN_STATUS_HOLYSICK))
+	{
+		coven_timer_regen = gpGlobals->curtime + 1.5f;
+		if (gpGlobals->curtime > GetStatusTime(COVEN_STATUS_HOLYSICK))
+			RemoveStatus(COVEN_STATUS_HOLYSICK);
+		else
+		{
+			DecayStatus(COVEN_STATUS_HOLYSICK);
+			HandleStatus(COVEN_STATUS_HOLYSICK);
+		}
+	}
+
+	//TERRIFIED
+	if (HasStatus(COVEN_STATUS_TERRIFIED))
+	{
+		if (gpGlobals->curtime > GetStatusTime(COVEN_STATUS_TERRIFIED))
+			RemoveStatus(COVEN_STATUS_TERRIFIED);
+		else
+		{
+			DecayStatus(COVEN_STATUS_TERRIFIED);
+			HandleStatus(COVEN_STATUS_TERRIFIED);
+		}
 	}
 
 	//BLOODLUST
 	if (HasStatus(COVEN_STATUS_BLOODLUST))
 	{
 		if (gpGlobals->curtime > GetStatusTime(COVEN_STATUS_BLOODLUST))
-		{
 			RemoveStatus(COVEN_STATUS_BLOODLUST);
-		}
 	}
 
 	//MASOCHISM
 	if (HasStatus(COVEN_STATUS_MASOCHIST))
 	{
-		CovenAbilityInfo_t *abilityInfo = GetCovenAbilityData(COVEN_ABILITY_MASOCHIST);
 		if (KO)
 		{
+			// "reset" the timer
+			CovenAbilityInfo_t *abilityInfo = GetCovenAbilityData(COVEN_ABILITY_MASOCHIST);
 			int iMasochist = GetStatusMagnitude(COVEN_STATUS_MASOCHIST);
 			AddStatus(COVEN_STATUS_MASOCHIST, iMasochist, gpGlobals->curtime + iMasochist * abilityInfo->GetDataVariable(3));
+			HandleStatus(COVEN_STATUS_MASOCHIST);
 		}
 		else
 		{
 			// special decaying status
 			if (gpGlobals->curtime > GetStatusTime(COVEN_STATUS_MASOCHIST))
-			{
 				RemoveStatus(COVEN_STATUS_MASOCHIST);
-				ResetVitals();
-				ComputeSpeed();
-			}
 			else
 			{
-				float timeleft = GetStatusTime(COVEN_STATUS_MASOCHIST) - gpGlobals->curtime + 1.0f * abilityInfo->GetDataVariable(3);
+				CovenAbilityInfo_t *abilityInfo = GetCovenAbilityData(COVEN_ABILITY_MASOCHIST);
+				float timeleft = GetStatusTime(COVEN_STATUS_MASOCHIST) - gpGlobals->curtime + abilityInfo->GetDataVariable(3);
 				int expectedmagnitude = timeleft / abilityInfo->GetDataVariable(3);
 				if (expectedmagnitude < GetStatusMagnitude(COVEN_STATUS_MASOCHIST))
-				{
 					SetStatusMagnitude(COVEN_STATUS_MASOCHIST, expectedmagnitude);
-					ResetVitals();
-					ComputeSpeed();
-				}
+				HandleStatus(COVEN_STATUS_MASOCHIST);
 			}
 		}
-		HandleStatus(COVEN_STATUS_MASOCHIST);
 	}
 
 	//NEW PHASE
 	if (HasStatus(COVEN_STATUS_PHASE))
 	{
 		if (gpGlobals->curtime > GetStatusTime(COVEN_STATUS_PHASE))
-		{
 			DoGorePhase(AbilityKey(COVEN_ABILITY_PHASE));
-		}
 	}
 
 	//BYELL (actual battleyell will be handled in takedamage)
 	if (HasStatus(COVEN_STATUS_BATTLEYELL))
 	{
 		if (gpGlobals->curtime > GetStatusTime(COVEN_STATUS_BATTLEYELL))
-		{
-			CovenClassInfo_t *classInfo = GetCovenClassData(covenClassID);
-			GiveStrength(-(GetStatusMagnitude(COVEN_STATUS_BATTLEYELL) * 0.01f * classInfo->flStrength));
 			RemoveStatus(COVEN_STATUS_BATTLEYELL);
-		}
-		HandleStatus(COVEN_STATUS_BATTLEYELL);
+		else
+			HandleStatus(COVEN_STATUS_BATTLEYELL);
 	}
 
 	//SHEERWILL
 	if (HasStatus(COVEN_STATUS_STATBOOST))
 	{
 		if (gpGlobals->curtime > GetStatusTime(COVEN_STATUS_STATBOOST))
-		{
-			RemoveStatBoost();
 			RemoveStatus(COVEN_STATUS_STATBOOST);
-		}
-		HandleStatus(COVEN_STATUS_STATBOOST);
+		else
+			HandleStatus(COVEN_STATUS_STATBOOST);
 	}
 
 	//BERSERK
 	if (HasStatus(COVEN_STATUS_BERSERK))
 	{
 		if (gpGlobals->curtime > GetStatusTime(COVEN_STATUS_BERSERK))
-		{
 			RemoveStatus(COVEN_STATUS_BERSERK);
-			ResetMaxHealth();
-			SetHealth(min(GetMaxHealth(), GetHealth()));
-		}
-		HandleStatus(COVEN_STATUS_BERSERK);
+		else
+			HandleStatus(COVEN_STATUS_BERSERK);
 	}
 
 	//ACTION
 	if (IsPerformingDeferredAction())
 	{
 		if (UseCancelAction() || (MovementCancelActionCheck() && (m_nButtons & (IN_FORWARD | IN_BACK | IN_MOVELEFT | IN_MOVERIGHT))) || DistanceCancelActionCheck())
-		{
 			CancelDeferredAction();
-		}
 		else if (DeferredActionComplete())
-		{
 			PerformDeferredAction();
-		}
 	}
 }
 
@@ -4763,7 +4767,7 @@ int CHL2MP_Player::OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo )
 	{
 		//STAT BOOST
 		if (HasStatus(COVEN_STATUS_STATBOOST))
-			RemoveStatBoost();
+			RemoveStatus(COVEN_STATUS_STATBOOST);
 
 		//UN-PHASE
 		if (gorephased)
@@ -4777,6 +4781,18 @@ int CHL2MP_Player::OnTakeDamage_Alive( const CTakeDamageInfo &inputInfo )
 		int iMasochist = 0;
 		if (HasStatus(COVEN_STATUS_MASOCHIST))
 			iMasochist = GetStatusMagnitude(COVEN_STATUS_MASOCHIST);
+
+		//TERRIFIED
+		if (HasStatus(COVEN_STATUS_TERRIFIED))
+			RemoveStatus(COVEN_STATUS_TERRIFIED);
+
+		//WEAKNESS
+		if (HasStatus(COVEN_STATUS_WEAKNESS))
+			RemoveStatus(COVEN_STATUS_WEAKNESS);
+
+		//HOLYSICK
+		if (HasStatus(COVEN_STATUS_HOLYSICK))
+			RemoveStatus(COVEN_STATUS_HOLYSICK);
 
 		ResetCovenStatus();
 
@@ -4925,12 +4941,12 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 		//Weakness Damage
 		if (inputInfoAdjust.GetSpecialDamage() & COVEN_DMG_WEAKNESS)
 		{
-			AddStatus(COVEN_STATUS_WEAKNESS, inputInfoAdjust.GetSpecialDamageMagnitude(), gpGlobals->curtime + inputInfoAdjust.GetSpecialDamageDuration(), true);
+			AddStatus(COVEN_STATUS_WEAKNESS, inputInfoAdjust.GetSpecialDamageMagnitude(), gpGlobals->curtime + inputInfoAdjust.GetSpecialDamageDuration(), true, false);
 		}
 		//Slow Damage
 		else if (inputInfoAdjust.GetSpecialDamage() & COVEN_DMG_SLOW)
 		{
-			AddStatus(COVEN_STATUS_SLOW, inputInfoAdjust.GetSpecialDamageMagnitude(), gpGlobals->curtime + inputInfoAdjust.GetSpecialDamageDuration(), true);
+			AddStatus(COVEN_STATUS_SLOW, inputInfoAdjust.GetSpecialDamageMagnitude(), gpGlobals->curtime + inputInfoAdjust.GetSpecialDamageDuration(), true, false);
 		}
 
 		//SIPHON DAMAGE

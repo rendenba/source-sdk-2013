@@ -143,6 +143,9 @@ bool CWeapon357::Reload(void)
 	if (pHL2MPPlayer->HasStatus(COVEN_STATUS_SLOW))
 		factor *= 1.0f + pHL2MPPlayer->GetStatusMagnitude(COVEN_STATUS_SLOW) * 0.01f;
 
+	if (pHL2MPPlayer->HasStatus(COVEN_STATUS_TERRIFIED))
+		factor *= 1.0f + pHL2MPPlayer->GetStatusMagnitude(COVEN_STATUS_TERRIFIED) * 0.01f;
+
 	m_flNextPrimaryAttack = gpGlobals->curtime + SequenceDuration() * factor;
 
 	m_bInReload = true;
@@ -200,6 +203,8 @@ void CWeapon357::PrimaryAttack( void )
 		m_flNextPrimaryAttack -= pHL2Player->GetStatusMagnitude(COVEN_STATUS_HASTE) * 0.0075f;
 	if (pHL2Player->HasStatus(COVEN_STATUS_SLOW))
 		m_flNextPrimaryAttack += pHL2Player->GetStatusMagnitude(COVEN_STATUS_SLOW) * 0.0075f;
+	if (pHL2Player->HasStatus(COVEN_STATUS_TERRIFIED))
+		m_flNextPrimaryAttack += pHL2Player->GetStatusMagnitude(COVEN_STATUS_TERRIFIED) * 0.0075f;
 
 	m_flNextSecondaryAttack = gpGlobals->curtime + 0.75;
 

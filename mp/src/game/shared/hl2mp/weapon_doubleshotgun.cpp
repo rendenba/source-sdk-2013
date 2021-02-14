@@ -173,6 +173,9 @@ float CWeaponDoubleShotgun::SequenceDuration(int iSequence)
 	if (pOwner && pOwner->HasStatus(COVEN_STATUS_SLOW))
 		factor *= 1.0f + 0.01f * pOwner->GetStatusMagnitude(COVEN_STATUS_SLOW);
 
+	if (pOwner && pOwner->HasStatus(COVEN_STATUS_TERRIFIED))
+		factor *= 1.0f + 0.01f * pOwner->GetStatusMagnitude(COVEN_STATUS_TERRIFIED);
+
 	return factor * BaseClass::SequenceDuration(iSequence);
 }
 
@@ -187,6 +190,9 @@ float CWeaponDoubleShotgun::SequenceDuration(void)
 
 	if (pOwner && pOwner->HasStatus(COVEN_STATUS_SLOW))
 		factor *= 1.0f + 0.01f * pOwner->GetStatusMagnitude(COVEN_STATUS_SLOW);
+
+	if (pOwner && pOwner->HasStatus(COVEN_STATUS_TERRIFIED))
+		factor *= 1.0f + 0.01f * pOwner->GetStatusMagnitude(COVEN_STATUS_TERRIFIED);
 
 	return factor * BaseClass::SequenceDuration();
 }

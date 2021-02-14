@@ -3881,7 +3881,7 @@ void CBasePlayer::HandleFuncTrain(void)
 	}
 }
 
-bool CBasePlayer::Stamina_Update()
+bool CBasePlayer::Stamina_Update(float flChargeFactor)
 {
 	if (IsSprinting())
 	{
@@ -3889,7 +3889,7 @@ bool CBasePlayer::Stamina_Update()
 	}
 	else if (m_Local.m_flStamina < MAX_STAMINA)
 	{
-		m_Local.m_flStamina = min(m_Local.m_flStamina + STAMINA_PER_SEC * gpGlobals->frametime, MAX_STAMINA);
+		m_Local.m_flStamina = min(m_Local.m_flStamina + STAMINA_PER_SEC * gpGlobals->frametime * flChargeFactor, MAX_STAMINA);
 	}
 
 	return m_Local.m_flStamina > 0.0f;

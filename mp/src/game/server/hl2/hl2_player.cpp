@@ -655,6 +655,12 @@ bool CHL2_Player::QueueDeferredAction(CovenDeferredAction_t iAction, bool bMoveC
 			factor -= 0.01f * GetStatusMagnitude(COVEN_STATUS_HASTE);
 		if (HasStatus(COVEN_STATUS_SLOW))
 			factor += 0.01f * GetStatusMagnitude(COVEN_STATUS_SLOW);
+		if (HasStatus(COVEN_STATUS_EXHAUSTION))
+			factor += 0.01f * GetStatusMagnitude(COVEN_STATUS_EXHAUSTION);
+		if (HasStatus(COVEN_STATUS_TERRIFIED))
+			factor += 0.01f * GetStatusMagnitude(COVEN_STATUS_TERRIFIED);
+		if (HasStatus(COVEN_STATUS_HOLYSICK))
+			factor += 0.01f * GetStatusMagnitude(COVEN_STATUS_HOLYSICK);
 		m_HL2Local.covenActionTimer = gpGlobals->curtime + factor * flDuration;
 		m_bMoveCancelAction = bMoveCancel;
 		m_bBlockUse = bSwallowUseKey;
@@ -797,7 +803,7 @@ void CHL2_Player::SetStatusMagnitude(CovenStatus_t iStatusNum, int iMagnitude, b
 
 bool CHL2_Player::DecayStatus(CovenStatus_t iStatusNum)
 {
-	int expectedmagnitude = GetMaxStatusMagnitude(iStatusNum) * (GetStatusTime(iStatusNum) - gpGlobals->curtime) / GetStatusDuration(iStatusNum);
+	int expectedmagnitude = ceil(GetMaxStatusMagnitude(iStatusNum) * (GetStatusTime(iStatusNum) - gpGlobals->curtime) / GetStatusDuration(iStatusNum));
 	if (expectedmagnitude < GetStatusMagnitude(iStatusNum))
 	{
 		SetStatusMagnitude(iStatusNum, expectedmagnitude, false);
@@ -828,6 +834,8 @@ void CHL2_Player::SetCooldown(int iAbilityNum, float flDuration)
 		flDuration *= 1.0f - 0.01f * GetStatusMagnitude(COVEN_STATUS_HASTE);
 	if (HasStatus(COVEN_STATUS_SLOW))
 		flDuration *= 1.0f + 0.01f * GetStatusMagnitude(COVEN_STATUS_SLOW);
+	if (HasStatus(COVEN_STATUS_HOLYSICK))
+		flDuration *= 1.0f + 0.01f * GetStatusMagnitude(COVEN_STATUS_HOLYSICK);
 	m_HL2Local.covenCooldownTimers.Set(iAbilityNum, gpGlobals->curtime + flDuration);
 }
 
@@ -888,12 +896,12 @@ void CHL2_Player::AddStatusMagDur(CovenStatus_t iStatusNum, int iAmount)
 
 bool CHL2_Player::HasHandledStatus(CovenStatus_t iStatusNum, int iMagnitude)
 {
-	return m_iHandledEffect[iStatusNum] >= iMagnitude;
+	return m_iHandledEffect[iStatusNum] != iMagnitude;
 }
 
 void CHL2_Player::HandleStatus(CovenStatus_t iStatusNum)
 {
-	if (!HasHandledStatus(iStatusNum, GetStatusMagnitude(iStatusNum)))
+	if (m_iHandledEffect[iStatusNum] < GetStatusMagnitude(iStatusNum))
 	{
 		switch (iStatusNum)
 		{
@@ -932,7 +940,7 @@ void CHL2_Player::HandleStatus(CovenStatus_t iStatusNum)
 			case COVEN_STATUS_WEAKNESS:
 			{
 				CovenClassInfo_t *classInfo = GetCovenClassData(covenClassID);
-				GiveStrength(-(classInfo->flStrength * (GetStatusMagnitude(iStatusNum) - m_iHandledEffect[iStatusNum]) * 0.01f));
+				GiveStrength(classInfo->flStrength * (m_iHandledEffect[iStatusNum] - GetStatusMagnitude(iStatusNum)) * 0.01f);
 				break;
 			}
 			case COVEN_STATUS_MASOCHIST:
@@ -941,6 +949,80 @@ void CHL2_Player::HandleStatus(CovenStatus_t iStatusNum)
 				ResetVitals();
 				break;
 			}
+			case COVEN_STATUS_HOLYSICK:
+			case COVEN_STATUS_TERRIFIED:
+			{
+				CovenClassInfo_t *classInfo = GetCovenClassData(covenClassID);
+				GiveStrength(classInfo->flStrength * (m_iHandledEffect[iStatusNum] - GetStatusMagnitude(iStatusNum)) * 0.01f);
+				ComputeSpeed();
+				break;
+			}
+			case COVEN_STATUS_EXHAUSTION:
+			case COVEN_STATUS_SLOW:
+			case COVEN_STATUS_HASTE:
+			{
+				ComputeSpeed();
+				break;
+			}
+			default:
+			{
+				break;
+			}
+		}
+		m_iHandledEffect[iStatusNum] = GetStatusMagnitude(iStatusNum);
+	}
+	else if (m_iHandledEffect[iStatusNum] > GetStatusMagnitude(iStatusNum))
+	{
+		switch (iStatusNum)
+		{
+			case COVEN_STATUS_STATBOOST:
+			{
+				CovenClassInfo_t *classInfo = GetCovenClassData(covenClassID);
+				float magnitude = (GetStatusMagnitude(iStatusNum) - m_iHandledEffect[iStatusNum]) * 0.01f;
+				GiveStrength(magnitude * classInfo->flStrength);
+				GiveConstitution(magnitude * classInfo->flConstitution, false);
+				GiveIntellect(magnitude * classInfo->flIntellect, false);
+				SuitPower_Charge(0.0f);
+				break;
+			}
+			case COVEN_STATUS_BERSERK:
+			{
+				ResetMaxHealth();
+				SetHealth(min(GetMaxHealth(), GetHealth()));
+				break;
+			}
+			case COVEN_STATUS_BATTLEYELL:
+			{
+				CovenClassInfo_t *classInfo = GetCovenClassData(covenClassID);
+				GiveStrength(classInfo->flStrength * (GetStatusMagnitude(iStatusNum) - m_iHandledEffect[iStatusNum]) * 0.01f);
+				break;
+			}
+			case COVEN_STATUS_STUN:
+			{
+				RemoveFlag(FL_FROZEN);
+				break;
+			}
+			case COVEN_STATUS_MASOCHIST:
+			{
+				ComputeSpeed();
+				ResetVitals();
+				break;
+			}
+			case COVEN_STATUS_HOLYSICK:
+			case COVEN_STATUS_TERRIFIED:
+			{
+				CovenClassInfo_t *classInfo = GetCovenClassData(covenClassID);
+				GiveStrength(classInfo->flStrength * (m_iHandledEffect[iStatusNum] - GetStatusMagnitude(iStatusNum)) * 0.01f);
+				ComputeSpeed();
+				break;
+			}
+			case COVEN_STATUS_WEAKNESS:
+			{
+				CovenClassInfo_t *classInfo = GetCovenClassData(covenClassID);
+				GiveStrength(classInfo->flStrength * (m_iHandledEffect[iStatusNum] - GetStatusMagnitude(iStatusNum)) * 0.01f);
+				break;
+			}
+			case COVEN_STATUS_EXHAUSTION:
 			case COVEN_STATUS_SLOW:
 			case COVEN_STATUS_HASTE:
 			{
@@ -956,12 +1038,18 @@ void CHL2_Player::HandleStatus(CovenStatus_t iStatusNum)
 	}
 }
 
+void CHL2_Player::ReHandleStatus(CovenStatus_t iStatusNum)
+{
+	m_iHandledEffect[iStatusNum] = 0;
+}
+
+//safely removes status effect
 void CHL2_Player::RemoveStatus(CovenStatus_t iStatusNum)
 {
-	covenStatusEffects.Set(iStatusNum, false);
 	SetStatusMagnitude(iStatusNum, 0);
+	HandleStatus(iStatusNum);
+	covenStatusEffects.Set(iStatusNum, false);
 	SetStatusTime(iStatusNum, 0.0f);
-	m_iHandledEffect[iStatusNum] = 0;
 	m_flStatusDuration[iStatusNum] = 0.0f;
 }
 
@@ -1068,6 +1156,8 @@ void CHL2_Player::TriggerGCD(void)
 		factor -= 0.01f * GetStatusMagnitude(COVEN_STATUS_HASTE);
 	if (HasStatus(COVEN_STATUS_SLOW))
 		factor += 0.01f * GetStatusMagnitude(COVEN_STATUS_SLOW);
+	if (HasStatus(COVEN_STATUS_HOLYSICK))
+		factor += 0.01f * GetStatusMagnitude(COVEN_STATUS_HOLYSICK);
 	m_HL2Local.covenGCD = gpGlobals->curtime + factor * GCD;
 }
 
@@ -1612,7 +1702,14 @@ void CHL2_Player::PreThink(void)
 
 	//BB: technically this is derived up at BasePlayer
 	BuildingMoveHandler();
-	if (!Stamina_Update())
+	float staminafactor = 1.0f;
+	if (HasStatus(COVEN_STATUS_HASTE))
+		staminafactor += 0.01f * GetStatusMagnitude(COVEN_STATUS_HASTE);
+	if (HasStatus(COVEN_STATUS_EXHAUSTION))
+		staminafactor -= 0.01f * GetStatusMagnitude(COVEN_STATUS_EXHAUSTION);
+	if (HasStatus(COVEN_STATUS_TERRIFIED))
+		staminafactor -= 0.01f * GetStatusMagnitude(COVEN_STATUS_TERRIFIED);
+	if (!Stamina_Update(staminafactor))
 	{
 		StopSprinting();
 	}
@@ -2165,6 +2262,15 @@ void CHL2_Player::ComputeSpeed( void )
 
 	if (HasStatus(COVEN_STATUS_SLOW))
 		factor -= GetStatusMagnitude(COVEN_STATUS_SLOW) * 0.01f;
+
+	if (HasStatus(COVEN_STATUS_EXHAUSTION))
+		factor -= GetStatusMagnitude(COVEN_STATUS_EXHAUSTION) * 0.01f; 
+
+	if (HasStatus(COVEN_STATUS_TERRIFIED))
+		factor -= GetStatusMagnitude(COVEN_STATUS_TERRIFIED) * 0.01f;
+
+	if (HasStatus(COVEN_STATUS_HOLYSICK))
+		factor -= GetStatusMagnitude(COVEN_STATUS_HOLYSICK) * 0.01f;
 
 	if (HasStatus(COVEN_STATUS_HASTE))
 		factor += 0.01f * GetStatusMagnitude(COVEN_STATUS_HASTE);

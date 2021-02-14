@@ -300,6 +300,12 @@ float CWeaponCrowbar::GetFireRate( void )
 	if (pOwner && pOwner->HasStatus(COVEN_STATUS_SLOW))
 		rate += 0.01f * CROWBAR_REFIRE * pOwner->GetStatusMagnitude(COVEN_STATUS_SLOW);
 
+	if (pOwner && pOwner->HasStatus(COVEN_STATUS_TERRIFIED))
+		rate += 0.01f * CROWBAR_REFIRE * pOwner->GetStatusMagnitude(COVEN_STATUS_TERRIFIED);
+
+	if (pOwner && pOwner->HasStatus(COVEN_STATUS_HOLYSICK))
+		rate += 0.01f * CROWBAR_REFIRE * pOwner->GetStatusMagnitude(COVEN_STATUS_HOLYSICK);
+
 	return rate;
 }
 

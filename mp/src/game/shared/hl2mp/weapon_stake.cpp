@@ -242,6 +242,9 @@ float CWeaponStake::GetFireRate( void )
 	if (pOwner && pOwner->HasStatus(COVEN_STATUS_SLOW))
 		rate += 0.01f * STAKE_REFIRE * pOwner->GetStatusMagnitude(COVEN_STATUS_SLOW);
 
+	if (pOwner && pOwner->HasStatus(COVEN_STATUS_TERRIFIED))
+		rate += 0.01f * STAKE_REFIRE * pOwner->GetStatusMagnitude(COVEN_STATUS_TERRIFIED);
+
 	return rate;
 }
 

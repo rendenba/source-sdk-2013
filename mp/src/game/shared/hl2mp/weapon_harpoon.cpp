@@ -675,6 +675,9 @@ bool CWeaponHarpoon::Reload( void )
 		if (pHL2MPPlayer->HasStatus(COVEN_STATUS_SLOW))
 			factor *= 1.0f + pHL2MPPlayer->GetStatusMagnitude(COVEN_STATUS_SLOW) * 0.01f;
 
+		if (pHL2MPPlayer->HasStatus(COVEN_STATUS_TERRIFIED))
+			factor *= 1.0f + pHL2MPPlayer->GetStatusMagnitude(COVEN_STATUS_TERRIFIED) * 0.01f;
+
 		m_flNextPrimaryAttack = gpGlobals->curtime + SequenceDuration() * factor;
 		pOwner->m_flNextAttack = m_flNextSecondaryAttack = gpGlobals->curtime + 0.1f;
 

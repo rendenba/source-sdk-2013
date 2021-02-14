@@ -323,7 +323,7 @@ public:
 
 	virtual void			PreThink( void );
 	virtual void			PostThink( void );
-	virtual bool			Stamina_Update();
+	virtual bool			Stamina_Update(float flChargeFactor = 1.0f);
 	virtual bool			IsSprinting(void) { return false; }
 	virtual int				TakeHealth( float flHealth, int bitsDamageType );
 	virtual void			TraceAttack( const CTakeDamageInfo &info, const Vector &vecDir, trace_t *ptr, CDmgAccumulator *pAccumulator );

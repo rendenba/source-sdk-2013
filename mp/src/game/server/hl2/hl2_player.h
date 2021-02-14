@@ -352,6 +352,7 @@ public:
 	inline bool HasStatus(CovenStatus_t iStatusNum) { return covenStatusEffects[iStatusNum]; };
 	bool HasHandledStatus(CovenStatus_t iStatusNum, int iMagnitude);
 	void HandleStatus(CovenStatus_t iStatusNum);
+	void ReHandleStatus(CovenStatus_t iStatusNum);
 	bool DecayStatus(CovenStatus_t iStatusNum);
 	float GetStatusDuration(CovenStatus_t iStatusNum);
 	int GetMaxStatusMagnitude(CovenStatus_t iStatusNum);

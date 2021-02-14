@@ -1068,13 +1068,24 @@ void CBaseCombatWeapon::SetActivity( Activity act, float duration )
 		else
 		{
 			CHL2MP_Player *pHL2MPOwner = ToHL2MPPlayer(GetOwner());
+
 			if (pHL2MPOwner == NULL)
 				return;
+
 			float rate = 1.0f;
+
 			if (pHL2MPOwner->HasStatus(COVEN_STATUS_HASTE))
 				rate += (pHL2MPOwner->GetStatusMagnitude(COVEN_STATUS_HASTE) * 0.01f);
+
 			if (pHL2MPOwner->HasStatus(COVEN_STATUS_SLOW))
 				rate -= (pHL2MPOwner->GetStatusMagnitude(COVEN_STATUS_SLOW) * 0.01f);
+
+			if (pHL2MPOwner->HasStatus(COVEN_STATUS_TERRIFIED))
+				rate -= (pHL2MPOwner->GetStatusMagnitude(COVEN_STATUS_TERRIFIED) * 0.01f);
+
+			if (pHL2MPOwner->HasStatus(COVEN_STATUS_HOLYSICK))
+				rate -= (pHL2MPOwner->GetStatusMagnitude(COVEN_STATUS_HOLYSICK) * 0.01f);
+
 			m_flPlaybackRate = rate;
 		}
 	}
