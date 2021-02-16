@@ -246,11 +246,14 @@ public:
 	int						iCarry;
 	float					flMaximum;								// some sort of maximum effect
 	char					aSounds[NUM_COVEN_SOUND_TYPES][MAX_COVEN_STRING];
+	float					GetDataVariable(int iNum);
 	// CLIENT DLL
 	// Sprite data, read from the data file
 	CHudTexture				*hudIcon;
 	CHudTexture				*hudIconOff;
 	// SERVER DLL
+private:
+	CUtlVector<float>		flDataVariables;
 };
 
 class CovenSupplyDepotInfo_t

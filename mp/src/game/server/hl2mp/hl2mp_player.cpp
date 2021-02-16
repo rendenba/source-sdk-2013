@@ -4854,12 +4854,13 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 	//BB: DO HOLY WATER DAMAGE DETECT
 	if ((inputInfo.GetSpecialDamage() & COVEN_DMG_HOLY) && IsAlive() && !KO)
 	{
+		CovenItemInfo_t *itemInfo = GetCovenItemData(COVEN_ITEM_HOLYWATER);
 		//do holy stuff...
 		inputInfoAdjust.SetDamage(0.0f);
 		if (GetTeamNumber() == COVEN_TEAMID_SLAYERS)
 		{
 			//startup the healing aura...
-			AddStatusMagDur(COVEN_STATUS_HOLYWATER, inputInfo.GetDamage());
+			AddStatusMagDur(COVEN_STATUS_HOLYWATER, inputInfo.GetDamage() * itemInfo->GetDataVariable(1));
 			coven_timer_holywater = gpGlobals->curtime + 1.0f;
 			//insta heal component
 			//TakeHealth(inputInfo.GetDamage()/5.0f*20.0f, DMG_GENERIC);
@@ -4874,7 +4875,7 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 				if (m_pFlame)
 				{
 					m_pFlame->creator = (CBasePlayer *)inputInfo.GetInflictor();
-					float lifetime = max(inputInfo.GetDamage() * 0.67f, 1.0f);
+					float lifetime = max(inputInfo.GetDamage() * 0.67f * itemInfo->GetDataVariable(0), 1.0f);
 					if (lifetime > COVEN_MAX_HOLYWATER)
 					{
 						m_pFlame->flDamageFactor = lifetime / COVEN_MAX_HOLYWATER;
@@ -4889,7 +4890,7 @@ int CHL2MP_Player::OnTakeDamage( const CTakeDamageInfo &inputInfo )
 			}
 			else
 			{
-				float lifetime = m_pFlame->SupplementDamage(inputInfo.GetDamage());
+				float lifetime = m_pFlame->SupplementDamage(inputInfo.GetDamage() * itemInfo->GetDataVariable(0));
 				AddStatus(COVEN_STATUS_HOLYWATER, m_pFlame->flDamageFactor * 10.0f, gpGlobals->curtime + lifetime);
 			}
 		}

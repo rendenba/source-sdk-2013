@@ -569,6 +569,13 @@ void CovenBuildingInfo_t::Parse(KeyValues *pKeyValuesData)
 	}
 }
 
+float CovenItemInfo_t::GetDataVariable(int iNum)
+{
+	if (iNum < flDataVariables.Count())
+		return flDataVariables[iNum];
+	return 0.0f;
+}
+
 void CovenItemInfo_t::Parse(KeyValues *pKeyValuesData)
 {
 	// Okay, we tried at least once to look this up...
@@ -583,6 +590,14 @@ void CovenItemInfo_t::Parse(KeyValues *pKeyValuesData)
 	flUseTime = pKeyValuesData->GetFloat("usetime");
 	flMaximum = pKeyValuesData->GetFloat("maximum");
 	iCarry = pKeyValuesData->GetInt("maxcarry", 1);
+	KeyValues *pVariables = pKeyValuesData->FindKey("variables");
+	if (pVariables)
+	{
+		for (KeyValues *sub = pVariables->GetFirstSubKey(); sub != NULL; sub = sub->GetNextKey())
+		{
+			flDataVariables.AddToTail(sub->GetFloat());
+		}
+	}
 
 	// LAME old way to specify item flags.
 	// Weapon scripts should use the flag names.
