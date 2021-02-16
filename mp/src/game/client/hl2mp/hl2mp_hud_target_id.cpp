@@ -56,6 +56,22 @@ private:
 	byte			m_GlowColor;
 	float			m_flGlowTimer;
 	float			m_flLastChangeTime;
+	CPanelAnimationVarAliasType(float, m_flIconSize, "icon_size", "16.0", "proportional_float");
+	CPanelAnimationVarAliasType(float, m_flIconPadding, "icon_padding", "2.0", "proportional_float");
+
+	CPanelAnimationVar(Color, m_AuxPowerColor, "AuxPowerColor", "255 255 255 255");
+	CPanelAnimationVar(Color, m_AuxPowerColorShadow, "AuxPowerColorShadow", "0 0 0 150");
+
+	CPanelAnimationVarAliasType(float, m_flBarInsetX, "BarInsetX", "2.0", "proportional_float");
+	CPanelAnimationVarAliasType(float, m_flBarHeight, "BarHeight", "5.0", "proportional_float");
+	CPanelAnimationVarAliasType(float, m_flBarWidth, "BarWidth", "175.0", "proportional_float");
+
+	CPanelAnimationVar(vgui::HFont, m_hTextFont, "TextFont", "CovenHUDBold");
+
+	int m_nGlassTex[2];
+	int m_nBlipTex;
+	int m_nBlipLeft;
+	int m_nBlipRight;
 };
 
 DECLARE_HUDELEMENT( CTargetID );
@@ -81,6 +97,21 @@ CTargetID::CTargetID( const char *pElementName ) :
 	m_flGlowTimer = 0.0f;
 
 	SetHiddenBits( HIDEHUD_MISCSTATUS );
+
+	m_nGlassTex[0] = surface()->CreateNewTextureID();
+	surface()->DrawSetTextureFile(m_nGlassTex[0], "hud/bars/s_glass_empty_big", true, true);
+
+	m_nGlassTex[1] = surface()->CreateNewTextureID();
+	surface()->DrawSetTextureFile(m_nGlassTex[1], "hud/bars/v_glass_empty_big", true, true);
+
+	m_nBlipTex = surface()->CreateNewTextureID();
+	surface()->DrawSetTextureFile(m_nBlipTex, "hud/bars/glass_h", true, true);
+
+	m_nBlipRight = surface()->CreateNewTextureID();
+	surface()->DrawSetTextureFile(m_nBlipRight, "hud/bars/glass_h_r", true, true);
+
+	m_nBlipLeft = surface()->CreateNewTextureID();
+	surface()->DrawSetTextureFile(m_nBlipLeft, "hud/bars/glass_h_l", true, true);
 }
 
 //-----------------------------------------------------------------------------
@@ -97,7 +128,7 @@ void CTargetID::ApplySchemeSettings( vgui::IScheme *scheme )
 	m_hFont = scheme->GetFont( "TargetID", IsProportional() );
 	m_hFontSmall = scheme->GetFont( "TargetIDSmall", IsProportional() );
 
-	SetPaintBackgroundEnabled( false );
+	SetPaintBackgroundEnabled( true );
 }
 
 //-----------------------------------------------------------------------------
@@ -327,7 +358,7 @@ void CTargetID::Paint()
 
 			if( hud_centerid.GetInt() == 0 )
 			{
-				ypos = YRES(420);
+				ypos = YRES(422);
 			}
 			else
 			{
@@ -343,10 +374,97 @@ void CTargetID::Paint()
 			{
 				vgui::surface()->DrawSetTextFont(m_hFontSmall);
 				vgui::surface()->GetTextSize(m_hFontSmall, sIDString_line2, wide, tall);
-				xpos = (ScreenWidth() - wide) / 2;
-				vgui::surface()->DrawSetTextPos(xpos, ypos);
-				vgui::surface()->DrawPrintText(sIDString_line2, wcslen(sIDString_line2));
+				if (bShowHealth)
+				{
+					tall += m_flBarHeight;
+					xpos = (ScreenWidth() - m_flBarWidth) / 2;
+					int end_y = ypos + tall;
+					float maxbar = m_flBarWidth - 2.0f * m_flBarInsetX;
+					float mid = maxbar / 2.0f;
+					float midadj = mid + m_flBarWidth * 0.01f;
+					mid += m_flBarInsetX;
+					float ratio = (float)pPlayer->GetHealth() / pPlayer->GetMaxHealth();
+					float inset = (1.0f - ratio) * midadj;
+					float start = m_flBarInsetX + inset;
+
+					int team = pPlayer->GetTeamNumber() - 2;
+
+					surface()->DrawSetColor(m_AuxPowerColor);
+					surface()->DrawSetTexture(m_nGlassTex[team]);
+					surface()->DrawTexturedRect(xpos, ypos, xpos + m_flBarWidth, end_y);
+					if (inset > 0.0f)
+					{
+						float tstart = start;
+						if (start > mid)
+							tstart = mid;
+						if (inset > 16.0f)
+							inset = 16.0f;
+						surface()->DrawSetTexture(m_nBlipLeft);
+						surface()->DrawTexturedRect(xpos + start - inset, ypos, xpos + tstart, end_y);
+					}
+					float end_x = mid + mid - start;
+					surface()->DrawSetTexture(m_nBlipTex);
+					surface()->DrawTexturedRect(xpos + start, ypos, xpos + end_x, end_y);
+					if (inset > 0.0f)
+					{
+						float tend = end_x;
+						if (start > mid)
+							tend = mid;
+						surface()->DrawSetTexture(m_nBlipRight);
+						surface()->DrawTexturedRect(xpos + tend, ypos, xpos + end_x + inset, end_y);
+					}
+					float halfBarHeight = m_flBarHeight / 2.0f;
+					ypos += halfBarHeight;
+					xpos = (ScreenWidth() - wide) / 2;
+					vgui::surface()->DrawSetTextPos(xpos - 1, ypos + 1);
+					vgui::surface()->DrawSetTextColor(m_AuxPowerColorShadow);
+					vgui::surface()->DrawPrintText(sIDString_line2, wcslen(sIDString_line2));
+					vgui::surface()->DrawSetTextPos(xpos + 1, ypos - 1);
+					vgui::surface()->DrawSetTextColor(m_AuxPowerColor);
+					vgui::surface()->DrawPrintText(sIDString_line2, wcslen(sIDString_line2));
+					ypos += halfBarHeight;
+				}
+				else
+				{
+					vgui::surface()->DrawSetTextFont(m_hFontSmall);
+					vgui::surface()->GetTextSize(m_hFontSmall, sIDString_line2, wide, tall);
+					xpos = (ScreenWidth() - wide) / 2;
+					vgui::surface()->DrawSetTextPos(xpos, ypos);
+					vgui::surface()->DrawPrintText(sIDString_line2, wcslen(sIDString_line2));
+				}
 				ypos += tall;
+			}
+			if (bShowHealth)
+			{
+				ypos += m_flIconPadding;
+				int statusCount = 0;
+				for (int i = 0; i < COVEN_STATUS_COUNT; i++)
+				{
+					if (pPlayer->HasStatus((CovenStatus_t)i))
+					{
+						statusCount++;
+					}
+				}
+				xpos = (ScreenWidth() - statusCount * (m_flIconSize + m_flIconPadding)) / 2;
+				for (int i = 0; i < COVEN_STATUS_COUNT; i++)
+				{
+					CovenStatus_t iStatus = (CovenStatus_t)i;
+					if (pPlayer->HasStatus(iStatus))
+					{
+						CovenStatusEffectInfo_t *info = GetCovenStatusEffectData(iStatus);
+						if ((info->iFlags & EFFECT_FLAG_SPLIT_DEF) > 0)
+						{
+							if (pPlayer->GetTeamNumber() == COVEN_TEAMID_SLAYERS)
+								vgui::surface()->DrawSetTexture(info->statusIcon->textureId);
+							else
+								vgui::surface()->DrawSetTexture(info->altStatusIcon->textureId);
+						}
+						else
+							vgui::surface()->DrawSetTexture(info->statusIcon->textureId);
+						vgui::surface()->DrawTexturedRect(xpos, ypos, xpos + m_flIconSize, ypos + m_flIconSize);
+						xpos += m_flIconSize + m_flIconPadding;
+					}
+				}
 			}
 			if (sIDString_line3[0])
 			{
