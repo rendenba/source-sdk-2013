@@ -4434,8 +4434,11 @@ CON_COMMAND_F(printstats, "print player vitals", FCVAR_CHEAT)
 
 CON_COMMAND_F(test, "test", FCVAR_CHEAT)
 {
-	Vector	vForward;
+	CHL2MP_Player *pPlayer = ToHL2MPPlayer(UTIL_GetCommandClient());
+	if (!pPlayer)
+		return;
 	QAngle angle = pPlayer->EyeAngles();
+	Vector	vForward;
 	angle.x = 0;
 	angle.z = 0;
 	AngleVectors(angle, &vForward);
