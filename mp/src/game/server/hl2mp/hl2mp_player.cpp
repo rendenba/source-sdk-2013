@@ -1191,6 +1191,14 @@ void CHL2MP_Player::DoInnerLight(int iAbilityNum)
 
 	CBroadcastRecipientFilter filter2;
 
+	//te->GaussExplosion(filter2, 0, GetPlayerMidPoint(), Vector(0, 0, 1), 0);
+	//te->Dust(filter2, 0, GetAbsOrigin(), Vector(0, 0, 0), 192.0f, 32.0f);
+	//lifetime, 
+	//te->LargeFunnel(filter2, 0, &GetAbsOrigin(), 0, 1, 5.0f);
+	//Vector temp(0, 0, 1);
+	//Vector temp2 = GetAbsOrigin();
+	//te->EnergySplash(filter2, 0, &temp2, &temp, true, 8.0f);
+
 	te->BeamRingPoint(filter2, 0, GetAbsOrigin(),	//origin
 		50,	//start radius
 		1024,		//end radius
@@ -1239,6 +1247,10 @@ void CHL2MP_Player::BloodExplode(int iAbilityNum)
 		magnitude = SuitPower_GetCurrentPercentage();
 	SetCooldown(iAbilityNum, abilityInfo->flCooldown);
 	SuitPower_Drain(magnitude);
+
+	/*CDisablePredictionFiltering disabler;
+	CBroadcastRecipientFilter filter2;
+	te->Burst(filter2, 0, &GetAbsOrigin(), { 255, 64, 64, 255 }, COVEN_BURST_TYPE_DISC, this);*/
 
 	float m_DmgRadius = 51.2f;
 	trace_t		pTrace;
@@ -4408,6 +4420,15 @@ void CHL2MP_Player::CleanUpGrapplingHook(void)
 		pCovenRope->SetNextThink(gpGlobals->curtime + 5.0f);
 		pCovenRope = NULL;
 	}
+}
+
+CON_COMMAND_F(printstats, "print player vitals", FCVAR_CHEAT)
+{
+	CHL2MP_Player *pPlayer = ToHL2MPPlayer(UTIL_GetCommandClient());
+	if (!pPlayer)
+		return;
+
+	Msg("str: %f int: %f con: %f\n", pPlayer->GetStrength(), pPlayer->GetIntellect(), pPlayer->GetConstitution());
 }
 
 CON_COMMAND_F(testprobe, "test probe", FCVAR_CHEAT)
