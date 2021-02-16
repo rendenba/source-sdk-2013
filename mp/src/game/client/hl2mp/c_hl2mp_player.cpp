@@ -97,7 +97,7 @@ void C_HL2MP_Player::UpdateIDTarget()
 
 	trace_t tr;
 	Vector vecStart, vecEnd;
-	VectorMA( MainViewOrigin(), 1500, MainViewForward(), vecEnd );
+	VectorMA( MainViewOrigin(), 3000, MainViewForward(), vecEnd );
 	VectorMA( MainViewOrigin(), 10,   MainViewForward(), vecStart );
 	UTIL_TraceLine( vecStart, vecEnd, MASK_SOLID, this, COLLISION_GROUP_NONE, &tr );
 
@@ -107,7 +107,14 @@ void C_HL2MP_Player::UpdateIDTarget()
 
 		if ( pEntity && (pEntity != this) )
 		{
-			m_iIDEntIndex = pEntity->entindex();
+			if (tr.fraction <= 0.5f)
+				m_iIDEntIndex = pEntity->entindex();
+			else
+			{
+				CBaseAnimating *pEnt = dynamic_cast<CBaseAnimating *>(pEntity);
+				if (pEnt && pEnt->IsServerdoll())
+					m_iIDEntIndex = pEntity->entindex();
+			}
 		}
 	}
 }
