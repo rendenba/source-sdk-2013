@@ -2321,7 +2321,7 @@ void CHL2MPRules::DeathNotice( CBasePlayer *pVictim, const CTakeDamageInfo &info
 				}
 			}
 		}
-		else
+		else if (pInflictor)
 		{
 			killer_weapon_name = pInflictor->GetClassname();
 		}

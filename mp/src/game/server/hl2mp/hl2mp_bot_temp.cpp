@@ -1806,7 +1806,7 @@ unsigned int Bot_Ability_Think(CHL2MP_Player *pBot, unsigned int &buttons)
 				if (pEnemy && pEnemy->IsPlayer() && pEnemy->IsAlive() && !pEnemy->KO)
 				{
 					buttons &= CLEAR_ABILITY_KEYS;
-					buttons &= ~IN_ATTACK;
+					buttons &= ~(IN_ATTACK | IN_ATTACK2 | IN_RELOAD);
 					buttons |= key;
 				}
 			}

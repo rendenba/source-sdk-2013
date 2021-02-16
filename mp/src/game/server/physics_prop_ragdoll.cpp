@@ -1191,7 +1191,7 @@ void CRagdollProp::UpdateNetworkDataFromVPhysics( IPhysicsObject *pPhysics, int 
 	// move/relink if root moved
 	if ( index == 0 )
 	{
-		SetAbsOrigin( m_ragPos[0] );
+		SetAbsOrigin( vPos );
 		PhysicsTouchTriggers();
 	}
 }
