@@ -33,6 +33,7 @@
 #include "weapon_frag.h"
 #include "ammodef.h"
 #include "covenlib.h"
+#include "smoke_trail.h"
 
 #include "grenade_tripmine.h"
 #include "coven_apc.h"
@@ -4429,6 +4430,58 @@ CON_COMMAND_F(printstats, "print player vitals", FCVAR_CHEAT)
 		return;
 
 	Msg("str: %f int: %f con: %f\n", pPlayer->GetStrength(), pPlayer->GetIntellect(), pPlayer->GetConstitution());
+}
+
+CON_COMMAND_F(test, "test", FCVAR_CHEAT)
+{
+	Vector	vForward;
+	QAngle angle = pPlayer->EyeAngles();
+	angle.x = 0;
+	angle.z = 0;
+	AngleVectors(angle, &vForward);
+	Vector vecSrc = pPlayer->EyePosition() + vForward * 55.0f;
+	trace_t tr;
+	UTIL_TraceLine(pPlayer->EyePosition(), vecSrc, MASK_PLAYERSOLID, pPlayer, COLLISION_GROUP_PLAYER_MOVEMENT, &tr);
+	if (tr.DidHit())
+		return;
+
+	CBaseEntity *ent;
+	ent = CreateEntityByName("coven_turret");
+	UTIL_TraceLine(vecSrc, vecSrc - Vector(0, 0, 72), MASK_SHOT, pPlayer, COLLISION_GROUP_NONE, &tr);
+	vecSrc.z = tr.endpos.z + 2.0f;
+	((CCoven_Turret *)ent)->mOwner = NULL;
+	((CCoven_Turret *)ent)->ChangeTeam(COVEN_TEAMID_SLAYERS);
+	ent->AddSpawnFlags(SF_NORESPAWN);
+	DispatchSpawn(ent);
+	ent->Teleport(&vecSrc, &angle, NULL);
+	UTIL_DropToFloor(ent, MASK_NPCSOLID);
+	ent->Activate();
+	((CCoven_Turret *)ent)->AdjustControllerAxis();
+	((CCoven_Turret *)ent)->m_iXP += 200;
+	((CCoven_Turret *)ent)->CheckLevel();
+	((CCoven_Turret *)ent)->m_iXP += 200;
+	((CCoven_Turret *)ent)->CheckLevel();
+
+	/*CHandle< SmokeTrail > m_hSmokeTrail;
+	CPASFilter filter(pPlayer->GetAbsOrigin());
+	m_hSmokeTrail = SmokeTrail::CreateSmokeTrail();
+	if( m_hSmokeTrail )
+	{
+		m_hSmokeTrail->m_SpawnRate = 64;
+		m_hSmokeTrail->m_ParticleLifetime = 5.5f;
+		m_hSmokeTrail->m_StartColor.Init(0.4f, 0.3f, 0.4f);
+		m_hSmokeTrail->m_EndColor.Init(0.8f,0.8f,0.8f);
+		m_hSmokeTrail->m_StartSize = 128;
+		m_hSmokeTrail->m_EndSize = m_hSmokeTrail->m_StartSize * 5;
+		m_hSmokeTrail->m_SpawnRadius = 256;
+		m_hSmokeTrail->m_MinSpeed = 24;
+		m_hSmokeTrail->m_MaxSpeed = 56;
+		m_hSmokeTrail->m_Opacity = 0.90f;
+
+		m_hSmokeTrail->SetLifetime(12.0f);
+		m_hSmokeTrail->SetAbsOrigin(pPlayer->GetAbsOrigin());
+		//m_hSmokeTrail->FollowEntity(pPlayer);
+	}*/
 }
 
 CON_COMMAND_F(testprobe, "test probe", FCVAR_CHEAT)
